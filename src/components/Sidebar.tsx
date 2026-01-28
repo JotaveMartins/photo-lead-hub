@@ -8,6 +8,7 @@ import {
   LogOut
 } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SidebarProps {
   activeItem: string;
@@ -17,12 +18,14 @@ interface SidebarProps {
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'leads', label: 'Leads', icon: Users },
-  { id: 'calendar', label: 'Agenda', icon: Calendar },
-  { id: 'messages', label: 'Mensagens', icon: MessageSquare },
-  { id: 'analytics', label: 'Relatórios', icon: TrendingUp },
+  { id: 'agenda', label: 'Agenda', icon: Calendar },
+  { id: 'mensagens', label: 'Mensagens', icon: MessageSquare },
+  { id: 'relatorios', label: 'Relatórios', icon: TrendingUp },
 ];
 
 const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
+  const { signOut } = useAuth();
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Logo */}
@@ -67,20 +70,7 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
       {/* Bottom Section */}
       <div className="p-4 border-t border-sidebar-border space-y-1">
         <button
-          onClick={() => onItemClick('settings')}
-          className={`
-            w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
-            transition-all duration-200 group
-            ${activeItem === 'settings' 
-              ? 'bg-primary text-primary-foreground' 
-              : 'text-sidebar-foreground hover:bg-sidebar-accent'
-            }
-          `}
-        >
-          <Settings className="w-5 h-5" />
-          Configurações
-        </button>
-        <button
+          onClick={signOut}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
             text-muted-foreground hover:text-destructive hover:bg-destructive/10
             transition-all duration-200"
