@@ -1,8 +1,15 @@
-import { Bell, Plus, Search } from "lucide-react";
+import { Bell, Plus, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
 
-const DashboardHeader = () => {
+interface DashboardHeaderProps {
+  onNewLead?: () => void;
+}
+
+const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
+  const { signOut } = useAuth();
+  
   const currentDate = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
     year: 'numeric',
@@ -33,9 +40,16 @@ const DashboardHeader = () => {
           <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
         </Button>
         
-        <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow">
+        <Button 
+          onClick={onNewLead}
+          className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
+        >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Novo Lead</span>
+        </Button>
+
+        <Button variant="ghost" size="icon" onClick={signOut} title="Sair">
+          <LogOut className="w-5 h-5" />
         </Button>
       </div>
     </header>
