@@ -14,7 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          created_at: string
+          data_evento: string
+          descricao: string | null
+          id: string
+          lead_id: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_evento: string
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          tipo?: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_evento?: string
+          descricao?: string | null
+          id?: string
+          lead_id?: string | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          created_at: string
+          data_evento: string | null
+          data_fechamento: string | null
+          data_pedido: string | null
+          data_proposta: string | null
+          follow_up_1: string | null
+          follow_up_2: string | null
+          follow_up_3: string | null
+          id: string
+          interesse: string | null
+          motivo_perda: string | null
+          nome: string
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+          user_id: string
+          valor: number | null
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string
+          data_evento?: string | null
+          data_fechamento?: string | null
+          data_pedido?: string | null
+          data_proposta?: string | null
+          follow_up_1?: string | null
+          follow_up_2?: string | null
+          follow_up_3?: string | null
+          id?: string
+          interesse?: string | null
+          motivo_perda?: string | null
+          nome: string
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+          user_id: string
+          valor?: number | null
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string
+          data_evento?: string | null
+          data_fechamento?: string | null
+          data_pedido?: string | null
+          data_proposta?: string | null
+          follow_up_1?: string | null
+          follow_up_2?: string | null
+          follow_up_3?: string | null
+          id?: string
+          interesse?: string | null
+          motivo_perda?: string | null
+          nome?: string
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+          user_id?: string
+          valor?: number | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          direction: string
+          id: string
+          lead_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          nome: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          nome?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +212,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      lead_status:
+        | "Sem resposta"
+        | "Interessado sem resposta"
+        | "Sem interesse"
+        | "Em andamento"
+        | "Indisponibilidade Agenda"
+        | "Fechado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +345,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      lead_status: [
+        "Sem resposta",
+        "Interessado sem resposta",
+        "Sem interesse",
+        "Em andamento",
+        "Indisponibilidade Agenda",
+        "Fechado",
+      ],
+    },
   },
 } as const
