@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
 const emailSchema = z.string().email("Email inválido").max(255);
-const passwordSchema = z.string().min(6, "Senha deve ter pelo menos 6 caracteres").max(100);
+const passwordSchema = z.string().min(1, "Senha é obrigatória").max(100);
 const nomeSchema = z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100);
 
 const Auth = () => {
