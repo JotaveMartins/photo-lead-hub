@@ -90,6 +90,14 @@ export type Database = {
       leads: {
         Row: {
           created_at: string
+          data_contato: string | null
+          data_entrada_contato_iniciado: string | null
+          data_entrada_contrato_enviado: string | null
+          data_entrada_fechado_ganho: string | null
+          data_entrada_fechado_perdido: string | null
+          data_entrada_follow_up: string | null
+          data_entrada_novo_lead: string | null
+          data_entrada_proposta_enviada: string | null
           data_evento: string | null
           data_fechamento: string | null
           data_pedido: string | null
@@ -97,6 +105,8 @@ export type Database = {
           follow_up_1: string | null
           follow_up_2: string | null
           follow_up_3: string | null
+          follow_up_4: string | null
+          follow_up_5: string | null
           id: string
           interesse: string | null
           motivo_perda: string | null
@@ -111,6 +121,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_contato?: string | null
+          data_entrada_contato_iniciado?: string | null
+          data_entrada_contrato_enviado?: string | null
+          data_entrada_fechado_ganho?: string | null
+          data_entrada_fechado_perdido?: string | null
+          data_entrada_follow_up?: string | null
+          data_entrada_novo_lead?: string | null
+          data_entrada_proposta_enviada?: string | null
           data_evento?: string | null
           data_fechamento?: string | null
           data_pedido?: string | null
@@ -118,6 +136,8 @@ export type Database = {
           follow_up_1?: string | null
           follow_up_2?: string | null
           follow_up_3?: string | null
+          follow_up_4?: string | null
+          follow_up_5?: string | null
           id?: string
           interesse?: string | null
           motivo_perda?: string | null
@@ -132,6 +152,14 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_contato?: string | null
+          data_entrada_contato_iniciado?: string | null
+          data_entrada_contrato_enviado?: string | null
+          data_entrada_fechado_ganho?: string | null
+          data_entrada_fechado_perdido?: string | null
+          data_entrada_follow_up?: string | null
+          data_entrada_novo_lead?: string | null
+          data_entrada_proposta_enviada?: string | null
           data_evento?: string | null
           data_fechamento?: string | null
           data_pedido?: string | null
@@ -139,6 +167,8 @@ export type Database = {
           follow_up_1?: string | null
           follow_up_2?: string | null
           follow_up_3?: string | null
+          follow_up_4?: string | null
+          follow_up_5?: string | null
           id?: string
           interesse?: string | null
           motivo_perda?: string | null

@@ -16,15 +16,18 @@ const LeadsPage = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const { data: leads = [] } = useLeads();
 
+  // Count only active leads (not closed)
+  const activeLeads = leads.filter(l => l.status !== "Fechado Ganho" && l.status !== "Fechado Perdido");
+
   return (
     <>
-      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-8">
+      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground flex items-center gap-3">
             <Users className="w-8 h-8 text-primary" />
             Leads
           </h1>
-          <p className="text-muted-foreground mt-1">{leads.length} leads cadastrados</p>
+          <p className="text-muted-foreground mt-1">{activeLeads.length} leads ativos · {leads.length} total</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -55,7 +58,7 @@ const LeadsPage = () => {
       {viewMode === "kanban" ? (
         <KanbanBoard onLeadClick={setSelectedLead} />
       ) : (
-        <LeadsTableDB />
+        <LeadsTableDB onLeadClick={setSelectedLead} />
       )}
 
       <LeadModal open={isModalOpen} onOpenChange={setIsModalOpen} />

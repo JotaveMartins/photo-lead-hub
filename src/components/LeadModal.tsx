@@ -6,23 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { usePackages, useCreatePackage } from "@/hooks/usePackages";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
-import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
 
-interface LeadModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  lead?: Lead | null;
-}
-
 const whatsappSchema = z.string().regex(/^\d{10,11}$/, "WhatsApp deve ter 10 ou 11 dígitos");
 const nomeSchema = z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100);
+
+const ORIGEM_OPTIONS = [
+  "Instagram", "Facebook", "Google", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
+];
 
 const statusOptions: { value: LeadStatus; label: string }[] = [
   { value: "Novo Lead", label: "Novo Lead" },
@@ -34,6 +30,12 @@ const statusOptions: { value: LeadStatus; label: string }[] = [
   { value: "Fechado Perdido", label: "Fechado Perdido" },
 ];
 
+interface LeadModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  lead?: Lead | null;
+}
+
 const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -41,18 +43,16 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [status, setStatus] = useState<LeadStatus>("Novo Lead");
   const [origem, setOrigem] = useState("");
   const [dataEvento, setDataEvento] = useState("");
-  const [dataPedido, setDataPedido] = useState("");
+  const [dataContato, setDataContato] = useState("");
   const [dataProposta, setDataProposta] = useState("");
   const [followUp1, setFollowUp1] = useState("");
   const [followUp2, setFollowUp2] = useState("");
   const [followUp3, setFollowUp3] = useState("");
+  const [followUp4, setFollowUp4] = useState("");
+  const [followUp5, setFollowUp5] = useState("");
   const [valor, setValor] = useState("");
   const [motivoPerda, setMotivoPerda] = useState("");
-  const [newPackage, setNewPackage] = useState("");
-  const [showNewPackage, setShowNewPackage] = useState(false);
 
-  const { data: packages = [] } = usePackages();
-  const createPackage = useCreatePackage();
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
 
@@ -62,13 +62,15 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setWhatsapp(lead.whatsapp);
       setInteresse(lead.interesse || "");
       setStatus(lead.status);
-      setOrigem((lead as any).origem || "");
+      setOrigem(lead.origem || "");
       setDataEvento(lead.data_evento || "");
-      setDataPedido(lead.data_pedido || "");
+      setDataContato((lead as any).data_contato || "");
       setDataProposta(lead.data_proposta || "");
       setFollowUp1(lead.follow_up_1 || "");
       setFollowUp2(lead.follow_up_2 || "");
       setFollowUp3(lead.follow_up_3 || "");
+      setFollowUp4((lead as any).follow_up_4 || "");
+      setFollowUp5((lead as any).follow_up_5 || "");
       setValor(lead.valor?.toString() || "");
       setMotivoPerda(lead.motivo_perda || "");
     } else {
@@ -78,18 +80,9 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
 
   const resetForm = () => {
     setNome(""); setWhatsapp(""); setInteresse(""); setStatus("Novo Lead"); setOrigem("");
-    setDataEvento(""); setDataPedido(""); setDataProposta("");
-    setFollowUp1(""); setFollowUp2(""); setFollowUp3("");
-    setValor(""); setMotivoPerda(""); setNewPackage(""); setShowNewPackage(false);
-  };
-
-  const handleAddPackage = async () => {
-    if (newPackage.trim()) {
-      await createPackage.mutateAsync(newPackage.trim());
-      setInteresse(newPackage.trim());
-      setNewPackage("");
-      setShowNewPackage(false);
-    }
+    setDataEvento(""); setDataContato(""); setDataProposta("");
+    setFollowUp1(""); setFollowUp2(""); setFollowUp3(""); setFollowUp4(""); setFollowUp5("");
+    setValor(""); setMotivoPerda("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,18 +91,20 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       nomeSchema.parse(nome);
       whatsappSchema.parse(whatsapp.replace(/\D/g, ""));
 
-      const leadData = {
+      const leadData: any = {
         nome,
         whatsapp: whatsapp.replace(/\D/g, ""),
         interesse: interesse || null,
         status,
         origem: origem || null,
         data_evento: dataEvento || null,
-        data_pedido: dataPedido || null,
+        data_contato: dataContato || null,
         data_proposta: dataProposta || null,
         follow_up_1: followUp1 || null,
         follow_up_2: followUp2 || null,
         follow_up_3: followUp3 || null,
+        follow_up_4: followUp4 || null,
+        follow_up_5: followUp5 || null,
         valor: valor ? parseFloat(valor) : null,
         motivo_perda: motivoPerda || null,
       };
@@ -162,33 +157,22 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Interesse (Pacote)</Label>
-              {showNewPackage ? (
-                <div className="flex gap-2">
-                  <Input value={newPackage} onChange={(e) => setNewPackage(e.target.value)} placeholder="Nome do novo pacote" className="bg-muted border-border" />
-                  <Button type="button" size="icon" onClick={handleAddPackage}><Plus className="w-4 h-4" /></Button>
-                  <Button type="button" size="icon" variant="ghost" onClick={() => setShowNewPackage(false)}><X className="w-4 h-4" /></Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Select value={interesse} onValueChange={setInteresse}>
-                    <SelectTrigger className="bg-muted border-border flex-1"><SelectValue placeholder="Selecione um pacote" /></SelectTrigger>
-                    <SelectContent>
-                      {packages.map((pkg) => (
-                        <SelectItem key={pkg.id} value={pkg.nome}>{pkg.nome} {pkg.is_default && "(padrão)"}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button type="button" size="icon" variant="outline" onClick={() => setShowNewPackage(true)}><Plus className="w-4 h-4" /></Button>
-                </div>
-              )}
+              <Label>Interesse</Label>
+              <Input value={interesse} onChange={(e) => setInteresse(e.target.value)} placeholder="Ex: Casamento 2028" className="bg-muted border-border" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Origem</Label>
-              <Input value={origem} onChange={(e) => setOrigem(e.target.value)} placeholder="Ex: Instagram, Indicação, Google..." className="bg-muted border-border" />
+              <Select value={origem} onValueChange={setOrigem}>
+                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
+                <SelectContent>
+                  {ORIGEM_OPTIONS.map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="valor">Valor (R$)</Label>
@@ -202,8 +186,8 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
               <Input type="date" value={dataEvento} onChange={(e) => setDataEvento(e.target.value)} className="bg-muted border-border" />
             </div>
             <div className="space-y-2">
-              <Label>Data do Pedido</Label>
-              <Input type="date" value={dataPedido} onChange={(e) => setDataPedido(e.target.value)} className="bg-muted border-border" />
+              <Label>Data do Contato</Label>
+              <Input type="date" value={dataContato} onChange={(e) => setDataContato(e.target.value)} className="bg-muted border-border" />
             </div>
             <div className="space-y-2">
               <Label>Data da Proposta</Label>
@@ -211,10 +195,12 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2"><Label>Follow-up 1</Label><Input type="date" value={followUp1} onChange={(e) => setFollowUp1(e.target.value)} className="bg-muted border-border" /></div>
-            <div className="space-y-2"><Label>Follow-up 2</Label><Input type="date" value={followUp2} onChange={(e) => setFollowUp2(e.target.value)} className="bg-muted border-border" /></div>
-            <div className="space-y-2"><Label>Follow-up 3</Label><Input type="date" value={followUp3} onChange={(e) => setFollowUp3(e.target.value)} className="bg-muted border-border" /></div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="space-y-2"><Label>FU 1</Label><Input type="date" value={followUp1} onChange={(e) => setFollowUp1(e.target.value)} className="bg-muted border-border" /></div>
+            <div className="space-y-2"><Label>FU 2</Label><Input type="date" value={followUp2} onChange={(e) => setFollowUp2(e.target.value)} className="bg-muted border-border" /></div>
+            <div className="space-y-2"><Label>FU 3</Label><Input type="date" value={followUp3} onChange={(e) => setFollowUp3(e.target.value)} className="bg-muted border-border" /></div>
+            <div className="space-y-2"><Label>FU 4</Label><Input type="date" value={followUp4} onChange={(e) => setFollowUp4(e.target.value)} className="bg-muted border-border" /></div>
+            <div className="space-y-2"><Label>FU 5</Label><Input type="date" value={followUp5} onChange={(e) => setFollowUp5(e.target.value)} className="bg-muted border-border" /></div>
           </div>
 
           {status === "Fechado Perdido" && (

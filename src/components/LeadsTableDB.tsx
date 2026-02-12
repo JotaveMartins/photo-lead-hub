@@ -25,7 +25,11 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
-const LeadsTableDB = () => {
+interface LeadsTableDBProps {
+  onLeadClick?: (lead: Lead) => void;
+}
+
+const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -146,7 +150,8 @@ const LeadsTableDB = () => {
                 filteredLeads.map((lead, index) => (
                   <tr 
                     key={lead.id} 
-                    className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                    className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => onLeadClick?.(lead)}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <td className="px-4 py-4">
@@ -183,7 +188,7 @@ const LeadsTableDB = () => {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex gap-1">
-                        {[lead.follow_up_1, lead.follow_up_2, lead.follow_up_3].map((fu, i) => (
+                        {[lead.follow_up_1, lead.follow_up_2, lead.follow_up_3, (lead as any).follow_up_4, (lead as any).follow_up_5].map((fu, i) => (
                           <div
                             key={i}
                             className={`w-2.5 h-2.5 rounded-full ${
