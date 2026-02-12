@@ -8,20 +8,14 @@ interface LeadStatusBadgeDBProps {
 
 const getStatusColor = (status: LeadStatus) => {
   switch (status) {
-    case 'Em andamento':
-      return 'success';
-    case 'Interessado sem resposta':
-      return 'warning';
-    case 'Sem resposta':
-      return 'neutral';
-    case 'Sem interesse':
-      return 'danger';
-    case 'Indisponibilidade Agenda':
-      return 'info';
-    case 'Fechado':
-      return 'success';
-    default:
-      return 'neutral';
+    case 'Novo Lead': return 'neutral';
+    case 'Contato Iniciado': return 'info';
+    case 'Proposta Enviada': return 'warning';
+    case 'Follow-up': return 'warning';
+    case 'Contrato Enviado': return 'info';
+    case 'Fechado Ganho': return 'success';
+    case 'Fechado Perdido': return 'danger';
+    default: return 'neutral';
   }
 };
 
@@ -30,35 +24,11 @@ const LeadStatusBadgeDB = ({ status }: LeadStatusBadgeDBProps) => {
   
   const getStyles = () => {
     switch (colorType) {
-      case 'success':
-        return 'bg-status-success/15 text-status-success border-status-success/30';
-      case 'warning':
-        return 'bg-status-warning/15 text-status-warning border-status-warning/30';
-      case 'danger':
-        return 'bg-status-danger/15 text-status-danger border-status-danger/30';
-      case 'info':
-        return 'bg-status-info/15 text-status-info border-status-info/30';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
-    }
-  };
-
-  const getLabel = () => {
-    switch (status) {
-      case 'Em andamento':
-        return 'Em andamento';
-      case 'Interessado sem resposta':
-        return 'Aguardando';
-      case 'Sem resposta':
-        return 'Sem resposta';
-      case 'Sem interesse':
-        return 'Perdido';
-      case 'Indisponibilidade Agenda':
-        return 'Indisponível';
-      case 'Fechado':
-        return 'Fechado';
-      default:
-        return status;
+      case 'success': return 'bg-status-success/15 text-status-success border-status-success/30';
+      case 'warning': return 'bg-status-warning/15 text-status-warning border-status-warning/30';
+      case 'danger': return 'bg-status-danger/15 text-status-danger border-status-danger/30';
+      case 'info': return 'bg-status-info/15 text-status-info border-status-info/30';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -70,7 +40,7 @@ const LeadStatusBadgeDB = ({ status }: LeadStatusBadgeDBProps) => {
         colorType === 'danger' ? 'bg-status-danger' :
         colorType === 'info' ? 'bg-status-info' : 'bg-muted-foreground'
       }`} />
-      {getLabel()}
+      {status}
     </span>
   );
 };

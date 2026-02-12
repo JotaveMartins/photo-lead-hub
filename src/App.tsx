@@ -8,6 +8,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import LeadsPage from "./pages/LeadsPage";
+import ServicosPage from "./pages/ServicosPage";
+import PacotesPage from "./pages/PacotesPage";
 import AgendaPage from "./pages/AgendaPage";
 import RelatoriosPage from "./pages/RelatoriosPage";
 import MensagensPage from "./pages/MensagensPage";
@@ -37,46 +39,13 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/leads"
-        element={
-          <ProtectedRoute>
-            <LeadsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/agenda"
-        element={
-          <ProtectedRoute>
-            <AgendaPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/relatorios"
-        element={
-          <ProtectedRoute>
-            <RelatoriosPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/mensagens"
-        element={
-          <ProtectedRoute>
-            <MensagensPage />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/leads" element={<ProtectedRoute><LeadsPage /></ProtectedRoute>} />
+      <Route path="/servicos" element={<ProtectedRoute><ServicosPage /></ProtectedRoute>} />
+      <Route path="/pacotes" element={<ProtectedRoute><PacotesPage /></ProtectedRoute>} />
+      <Route path="/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
+      <Route path="/relatorios" element={<ProtectedRoute><RelatoriosPage /></ProtectedRoute>} />
+      <Route path="/mensagens" element={<ProtectedRoute><MensagensPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
