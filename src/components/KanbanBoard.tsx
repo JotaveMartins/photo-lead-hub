@@ -1,14 +1,8 @@
 import { useState, useMemo } from "react";
 import { useLeads, useUpdateLead } from "@/hooks/useLeads";
-import { Phone, Calendar, GripVertical, Search, Filter, ChevronDown, DollarSign } from "lucide-react";
+import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
+import { Phone, Calendar, GripVertical, Search, Filter, DollarSign, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -16,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Database } from "@/integrations/supabase/types";
+import { isBefore, isToday, parseISO, startOfDay } from "date-fns";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
@@ -42,8 +38,30 @@ interface KanbanBoardProps {
   onLeadClick: (lead: Lead) => void;
 }
 
+type TaskStatus = "none" | "future" | "today" | "overdue";
+
+const getLeadTaskStatus = (leadId: string, tasks: LeadTask[]): TaskStatus => {
+  const leadTasks = tasks.filter(t => t.lead_id === leadId);
+  if (leadTasks.length === 0) return "none";
+  
+  const today = startOfDay(new Date());
+  const hasOverdue = leadTasks.some(t => isBefore(parseISO(t.due_date), today));
+  if (hasOverdue) return "overdue";
+  const hasToday = leadTasks.some(t => isToday(parseISO(t.due_date)));
+  if (hasToday) return "today";
+  return "future";
+};
+
+const TASK_STATUS_CONFIG: Record<TaskStatus, { color: string; bg: string; label: string }> = {
+  none: { color: "text-yellow-500", bg: "bg-yellow-500", label: "Sem tarefas" },
+  future: { color: "text-muted-foreground", bg: "bg-muted-foreground", label: "Tarefa futura" },
+  today: { color: "text-green-500", bg: "bg-green-500", label: "Tarefa para hoje" },
+  overdue: { color: "text-red-500", bg: "bg-red-500", label: "Tarefa atrasada" },
+};
+
 const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: leads = [], isLoading } = useLeads();
+  const { data: pendingTasks = [] } = useAllPendingTasks();
   const updateLead = useUpdateLead();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | null>(null);
@@ -178,50 +196,67 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
               {/* Cards */}
               <div className="p-2 flex-1 space-y-2 overflow-y-auto">
-                {columnLeads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, lead.id)}
-                    onDragEnd={handleDragEnd}
-                    onClick={() => onLeadClick(lead)}
-                    className={`bg-muted border border-border/50 rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-all group ${
-                      draggedLeadId === lead.id ? "opacity-50" : ""
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
-                      <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {lead.whatsapp}
-                      </p>
-                      {lead.valor && lead.valor > 0 && (
-                        <p className="text-xs font-medium text-foreground">
-                          {formatCurrency(lead.valor)}
-                        </p>
-                      )}
-                      {lead.interesse && (
-                        <p className="text-xs text-primary truncate">{lead.interesse}</p>
-                      )}
-                      {lead.data_evento && (
+                {columnLeads.map((lead) => {
+                  const taskStatus = getLeadTaskStatus(lead.id, pendingTasks);
+                  const taskConfig = TASK_STATUS_CONFIG[taskStatus];
+
+                  return (
+                    <div
+                      key={lead.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, lead.id)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => onLeadClick(lead)}
+                      className={`bg-muted border border-border/50 rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-all group ${
+                        draggedLeadId === lead.id ? "opacity-50" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${taskConfig.color}`} style={{ borderColor: 'currentColor' }}>
+                                <ChevronRight className="w-3 h-3" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p className="text-xs">{taskConfig.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                        </div>
+                      </div>
+                      <div className="mt-2 space-y-1">
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(lead.data_evento)}
+                          <Phone className="w-3 h-3" />
+                          {lead.whatsapp}
                         </p>
-                      )}
+                        {lead.valor && lead.valor > 0 && (
+                          <p className="text-xs font-medium text-foreground">
+                            {formatCurrency(lead.valor)}
+                          </p>
+                        )}
+                        {lead.interesse && (
+                          <p className="text-xs text-primary truncate">{lead.interesse}</p>
+                        )}
+                        {lead.data_evento && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(lead.data_evento)}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Drop zones for Ganho/Perdido - visible only when dragging */}
+      {/* Drop zones for Ganho/Perdido */}
       {isDragging && (
         <div className="flex gap-3 animate-fade-in">
           {CLOSED_COLUMNS.map((col) => {
