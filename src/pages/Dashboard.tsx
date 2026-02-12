@@ -12,55 +12,25 @@ const Dashboard = () => {
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const { data: leads = [] } = useLeads();
 
-  // Calculate stats from leads data
   const totalLeads = leads.length;
-  const emAndamento = leads.filter(l => l.status === "Em andamento").length;
-  const aguardando = leads.filter(l => l.status === "Interessado sem resposta").length;
+  const emNegociacao = leads.filter(l => ["Proposta Enviada", "Follow-up", "Contrato Enviado"].includes(l.status)).length;
+  const aguardando = leads.filter(l => l.status === "Contato Iniciado").length;
   const comEvento = leads.filter(l => l.data_evento).length;
-  const taxaConversao = totalLeads > 0 ? Math.round((emAndamento / totalLeads) * 100) : 0;
+  const taxaConversao = totalLeads > 0 ? Math.round((emNegociacao / totalLeads) * 100) : 0;
 
   return (
     <>
       <DashboardHeader onNewLead={() => setIsLeadModalOpen(true)} />
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatsCard
-          title="Total de Leads"
-          value={totalLeads}
-          icon={Users}
-          trend={{ value: 12, isPositive: true }}
-          variant="primary"
-        />
-        <StatsCard
-          title="Em Andamento"
-          value={emAndamento}
-          subtitle={`${taxaConversao}% taxa de conversão`}
-          icon={UserCheck}
-          variant="success"
-        />
-        <StatsCard
-          title="Aguardando Resposta"
-          value={aguardando}
-          icon={Clock}
-          variant="warning"
-        />
-        <StatsCard
-          title="Eventos Agendados"
-          value={comEvento}
-          icon={Calendar}
-          variant="default"
-        />
+        <StatsCard title="Total de Leads" value={totalLeads} icon={Users} trend={{ value: 12, isPositive: true }} variant="primary" />
+        <StatsCard title="Em Negociação" value={emNegociacao} subtitle={`${taxaConversao}% do total`} icon={UserCheck} variant="success" />
+        <StatsCard title="Contato Iniciado" value={aguardando} icon={Clock} variant="warning" />
+        <StatsCard title="Eventos Agendados" value={comEvento} icon={Calendar} variant="default" />
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Leads Table - Takes 2 columns */}
-        <div className="lg:col-span-2">
-          <LeadsTableDB />
-        </div>
-
-        {/* Right Sidebar - Activity & Events */}
+        <div className="lg:col-span-2"><LeadsTableDB /></div>
         <div className="space-y-6">
           <RecentActivityDB />
           <UpcomingEventsDB />

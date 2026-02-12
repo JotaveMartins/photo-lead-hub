@@ -94,21 +94,14 @@ const LeadsTableDB = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setStatusFilter("all")}>
-                    Todos
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Em andamento")}>
-                    Em andamento
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Interessado sem resposta")}>
-                    Aguardando resposta
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Sem resposta")}>
-                    Sem resposta
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Sem interesse")}>
-                    Perdidos
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("all")}>Todos</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Novo Lead")}>Novo Lead</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Contato Iniciado")}>Contato Iniciado</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Proposta Enviada")}>Proposta Enviada</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Follow-up")}>Follow-up</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Contrato Enviado")}>Contrato Enviado</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Fechado Ganho")}>Fechado Ganho</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Fechado Perdido")}>Fechado Perdido</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

@@ -17,6 +17,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const path = location.pathname;
     if (path === "/" || path === "/dashboard") return "dashboard";
     if (path === "/leads") return "leads";
+    if (path === "/servicos") return "servicos";
+    if (path === "/pacotes") return "pacotes";
     if (path === "/agenda") return "agenda";
     if (path === "/mensagens") return "mensagens";
     if (path === "/relatorios") return "relatorios";
@@ -37,23 +39,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }
 
   const handleItemClick = (item: string) => {
-    switch (item) {
-      case "dashboard":
-        navigate("/");
-        break;
-      case "leads":
-        navigate("/leads");
-        break;
-      case "agenda":
-        navigate("/agenda");
-        break;
-      case "mensagens":
-        navigate("/mensagens");
-        break;
-      case "relatorios":
-        navigate("/relatorios");
-        break;
-    }
+    const routes: Record<string, string> = {
+      dashboard: "/",
+      leads: "/leads",
+      servicos: "/servicos",
+      pacotes: "/pacotes",
+      agenda: "/agenda",
+      mensagens: "/mensagens",
+      relatorios: "/relatorios",
+    };
+    navigate(routes[item] || "/");
   };
 
   return (

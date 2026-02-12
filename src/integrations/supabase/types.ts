@@ -55,6 +55,38 @@ export type Database = {
           },
         ]
       }
+      lead_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          lead_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           created_at: string
@@ -69,6 +101,8 @@ export type Database = {
           interesse: string | null
           motivo_perda: string | null
           nome: string
+          origem: string | null
+          package_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
           user_id: string
@@ -88,6 +122,8 @@ export type Database = {
           interesse?: string | null
           motivo_perda?: string | null
           nome: string
+          origem?: string | null
+          package_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
           user_id: string
@@ -107,13 +143,23 @@ export type Database = {
           interesse?: string | null
           motivo_perda?: string | null
           nome?: string
+          origem?: string | null
+          package_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
           user_id?: string
           valor?: number | null
           whatsapp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -150,26 +196,71 @@ export type Database = {
           },
         ]
       }
-      packages: {
+      package_services: {
         Row: {
           created_at: string
           id: string
-          is_default: boolean
-          nome: string
-          user_id: string | null
+          package_id: string
+          service_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          is_default?: boolean
-          nome: string
-          user_id?: string | null
+          package_id: string
+          service_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          package_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_services_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          is_default: boolean
+          nome: string
+          preco_final: number | null
+          user_id: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_default?: boolean
+          nome: string
+          preco_final?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
           is_default?: boolean
           nome?: string
+          preco_final?: number | null
           user_id?: string | null
         }
         Relationships: []
@@ -204,6 +295,45 @@ export type Database = {
         }
         Relationships: []
       }
+      services: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          custo_interno: number | null
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+          valor_base: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          custo_interno?: number | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+          valor_base?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          custo_interno?: number | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+          valor_base?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -213,12 +343,13 @@ export type Database = {
     }
     Enums: {
       lead_status:
-        | "Sem resposta"
-        | "Interessado sem resposta"
-        | "Sem interesse"
-        | "Em andamento"
-        | "Indisponibilidade Agenda"
-        | "Fechado"
+        | "Novo Lead"
+        | "Contato Iniciado"
+        | "Fechado Perdido"
+        | "Proposta Enviada"
+        | "Follow-up"
+        | "Fechado Ganho"
+        | "Contrato Enviado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -347,12 +478,13 @@ export const Constants = {
   public: {
     Enums: {
       lead_status: [
-        "Sem resposta",
-        "Interessado sem resposta",
-        "Sem interesse",
-        "Em andamento",
-        "Indisponibilidade Agenda",
-        "Fechado",
+        "Novo Lead",
+        "Contato Iniciado",
+        "Fechado Perdido",
+        "Proposta Enviada",
+        "Follow-up",
+        "Fechado Ganho",
+        "Contrato Enviado",
       ],
     },
   },
