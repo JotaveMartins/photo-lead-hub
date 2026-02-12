@@ -92,8 +92,11 @@ export type Database = {
           completed: boolean
           completed_at: string | null
           created_at: string
+          description: string | null
           due_date: string
+          due_time: string | null
           id: string
+          is_cadence: boolean
           lead_id: string
           task_number: number
           title: string
@@ -103,8 +106,11 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           due_date?: string
+          due_time?: string | null
           id?: string
+          is_cadence?: boolean
           lead_id: string
           task_number?: number
           title: string
@@ -114,8 +120,11 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           due_date?: string
+          due_time?: string | null
           id?: string
+          is_cadence?: boolean
           lead_id?: string
           task_number?: number
           title?: string
