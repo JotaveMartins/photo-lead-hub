@@ -5,8 +5,6 @@ import {
   MessageSquare, 
   TrendingUp,
   LogOut,
-  Wrench,
-  Package
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,8 +17,6 @@ interface SidebarProps {
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'leads', label: 'Leads', icon: Users },
-  { id: 'servicos', label: 'Serviços', icon: Wrench },
-  { id: 'pacotes', label: 'Pacotes', icon: Package },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'mensagens', label: 'Mensagens', icon: MessageSquare },
   { id: 'relatorios', label: 'Relatórios', icon: TrendingUp },

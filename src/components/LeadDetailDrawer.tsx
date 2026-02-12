@@ -1,15 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Phone, Calendar, MapPin, Send, Trash2, MessageSquare } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Save, X, Clock } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
-import { usePackages } from "@/hooks/usePackages";
+import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import LeadStatusBadgeDB from "./LeadStatusBadgeDB";
 import type { Database } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
+type LeadStatus = Database["public"]["Enums"]["lead_status"];
+
+const ORIGEM_OPTIONS = [
+  "Instagram", "Facebook", "Google", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
+];
+
+const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
+  { value: "Novo Lead", label: "Novo Lead" },
+  { value: "Contato Iniciado", label: "Contato Iniciado" },
+  { value: "Proposta Enviada", label: "Proposta Enviada" },
+  { value: "Follow-up", label: "Follow-up" },
+  { value: "Contrato Enviado", label: "Contrato Enviado" },
+  { value: "Fechado Ganho", label: "Fechado Ganho" },
+  { value: "Fechado Perdido", label: "Fechado Perdido" },
+];
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -19,10 +37,37 @@ interface LeadDetailDrawerProps {
 
 const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) => {
   const [newNote, setNewNote] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<Lead>>({});
+
   const { data: notes = [] } = useLeadNotes(lead?.id);
   const createNote = useCreateLeadNote();
   const deleteNote = useDeleteLeadNote();
-  const { data: packages = [] } = usePackages();
+  const updateLead = useUpdateLead();
+  const deleteLead = useDeleteLead();
+
+  useEffect(() => {
+    if (lead) {
+      setEditData({
+        nome: lead.nome,
+        whatsapp: lead.whatsapp,
+        interesse: lead.interesse,
+        status: lead.status,
+        origem: lead.origem,
+        valor: lead.valor,
+        data_evento: lead.data_evento,
+        data_contato: (lead as any).data_contato,
+        data_proposta: lead.data_proposta,
+        follow_up_1: lead.follow_up_1,
+        follow_up_2: lead.follow_up_2,
+        follow_up_3: lead.follow_up_3,
+        follow_up_4: (lead as any).follow_up_4,
+        follow_up_5: (lead as any).follow_up_5,
+        motivo_perda: lead.motivo_perda,
+      });
+      setIsEditing(false);
+    }
+  }, [lead]);
 
   const handleAddNote = async () => {
     if (!lead || !newNote.trim()) return;
@@ -30,138 +75,247 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
     setNewNote("");
   };
 
-  const formatDate = (d: string | null) => {
-    if (!d) return "—";
-    return new Date(d).toLocaleDateString("pt-BR");
+  const handleSave = async () => {
+    if (!lead) return;
+    try {
+      await updateLead.mutateAsync({ id: lead.id, ...editData });
+      setIsEditing(false);
+    } catch (e) {
+      // error handled by hook
+    }
   };
 
-  const formatDateTime = (d: string) => {
-    return new Date(d).toLocaleString("pt-BR");
+  const handleStatusChange = async (status: LeadStatus) => {
+    if (!lead) return;
+    setEditData(prev => ({ ...prev, status }));
+    await updateLead.mutateAsync({ id: lead.id, status });
   };
 
-  const linkedPackage = lead?.package_id ? packages.find((p) => p.id === lead.package_id) : null;
+  const formatDateTime = (d: string) => new Date(d).toLocaleString("pt-BR");
+  const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
+
+  const formatStageDuration = (dateStr: string | null | undefined) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return "hoje";
+    if (diffDays === 1) return "1 dia";
+    return `${diffDays} dias`;
+  };
 
   if (!lead) return null;
 
+  const stageDate = (() => {
+    const l = lead as any;
+    switch (lead.status) {
+      case "Novo Lead": return l.data_entrada_novo_lead;
+      case "Contato Iniciado": return l.data_entrada_contato_iniciado;
+      case "Proposta Enviada": return l.data_entrada_proposta_enviada;
+      case "Follow-up": return l.data_entrada_follow_up;
+      case "Contrato Enviado": return l.data_entrada_contrato_enviado;
+      case "Fechado Ganho": return l.data_entrada_fechado_ganho;
+      case "Fechado Perdido": return l.data_entrada_fechado_perdido;
+      default: return null;
+    }
+  })();
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg bg-card border-border overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-xl font-display flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
-              {lead.nome.charAt(0).toUpperCase()}
-            </div>
-            {lead.nome}
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="mt-4">
-          <LeadStatusBadgeDB status={lead.status} />
-        </div>
-
-        <Tabs defaultValue="info" className="mt-6">
-          <TabsList className="w-full">
-            <TabsTrigger value="info" className="flex-1">Informações</TabsTrigger>
-            <TabsTrigger value="notes" className="flex-1">
-              Notas
-              {notes.length > 0 && (
-                <span className="ml-1 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">{notes.length}</span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="info" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-3">
-              <InfoItem label="WhatsApp" value={lead.whatsapp} icon={<Phone className="w-4 h-4" />} />
-              <InfoItem label="Interesse" value={lead.interesse || "—"} />
-              <InfoItem label="Origem" value={(lead as any).origem || "—"} icon={<MapPin className="w-4 h-4" />} />
-              <InfoItem label="Valor" value={lead.valor ? `R$ ${lead.valor.toLocaleString("pt-BR")}` : "—"} />
-              <InfoItem label="Data do Evento" value={formatDate(lead.data_evento)} icon={<Calendar className="w-4 h-4" />} />
-              <InfoItem label="Data do Pedido" value={formatDate(lead.data_pedido)} />
-              <InfoItem label="Data Proposta" value={formatDate(lead.data_proposta)} />
-              <InfoItem label="Pacote Vinculado" value={linkedPackage?.nome || "—"} />
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">Follow-ups</h4>
-              <div className="grid grid-cols-3 gap-2">
-                {[lead.follow_up_1, lead.follow_up_2, lead.follow_up_3].map((fu, i) => (
-                  <div key={i} className="text-center p-2 rounded-lg bg-muted border border-border">
-                    <p className="text-xs text-muted-foreground">FU {i + 1}</p>
-                    <p className={`text-sm ${fu ? "text-foreground" : "text-muted-foreground"}`}>{formatDate(fu)}</p>
-                  </div>
-                ))}
+      <SheetContent className="w-full sm:max-w-3xl bg-card border-border overflow-y-auto p-0">
+        {/* Header */}
+        <div className="p-6 border-b border-border">
+          <SheetHeader>
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-xl font-display flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
+                  {lead.nome.charAt(0).toUpperCase()}
+                </div>
+                {isEditing ? (
+                  <Input
+                    value={editData.nome || ""}
+                    onChange={(e) => setEditData(prev => ({ ...prev, nome: e.target.value }))}
+                    className="bg-muted border-border text-lg font-bold h-auto py-1"
+                  />
+                ) : (
+                  lead.nome
+                )}
+              </SheetTitle>
+              <div className="flex items-center gap-2">
+                {isEditing ? (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" className="bg-gradient-primary hover:opacity-90 gap-1" onClick={handleSave}>
+                      <Save className="w-4 h-4" /> Salvar
+                    </Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => setIsEditing(true)}>
+                    <Pencil className="w-4 h-4" /> Editar
+                  </Button>
+                )}
               </div>
             </div>
+          </SheetHeader>
 
-            {lead.motivo_perda && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Motivo da perda</p>
-                <p className="text-sm text-foreground">{lead.motivo_perda}</p>
+          {/* Status + stage time */}
+          <div className="mt-4 flex items-center gap-3 flex-wrap">
+            <Select value={editData.status || lead.status} onValueChange={(v) => handleStatusChange(v as LeadStatus)}>
+              <SelectTrigger className="w-auto bg-muted border-border h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {stageDate && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Nesta etapa há {formatStageDuration(stageDate)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Pipedrive-style: 2 columns - details left, notes right */}
+        <div className="flex flex-col sm:flex-row min-h-0">
+          {/* Left: Details */}
+          <div className="sm:w-[300px] flex-shrink-0 border-r border-border p-4 space-y-4 overflow-y-auto">
+            <h3 className="text-sm font-semibold text-foreground">Detalhes</h3>
+
+            <DetailField label="WhatsApp" icon={<Phone className="w-3.5 h-3.5" />} editing={isEditing}
+              value={editData.whatsapp || ""} display={lead.whatsapp}
+              onChange={(v) => setEditData(prev => ({ ...prev, whatsapp: v }))} />
+
+            <DetailField label="Interesse" editing={isEditing}
+              value={editData.interesse || ""} display={lead.interesse || "—"}
+              onChange={(v) => setEditData(prev => ({ ...prev, interesse: v }))} />
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Origem</Label>
+              {isEditing ? (
+                <Select value={editData.origem || ""} onValueChange={(v) => setEditData(prev => ({ ...prev, origem: v }))}>
+                  <SelectTrigger className="bg-muted border-border h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {ORIGEM_OPTIONS.map((o) => (
+                      <SelectItem key={o} value={o}>{o}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-foreground">{lead.origem || "—"}</p>
+              )}
+            </div>
+
+            <DetailField label="Valor (R$)" editing={isEditing} type="number"
+              value={editData.valor?.toString() || ""} display={lead.valor ? `R$ ${lead.valor.toLocaleString("pt-BR")}` : "—"}
+              onChange={(v) => setEditData(prev => ({ ...prev, valor: v ? parseFloat(v) : null }))} />
+
+            <DetailField label="Data do Evento" icon={<Calendar className="w-3.5 h-3.5" />} editing={isEditing} type="date"
+              value={editData.data_evento || ""} display={formatDate(lead.data_evento)}
+              onChange={(v) => setEditData(prev => ({ ...prev, data_evento: v || null }))} />
+
+            <DetailField label="Data do Contato" editing={isEditing} type="date"
+              value={(editData as any).data_contato || ""} display={formatDate((lead as any).data_contato)}
+              onChange={(v) => setEditData(prev => ({ ...prev, data_contato: v || null }))} />
+
+            <DetailField label="Data da Proposta" editing={isEditing} type="date"
+              value={editData.data_proposta || ""} display={formatDate(lead.data_proposta)}
+              onChange={(v) => setEditData(prev => ({ ...prev, data_proposta: v || null }))} />
+
+            {/* Follow-ups */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <h4 className="text-xs font-semibold text-foreground">Follow-ups</h4>
+              {[1, 2, 3, 4, 5].map((i) => {
+                const key = `follow_up_${i}` as keyof typeof editData;
+                const val = (editData as any)[key] || "";
+                const displayVal = formatDate((lead as any)[key]);
+                return (
+                  <DetailField key={i} label={`FU ${i}`} editing={isEditing} type="date"
+                    value={val} display={displayVal}
+                    onChange={(v) => setEditData(prev => ({ ...prev, [key]: v || null }))} />
+                );
+              })}
+            </div>
+
+            {(lead.status === "Fechado Perdido" || editData.status === "Fechado Perdido") && (
+              <div className="space-y-1 pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">Motivo da Perda</Label>
+                {isEditing ? (
+                  <Textarea value={editData.motivo_perda || ""} onChange={(e) => setEditData(prev => ({ ...prev, motivo_perda: e.target.value }))}
+                    className="bg-muted border-border text-sm min-h-[60px]" />
+                ) : (
+                  <p className="text-sm text-foreground">{lead.motivo_perda || "—"}</p>
+                )}
               </div>
             )}
 
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              onClick={() => window.open(`https://wa.me/55${lead.whatsapp}`, "_blank")}
-            >
-              <MessageSquare className="w-4 h-4" />
-              Abrir WhatsApp
+            <Button variant="outline" className="w-full gap-2 mt-4" size="sm"
+              onClick={() => window.open(`https://wa.me/55${lead.whatsapp}`, "_blank")}>
+              <MessageSquare className="w-4 h-4" /> Abrir WhatsApp
             </Button>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="notes" className="mt-4">
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Textarea
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Adicione uma nota..."
-                  className="bg-muted border-border flex-1 min-h-[60px]"
-                />
-                <Button
-                  size="icon"
-                  onClick={handleAddNote}
-                  disabled={!newNote.trim() || createNote.isPending}
-                  className="bg-gradient-primary hover:opacity-90 self-end"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
+          {/* Right: Notes/Timeline */}
+          <div className="flex-1 p-4 overflow-y-auto">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Notas e Histórico</h3>
 
-              <div className="space-y-3">
-                {notes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma nota ainda. Comece adicionando uma!</p>
-                ) : notes.map((note) => (
-                  <div key={note.id} className="bg-muted rounded-lg p-3 group">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0"
-                        onClick={() => deleteNote.mutate({ id: note.id, lead_id: note.lead_id })}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">{formatDateTime(note.created_at)}</p>
-                  </div>
-                ))}
-              </div>
+            {/* Add note */}
+            <div className="flex gap-2 mb-4">
+              <Textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Adicione uma nota..."
+                className="bg-muted border-border flex-1 min-h-[60px] text-sm"
+              />
+              <Button size="icon" onClick={handleAddNote}
+                disabled={!newNote.trim() || createNote.isPending}
+                className="bg-gradient-primary hover:opacity-90 self-end">
+                <Send className="w-4 h-4" />
+              </Button>
             </div>
-          </TabsContent>
-        </Tabs>
+
+            {/* Notes list */}
+            <div className="space-y-3">
+              {notes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhuma nota ainda.</p>
+              ) : notes.map((note) => (
+                <div key={note.id} className="bg-muted rounded-lg p-3 group border-l-2 border-primary/50">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
+                    <Button variant="ghost" size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0"
+                      onClick={() => deleteNote.mutate({ id: note.id, lead_id: note.lead_id })}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">{formatDateTime(note.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
 };
 
-const InfoItem = ({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) => (
-  <div className="bg-muted rounded-lg p-3">
-    <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">{icon}{label}</p>
-    <p className="text-sm text-foreground">{value}</p>
+const DetailField = ({ label, value, display, editing, onChange, icon, type = "text" }: {
+  label: string; value: string; display: string; editing: boolean;
+  onChange: (v: string) => void; icon?: React.ReactNode; type?: string;
+}) => (
+  <div className="space-y-1">
+    <Label className="text-xs text-muted-foreground flex items-center gap-1">{icon}{label}</Label>
+    {editing ? (
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)}
+        className="bg-muted border-border h-8 text-sm" />
+    ) : (
+      <p className="text-sm text-foreground">{display}</p>
+    )}
   </div>
 );
 
