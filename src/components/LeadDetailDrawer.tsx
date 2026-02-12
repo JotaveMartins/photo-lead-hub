@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Save, X, Clock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Save, X, Clock, CheckCircle2, Circle, Lock } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
+import { useLeadTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
 import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import LeadStatusBadgeDB from "./LeadStatusBadgeDB";
 import type { Database } from "@/integrations/supabase/types";
@@ -41,8 +43,10 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const [editData, setEditData] = useState<Partial<Lead>>({});
 
   const { data: notes = [] } = useLeadNotes(lead?.id);
+  const { data: tasks = [] } = useLeadTasks(lead?.id);
   const createNote = useCreateLeadNote();
   const deleteNote = useDeleteLeadNote();
+  const completeTask = useCompleteLeadTask();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
 
@@ -56,13 +60,13 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
         origem: lead.origem,
         valor: lead.valor,
         data_evento: lead.data_evento,
-        data_contato: (lead as any).data_contato,
+        data_contato: lead.data_contato,
         data_proposta: lead.data_proposta,
         follow_up_1: lead.follow_up_1,
         follow_up_2: lead.follow_up_2,
         follow_up_3: lead.follow_up_3,
-        follow_up_4: (lead as any).follow_up_4,
-        follow_up_5: (lead as any).follow_up_5,
+        follow_up_4: lead.follow_up_4,
+        follow_up_5: lead.follow_up_5,
         motivo_perda: lead.motivo_perda,
       });
       setIsEditing(false);
@@ -107,18 +111,30 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   if (!lead) return null;
 
   const stageDate = (() => {
-    const l = lead as any;
     switch (lead.status) {
-      case "Novo Lead": return l.data_entrada_novo_lead;
-      case "Contato Iniciado": return l.data_entrada_contato_iniciado;
-      case "Proposta Enviada": return l.data_entrada_proposta_enviada;
-      case "Follow-up": return l.data_entrada_follow_up;
-      case "Contrato Enviado": return l.data_entrada_contrato_enviado;
-      case "Fechado Ganho": return l.data_entrada_fechado_ganho;
-      case "Fechado Perdido": return l.data_entrada_fechado_perdido;
+      case "Novo Lead": return lead.data_entrada_novo_lead;
+      case "Contato Iniciado": return lead.data_entrada_contato_iniciado;
+      case "Proposta Enviada": return lead.data_entrada_proposta_enviada;
+      case "Follow-up": return lead.data_entrada_follow_up;
+      case "Contrato Enviado": return lead.data_entrada_contrato_enviado;
+      case "Fechado Ganho": return lead.data_entrada_fechado_ganho;
+      case "Fechado Perdido": return lead.data_entrada_fechado_perdido;
       default: return null;
     }
   })();
+
+  const pendingTasks = tasks.filter(t => !t.completed);
+  const completedTasks = tasks.filter(t => t.completed);
+
+  const SYSTEM_FIELDS = [
+    { label: "Entrada em Novo Lead", value: lead.data_entrada_novo_lead },
+    { label: "Entrada em Contato Iniciado", value: lead.data_entrada_contato_iniciado },
+    { label: "Entrada em Proposta Enviada", value: lead.data_entrada_proposta_enviada },
+    { label: "Entrada em Follow-up", value: lead.data_entrada_follow_up },
+    { label: "Entrada em Contrato Enviado", value: lead.data_entrada_contrato_enviado },
+    { label: "Entrada em Fechado Ganho", value: lead.data_entrada_fechado_ganho },
+    { label: "Entrada em Fechado Perdido", value: lead.data_entrada_fechado_perdido },
+  ];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -181,7 +197,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
           </div>
         </div>
 
-        {/* Pipedrive-style: 2 columns - details left, notes right */}
+        {/* 2 columns - details left, notes/tasks right */}
         <div className="flex flex-col sm:flex-row min-h-0">
           {/* Left: Details */}
           <div className="sm:w-[300px] flex-shrink-0 border-r border-border p-4 space-y-4 overflow-y-auto">
@@ -220,7 +236,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
               onChange={(v) => setEditData(prev => ({ ...prev, data_evento: v || null }))} />
 
             <DetailField label="Data do Contato" editing={isEditing} type="date"
-              value={(editData as any).data_contato || ""} display={formatDate((lead as any).data_contato)}
+              value={editData.data_contato || ""} display={formatDate(lead.data_contato)}
               onChange={(v) => setEditData(prev => ({ ...prev, data_contato: v || null }))} />
 
             <DetailField label="Data da Proposta" editing={isEditing} type="date"
@@ -235,7 +251,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
                 const val = (editData as any)[key] || "";
                 const displayVal = formatDate((lead as any)[key]);
                 return (
-                  <DetailField key={i} label={`FU ${i}`} editing={isEditing} type="date"
+                  <DetailField key={i} label={`Follow-up ${i}`} editing={isEditing} type="date"
                     value={val} display={displayVal}
                     onChange={(v) => setEditData(prev => ({ ...prev, [key]: v || null }))} />
                 );
@@ -258,10 +274,63 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
               onClick={() => window.open(`https://wa.me/55${lead.whatsapp}`, "_blank")}>
               <MessageSquare className="w-4 h-4" /> Abrir WhatsApp
             </Button>
+
+            {/* System Fields - Read Only */}
+            <div className="space-y-2 pt-4 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Campos do Sistema
+              </h4>
+              {SYSTEM_FIELDS.map((field) => (
+                <div key={field.label} className="space-y-0.5">
+                  <p className="text-[11px] text-muted-foreground">{field.label}</p>
+                  <p className="text-xs text-foreground/70">
+                    {field.value ? new Date(field.value).toLocaleString("pt-BR") : "—"}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Right: Notes/Timeline */}
+          {/* Right: Tasks + Notes/Timeline */}
           <div className="flex-1 p-4 overflow-y-auto">
+            {/* Tasks section */}
+            {tasks.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Tarefas de Cadência</h3>
+                <div className="space-y-2">
+                  {pendingTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                      <Checkbox
+                        checked={false}
+                        onCheckedChange={() => completeTask.mutate(task)}
+                        disabled={completeTask.isPending}
+                        className="border-primary data-[state=checked]:bg-primary"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground">{task.title}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Vencimento: {new Date(task.due_date).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <Circle className="w-3.5 h-3.5 text-primary/50 flex-shrink-0" />
+                    </div>
+                  ))}
+                  {completedTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 opacity-60">
+                      <Checkbox checked disabled className="border-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground line-through">{task.title}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Concluída em {task.completed_at ? new Date(task.completed_at).toLocaleDateString("pt-BR") : "—"}
+                        </p>
+                      </div>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <h3 className="text-sm font-semibold text-foreground mb-3">Notas e Histórico</h3>
 
             {/* Add note */}

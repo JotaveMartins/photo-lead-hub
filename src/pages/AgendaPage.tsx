@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Calendar as CalendarIcon, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, CheckCircle2, Circle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEvents, useCreateEvent } from "@/hooks/useEvents";
 import { useLeads } from "@/hooks/useLeads";
+import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
 import { format, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -22,16 +24,20 @@ const AgendaPage = () => {
 
   const { data: events = [] } = useEvents();
   const { data: leads = [] } = useLeads();
+  const { data: pendingTasks = [] } = useAllPendingTasks();
+  const completeTask = useCompleteLeadTask();
   const createEvent = useCreateEvent();
 
-  // Get events for selected date
   const eventsForDate = events.filter((event) => 
     selectedDate && isSameDay(new Date(event.data_evento), selectedDate)
   );
 
-  // Also show leads with events on this date
   const leadsForDate = leads.filter((lead) =>
     lead.data_evento && selectedDate && isSameDay(parseISO(lead.data_evento), selectedDate)
+  );
+
+  const tasksForDate = pendingTasks.filter((task) =>
+    selectedDate && isSameDay(parseISO(task.due_date), selectedDate)
   );
 
   const handleCreateEvent = async () => {
@@ -61,10 +67,10 @@ const AgendaPage = () => {
     setSelectedLeadId("");
   };
 
-  // Dates with events (for highlighting on calendar)
   const eventDates = [
     ...events.map((e) => new Date(e.data_evento)),
     ...leads.filter((l) => l.data_evento).map((l) => parseISO(l.data_evento!)),
+    ...pendingTasks.map((t) => parseISO(t.due_date)),
   ];
 
   return (
@@ -76,7 +82,7 @@ const AgendaPage = () => {
             Agenda
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie seus eventos e compromissos
+            Gerencie seus eventos e tarefas de contato
           </p>
         </div>
         
@@ -109,7 +115,7 @@ const AgendaPage = () => {
           </div>
         </div>
 
-        {/* Events for selected date */}
+        {/* Events + Tasks for selected date */}
         <div className="bg-card border border-border rounded-xl p-5">
           <h3 className="font-display font-semibold text-foreground mb-4">
             {selectedDate 
@@ -118,20 +124,40 @@ const AgendaPage = () => {
           </h3>
 
           <div className="space-y-3">
-            {eventsForDate.length === 0 && leadsForDate.length === 0 ? (
+            {/* Cadence Tasks */}
+            {tasksForDate.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wide">Tarefas de Contato</p>
+                {tasksForDate.map((task) => (
+                  <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <Checkbox
+                      checked={false}
+                      onCheckedChange={() => completeTask.mutate(task)}
+                      disabled={completeTask.isPending}
+                      className="border-primary data-[state=checked]:bg-primary"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-foreground">{task.title}</p>
+                      {task.leads && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Lead: {task.leads.nome}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {eventsForDate.length === 0 && leadsForDate.length === 0 && tasksForDate.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum evento nesta data
+                Nenhum evento ou tarefa nesta data
               </p>
             ) : (
               <>
                 {eventsForDate.map((event) => (
-                  <div
-                    key={event.id}
-                    className="p-3 rounded-lg bg-muted/50 border border-border/50"
-                  >
-                    <p className="font-medium text-sm text-foreground">
-                      {event.titulo}
-                    </p>
+                  <div key={event.id} className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                    <p className="font-medium text-sm text-foreground">{event.titulo}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {format(new Date(event.data_evento), "HH:mm")} • {event.tipo}
                     </p>
@@ -144,16 +170,9 @@ const AgendaPage = () => {
                 ))}
 
                 {leadsForDate.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className="p-3 rounded-lg bg-primary/10 border border-primary/30"
-                  >
-                    <p className="font-medium text-sm text-foreground">
-                      Evento: {lead.nome}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {lead.interesse || "Evento do cliente"}
-                    </p>
+                  <div key={lead.id} className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+                    <p className="font-medium text-sm text-foreground">Evento: {lead.nome}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{lead.interesse || "Evento do cliente"}</p>
                   </div>
                 ))}
               </>
@@ -172,21 +191,15 @@ const AgendaPage = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Título</Label>
-              <Input
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Ex: Reunião com cliente"
-                className="bg-muted border-border"
-              />
+              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Ex: Reunião com cliente" className="bg-muted border-border" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo</Label>
                 <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger className="bg-muted border-border">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="evento">Evento</SelectItem>
                     <SelectItem value="follow_up">Follow-up</SelectItem>
@@ -194,45 +207,28 @@ const AgendaPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label>Hora</Label>
-                <Input
-                  type="time"
-                  value={hora}
-                  onChange={(e) => setHora(e.target.value)}
-                  className="bg-muted border-border"
-                />
+                <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="bg-muted border-border" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Lead (opcional)</Label>
               <Select value={selectedLeadId} onValueChange={setSelectedLeadId}>
-                <SelectTrigger className="bg-muted border-border">
-                  <SelectValue placeholder="Selecione um lead" />
-                </SelectTrigger>
+                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione um lead" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhum</SelectItem>
                   {leads.map((lead) => (
-                    <SelectItem key={lead.id} value={lead.id}>
-                      {lead.nome}
-                    </SelectItem>
+                    <SelectItem key={lead.id} value={lead.id}>{lead.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="flex gap-3 justify-end pt-4">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleCreateEvent}
-                className="bg-gradient-primary hover:opacity-90"
-              >
-                Criar evento
-              </Button>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+              <Button onClick={handleCreateEvent} className="bg-gradient-primary hover:opacity-90">Criar evento</Button>
             </div>
           </div>
         </DialogContent>
