@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { useLeads, useUpdateLead } from "@/hooks/useLeads";
+import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
-import { Phone, Calendar, GripVertical, Search, Filter, DollarSign, ChevronRight } from "lucide-react";
+import { Phone, Calendar, GripVertical, Search, Filter, DollarSign, ChevronRight, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -66,9 +67,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: leads = [], isLoading } = useLeads();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const updateLead = useUpdateLead();
+  const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | "DELETE" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
@@ -77,6 +79,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   // Follow-up modal state
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+  // Delete confirmation state
+  const [deleteConfirmLead, setDeleteConfirmLead] = useState<Lead | null>(null);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -309,16 +313,16 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         })}
       </div>
 
-      {/* Drop zones for Ganho/Perdido */}
+      {/* Drop zones for Ganho/Perdido/Excluir */}
       {isDragging && (
         <div className="flex gap-3 animate-fade-in">
           {CLOSED_COLUMNS.map((col) => {
-            const isDragOver = dragOverColumn === col.status;
+            const isDragOverCol = dragOverColumn === col.status;
             return (
               <div
                 key={col.status}
                 className={`flex-1 border-2 border-dashed rounded-xl p-6 flex items-center justify-center gap-2 transition-all ${
-                  isDragOver
+                  isDragOverCol
                     ? col.status === "Fechado Ganho"
                       ? "border-[hsl(var(--status-success))] bg-[hsl(var(--status-success))]/10 text-[hsl(var(--status-success))]"
                       : "border-[hsl(var(--status-danger))] bg-[hsl(var(--status-danger))]/10 text-[hsl(var(--status-danger))]"
@@ -333,8 +337,57 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
               </div>
             );
           })}
+          {/* Delete drop zone */}
+          <div
+            className={`flex-1 border-2 border-dashed rounded-xl p-6 flex items-center justify-center gap-2 transition-all ${
+              dragOverColumn === "DELETE"
+                ? "border-destructive bg-destructive/10 text-destructive"
+                : "border-border text-muted-foreground"
+            }`}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverColumn("DELETE"); }}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverColumn(null);
+              if (draggedLeadId) {
+                const lead = leads.find((l) => l.id === draggedLeadId);
+                if (lead) setDeleteConfirmLead(lead);
+              }
+              setDraggedLeadId(null);
+              setIsDragging(false);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="font-semibold text-sm">Excluir</span>
+          </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteConfirmLead} onOpenChange={(open) => { if (!open) setDeleteConfirmLead(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleteConfirmLead?.nome}</strong>? Esta ação não pode ser desfeita. Todas as tarefas, notas e histórico serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteConfirmLead) {
+                  deleteLead.mutate(deleteConfirmLead.id);
+                  setDeleteConfirmLead(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Required Fields Modal */}
       <RequiredFieldsModal
