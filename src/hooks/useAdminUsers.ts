@@ -34,5 +34,20 @@ export const useAdminUsers = () => {
     },
   });
 
-  return { users, isLoading, createUser };
+  const deleteUser = useMutation({
+    mutationFn: async (user_id: string) => {
+      const response = await supabase.functions.invoke("delete-user", {
+        body: { user_id },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+  });
+
+  return { users, isLoading, createUser, deleteUser };
 };
