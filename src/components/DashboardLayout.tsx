@@ -15,14 +15,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   // Get active menu item from path
   const getActiveItem = () => {
     const path = location.pathname;
-    if (path === "/" || path === "/dashboard") return "dashboard";
-    if (path === "/leads") return "leads";
-    if (path === "/servicos") return "servicos";
-    if (path === "/pacotes") return "pacotes";
-    if (path === "/agenda") return "agenda";
-    if (path === "/mensagens") return "mensagens";
-    if (path === "/relatorios") return "relatorios";
-    return "dashboard";
+    if (path === "/" || path === "/leads") return "leads";
+    if (path === "/tarefas") return "tarefas";
+    return "leads";
   };
 
   if (loading) {
@@ -40,15 +35,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const handleItemClick = (item: string) => {
     const routes: Record<string, string> = {
-      dashboard: "/",
       leads: "/leads",
-      servicos: "/servicos",
-      pacotes: "/pacotes",
-      agenda: "/agenda",
-      mensagens: "/mensagens",
-      relatorios: "/relatorios",
+      tarefas: "/tarefas",
     };
-    navigate(routes[item] || "/");
+    navigate(routes[item] || "/leads");
   };
 
   return (
