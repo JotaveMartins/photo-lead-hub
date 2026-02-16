@@ -141,6 +141,27 @@ export const useCompleteLeadTask = () => {
   });
 };
 
+export const useUncompleteLeadTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase
+        .from("lead_tasks")
+        .update({ completed: false, completed_at: null })
+        .eq("id", taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+      toast.success("Tarefa reaberta!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao reabrir tarefa: " + error.message);
+    },
+  });
+};
+
 export const useUpdateLeadTask = () => {
   const queryClient = useQueryClient();
 

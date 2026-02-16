@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
-import { useLeadTasks, useCompleteLeadTask, useCreateLeadTask, useUpdateLeadTask } from "@/hooks/useLeadTasks";
+import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask } from "@/hooks/useLeadTasks";
 import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -207,6 +207,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const createNote = useCreateLeadNote();
   const deleteNote = useDeleteLeadNote();
   const completeTask = useCompleteLeadTask();
+  const uncompleteTask = useUncompleteLeadTask();
   const createTask = useCreateLeadTask();
   const updateTask = useUpdateLeadTask();
   const updateLead = useUpdateLead();
@@ -284,7 +285,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-3xl bg-card border-border overflow-y-auto p-0">
+      <SheetContent className="w-full sm:max-w-[60vw] bg-card border-border overflow-y-auto p-0">
         {/* Header */}
         <div className="p-6 border-b border-border">
           <SheetHeader>
@@ -438,7 +439,10 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
                 ))}
                 {completedTasks.map((task) => (
                   <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 opacity-60">
-                    <Checkbox checked disabled className="border-muted-foreground" />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked onCheckedChange={() => uncompleteTask.mutate(task.id)}
+                        disabled={uncompleteTask.isPending} className="border-muted-foreground data-[state=checked]:bg-muted-foreground" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-muted-foreground line-through">{task.title}</p>
                       <p className="text-[11px] text-muted-foreground">
