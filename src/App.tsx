@@ -10,6 +10,8 @@ import LeadsPage from "./pages/LeadsPage";
 import TarefasPage from "./pages/TarefasPage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
+import ComingSoon from "./components/ComingSoon";
+import { BarChart3, Wrench, Package, Calendar, DollarSign } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,11 @@ const AppRoutes = () => {
       <Route path="/" element={<Navigate to="/leads" replace />} />
       <Route path="/leads" element={<ProtectedRoute><LeadsPage /></ProtectedRoute>} />
       <Route path="/tarefas" element={<ProtectedRoute><TarefasPage /></ProtectedRoute>} />
+      <Route path="/relatorios" element={<ProtectedRoute><ComingSoon title="Relatórios" icon={<BarChart3 className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/servicos" element={<ProtectedRoute><ComingSoon title="Serviços" icon={<Wrench className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/pacotes" element={<ProtectedRoute><ComingSoon title="Pacotes" icon={<Package className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/agenda" element={<ProtectedRoute><ComingSoon title="Agenda" icon={<Calendar className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/financeiro" element={<ProtectedRoute><ComingSoon title="Financeiro" icon={<DollarSign className="w-10 h-10" />} /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
