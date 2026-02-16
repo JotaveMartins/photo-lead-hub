@@ -141,6 +141,27 @@ export const useCompleteLeadTask = () => {
   });
 };
 
+export const useUpdateLeadTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string | null; due_date?: string; due_time?: string | null }) => {
+      const { error } = await supabase
+        .from("lead_tasks")
+        .update(updates)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+      toast.success("Tarefa atualizada!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao atualizar tarefa: " + error.message);
+    },
+  });
+};
+
 export const useCreateLeadTask = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
