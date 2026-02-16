@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -196,6 +197,90 @@ const EditableTaskRow = ({
   );
 };
 
+// Editable system field with warning confirmation
+const EditableSystemField = ({
+  label, value, isTimestamp, onSave,
+}: {
+  label: string; value: string | null; isTimestamp: boolean; onSave: (v: string) => void;
+}) => {
+  const [showWarning, setShowWarning] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const displayValue = value
+    ? isTimestamp
+      ? new Date(value).toLocaleString("pt-BR")
+      : new Date(value).toLocaleDateString("pt-BR")
+    : "—";
+
+  const inputValue = value
+    ? isTimestamp
+      ? new Date(value).toISOString().slice(0, 16)
+      : value
+    : "";
+
+  const handleClick = () => {
+    setDraft(inputValue);
+    setShowWarning(true);
+  };
+
+  const handleConfirmWarning = () => {
+    setShowWarning(false);
+    setEditing(true);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== inputValue) {
+      if (isTimestamp && draft) {
+        onSave(new Date(draft).toISOString());
+      } else {
+        onSave(draft);
+      }
+    }
+  };
+
+  return (
+    <>
+      <div className="space-y-0.5">
+        <p className="text-[11px] text-muted-foreground">{label}</p>
+        {editing ? (
+          <Input ref={inputRef} type={isTimestamp ? "datetime-local" : "date"} value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+            className="bg-muted border-border h-7 text-xs" />
+        ) : (
+          <p className="text-xs text-foreground/70 cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 transition-colors flex items-center"
+            onClick={handleClick}>
+            {displayValue}
+            <Pencil className="w-2.5 h-2.5 ml-auto text-muted-foreground opacity-0 group-hover:opacity-50" />
+          </p>
+        )}
+      </div>
+      <AlertDialog open={showWarning} onOpenChange={setShowWarning}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Editar campo do sistema</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este campo é preenchido automaticamente pelo sistema. Alterá-lo manualmente pode causar inconsistências em relatórios e outras funcionalidades. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmWarning} className="bg-gradient-primary hover:opacity-90">
+              Sim, editar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
 const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) => {
   const [newNote, setNewNote] = useState("");
   const [showNewTask, setShowNewTask] = useState(false);
@@ -336,29 +421,29 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const completedTasks = tasks.filter(t => t.completed);
 
   const SYSTEM_FIELDS = [
-    { label: "Entrada em Novo Lead", value: lead.data_entrada_novo_lead },
-    { label: "Entrada em Contato Iniciado", value: lead.data_entrada_contato_iniciado },
-    { label: "Entrada em Proposta Enviada", value: lead.data_entrada_proposta_enviada },
-    { label: "Entrada em Follow-up", value: lead.data_entrada_follow_up },
-    { label: "Entrada em Contrato Enviado", value: lead.data_entrada_contrato_enviado },
-    { label: "Entrada em Fechado Ganho", value: lead.data_entrada_fechado_ganho },
-    { label: "Entrada em Fechado Perdido", value: lead.data_entrada_fechado_perdido },
+    { label: "Entrada em Novo Lead", value: lead.data_entrada_novo_lead, field: "data_entrada_novo_lead" },
+    { label: "Entrada em Contato Iniciado", value: lead.data_entrada_contato_iniciado, field: "data_entrada_contato_iniciado" },
+    { label: "Entrada em Proposta Enviada", value: lead.data_entrada_proposta_enviada, field: "data_entrada_proposta_enviada" },
+    { label: "Entrada em Follow-up", value: lead.data_entrada_follow_up, field: "data_entrada_follow_up" },
+    { label: "Entrada em Contrato Enviado", value: lead.data_entrada_contrato_enviado, field: "data_entrada_contrato_enviado" },
+    { label: "Entrada em Fechado Ganho", value: lead.data_entrada_fechado_ganho, field: "data_entrada_fechado_ganho" },
+    { label: "Entrada em Fechado Perdido", value: lead.data_entrada_fechado_perdido, field: "data_entrada_fechado_perdido" },
   ];
 
   const CADENCE_FIELDS = [
-    { label: "Cadência 1", value: (lead as any).cadencia_1 },
-    { label: "Cadência 2", value: (lead as any).cadencia_2 },
-    { label: "Cadência 3", value: (lead as any).cadencia_3 },
-    { label: "Cadência 4", value: (lead as any).cadencia_4 },
-    { label: "Cadência 5", value: (lead as any).cadencia_5 },
+    { label: "Cadência 1", value: (lead as any).cadencia_1, field: "cadencia_1", isTimestamp: true },
+    { label: "Cadência 2", value: (lead as any).cadencia_2, field: "cadencia_2", isTimestamp: true },
+    { label: "Cadência 3", value: (lead as any).cadencia_3, field: "cadencia_3", isTimestamp: true },
+    { label: "Cadência 4", value: (lead as any).cadencia_4, field: "cadencia_4", isTimestamp: true },
+    { label: "Cadência 5", value: (lead as any).cadencia_5, field: "cadencia_5", isTimestamp: true },
   ];
 
   const FOLLOWUP_FIELDS = [
-    { label: "Follow-up 1", value: lead.follow_up_1 },
-    { label: "Follow-up 2", value: lead.follow_up_2 },
-    { label: "Follow-up 3", value: lead.follow_up_3 },
-    { label: "Follow-up 4", value: lead.follow_up_4 },
-    { label: "Follow-up 5", value: lead.follow_up_5 },
+    { label: "Follow-up 1", value: lead.follow_up_1, field: "follow_up_1", isTimestamp: false },
+    { label: "Follow-up 2", value: lead.follow_up_2, field: "follow_up_2", isTimestamp: false },
+    { label: "Follow-up 3", value: lead.follow_up_3, field: "follow_up_3", isTimestamp: false },
+    { label: "Follow-up 4", value: lead.follow_up_4, field: "follow_up_4", isTimestamp: false },
+    { label: "Follow-up 5", value: lead.follow_up_5, field: "follow_up_5", isTimestamp: false },
   ];
 
   return (
@@ -455,39 +540,31 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
               </div>
             )}
 
-            <Button variant="outline" className="w-full gap-2 mt-4" size="sm"
-              onClick={() => window.open(`https://wa.me/55${lead.whatsapp}`, "_blank")}>
-              <MessageSquare className="w-4 h-4" /> Abrir WhatsApp
-            </Button>
-
             {/* System Fields */}
             <div className="space-y-2 pt-4 border-t border-border">
               <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                 <Lock className="w-3 h-3" /> Campos do Sistema
               </h4>
               {SYSTEM_FIELDS.map((field) => (
-                <div key={field.label} className="space-y-0.5">
-                  <p className="text-[11px] text-muted-foreground">{field.label}</p>
-                  <p className="text-xs text-foreground/70">{field.value ? new Date(field.value).toLocaleString("pt-BR") : "—"}</p>
-                </div>
+                <EditableSystemField key={field.label} label={field.label}
+                  value={field.value} isTimestamp
+                  onSave={(v) => handleFieldSave(field.field, v || null)} />
               ))}
 
               {/* Cadência Pré-Proposta */}
               <h4 className="text-xs font-semibold text-muted-foreground pt-2">Cadência Pré-Proposta</h4>
               {CADENCE_FIELDS.map((field) => (
-                <div key={field.label} className="space-y-0.5">
-                  <p className="text-[11px] text-muted-foreground">{field.label}</p>
-                  <p className="text-xs text-foreground/70">{field.value ? new Date(field.value).toLocaleString("pt-BR") : "—"}</p>
-                </div>
+                <EditableSystemField key={field.label} label={field.label}
+                  value={field.value} isTimestamp={field.isTimestamp}
+                  onSave={(v) => handleFieldSave(field.field, v || null)} />
               ))}
 
               {/* Follow-ups Pós-Proposta */}
               <h4 className="text-xs font-semibold text-muted-foreground pt-2">Follow-ups Pós-Proposta</h4>
               {FOLLOWUP_FIELDS.map((field) => (
-                <div key={field.label} className="space-y-0.5">
-                  <p className="text-[11px] text-muted-foreground">{field.label}</p>
-                  <p className="text-xs text-foreground/70">{field.value ? new Date(field.value).toLocaleDateString("pt-BR") : "—"}</p>
-                </div>
+                <EditableSystemField key={field.label} label={field.label}
+                  value={field.value} isTimestamp={field.isTimestamp}
+                  onSave={(v) => handleFieldSave(field.field, v || null)} />
               ))}
             </div>
           </div>
