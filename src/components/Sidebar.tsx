@@ -1,9 +1,5 @@
 import { 
-  LayoutDashboard, 
   Users, 
-  Calendar, 
-  MessageSquare, 
-  TrendingUp,
   CheckSquare,
   LogOut,
 } from "lucide-react";
@@ -16,12 +12,8 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'leads', label: 'Leads', icon: Users },
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
-  { id: 'agenda', label: 'Agenda', icon: Calendar },
-  { id: 'mensagens', label: 'Mensagens', icon: MessageSquare },
-  { id: 'relatorios', label: 'Relatórios', icon: TrendingUp },
 ];
 
 const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {

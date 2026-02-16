@@ -6,12 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
 import LeadsPage from "./pages/LeadsPage";
-import AgendaPage from "./pages/AgendaPage";
 import TarefasPage from "./pages/TarefasPage";
-import RelatoriosPage from "./pages/RelatoriosPage";
-import MensagensPage from "./pages/MensagensPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,12 +34,9 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/" element={<Navigate to="/leads" replace />} />
       <Route path="/leads" element={<ProtectedRoute><LeadsPage /></ProtectedRoute>} />
       <Route path="/tarefas" element={<ProtectedRoute><TarefasPage /></ProtectedRoute>} />
-      <Route path="/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
-      <Route path="/relatorios" element={<ProtectedRoute><RelatoriosPage /></ProtectedRoute>} />
-      <Route path="/mensagens" element={<ProtectedRoute><MensagensPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
