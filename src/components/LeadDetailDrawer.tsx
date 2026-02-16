@@ -345,6 +345,22 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
     { label: "Entrada em Fechado Perdido", value: lead.data_entrada_fechado_perdido },
   ];
 
+  const CADENCE_FIELDS = [
+    { label: "Cadência 1", value: (lead as any).cadencia_1 },
+    { label: "Cadência 2", value: (lead as any).cadencia_2 },
+    { label: "Cadência 3", value: (lead as any).cadencia_3 },
+    { label: "Cadência 4", value: (lead as any).cadencia_4 },
+    { label: "Cadência 5", value: (lead as any).cadencia_5 },
+  ];
+
+  const FOLLOWUP_FIELDS = [
+    { label: "Follow-up 1", value: lead.follow_up_1 },
+    { label: "Follow-up 2", value: lead.follow_up_2 },
+    { label: "Follow-up 3", value: lead.follow_up_3 },
+    { label: "Follow-up 4", value: lead.follow_up_4 },
+    { label: "Follow-up 5", value: lead.follow_up_5 },
+  ];
+
   return (
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -420,18 +436,6 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
               value={lead.data_proposta || ""} displayValue={formatDate(lead.data_proposta)}
               onSave={(v) => handleFieldSave("data_proposta", v || null)} />
 
-            <div className="space-y-2 pt-2 border-t border-border">
-              <h4 className="text-xs font-semibold text-foreground">Follow-ups</h4>
-              {[1, 2, 3, 4, 5].map((i) => {
-                const key = `follow_up_${i}` as keyof Lead;
-                return (
-                  <InlineField key={i} label={`Follow-up ${i}`} type="date"
-                    value={(lead[key] as string) || ""} displayValue={formatDate((lead[key] as string) || null)}
-                    onSave={(v) => handleFieldSave(key, v || null)} />
-                );
-              })}
-            </div>
-
             {lead.status === "Fechado Perdido" && (
               <div className="space-y-1 pt-2 border-t border-border">
                 <Label className="text-xs text-muted-foreground">Motivo da Perda</Label>
@@ -454,6 +458,24 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
                 <div key={field.label} className="space-y-0.5">
                   <p className="text-[11px] text-muted-foreground">{field.label}</p>
                   <p className="text-xs text-foreground/70">{field.value ? new Date(field.value).toLocaleString("pt-BR") : "—"}</p>
+                </div>
+              ))}
+
+              {/* Cadência Pré-Proposta */}
+              <h4 className="text-xs font-semibold text-muted-foreground pt-2">Cadência Pré-Proposta</h4>
+              {CADENCE_FIELDS.map((field) => (
+                <div key={field.label} className="space-y-0.5">
+                  <p className="text-[11px] text-muted-foreground">{field.label}</p>
+                  <p className="text-xs text-foreground/70">{field.value ? new Date(field.value).toLocaleString("pt-BR") : "—"}</p>
+                </div>
+              ))}
+
+              {/* Follow-ups Pós-Proposta */}
+              <h4 className="text-xs font-semibold text-muted-foreground pt-2">Follow-ups Pós-Proposta</h4>
+              {FOLLOWUP_FIELDS.map((field) => (
+                <div key={field.label} className="space-y-0.5">
+                  <p className="text-[11px] text-muted-foreground">{field.label}</p>
+                  <p className="text-xs text-foreground/70">{field.value ? new Date(field.value).toLocaleDateString("pt-BR") : "—"}</p>
                 </div>
               ))}
             </div>
