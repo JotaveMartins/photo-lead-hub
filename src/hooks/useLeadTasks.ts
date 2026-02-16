@@ -113,6 +113,7 @@ export const useCompleteLeadTask = () => {
         if (!existing) {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
           const { error: insertError } = await supabase
             .from("lead_tasks")
             .insert({
@@ -120,7 +121,7 @@ export const useCompleteLeadTask = () => {
               user_id: user.id,
               title: `${nextNumber}º Entrar em contato`,
               task_number: nextNumber,
-              due_date: tomorrow.toISOString().split("T")[0],
+              due_date: tomorrowStr,
               is_cadence: true,
             });
           if (insertError) throw insertError;
