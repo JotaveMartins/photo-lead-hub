@@ -291,3 +291,24 @@ export const useCreateLeadTask = () => {
     },
   });
 };
+
+export const useDeleteLeadTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase
+        .from("lead_tasks")
+        .delete()
+        .eq("id", taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+      toast.success("Tarefa excluída!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir tarefa: " + error.message);
+    },
+  });
+};

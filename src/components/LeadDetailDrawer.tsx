@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
-import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask } from "@/hooks/useLeadTasks";
+import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask, useDeleteLeadTask } from "@/hooks/useLeadTasks";
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
@@ -129,9 +129,9 @@ const InlineName = ({ value, onSave }: { value: string; onSave: (v: string) => v
 
 // Editable task row
 const EditableTaskRow = ({
-  task, onComplete, onUpdate, isPending,
+  task, onComplete, onUpdate, onDelete, isPending,
 }: {
-  task: any; onComplete: () => void; onUpdate: (updates: any) => void; isPending: boolean;
+  task: any; onComplete: () => void; onUpdate: (updates: any) => void; onDelete: () => void; isPending: boolean;
 }) => {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
@@ -169,9 +169,14 @@ const EditableTaskRow = ({
           <Input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)}
             className="bg-muted border-border h-8 text-sm w-28" />
         </div>
-        <div className="flex gap-2 justify-end">
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditing(false); setTitle(task.title); setDescription(task.description || ""); setDueDate(task.due_date); setDueTime(task.due_time || ""); }}>Cancelar</Button>
-          <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={commitEdit}>Salvar</Button>
+        <div className="flex gap-2 justify-between">
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+            <Trash2 className="w-3 h-3 mr-1" /> Excluir
+          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditing(false); setTitle(task.title); setDescription(task.description || ""); setDueDate(task.due_date); setDueTime(task.due_time || ""); }}>Cancelar</Button>
+            <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={commitEdit}>Salvar</Button>
+          </div>
         </div>
       </div>
     );
@@ -313,6 +318,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
+  const deleteTask = useDeleteLeadTask();
+  const [deleteLeadConfirmOpen, setDeleteLeadConfirmOpen] = useState(false);
   const createHistory = useCreateLeadHistory();
 
   const FIELD_LABELS: Record<string, string> = {
@@ -494,6 +501,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                 {lead.nome.charAt(0).toUpperCase()}
               </div>
               <InlineName value={lead.nome} onSave={(v) => handleFieldSave("nome", v)} />
+              <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto text-muted-foreground hover:text-destructive"
+                onClick={() => setDeleteLeadConfirmOpen(true)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex items-center gap-3 flex-wrap">
@@ -725,6 +736,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                           <EditableTaskRow task={item.data}
                             onComplete={() => handleCompleteTask(item.data)}
                             onUpdate={(updates) => updateTask.mutate({ id: item.data.id, ...updates })}
+                            onDelete={() => deleteTask.mutate(item.data.id)}
                             isPending={completeTask.isPending} />
                         )}
 
@@ -801,6 +813,28 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       onConfirm={handleFollowUpConfirm}
       onDecline={handleFollowUpDecline}
     />
+
+    <AlertDialog open={deleteLeadConfirmOpen} onOpenChange={setDeleteLeadConfirmOpen}>
+      <AlertDialogContent className="bg-card border-border">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-foreground">Excluir lead</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir <span className="font-semibold text-foreground">{lead?.nome}</span>? Esta ação não pode ser desfeita. Todas as tarefas, notas e histórico serão removidos.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              if (lead) {
+                deleteLead.mutate(lead.id, { onSuccess: () => onOpenChange(false) });
+              }
+            }}>
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 };
