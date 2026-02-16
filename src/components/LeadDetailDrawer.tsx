@@ -365,13 +365,17 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
   const handleStatusChange = async (status: LeadStatus) => {
     if (!lead) return;
-    if (REQUIRED_FIELDS_STATUSES.includes(status) && (!lead.valor || lead.valor <= 0)) {
+    const isProposalTarget = status === "Proposta Enviada";
+    const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(status) && (
+      (!lead.valor || lead.valor <= 0) ||
+      (isProposalTarget && (!lead.data_proposta || !lead.data_evento || !lead.interesse || !lead.origem))
+    );
+    if (needsRequiredFields) {
       setPendingStatus(status);
       setRequiredFieldsOpen(true);
       return;
     }
     if (status === "Proposta Enviada") {
-      // Move to Follow-up instead, then show follow-up modal
       await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus });
       setFollowUpMode("activate");
       setFollowUpNextNumber(1);
@@ -381,11 +385,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     await updateLead.mutateAsync({ id: lead.id, status });
   };
 
-  const handleRequiredFieldsConfirm = async (fields: { valor: number }) => {
+  const handleRequiredFieldsConfirm = async (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
     if (!lead || !pendingStatus) return;
     if (pendingStatus === "Proposta Enviada") {
-      // Move to Follow-up instead
-      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus, valor: fields.valor });
+      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus, ...fields });
       setRequiredFieldsOpen(false);
       setPendingStatus(null);
       setFollowUpMode("activate");
@@ -393,7 +396,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       setFollowUpModalOpen(true);
       return;
     }
-    await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, valor: fields.valor });
+    await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
     setRequiredFieldsOpen(false);
     setPendingStatus(null);
   };
@@ -801,6 +804,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       leadName={lead?.nome || ""}
       targetStatus={pendingStatus || ""}
       currentValor={lead?.valor ?? null}
+      currentDataProposta={lead?.data_proposta ?? null}
+      currentDataEvento={lead?.data_evento ?? null}
+      currentInteresse={lead?.interesse ?? null}
+      currentOrigem={lead?.origem ?? null}
       onConfirm={handleRequiredFieldsConfirm}
     />
 
