@@ -1,15 +1,22 @@
 import { useState, useMemo } from "react";
-import { CheckSquare, Plus, Filter, Calendar, Clock, User } from "lucide-react";
+import { CheckSquare, Plus, Calendar, Clock, User, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import LeadDetailDrawer from "@/components/LeadDetailDrawer";
 import { useAllTasks, useCompleteLeadTask, useCreateLeadTask } from "@/hooks/useLeadTasks";
 import { useLeads } from "@/hooks/useLeads";
-import { format, isBefore, isToday, parseISO, startOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { isBefore, isToday, parseISO, startOfDay } from "date-fns";
+import { format } from "date-fns";
+import type { Database } from "@/integrations/supabase/types";
+
+type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
 const TarefasPage = () => {
   const { data: allTasks = [] } = useAllTasks();
@@ -24,6 +31,7 @@ const TarefasPage = () => {
   const [newDueDate, setNewDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [newDueTime, setNewDueTime] = useState("");
   const [newLeadId, setNewLeadId] = useState("");
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const today = startOfDay(new Date());
 
@@ -63,12 +71,17 @@ const TarefasPage = () => {
     setNewLeadId("");
   };
 
-  const getTaskStatusColor = (task: typeof allTasks[0]) => {
-    if (task.completed) return "border-l-muted-foreground";
+  const getTaskStatusIndicator = (task: typeof allTasks[0]) => {
+    if (task.completed) return { color: "text-muted-foreground", label: "Concluída" };
     const dueDate = parseISO(task.due_date);
-    if (isBefore(dueDate, today)) return "border-l-[hsl(var(--status-danger))]";
-    if (isToday(dueDate)) return "border-l-[hsl(var(--status-success))]";
-    return "border-l-muted-foreground/50";
+    if (isBefore(dueDate, today)) return { color: "text-red-500", label: "Atrasada" };
+    if (isToday(dueDate)) return { color: "text-green-500", label: "Hoje" };
+    return { color: "text-muted-foreground/50", label: "Futura" };
+  };
+
+  const handleTaskClick = (task: typeof allTasks[0]) => {
+    const lead = leads.find(l => l.id === task.lead_id);
+    if (lead) setSelectedLead(lead);
   };
 
   return (
@@ -109,55 +122,82 @@ const TarefasPage = () => {
         ))}
       </div>
 
-      {/* Tasks list */}
-      <div className="space-y-2">
+      {/* Tasks table */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
         {filteredTasks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-12">Nenhuma tarefa encontrada.</p>
         ) : (
-          filteredTasks.map((task) => (
-            <div
-              key={task.id}
-              className={`flex items-center gap-3 p-4 rounded-lg bg-card border border-border border-l-4 ${getTaskStatusColor(task)} ${
-                task.completed ? "opacity-60" : ""
-              }`}
-            >
-              <Checkbox
-                checked={task.completed}
-                onCheckedChange={() => !task.completed && completeTask.mutate(task)}
-                disabled={task.completed || completeTask.isPending}
-                className="border-primary data-[state=checked]:bg-primary"
-              />
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                  {task.title}
-                </p>
-                {task.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
-                )}
-                <div className="flex items-center gap-3 mt-1.5">
-                  {task.leads && (
-                    <span className="text-xs text-primary flex items-center gap-1">
-                      <User className="w-3 h-3" /> {task.leads.nome}
-                    </span>
-                  )}
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> {new Date(task.due_date).toLocaleDateString("pt-BR")}
-                  </span>
-                  {task.due_time && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {task.due_time}
-                    </span>
-                  )}
-                  {task.is_cadence && (
-                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">Cadência</span>
-                  )}
-                </div>
-              </div>
-              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                Criada em {new Date(task.created_at).toLocaleDateString("pt-BR")}
-              </span>
-            </div>
-          ))
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border">
+                <TableHead className="w-10"></TableHead>
+                <TableHead>Tarefa</TableHead>
+                <TableHead>Lead</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead className="hidden sm:table-cell">Criada em</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTasks.map((task) => {
+                const status = getTaskStatusIndicator(task);
+                return (
+                  <TableRow
+                    key={task.id}
+                    className={`border-border cursor-pointer hover:bg-muted/50 ${task.completed ? "opacity-50" : ""}`}
+                  >
+                    <TableCell className="pr-0" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center">
+                            {task.completed ? (
+                              <Checkbox checked disabled className="border-muted-foreground" />
+                            ) : (
+                              <div className="relative">
+                                <Circle className={`w-5 h-5 ${status.color} cursor-pointer hover:scale-110 transition-transform`}
+                                  onClick={() => completeTask.mutate(task)} />
+                              </div>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent><p className="text-xs">{task.completed ? "Concluída" : "Marcar como concluída"}</p></TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell onClick={() => handleTaskClick(task)}>
+                      <p className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                        {task.title}
+                      </p>
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{task.description}</p>
+                      )}
+                      {task.is_cadence && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded mt-1 inline-block">Cadência</span>
+                      )}
+                    </TableCell>
+                    <TableCell onClick={() => handleTaskClick(task)}>
+                      <span className="text-sm text-primary flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        {task.leads?.nome || "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell onClick={() => handleTaskClick(task)}>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-sm text-foreground">{new Date(task.due_date).toLocaleDateString("pt-BR")}</span>
+                        {task.due_time && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                            <Clock className="w-3 h-3" /> {task.due_time}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell" onClick={() => handleTaskClick(task)}>
+                      <span className="text-xs text-muted-foreground">{new Date(task.created_at).toLocaleDateString("pt-BR")}</span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
 
@@ -173,8 +213,8 @@ const TarefasPage = () => {
               <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Ex: Ligar para cliente" className="bg-muted border-border" />
             </div>
             <div className="space-y-2">
-              <Label>Descrição (opcional)</Label>
-              <Input value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Detalhes..." className="bg-muted border-border" />
+              <Label>Anotação / Script (opcional)</Label>
+              <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Detalhes, script de contato..." className="bg-muted border-border min-h-[80px]" />
             </div>
             <div className="space-y-2">
               <Label>Lead</Label>
@@ -204,6 +244,9 @@ const TarefasPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Lead Detail Drawer - opens when clicking a task */}
+      <LeadDetailDrawer lead={selectedLead} open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)} />
     </>
   );
 };

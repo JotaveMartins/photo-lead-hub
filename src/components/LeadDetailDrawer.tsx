@@ -43,6 +43,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const [editData, setEditData] = useState<Partial<Lead>>({});
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDate, setNewTaskDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [newTaskTime, setNewTaskTime] = useState("");
 
@@ -96,10 +97,12 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
     await createTask.mutateAsync({
       lead_id: lead.id,
       title: newTaskTitle.trim(),
+      description: newTaskDescription.trim() || undefined,
       due_date: newTaskDate,
       due_time: newTaskTime || undefined,
     });
     setNewTaskTitle("");
+    setNewTaskDescription("");
     setNewTaskTime("");
     setShowNewTask(false);
   };
@@ -183,6 +186,23 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
             {stageDate && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Nesta etapa há {formatStageDuration(stageDate)}
+              </span>
+            )}
+            {/* Iniciar Atendimento toggle */}
+            {lead.status === "Novo Lead" && !lead.iniciar_atendimento && (
+              <Button
+                size="sm"
+                className="bg-gradient-primary hover:opacity-90 gap-1 h-7 text-xs"
+                onClick={async () => {
+                  await updateLead.mutateAsync({ id: lead.id, iniciar_atendimento: true });
+                }}
+              >
+                <CheckCircle2 className="w-3 h-3" /> Iniciar Atendimento
+              </Button>
+            )}
+            {lead.iniciar_atendimento && (
+              <span className="text-xs text-green-500 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Atendimento iniciado
               </span>
             )}
           </div>
@@ -283,6 +303,8 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
                 <div className="space-y-2 mb-3 p-3 rounded-lg bg-muted/50 border border-border">
                   <Input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)}
                     placeholder="Título da tarefa" className="bg-muted border-border h-8 text-sm" />
+                  <Textarea value={newTaskDescription} onChange={(e) => setNewTaskDescription(e.target.value)}
+                    placeholder="Anotação / Script (opcional)" className="bg-muted border-border text-sm min-h-[60px]" />
                   <div className="flex gap-2">
                     <Input type="date" value={newTaskDate} onChange={(e) => setNewTaskDate(e.target.value)}
                       className="bg-muted border-border h-8 text-sm flex-1" />
