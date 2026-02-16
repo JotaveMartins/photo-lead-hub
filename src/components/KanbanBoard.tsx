@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useLeads, useUpdateLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
+import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
 import { Phone, Calendar, GripVertical, Search, Filter, DollarSign, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
+import FollowUpModal from "@/components/FollowUpModal";
 import type { Database } from "@/integrations/supabase/types";
 import { isBefore, isToday, parseISO, startOfDay } from "date-fns";
 
@@ -64,6 +66,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: leads = [], isLoading } = useLeads();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const updateLead = useUpdateLead();
+  const createFollowUp = useCreateFollowUpTask();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -71,6 +74,9 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
   const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
+  // Follow-up modal state
+  const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
+  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -112,18 +118,31 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     setDragOverColumn(null);
   };
 
+  const moveLeadToStatus = (lead: Lead, newStatus: LeadStatus, extraFields?: Record<string, any>) => {
+    if (newStatus === "Proposta Enviada") {
+      // Move to Follow-up instead, then show follow-up modal
+      updateLead.mutate({ id: lead.id, status: "Follow-up" as LeadStatus, ...extraFields }, {
+        onSuccess: () => {
+          setFollowUpLead(lead);
+          setFollowUpModalOpen(true);
+        }
+      });
+    } else {
+      updateLead.mutate({ id: lead.id, status: newStatus, ...extraFields });
+    }
+  };
+
   const handleDrop = (e: React.DragEvent, newStatus: LeadStatus) => {
     e.preventDefault();
     setDragOverColumn(null);
     if (draggedLeadId) {
       const lead = leads.find((l) => l.id === draggedLeadId);
       if (lead && lead.status !== newStatus) {
-        // Check if valor is required and missing
         if (REQUIRED_FIELDS_STATUSES.includes(newStatus) && (!lead.valor || lead.valor <= 0)) {
           setRequiredFieldsLead(lead);
           setRequiredFieldsTarget(newStatus);
         } else {
-          updateLead.mutate({ id: draggedLeadId, status: newStatus });
+          moveLeadToStatus(lead, newStatus);
         }
       }
     }
@@ -133,14 +152,21 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const handleRequiredFieldsConfirm = (fields: { valor: number }) => {
     if (requiredFieldsLead && requiredFieldsTarget) {
-      updateLead.mutate({
-        id: requiredFieldsLead.id,
-        status: requiredFieldsTarget,
-        valor: fields.valor,
-      });
+      moveLeadToStatus(requiredFieldsLead, requiredFieldsTarget, { valor: fields.valor });
       setRequiredFieldsLead(null);
       setRequiredFieldsTarget(null);
     }
+  };
+
+  const handleFollowUpConfirm = (date: string) => {
+    if (followUpLead) {
+      createFollowUp.mutate({ leadId: followUpLead.id, followUpNumber: 1, dueDate: date });
+      setFollowUpLead(null);
+    }
+  };
+
+  const handleFollowUpDecline = () => {
+    setFollowUpLead(null);
   };
 
   const formatDate = (d: string | null) => {
@@ -314,6 +340,17 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         targetStatus={requiredFieldsTarget || ""}
         currentValor={requiredFieldsLead?.valor ?? null}
         onConfirm={handleRequiredFieldsConfirm}
+      />
+
+      {/* Follow-up Modal */}
+      <FollowUpModal
+        open={followUpModalOpen}
+        onOpenChange={setFollowUpModalOpen}
+        mode="activate"
+        nextNumber={1}
+        leadName={followUpLead?.nome || ""}
+        onConfirm={handleFollowUpConfirm}
+        onDecline={handleFollowUpDecline}
       />
     </div>
   );

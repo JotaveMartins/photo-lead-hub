@@ -87,22 +87,31 @@ export const useTasksByLeadIds = (leadIds: string[]) => {
   });
 };
 
+// Returns { isFollowUp: boolean; followUpNumber: number } to signal if modal should show
 export const useCompleteLeadTask = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (task: LeadTask) => {
+    mutationFn: async (task: LeadTask): Promise<{ isFollowUp: boolean; followUpNumber: number }> => {
       const { error } = await supabase
         .from("lead_tasks")
         .update({ completed: true, completed_at: new Date().toISOString() })
         .eq("id", task.id);
       if (error) throw error;
 
-      // Auto-generate next cadence task only if it doesn't already exist
+      // Check if this is a follow-up task (title starts with "Follow-up")
+      const isFollowUp = task.title.startsWith("Follow-up");
+      if (isFollowUp) {
+        // Extract current number from title like "Follow-up 3"
+        const match = task.title.match(/Follow-up\s+(\d+)/);
+        const currentNum = match ? parseInt(match[1]) : 1;
+        return { isFollowUp: true, followUpNumber: currentNum + 1 };
+      }
+
+      // Pre-proposal cadence: auto-create next task (existing behavior)
       if (task.is_cadence && task.task_number < 5 && user) {
         const nextNumber = task.task_number + 1;
-        // Check if next task already exists
         const { data: existing } = await supabase
           .from("lead_tasks")
           .select("id")
@@ -129,7 +138,6 @@ export const useCompleteLeadTask = () => {
       }
 
       if (task.is_cadence && task.task_number === 5 && user) {
-        // Check if "Mover para Perdido" task already exists
         const { data: existing } = await supabase
           .from("lead_tasks")
           .select("id")
@@ -138,6 +146,8 @@ export const useCompleteLeadTask = () => {
           .eq("task_number", 6)
           .maybeSingle();
         if (!existing) {
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
           const { error: insertError } = await supabase
             .from("lead_tasks")
             .insert({
@@ -145,12 +155,14 @@ export const useCompleteLeadTask = () => {
               user_id: user.id,
               title: "Mover para Fechado Perdido",
               task_number: 6,
-              due_date: new Date().toISOString().split("T")[0],
+              due_date: todayStr,
               is_cadence: true,
             });
           if (insertError) throw insertError;
         }
       }
+
+      return { isFollowUp: false, followUpNumber: 0 };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
@@ -158,6 +170,35 @@ export const useCompleteLeadTask = () => {
     },
     onError: (error: Error) => {
       toast.error("Erro ao concluir tarefa: " + error.message);
+    },
+  });
+};
+
+export const useCreateFollowUpTask = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ leadId, followUpNumber, dueDate }: { leadId: string; followUpNumber: number; dueDate: string }) => {
+      if (!user) throw new Error("Usuário não autenticado");
+      const { error } = await supabase
+        .from("lead_tasks")
+        .insert({
+          lead_id: leadId,
+          user_id: user.id,
+          title: `Follow-up ${followUpNumber}`,
+          task_number: followUpNumber,
+          due_date: dueDate,
+          is_cadence: false,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+      toast.success("Follow-up criado!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao criar follow-up: " + error.message);
     },
   });
 };

@@ -8,9 +8,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
-import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask } from "@/hooks/useLeadTasks";
+import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask } from "@/hooks/useLeadTasks";
 import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
+import FollowUpModal from "@/components/FollowUpModal";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -204,6 +205,10 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const [newTaskTime, setNewTaskTime] = useState("");
   const [requiredFieldsOpen, setRequiredFieldsOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<LeadStatus | null>(null);
+  // Follow-up modal state
+  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+  const [followUpMode, setFollowUpMode] = useState<"activate" | "next">("activate");
+  const [followUpNextNumber, setFollowUpNextNumber] = useState(1);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -217,6 +222,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const updateTask = useUpdateLeadTask();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
+  const createFollowUp = useCreateFollowUpTask();
 
   const handleFieldSave = (field: string, value: any) => {
     if (!lead) return;
@@ -236,14 +242,53 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
       setRequiredFieldsOpen(true);
       return;
     }
+    if (status === "Proposta Enviada") {
+      // Move to Follow-up instead, then show follow-up modal
+      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus });
+      setFollowUpMode("activate");
+      setFollowUpNextNumber(1);
+      setFollowUpModalOpen(true);
+      return;
+    }
     await updateLead.mutateAsync({ id: lead.id, status });
   };
 
   const handleRequiredFieldsConfirm = async (fields: { valor: number }) => {
     if (!lead || !pendingStatus) return;
+    if (pendingStatus === "Proposta Enviada") {
+      // Move to Follow-up instead
+      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus, valor: fields.valor });
+      setRequiredFieldsOpen(false);
+      setPendingStatus(null);
+      setFollowUpMode("activate");
+      setFollowUpNextNumber(1);
+      setFollowUpModalOpen(true);
+      return;
+    }
     await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, valor: fields.valor });
     setRequiredFieldsOpen(false);
     setPendingStatus(null);
+  };
+
+  const handleCompleteTask = (task: any) => {
+    completeTask.mutate(task, {
+      onSuccess: (result) => {
+        if (result.isFollowUp && lead) {
+          setFollowUpMode("next");
+          setFollowUpNextNumber(result.followUpNumber);
+          setFollowUpModalOpen(true);
+        }
+      },
+    });
+  };
+
+  const handleFollowUpConfirm = (date: string) => {
+    if (!lead) return;
+    createFollowUp.mutate({ leadId: lead.id, followUpNumber: followUpNextNumber, dueDate: date });
+  };
+
+  const handleFollowUpDecline = () => {
+    // Do nothing
   };
 
   const handleCreateTask = async () => {
@@ -451,7 +496,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
                 )}
                 {pendingTasks.map((task) => (
                   <EditableTaskRow key={task.id} task={task}
-                    onComplete={() => completeTask.mutate(task)}
+                    onComplete={() => handleCompleteTask(task)}
                     onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
                     isPending={completeTask.isPending} />
                 ))}
@@ -509,6 +554,16 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
       targetStatus={pendingStatus || ""}
       currentValor={lead?.valor ?? null}
       onConfirm={handleRequiredFieldsConfirm}
+    />
+
+    <FollowUpModal
+      open={followUpModalOpen}
+      onOpenChange={setFollowUpModalOpen}
+      mode={followUpMode}
+      nextNumber={followUpNextNumber}
+      leadName={lead?.nome || ""}
+      onConfirm={handleFollowUpConfirm}
+      onDecline={handleFollowUpDecline}
     />
     </>
   );
