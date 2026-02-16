@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 
 interface RequiredFieldsModalProps {
@@ -11,22 +12,63 @@ interface RequiredFieldsModalProps {
   leadName: string;
   targetStatus: string;
   currentValor: number | null;
-  onConfirm: (fields: { valor: number }) => void;
+  currentDataProposta: string | null;
+  currentDataEvento: string | null;
+  currentInteresse: string | null;
+  currentOrigem: string | null;
+  onConfirm: (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => void;
 }
 
+const ORIGEM_OPTIONS = [
+  "Instagram", "Facebook", "Google", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
+];
+
 const RequiredFieldsModal = ({
-  open, onOpenChange, leadName, targetStatus, currentValor, onConfirm,
+  open, onOpenChange, leadName, targetStatus,
+  currentValor, currentDataProposta, currentDataEvento, currentInteresse, currentOrigem,
+  onConfirm,
 }: RequiredFieldsModalProps) => {
   const [valor, setValor] = useState(currentValor?.toString() || "");
+  const [dataProposta, setDataProposta] = useState(currentDataProposta || "");
+  const [dataEvento, setDataEvento] = useState(currentDataEvento || "");
+  const [interesse, setInteresse] = useState(currentInteresse || "");
+  const [origem, setOrigem] = useState(currentOrigem || "");
 
   useEffect(() => {
     setValor(currentValor?.toString() || "");
-  }, [currentValor, open]);
+    setDataProposta(currentDataProposta || "");
+    setDataEvento(currentDataEvento || "");
+    setInteresse(currentInteresse || "");
+    setOrigem(currentOrigem || "");
+  }, [currentValor, currentDataProposta, currentDataEvento, currentInteresse, currentOrigem, open]);
+
+  const isProposal = targetStatus === "Proposta Enviada" || targetStatus === "Follow-up";
+
+  const needsValor = !currentValor || currentValor <= 0;
+  const needsDataProposta = isProposal && !currentDataProposta;
+  const needsDataEvento = isProposal && !currentDataEvento;
+  const needsInteresse = isProposal && !currentInteresse;
+  const needsOrigem = isProposal && !currentOrigem;
+
+  const canSubmit = () => {
+    if (needsValor && (!valor || parseFloat(valor) <= 0)) return false;
+    if (needsDataProposta && !dataProposta) return false;
+    if (needsDataEvento && !dataEvento) return false;
+    if (needsInteresse && !interesse.trim()) return false;
+    if (needsOrigem && !origem) return false;
+    return true;
+  };
 
   const handleConfirm = () => {
     const parsed = parseFloat(valor);
-    if (!parsed || parsed <= 0) return;
-    onConfirm({ valor: parsed });
+    if (needsValor && (!parsed || parsed <= 0)) return;
+    onConfirm({
+      valor: parsed || currentValor || 0,
+      ...(needsDataProposta && dataProposta ? { data_proposta: dataProposta } : {}),
+      ...(needsDataEvento && dataEvento ? { data_evento: dataEvento } : {}),
+      ...(needsInteresse && interesse ? { interesse } : {}),
+      ...(needsOrigem && origem ? { origem } : {}),
+    });
   };
 
   return (
@@ -43,26 +85,53 @@ const RequiredFieldsModal = ({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label>Valor do negócio (R$) <span className="text-red-500">*</span></Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Ex: 5000"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              className="bg-muted border-border"
-              autoFocus
-            />
-          </div>
+          {needsValor && (
+            <div className="space-y-2">
+              <Label>Valor do negócio (R$) <span className="text-destructive">*</span></Label>
+              <Input type="number" min="0" step="0.01" placeholder="Ex: 5000" value={valor}
+                onChange={(e) => setValor(e.target.value)} className="bg-muted border-border" autoFocus />
+            </div>
+          )}
+
+          {needsDataProposta && (
+            <div className="space-y-2">
+              <Label>Data da Proposta <span className="text-destructive">*</span></Label>
+              <Input type="date" value={dataProposta}
+                onChange={(e) => setDataProposta(e.target.value)} className="bg-muted border-border" />
+            </div>
+          )}
+
+          {needsDataEvento && (
+            <div className="space-y-2">
+              <Label>Data do Evento <span className="text-destructive">*</span></Label>
+              <Input type="date" value={dataEvento}
+                onChange={(e) => setDataEvento(e.target.value)} className="bg-muted border-border" />
+            </div>
+          )}
+
+          {needsInteresse && (
+            <div className="space-y-2">
+              <Label>Interesse <span className="text-destructive">*</span></Label>
+              <Input placeholder="Ex: Casamento 2028" value={interesse}
+                onChange={(e) => setInteresse(e.target.value)} className="bg-muted border-border" />
+            </div>
+          )}
+
+          {needsOrigem && (
+            <div className="space-y-2">
+              <Label>Origem <span className="text-destructive">*</span></Label>
+              <Select value={origem} onValueChange={setOrigem}>
+                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {ORIGEM_OPTIONS.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="flex gap-3 justify-end pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={!valor || parseFloat(valor) <= 0}
-              className="bg-gradient-primary hover:opacity-90"
-            >
+            <Button onClick={handleConfirm} disabled={!canSubmit()} className="bg-gradient-primary hover:opacity-90">
               Confirmar e mover
             </Button>
           </div>

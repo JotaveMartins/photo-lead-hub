@@ -91,6 +91,18 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       nomeSchema.parse(nome);
       whatsappSchema.parse(whatsapp.replace(/\D/g, ""));
 
+      // Validate required fields for new leads
+      if (!lead) {
+        if (!origem) {
+          toast.error("Origem é obrigatória");
+          return;
+        }
+        if (!dataContato) {
+          toast.error("Data do Contato é obrigatória");
+          return;
+        }
+      }
+
       const leadData: any = {
         nome,
         whatsapp: whatsapp.replace(/\D/g, ""),
@@ -164,7 +176,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Origem</Label>
+              <Label>Origem {!lead && <span className="text-destructive">*</span>}</Label>
               <Select value={origem} onValueChange={setOrigem}>
                 <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
                 <SelectContent>
@@ -186,7 +198,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
               <Input type="date" value={dataEvento} onChange={(e) => setDataEvento(e.target.value)} className="bg-muted border-border" />
             </div>
             <div className="space-y-2">
-              <Label>Data do Contato</Label>
+              <Label>Data do Contato {!lead && <span className="text-destructive">*</span>}</Label>
               <Input type="date" value={dataContato} onChange={(e) => setDataContato(e.target.value)} className="bg-muted border-border" />
             </div>
             <div className="space-y-2">

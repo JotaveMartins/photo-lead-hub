@@ -138,7 +138,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     if (draggedLeadId) {
       const lead = leads.find((l) => l.id === draggedLeadId);
       if (lead && lead.status !== newStatus) {
-        if (REQUIRED_FIELDS_STATUSES.includes(newStatus) && (!lead.valor || lead.valor <= 0)) {
+        const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(newStatus) && (
+          (!lead.valor || lead.valor <= 0) ||
+          ((newStatus === "Proposta Enviada") && (!lead.data_proposta || !lead.data_evento || !lead.interesse || !lead.origem))
+        );
+        if (needsRequiredFields) {
           setRequiredFieldsLead(lead);
           setRequiredFieldsTarget(newStatus);
         } else {
@@ -150,9 +154,9 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     setIsDragging(false);
   };
 
-  const handleRequiredFieldsConfirm = (fields: { valor: number }) => {
+  const handleRequiredFieldsConfirm = (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
     if (requiredFieldsLead && requiredFieldsTarget) {
-      moveLeadToStatus(requiredFieldsLead, requiredFieldsTarget, { valor: fields.valor });
+      moveLeadToStatus(requiredFieldsLead, requiredFieldsTarget, fields);
       setRequiredFieldsLead(null);
       setRequiredFieldsTarget(null);
     }
@@ -339,6 +343,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         leadName={requiredFieldsLead?.nome || ""}
         targetStatus={requiredFieldsTarget || ""}
         currentValor={requiredFieldsLead?.valor ?? null}
+        currentDataProposta={requiredFieldsLead?.data_proposta ?? null}
+        currentDataEvento={requiredFieldsLead?.data_evento ?? null}
+        currentInteresse={requiredFieldsLead?.interesse ?? null}
+        currentOrigem={requiredFieldsLead?.origem ?? null}
         onConfirm={handleRequiredFieldsConfirm}
       />
 
