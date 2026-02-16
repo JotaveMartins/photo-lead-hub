@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+// Helper to get today's date string in local timezone (YYYY-MM-DD)
+const getLocalDateStr = (offsetDays = 0): string => {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // convert to local
+  if (offsetDays !== 0) now.setDate(now.getDate() + offsetDays);
+  return now.toISOString().slice(0, 10);
+};
+
 export interface LeadTask {
   id: string;
   lead_id: string;
@@ -108,8 +116,7 @@ export const useCompleteLeadTask = () => {
         // Record follow-up date on lead
         if (currentNum >= 1 && currentNum <= 5) {
           const fieldName = `follow_up_${currentNum}` as string;
-          const today = new Date();
-          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const todayStr = getLocalDateStr();
           await supabase.from("leads").update({ [fieldName]: todayStr } as any).eq("id", task.lead_id);
         }
         return { isFollowUp: true, followUpNumber: currentNum + 1 };
@@ -132,9 +139,7 @@ export const useCompleteLeadTask = () => {
           .eq("task_number", nextNumber)
           .maybeSingle();
         if (!existing) {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+          const tomorrowStr = getLocalDateStr(1);
           const { error: insertError } = await supabase
             .from("lead_tasks")
             .insert({
@@ -158,8 +163,7 @@ export const useCompleteLeadTask = () => {
           .eq("task_number", 6)
           .maybeSingle();
         if (!existing) {
-          const today = new Date();
-          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const todayStr = getLocalDateStr();
           const { error: insertError } = await supabase
             .from("lead_tasks")
             .insert({
