@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Save, X, Clock, CheckCircle2, Circle, Lock, Plus } from "lucide-react";
+import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
-import { useLeadTasks, useCompleteLeadTask, useCreateLeadTask } from "@/hooks/useLeadTasks";
+import { useLeadTasks, useCompleteLeadTask, useCreateLeadTask, useUpdateLeadTask } from "@/hooks/useLeadTasks";
 import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -37,10 +37,165 @@ interface LeadDetailDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Inline editable field - click to edit, blur/enter to save
+const InlineField = ({
+  label, value, displayValue, icon, type = "text",
+  onSave,
+}: {
+  label: string; value: string; displayValue: string; icon?: React.ReactNode;
+  type?: string; onSave: (v: string) => void;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== value) onSave(draft);
+  };
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground flex items-center gap-1">{icon}{label}</Label>
+      {editing ? (
+        <Input ref={inputRef} type={type} value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+          className="bg-muted border-border h-8 text-sm" />
+      ) : (
+        <p className="text-sm text-foreground cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 transition-colors min-h-[28px] flex items-center"
+          onClick={() => setEditing(true)}>
+          {displayValue || "—"}
+          <Pencil className="w-3 h-3 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100" />
+        </p>
+      )}
+    </div>
+  );
+};
+
+// Inline select field
+const InlineSelectField = ({
+  label, value, options, onSave,
+}: {
+  label: string; value: string; options: string[]; onSave: (v: string) => void;
+}) => {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Select value={value || ""} onValueChange={(v) => onSave(v)}>
+        <SelectTrigger className="bg-transparent border-0 shadow-none h-auto p-0 text-sm text-foreground hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 [&>svg]:ml-1 [&>svg]:w-3 [&>svg]:h-3">
+          <SelectValue placeholder="—" />
+        </SelectTrigger>
+        <SelectContent>{options.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}</SelectContent>
+      </Select>
+    </div>
+  );
+};
+
+// Inline editable name
+const InlineName = ({ value, onSave }: { value: string; onSave: (v: string) => void }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft.trim() && draft !== value) onSave(draft.trim());
+  };
+
+  if (editing) {
+    return <Input ref={inputRef} value={draft} onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+      className="bg-muted border-border text-lg font-bold h-auto py-1" />;
+  }
+  return (
+    <span className="cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 transition-colors" onClick={() => setEditing(true)}>
+      {value}
+    </span>
+  );
+};
+
+// Editable task row
+const EditableTaskRow = ({
+  task, onComplete, onUpdate, isPending,
+}: {
+  task: any; onComplete: () => void; onUpdate: (updates: any) => void; isPending: boolean;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || "");
+  const [dueDate, setDueDate] = useState(task.due_date);
+  const [dueTime, setDueTime] = useState(task.due_time || "");
+
+  useEffect(() => {
+    setTitle(task.title);
+    setDescription(task.description || "");
+    setDueDate(task.due_date);
+    setDueTime(task.due_time || "");
+  }, [task]);
+
+  const commitEdit = () => {
+    setEditing(false);
+    const updates: any = {};
+    if (title !== task.title) updates.title = title;
+    if (description !== (task.description || "")) updates.description = description || null;
+    if (dueDate !== task.due_date) updates.due_date = dueDate;
+    if (dueTime !== (task.due_time || "")) updates.due_time = dueTime || null;
+    if (Object.keys(updates).length > 0) onUpdate(updates);
+  };
+
+  if (editing) {
+    return (
+      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+        <Input value={title} onChange={(e) => setTitle(e.target.value)}
+          className="bg-muted border-border h-8 text-sm font-medium" placeholder="Título" />
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)}
+          className="bg-muted border-border text-sm min-h-[50px]" placeholder="Anotação / Script (opcional)" />
+        <div className="flex gap-2">
+          <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+            className="bg-muted border-border h-8 text-sm flex-1" />
+          <Input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)}
+            className="bg-muted border-border h-8 text-sm w-28" />
+        </div>
+        <div className="flex gap-2 justify-end">
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditing(false); setTitle(task.title); setDescription(task.description || ""); setDueDate(task.due_date); setDueTime(task.due_time || ""); }}>Cancelar</Button>
+          <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={commitEdit}>Salvar</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20 group cursor-pointer"
+      onClick={() => setEditing(true)}>
+      <div onClick={(e) => e.stopPropagation()}>
+        <Checkbox checked={false} onCheckedChange={onComplete}
+          disabled={isPending} className="border-primary data-[state=checked]:bg-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-foreground">{task.title}</p>
+        {task.description && <p className="text-[11px] text-muted-foreground truncate">{task.description}</p>}
+        <p className="text-[11px] text-muted-foreground">
+          {new Date(task.due_date).toLocaleDateString("pt-BR")}
+          {task.due_time && ` às ${task.due_time}`}
+          {task.is_cadence && <span className="ml-1 text-primary">• Cadência</span>}
+        </p>
+      </div>
+      <Pencil className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity" />
+    </div>
+  );
+};
+
 const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) => {
   const [newNote, setNewNote] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<Lead>>({});
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
@@ -53,24 +208,14 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const deleteNote = useDeleteLeadNote();
   const completeTask = useCompleteLeadTask();
   const createTask = useCreateLeadTask();
+  const updateTask = useUpdateLeadTask();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
 
-  useEffect(() => {
-    if (lead) {
-      setEditData({
-        nome: lead.nome, whatsapp: lead.whatsapp, interesse: lead.interesse,
-        status: lead.status, origem: lead.origem, valor: lead.valor,
-        data_evento: lead.data_evento, data_contato: lead.data_contato,
-        data_proposta: lead.data_proposta, follow_up_1: lead.follow_up_1,
-        follow_up_2: lead.follow_up_2, follow_up_3: lead.follow_up_3,
-        follow_up_4: lead.follow_up_4, follow_up_5: lead.follow_up_5,
-        motivo_perda: lead.motivo_perda,
-      });
-      setIsEditing(false);
-      setShowNewTask(false);
-    }
-  }, [lead]);
+  const handleFieldSave = (field: string, value: any) => {
+    if (!lead) return;
+    updateLead.mutate({ id: lead.id, [field]: value });
+  };
 
   const handleAddNote = async () => {
     if (!lead || !newNote.trim()) return;
@@ -78,17 +223,8 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
     setNewNote("");
   };
 
-  const handleSave = async () => {
-    if (!lead) return;
-    try {
-      await updateLead.mutateAsync({ id: lead.id, ...editData });
-      setIsEditing(false);
-    } catch (e) {}
-  };
-
   const handleStatusChange = async (status: LeadStatus) => {
     if (!lead) return;
-    setEditData(prev => ({ ...prev, status }));
     await updateLead.mutateAsync({ id: lead.id, status });
   };
 
@@ -108,7 +244,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   };
 
   const formatDateTime = (d: string) => new Date(d).toLocaleString("pt-BR");
-  const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
+  const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "";
 
   const formatStageDuration = (dateStr: string | null | undefined) => {
     if (!dateStr) return null;
@@ -152,30 +288,15 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
         {/* Header */}
         <div className="p-6 border-b border-border">
           <SheetHeader>
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-xl font-display flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
-                  {lead.nome.charAt(0).toUpperCase()}
-                </div>
-                {isEditing ? (
-                  <Input value={editData.nome || ""} onChange={(e) => setEditData(prev => ({ ...prev, nome: e.target.value }))}
-                    className="bg-muted border-border text-lg font-bold h-auto py-1" />
-                ) : lead.nome}
-              </SheetTitle>
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <>
-                    <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}><X className="w-4 h-4" /></Button>
-                    <Button size="sm" className="bg-gradient-primary hover:opacity-90 gap-1" onClick={handleSave}><Save className="w-4 h-4" /> Salvar</Button>
-                  </>
-                ) : (
-                  <Button size="sm" variant="outline" className="gap-1" onClick={() => setIsEditing(true)}><Pencil className="w-4 h-4" /> Editar</Button>
-                )}
+            <SheetTitle className="text-xl font-display flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
+                {lead.nome.charAt(0).toUpperCase()}
               </div>
-            </div>
+              <InlineName value={lead.nome} onSave={(v) => handleFieldSave("nome", v)} />
+            </SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <Select value={editData.status || lead.status} onValueChange={(v) => handleStatusChange(v as LeadStatus)}>
+            <Select value={lead.status} onValueChange={(v) => handleStatusChange(v as LeadStatus)}>
               <SelectTrigger className="w-auto bg-muted border-border h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((opt) => (
@@ -188,15 +309,9 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
                 <Clock className="w-3 h-3" /> Nesta etapa há {formatStageDuration(stageDate)}
               </span>
             )}
-            {/* Iniciar Atendimento toggle */}
             {lead.status === "Novo Lead" && !lead.iniciar_atendimento && (
-              <Button
-                size="sm"
-                className="bg-gradient-primary hover:opacity-90 gap-1 h-7 text-xs"
-                onClick={async () => {
-                  await updateLead.mutateAsync({ id: lead.id, iniciar_atendimento: true });
-                }}
-              >
+              <Button size="sm" className="bg-gradient-primary hover:opacity-90 gap-1 h-7 text-xs"
+                onClick={() => updateLead.mutateAsync({ id: lead.id, iniciar_atendimento: true })}>
                 <CheckCircle2 className="w-3 h-3" /> Iniciar Atendimento
               </Button>
             )}
@@ -209,63 +324,55 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
         </div>
 
         <div className="flex flex-col sm:flex-row min-h-0">
-          {/* Left: Details */}
+          {/* Left: Details - all inline editable */}
           <div className="sm:w-[300px] flex-shrink-0 border-r border-border p-4 space-y-4 overflow-y-auto">
             <h3 className="text-sm font-semibold text-foreground">Detalhes</h3>
 
-            <DetailField label="WhatsApp" icon={<Phone className="w-3.5 h-3.5" />} editing={isEditing}
-              value={editData.whatsapp || ""} display={lead.whatsapp}
-              onChange={(v) => setEditData(prev => ({ ...prev, whatsapp: v }))} />
+            <InlineField label="WhatsApp" icon={<Phone className="w-3.5 h-3.5" />}
+              value={lead.whatsapp} displayValue={lead.whatsapp}
+              onSave={(v) => handleFieldSave("whatsapp", v)} />
 
-            <DetailField label="Interesse" editing={isEditing}
-              value={editData.interesse || ""} display={lead.interesse || "—"}
-              onChange={(v) => setEditData(prev => ({ ...prev, interesse: v }))} />
+            <InlineField label="Interesse"
+              value={lead.interesse || ""} displayValue={lead.interesse || ""}
+              onSave={(v) => handleFieldSave("interesse", v)} />
 
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Origem</Label>
-              {isEditing ? (
-                <Select value={editData.origem || ""} onValueChange={(v) => setEditData(prev => ({ ...prev, origem: v }))}>
-                  <SelectTrigger className="bg-muted border-border h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{ORIGEM_OPTIONS.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}</SelectContent>
-                </Select>
-              ) : <p className="text-sm text-foreground">{lead.origem || "—"}</p>}
-            </div>
+            <InlineSelectField label="Origem" value={lead.origem || ""}
+              options={ORIGEM_OPTIONS}
+              onSave={(v) => handleFieldSave("origem", v)} />
 
-            <DetailField label="Valor (R$)" editing={isEditing} type="number"
-              value={editData.valor?.toString() || ""} display={lead.valor ? `R$ ${lead.valor.toLocaleString("pt-BR")}` : "—"}
-              onChange={(v) => setEditData(prev => ({ ...prev, valor: v ? parseFloat(v) : null }))} />
+            <InlineField label="Valor (R$)" type="number"
+              value={lead.valor?.toString() || ""} displayValue={lead.valor ? `R$ ${lead.valor.toLocaleString("pt-BR")}` : ""}
+              onSave={(v) => handleFieldSave("valor", v ? parseFloat(v) : null)} />
 
-            <DetailField label="Data do Evento" icon={<Calendar className="w-3.5 h-3.5" />} editing={isEditing} type="date"
-              value={editData.data_evento || ""} display={formatDate(lead.data_evento)}
-              onChange={(v) => setEditData(prev => ({ ...prev, data_evento: v || null }))} />
+            <InlineField label="Data do Evento" icon={<Calendar className="w-3.5 h-3.5" />} type="date"
+              value={lead.data_evento || ""} displayValue={formatDate(lead.data_evento)}
+              onSave={(v) => handleFieldSave("data_evento", v || null)} />
 
-            <DetailField label="Data do Contato" editing={isEditing} type="date"
-              value={editData.data_contato || ""} display={formatDate(lead.data_contato)}
-              onChange={(v) => setEditData(prev => ({ ...prev, data_contato: v || null }))} />
+            <InlineField label="Data do Contato" type="date"
+              value={lead.data_contato || ""} displayValue={formatDate(lead.data_contato)}
+              onSave={(v) => handleFieldSave("data_contato", v || null)} />
 
-            <DetailField label="Data da Proposta" editing={isEditing} type="date"
-              value={editData.data_proposta || ""} display={formatDate(lead.data_proposta)}
-              onChange={(v) => setEditData(prev => ({ ...prev, data_proposta: v || null }))} />
+            <InlineField label="Data da Proposta" type="date"
+              value={lead.data_proposta || ""} displayValue={formatDate(lead.data_proposta)}
+              onSave={(v) => handleFieldSave("data_proposta", v || null)} />
 
             <div className="space-y-2 pt-2 border-t border-border">
               <h4 className="text-xs font-semibold text-foreground">Follow-ups</h4>
               {[1, 2, 3, 4, 5].map((i) => {
-                const key = `follow_up_${i}` as keyof typeof editData;
+                const key = `follow_up_${i}` as keyof Lead;
                 return (
-                  <DetailField key={i} label={`Follow-up ${i}`} editing={isEditing} type="date"
-                    value={(editData as any)[key] || ""} display={formatDate((lead as any)[key])}
-                    onChange={(v) => setEditData(prev => ({ ...prev, [key]: v || null }))} />
+                  <InlineField key={i} label={`Follow-up ${i}`} type="date"
+                    value={(lead[key] as string) || ""} displayValue={formatDate((lead[key] as string) || null)}
+                    onSave={(v) => handleFieldSave(key, v || null)} />
                 );
               })}
             </div>
 
-            {(lead.status === "Fechado Perdido" || editData.status === "Fechado Perdido") && (
+            {lead.status === "Fechado Perdido" && (
               <div className="space-y-1 pt-2 border-t border-border">
                 <Label className="text-xs text-muted-foreground">Motivo da Perda</Label>
-                {isEditing ? (
-                  <Textarea value={editData.motivo_perda || ""} onChange={(e) => setEditData(prev => ({ ...prev, motivo_perda: e.target.value }))}
-                    className="bg-muted border-border text-sm min-h-[60px]" />
-                ) : <p className="text-sm text-foreground">{lead.motivo_perda || "—"}</p>}
+                <InlineField label="" value={lead.motivo_perda || ""} displayValue={lead.motivo_perda || ""}
+                  onSave={(v) => handleFieldSave("motivo_perda", v)} />
               </div>
             )}
 
@@ -324,19 +431,10 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
                   <p className="text-xs text-muted-foreground text-center py-4">Nenhuma tarefa.</p>
                 )}
                 {pendingTasks.map((task) => (
-                  <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
-                    <Checkbox checked={false} onCheckedChange={() => completeTask.mutate(task)}
-                      disabled={completeTask.isPending} className="border-primary data-[state=checked]:bg-primary" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">{task.title}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {new Date(task.due_date).toLocaleDateString("pt-BR")}
-                        {task.due_time && ` às ${task.due_time}`}
-                        {task.is_cadence && <span className="ml-1 text-primary">• Cadência</span>}
-                      </p>
-                    </div>
-                    <Circle className="w-3.5 h-3.5 text-primary/50 flex-shrink-0" />
-                  </div>
+                  <EditableTaskRow key={task.id} task={task}
+                    onComplete={() => completeTask.mutate(task)}
+                    onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
+                    isPending={completeTask.isPending} />
                 ))}
                 {completedTasks.map((task) => (
                   <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 opacity-60">
@@ -383,18 +481,5 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
     </Sheet>
   );
 };
-
-const DetailField = ({ label, value, display, editing, onChange, icon, type = "text" }: {
-  label: string; value: string; display: string; editing: boolean;
-  onChange: (v: string) => void; icon?: React.ReactNode; type?: string;
-}) => (
-  <div className="space-y-1">
-    <Label className="text-xs text-muted-foreground flex items-center gap-1">{icon}{label}</Label>
-    {editing ? (
-      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)}
-        className="bg-muted border-border h-8 text-sm" />
-    ) : <p className="text-sm text-foreground">{display}</p>}
-  </div>
-);
 
 export default LeadDetailDrawer;
