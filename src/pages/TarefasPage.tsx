@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { CheckSquare, Plus, Calendar, Clock, User, Circle } from "lucide-react";
+
+import { CheckSquare, Plus, Calendar, Clock, User, Circle, Search, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,11 +13,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import LeadDetailDrawer from "@/components/LeadDetailDrawer";
 import { useAllTasks, useCompleteLeadTask, useCreateLeadTask } from "@/hooks/useLeadTasks";
 import { useLeads } from "@/hooks/useLeads";
-import { isBefore, isToday, parseISO, startOfDay } from "date-fns";
+import { isBefore, isToday, isThisWeek, addDays, parseISO, startOfDay } from "date-fns";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
+
+type FilterKey = "todo" | "overdue" | "today" | "this_week" | "future" | "completed";
 
 const TarefasPage = () => {
   const { data: allTasks = [] } = useAllTasks();
@@ -24,7 +27,8 @@ const TarefasPage = () => {
   const completeTask = useCompleteLeadTask();
   const createTask = useCreateLeadTask();
 
-  const [filter, setFilter] = useState<"all" | "pending" | "completed" | "overdue" | "today">("pending");
+  const [filter, setFilter] = useState<FilterKey>("todo");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -36,17 +40,33 @@ const TarefasPage = () => {
   const today = startOfDay(new Date());
 
   const filteredTasks = useMemo(() => {
-    return allTasks.filter((task) => {
+    let tasks = allTasks;
+
+    // Filter by status
+    tasks = tasks.filter((task) => {
       const dueDate = parseISO(task.due_date);
       switch (filter) {
-        case "pending": return !task.completed;
+        case "todo": return !task.completed;
         case "completed": return task.completed;
         case "overdue": return !task.completed && isBefore(dueDate, today);
         case "today": return !task.completed && isToday(dueDate);
+        case "this_week": return !task.completed && isThisWeek(dueDate, { weekStartsOn: 1 });
+        case "future": return !task.completed && !isBefore(dueDate, today) && !isToday(dueDate);
         default: return true;
       }
     });
-  }, [allTasks, filter, today]);
+
+    // Filter by search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      tasks = tasks.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        t.leads?.nome?.toLowerCase().includes(q)
+      );
+    }
+
+    return tasks;
+  }, [allTasks, filter, today, searchQuery]);
 
   const stats = useMemo(() => {
     const pending = allTasks.filter(t => !t.completed);
@@ -71,12 +91,12 @@ const TarefasPage = () => {
     setNewLeadId("");
   };
 
-  const getTaskStatusIndicator = (task: typeof allTasks[0]) => {
-    if (task.completed) return { color: "text-muted-foreground", label: "Concluída" };
+  const getRowStatusClass = (task: typeof allTasks[0]) => {
+    if (task.completed) return "opacity-50";
     const dueDate = parseISO(task.due_date);
-    if (isBefore(dueDate, today)) return { color: "text-red-500", label: "Atrasada" };
-    if (isToday(dueDate)) return { color: "text-green-500", label: "Hoje" };
-    return { color: "text-muted-foreground/50", label: "Futura" };
+    if (isBefore(dueDate, today)) return "border-l-2 border-l-red-500";
+    if (isToday(dueDate)) return "border-l-2 border-l-green-500";
+    return "";
   };
 
   const handleTaskClick = (task: typeof allTasks[0]) => {
@@ -84,118 +104,129 @@ const TarefasPage = () => {
     if (lead) setSelectedLead(lead);
   };
 
+  const filters: { key: FilterKey; label: string; count?: number }[] = [
+    { key: "todo", label: "Para fazer", count: stats.pending },
+    { key: "overdue", label: "Vencido", count: stats.overdue },
+    { key: "today", label: "Hoje", count: stats.today },
+    { key: "this_week", label: "Esta semana" },
+    { key: "future", label: "Futuro" },
+    { key: "completed", label: "Concluídas" },
+  ];
+
   return (
     <>
-      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground flex items-center gap-3">
-            <CheckSquare className="w-8 h-8 text-primary" />
-            Tarefas
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {stats.pending} pendentes · {stats.overdue} atrasadas · {stats.today} para hoje
-          </p>
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <CheckSquare className="w-7 h-7 text-primary" />
+          <div>
+            <h1 className="text-2xl font-display font-bold text-foreground">Atividades</h1>
+            <p className="text-sm text-muted-foreground">{stats.total} atividades · {stats.pending} pendentes</p>
+          </div>
         </div>
         <Button onClick={() => setIsModalOpen(true)} className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow">
-          <Plus className="w-4 h-4" /> Nova Tarefa
+          <Plus className="w-4 h-4" /> Atividade
         </Button>
       </header>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {[
-          { key: "pending", label: "Pendentes", count: stats.pending },
-          { key: "today", label: "Hoje", count: stats.today },
-          { key: "overdue", label: "Atrasadas", count: stats.overdue },
-          { key: "completed", label: "Concluídas" },
-          { key: "all", label: "Todas", count: stats.total },
-        ].map((f) => (
+      {/* Filters row */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {filters.map((f) => (
           <button
             key={f.key}
-            onClick={() => setFilter(f.key as any)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === f.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+            onClick={() => setFilter(f.key)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              filter === f.key
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            {f.label} {f.count !== undefined && `(${f.count})`}
+            {f.label}{f.count !== undefined ? ` (${f.count})` : ""}
           </button>
         ))}
+
+        <div className="ml-auto relative">
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 h-8 w-48 bg-muted border-border text-sm"
+          />
+        </div>
       </div>
 
-      {/* Tasks table */}
+      {/* Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {filteredTasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">Nenhuma tarefa encontrada.</p>
+          <p className="text-sm text-muted-foreground text-center py-12">Nenhuma atividade encontrada.</p>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="border-border">
-                <TableHead className="w-10"></TableHead>
-                <TableHead>Tarefa</TableHead>
-                <TableHead>Lead</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead className="hidden sm:table-cell">Criada em</TableHead>
+              <TableRow className="border-border bg-muted/30">
+                <TableHead className="w-10 px-3"></TableHead>
+                <TableHead className="font-medium">Assunto</TableHead>
+                <TableHead className="font-medium">Pessoa de contato</TableHead>
+                <TableHead className="font-medium">Telefone</TableHead>
+                <TableHead className="font-medium">Data de venc.</TableHead>
+                <TableHead className="font-medium hidden md:table-cell">Criada em</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTasks.map((task) => {
-                const status = getTaskStatusIndicator(task);
-                return (
-                  <TableRow
-                    key={task.id}
-                    className={`border-border cursor-pointer hover:bg-muted/50 ${task.completed ? "opacity-50" : ""}`}
-                  >
-                    <TableCell className="pr-0" onClick={(e) => e.stopPropagation()}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center">
-                            {task.completed ? (
-                              <Checkbox checked disabled className="border-muted-foreground" />
-                            ) : (
-                              <div className="relative">
-                                <Circle className={`w-5 h-5 ${status.color} cursor-pointer hover:scale-110 transition-transform`}
-                                  onClick={() => completeTask.mutate(task)} />
-                              </div>
-                            )}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent><p className="text-xs">{task.completed ? "Concluída" : "Marcar como concluída"}</p></TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell onClick={() => handleTaskClick(task)}>
-                      <p className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                        {task.title}
-                      </p>
-                      {task.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{task.description}</p>
-                      )}
-                      {task.is_cadence && (
-                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded mt-1 inline-block">Cadência</span>
-                      )}
-                    </TableCell>
-                    <TableCell onClick={() => handleTaskClick(task)}>
-                      <span className="text-sm text-primary flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {task.leads?.nome || "—"}
-                      </span>
-                    </TableCell>
-                    <TableCell onClick={() => handleTaskClick(task)}>
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-sm text-foreground">{new Date(task.due_date).toLocaleDateString("pt-BR")}</span>
-                        {task.due_time && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                            <Clock className="w-3 h-3" /> {task.due_time}
-                          </span>
+              {filteredTasks.map((task) => (
+                <TableRow
+                  key={task.id}
+                  className={`border-border cursor-pointer hover:bg-muted/40 transition-colors ${getRowStatusClass(task)}`}
+                >
+                  <TableCell className="px-3" onClick={(e) => e.stopPropagation()}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center">
+                          {task.completed ? (
+                            <Checkbox checked disabled className="border-muted-foreground" />
+                          ) : (
+                            <Circle
+                              className="w-5 h-5 text-muted-foreground/50 cursor-pointer hover:text-primary hover:scale-110 transition-all"
+                              onClick={() => completeTask.mutate(task)}
+                            />
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent><p className="text-xs">{task.completed ? "Concluída" : "Marcar como concluída"}</p></TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell onClick={() => handleTaskClick(task)}>
+                    <div className="flex items-center gap-2">
+                      {task.is_cadence && <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                      <div>
+                        <p className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                          {task.title}
+                        </p>
+                        {task.description && (
+                          <p className="text-xs text-muted-foreground truncate max-w-xs">{task.description}</p>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell" onClick={() => handleTaskClick(task)}>
-                      <span className="text-xs text-muted-foreground">{new Date(task.created_at).toLocaleDateString("pt-BR")}</span>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                    </div>
+                  </TableCell>
+                  <TableCell onClick={() => handleTaskClick(task)}>
+                    <span className="text-sm text-foreground">{task.leads?.nome || "—"}</span>
+                  </TableCell>
+                  <TableCell onClick={() => handleTaskClick(task)}>
+                    <span className="text-sm text-muted-foreground">{task.leads?.whatsapp || "—"}</span>
+                  </TableCell>
+                  <TableCell onClick={() => handleTaskClick(task)}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{new Date(task.due_date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
+                      {task.due_time && (
+                        <span className="text-xs text-muted-foreground">{task.due_time}</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell" onClick={() => handleTaskClick(task)}>
+                    <span className="text-xs text-muted-foreground">{new Date(task.created_at).toLocaleDateString("pt-BR")}</span>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}
@@ -204,9 +235,7 @@ const TarefasPage = () => {
       {/* Create Task Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle>Nova Tarefa</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Nova Atividade</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Título</Label>
@@ -239,13 +268,12 @@ const TarefasPage = () => {
             </div>
             <div className="flex gap-3 justify-end pt-4">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate} disabled={!newTitle.trim() || !newLeadId} className="bg-gradient-primary hover:opacity-90">Criar tarefa</Button>
+              <Button onClick={handleCreate} disabled={!newTitle.trim() || !newLeadId} className="bg-gradient-primary hover:opacity-90">Criar atividade</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Lead Detail Drawer - opens when clicking a task */}
       <LeadDetailDrawer lead={selectedLead} open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)} />
     </>
   );
