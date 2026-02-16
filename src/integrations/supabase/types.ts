@@ -161,6 +161,7 @@ export type Database = {
           follow_up_4: string | null
           follow_up_5: string | null
           id: string
+          iniciar_atendimento: boolean
           interesse: string | null
           motivo_perda: string | null
           nome: string
@@ -192,6 +193,7 @@ export type Database = {
           follow_up_4?: string | null
           follow_up_5?: string | null
           id?: string
+          iniciar_atendimento?: boolean
           interesse?: string | null
           motivo_perda?: string | null
           nome: string
@@ -223,6 +225,7 @@ export type Database = {
           follow_up_4?: string | null
           follow_up_5?: string | null
           id?: string
+          iniciar_atendimento?: boolean
           interesse?: string | null
           motivo_perda?: string | null
           nome?: string
