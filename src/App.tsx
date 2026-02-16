@@ -8,6 +8,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
 import LeadsPage from "./pages/LeadsPage";
 import TarefasPage from "./pages/TarefasPage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Navigate to="/leads" replace />} />
       <Route path="/leads" element={<ProtectedRoute><LeadsPage /></ProtectedRoute>} />
       <Route path="/tarefas" element={<ProtectedRoute><TarefasPage /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

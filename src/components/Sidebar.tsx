@@ -2,22 +2,30 @@ import {
   Users, 
   CheckSquare,
   LogOut,
+  UserCog,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface SidebarProps {
   activeItem: string;
   onItemClick: (item: string) => void;
 }
 
-const menuItems = [
+const baseMenuItems = [
   { id: 'leads', label: 'Leads', icon: Users },
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
 ];
 
+const adminMenuItems = [
+  { id: 'admin', label: 'Clientes', icon: UserCog },
+];
+
 const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
   const { signOut } = useAuth();
+  const { isAdmin } = useUserRole();
+  const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">

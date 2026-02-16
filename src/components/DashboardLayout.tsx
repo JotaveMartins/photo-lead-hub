@@ -17,6 +17,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const path = location.pathname;
     if (path === "/" || path === "/leads") return "leads";
     if (path === "/tarefas") return "tarefas";
+    if (path === "/admin") return "admin";
     return "leads";
   };
 
@@ -37,6 +38,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const routes: Record<string, string> = {
       leads: "/leads",
       tarefas: "/tarefas",
+      admin: "/admin",
     };
     navigate(routes[item] || "/leads");
   };
