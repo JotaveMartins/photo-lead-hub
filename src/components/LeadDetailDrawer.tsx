@@ -12,6 +12,7 @@ import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useL
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask, useDeleteLeadTask } from "@/hooks/useLeadTasks";
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
+import { useQueryClient } from "@tanstack/react-query";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
 import type { Database } from "@/integrations/supabase/types";
@@ -288,6 +289,7 @@ const EditableSystemField = ({
 };
 
 const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDrawerProps) => {
+  const queryClient = useQueryClient();
   // Always use fresh data from the query cache instead of stale prop
   const { data: allLeads = [] } = useLeads();
   const lead = leadProp ? (allLeads.find(l => l.id === leadProp.id) || leadProp) : null;
@@ -526,7 +528,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
             )}
             {lead.status === "Novo Lead" && !lead.iniciar_atendimento && (
               <Button size="sm" className="bg-gradient-primary hover:opacity-90 gap-1 h-7 text-xs"
-                onClick={() => updateLead.mutateAsync({ id: lead.id, iniciar_atendimento: true })}>
+                onClick={async () => {
+                  await updateLead.mutateAsync({ id: lead.id, iniciar_atendimento: true });
+                  queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+                }}>
                 <CheckCircle2 className="w-3 h-3" /> Iniciar Atendimento
               </Button>
             )}
