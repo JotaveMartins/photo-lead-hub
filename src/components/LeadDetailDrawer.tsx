@@ -11,7 +11,7 @@ import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircl
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask } from "@/hooks/useLeadTasks";
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
-import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
+import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
 import type { Database } from "@/integrations/supabase/types";
@@ -282,7 +282,10 @@ const EditableSystemField = ({
   );
 };
 
-const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) => {
+const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDrawerProps) => {
+  // Always use fresh data from the query cache instead of stale prop
+  const { data: allLeads = [] } = useLeads();
+  const lead = leadProp ? (allLeads.find(l => l.id === leadProp.id) || leadProp) : null;
   const [newNote, setNewNote] = useState("");
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
