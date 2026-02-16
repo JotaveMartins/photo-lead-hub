@@ -103,13 +103,25 @@ export const useCompleteLeadTask = () => {
       // Check if this is a follow-up task (title starts with "Follow-up")
       const isFollowUp = task.title.startsWith("Follow-up");
       if (isFollowUp) {
-        // Extract current number from title like "Follow-up 3"
         const match = task.title.match(/Follow-up\s+(\d+)/);
         const currentNum = match ? parseInt(match[1]) : 1;
+        // Record follow-up date on lead
+        if (currentNum >= 1 && currentNum <= 5) {
+          const fieldName = `follow_up_${currentNum}` as string;
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          await supabase.from("leads").update({ [fieldName]: todayStr } as any).eq("id", task.lead_id);
+        }
         return { isFollowUp: true, followUpNumber: currentNum + 1 };
       }
 
-      // Pre-proposal cadence: auto-create next task (existing behavior)
+      // Pre-proposal cadence: record date on lead + auto-create next task
+      if (task.is_cadence && task.task_number >= 1 && task.task_number <= 5) {
+        // Record cadence completion date
+        const fieldName = `cadencia_${task.task_number}` as string;
+        await supabase.from("leads").update({ [fieldName]: new Date().toISOString() } as any).eq("id", task.lead_id);
+      }
+
       if (task.is_cadence && task.task_number < 5 && user) {
         const nextNumber = task.task_number + 1;
         const { data: existing } = await supabase
@@ -166,6 +178,7 @@ export const useCompleteLeadTask = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
       toast.success("Tarefa concluída!");
     },
     onError: (error: Error) => {

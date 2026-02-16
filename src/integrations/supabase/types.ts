@@ -142,6 +142,11 @@ export type Database = {
       }
       leads: {
         Row: {
+          cadencia_1: string | null
+          cadencia_2: string | null
+          cadencia_3: string | null
+          cadencia_4: string | null
+          cadencia_5: string | null
           created_at: string
           data_contato: string | null
           data_entrada_contato_iniciado: string | null
@@ -174,6 +179,11 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          cadencia_1?: string | null
+          cadencia_2?: string | null
+          cadencia_3?: string | null
+          cadencia_4?: string | null
+          cadencia_5?: string | null
           created_at?: string
           data_contato?: string | null
           data_entrada_contato_iniciado?: string | null
@@ -206,6 +216,11 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          cadencia_1?: string | null
+          cadencia_2?: string | null
+          cadencia_3?: string | null
+          cadencia_4?: string | null
+          cadencia_5?: string | null
           created_at?: string
           data_contato?: string | null
           data_entrada_contato_iniciado?: string | null
