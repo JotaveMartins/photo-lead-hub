@@ -12,6 +12,8 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization')
+    console.log('Auth header present:', !!authHeader)
+    
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
         status: 401,
@@ -21,24 +23,25 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anonKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!
-
-    const callerClient = createClient(supabaseUrl, anonKey, {
+    const callerClient = createClient(supabaseUrl, serviceRoleKey, {
       global: { headers: { Authorization: authHeader } },
     })
 
-    const { data: { user: caller } } = await callerClient.auth.getUser()
+    const { data: { user: caller }, error: userError } = await callerClient.auth.getUser()
+    console.log('Caller:', caller?.id, 'Error:', userError?.message)
+    
     if (!caller) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+      return new Response(JSON.stringify({ error: 'Não autorizado - user not found' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const { data: isAdmin } = await callerClient.rpc('has_role', {
+    const { data: isAdmin, error: roleError } = await callerClient.rpc('has_role', {
       _user_id: caller.id,
       _role: 'admin',
     })
+    console.log('isAdmin:', isAdmin, 'roleError:', roleError?.message)
 
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Acesso negado.' }), {
@@ -48,6 +51,8 @@ Deno.serve(async (req) => {
     }
 
     const { user_id } = await req.json()
+    console.log('Deleting user_id:', user_id)
+    
     if (!user_id) {
       return new Response(JSON.stringify({ error: 'user_id é obrigatório' }), {
         status: 400,
@@ -55,7 +60,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Prevent admin from deleting themselves
     if (user_id === caller.id) {
       return new Response(JSON.stringify({ error: 'Você não pode excluir sua própria conta.' }), {
         status: 400,
@@ -64,10 +68,11 @@ Deno.serve(async (req) => {
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
-    const { error } = await adminClient.auth.admin.deleteUser(user_id)
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(user_id)
+    console.log('Delete error:', deleteError?.message)
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    if (deleteError) {
+      return new Response(JSON.stringify({ error: deleteError.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -78,6 +83,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
+    console.error('Catch error:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
