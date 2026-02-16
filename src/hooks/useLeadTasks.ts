@@ -99,36 +99,56 @@ export const useCompleteLeadTask = () => {
         .eq("id", task.id);
       if (error) throw error;
 
-      // Auto-generate next cadence task
+      // Auto-generate next cadence task only if it doesn't already exist
       if (task.is_cadence && task.task_number < 5 && user) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
         const nextNumber = task.task_number + 1;
-        const { error: insertError } = await supabase
+        // Check if next task already exists
+        const { data: existing } = await supabase
           .from("lead_tasks")
-          .insert({
-            lead_id: task.lead_id,
-            user_id: user.id,
-            title: `Entrar em contato (${nextNumber}ª tentativa)`,
-            task_number: nextNumber,
-            due_date: tomorrow.toISOString().split("T")[0],
-            is_cadence: true,
-          });
-        if (insertError) throw insertError;
+          .select("id")
+          .eq("lead_id", task.lead_id)
+          .eq("is_cadence", true)
+          .eq("task_number", nextNumber)
+          .maybeSingle();
+        if (!existing) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const { error: insertError } = await supabase
+            .from("lead_tasks")
+            .insert({
+              lead_id: task.lead_id,
+              user_id: user.id,
+              title: `${nextNumber}º Entrar em contato`,
+              task_number: nextNumber,
+              due_date: tomorrow.toISOString().split("T")[0],
+              is_cadence: true,
+            });
+          if (insertError) throw insertError;
+        }
       }
 
       if (task.is_cadence && task.task_number === 5 && user) {
-        const { error: insertError } = await supabase
+        // Check if "Mover para Perdido" task already exists
+        const { data: existing } = await supabase
           .from("lead_tasks")
-          .insert({
-            lead_id: task.lead_id,
-            user_id: user.id,
-            title: "Mover para Fechado Perdido",
-            task_number: 6,
-            due_date: new Date().toISOString().split("T")[0],
-            is_cadence: true,
-          });
-        if (insertError) throw insertError;
+          .select("id")
+          .eq("lead_id", task.lead_id)
+          .eq("is_cadence", true)
+          .eq("task_number", 6)
+          .maybeSingle();
+        if (!existing) {
+          const { error: insertError } = await supabase
+            .from("lead_tasks")
+            .insert({
+              lead_id: task.lead_id,
+              user_id: user.id,
+              title: "Mover para Fechado Perdido",
+              task_number: 6,
+              due_date: new Date().toISOString().split("T")[0],
+              is_cadence: true,
+            });
+          if (insertError) throw insertError;
+        }
       }
     },
     onSuccess: () => {
