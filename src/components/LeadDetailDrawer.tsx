@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus } from "lucide-react";
+import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask } from "@/hooks/useLeadTasks";
 import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
@@ -399,6 +399,17 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
               <span className="text-xs text-green-500 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Atendimento iniciado
               </span>
+            )}
+            {lead.status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
+              <Button size="sm" variant="outline" className="gap-1 h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => {
+                  const completedFollowUps = tasks.filter(t => t.title.startsWith("Follow-up") && t.completed).length;
+                  setFollowUpMode(completedFollowUps === 0 ? "activate" : "next");
+                  setFollowUpNextNumber(completedFollowUps + 1);
+                  setFollowUpModalOpen(true);
+                }}>
+                <CalendarCheck className="w-3 h-3" /> Ativar Sequência de Follow-up
+              </Button>
             )}
           </div>
         </div>
