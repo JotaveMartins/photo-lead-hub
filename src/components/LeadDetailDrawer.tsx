@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck } from "lucide-react";
+import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask } from "@/hooks/useLeadTasks";
+import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
@@ -299,6 +300,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
 
   const { data: notes = [] } = useLeadNotes(lead?.id);
   const { data: tasks = [] } = useLeadTasks(lead?.id);
+  const { data: history = [] } = useLeadHistory(lead?.id);
   const createNote = useCreateLeadNote();
   const deleteNote = useDeleteLeadNote();
   const completeTask = useCompleteLeadTask();
@@ -308,9 +310,40 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
+  const createHistory = useCreateLeadHistory();
+
+  const FIELD_LABELS: Record<string, string> = {
+    nome: "Nome", whatsapp: "WhatsApp", interesse: "Interesse", origem: "Origem",
+    valor: "Valor", data_evento: "Data do Evento", data_contato: "Data do Contato",
+    data_proposta: "Data da Proposta", motivo_perda: "Motivo da Perda", status: "Status",
+    iniciar_atendimento: "Iniciar Atendimento", package_id: "Pacote",
+    data_entrada_novo_lead: "Entrada em Novo Lead",
+    data_entrada_contato_iniciado: "Entrada em Contato Iniciado",
+    data_entrada_proposta_enviada: "Entrada em Proposta Enviada",
+    data_entrada_follow_up: "Entrada em Follow-up",
+    data_entrada_contrato_enviado: "Entrada em Contrato Enviado",
+    data_entrada_fechado_ganho: "Entrada em Fechado Ganho",
+    data_entrada_fechado_perdido: "Entrada em Fechado Perdido",
+    cadencia_1: "Cadência 1", cadencia_2: "Cadência 2", cadencia_3: "Cadência 3",
+    cadencia_4: "Cadência 4", cadencia_5: "Cadência 5",
+    follow_up_1: "Follow-up 1", follow_up_2: "Follow-up 2", follow_up_3: "Follow-up 3",
+    follow_up_4: "Follow-up 4", follow_up_5: "Follow-up 5",
+  };
 
   const handleFieldSave = (field: string, value: any) => {
     if (!lead) return;
+    const oldValue = (lead as any)[field];
+    const oldStr = oldValue != null ? String(oldValue) : null;
+    const newStr = value != null ? String(value) : null;
+    if (oldStr !== newStr) {
+      createHistory.mutate({
+        lead_id: lead.id,
+        field_name: field,
+        field_label: FIELD_LABELS[field] || field,
+        old_value: oldStr,
+        new_value: newStr,
+      });
+    }
     updateLead.mutate({ id: lead.id, [field]: value });
   };
 
@@ -569,88 +602,178 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
             </div>
           </div>
 
-          {/* Right: Tasks + Notes */}
+          {/* Right: Unified Timeline */}
           <div className="flex-1 p-4 overflow-y-auto">
-            {/* Tasks */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground">Tarefas</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <History className="w-4 h-4 text-muted-foreground" />
+                Histórico
+              </h3>
+              <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => setShowNewTask(!showNewTask)}>
-                  <Plus className="w-3 h-3" /> Nova Tarefa
+                  <Plus className="w-3 h-3" /> Tarefa
                 </Button>
-              </div>
-
-              {showNewTask && (
-                <div className="space-y-2 mb-3 p-3 rounded-lg bg-muted/50 border border-border">
-                  <Input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="Título da tarefa" className="bg-muted border-border h-8 text-sm" />
-                  <Textarea value={newTaskDescription} onChange={(e) => setNewTaskDescription(e.target.value)}
-                    placeholder="Anotação / Script (opcional)" className="bg-muted border-border text-sm min-h-[60px]" />
-                  <div className="flex gap-2">
-                    <Input type="date" value={newTaskDate} onChange={(e) => setNewTaskDate(e.target.value)}
-                      className="bg-muted border-border h-8 text-sm flex-1" />
-                    <Input type="time" value={newTaskTime} onChange={(e) => setNewTaskTime(e.target.value)}
-                      placeholder="Hora" className="bg-muted border-border h-8 text-sm w-28" />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowNewTask(false)}>Cancelar</Button>
-                    <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={handleCreateTask}
-                      disabled={!newTaskTitle.trim() || createTask.isPending}>Criar</Button>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                {pendingTasks.length === 0 && completedTasks.length === 0 && !showNewTask && (
-                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma tarefa.</p>
-                )}
-                {pendingTasks.map((task) => (
-                  <EditableTaskRow key={task.id} task={task}
-                    onComplete={() => handleCompleteTask(task)}
-                    onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
-                    isPending={completeTask.isPending} />
-                ))}
-                {completedTasks.map((task) => (
-                  <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 opacity-60">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked onCheckedChange={() => uncompleteTask.mutate(task.id)}
-                        disabled={uncompleteTask.isPending} className="border-muted-foreground data-[state=checked]:bg-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-muted-foreground line-through">{task.title}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Concluída em {task.completed_at ? new Date(task.completed_at).toLocaleDateString("pt-BR") : "—"}
-                      </p>
-                    </div>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                  </div>
-                ))}
               </div>
             </div>
 
-            <h3 className="text-sm font-semibold text-foreground mb-3">Notas e Histórico</h3>
+            {/* New task form */}
+            {showNewTask && (
+              <div className="space-y-2 mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+                <Input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder="Título da tarefa" className="bg-muted border-border h-8 text-sm" />
+                <Textarea value={newTaskDescription} onChange={(e) => setNewTaskDescription(e.target.value)}
+                  placeholder="Anotação / Script (opcional)" className="bg-muted border-border text-sm min-h-[60px]" />
+                <div className="flex gap-2">
+                  <Input type="date" value={newTaskDate} onChange={(e) => setNewTaskDate(e.target.value)}
+                    className="bg-muted border-border h-8 text-sm flex-1" />
+                  <Input type="time" value={newTaskTime} onChange={(e) => setNewTaskTime(e.target.value)}
+                    placeholder="Hora" className="bg-muted border-border h-8 text-sm w-28" />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowNewTask(false)}>Cancelar</Button>
+                  <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={handleCreateTask}
+                    disabled={!newTaskTitle.trim() || createTask.isPending}>Criar</Button>
+                </div>
+              </div>
+            )}
+
+            {/* New note input */}
             <div className="flex gap-2 mb-4">
               <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Adicione uma nota..." className="bg-muted border-border flex-1 min-h-[60px] text-sm" />
+                placeholder="Adicione uma nota..." className="bg-muted border-border flex-1 min-h-[50px] text-sm" />
               <Button size="icon" onClick={handleAddNote} disabled={!newNote.trim() || createNote.isPending}
                 className="bg-gradient-primary hover:opacity-90 self-end"><Send className="w-4 h-4" /></Button>
             </div>
-            <div className="space-y-3">
-              {notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Nenhuma nota ainda.</p>
-              ) : notes.map((note) => (
-                <div key={note.id} className="bg-muted rounded-lg p-3 group border-l-2 border-primary/50">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
-                    <Button variant="ghost" size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0"
-                      onClick={() => deleteNote.mutate({ id: note.id, lead_id: note.lead_id })}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">{formatDateTime(note.created_at)}</p>
-                </div>
-              ))}
+
+            {/* Unified timeline */}
+            <div className="relative">
+              {/* Timeline vertical line */}
+              <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border" />
+
+              <div className="space-y-0">
+                {(() => {
+                  // Build unified timeline items
+                  type TimelineItem = {
+                    id: string;
+                    type: "task_pending" | "task_completed" | "note" | "change";
+                    date: string;
+                    data: any;
+                  };
+
+                  const items: TimelineItem[] = [];
+
+                  // Pending tasks (sorted by due_date)
+                  pendingTasks.forEach(t => items.push({
+                    id: `task-${t.id}`, type: "task_pending", date: t.created_at, data: t,
+                  }));
+
+                  // Completed tasks
+                  completedTasks.forEach(t => items.push({
+                    id: `task-done-${t.id}`, type: "task_completed",
+                    date: t.completed_at || t.created_at, data: t,
+                  }));
+
+                  // Notes
+                  notes.forEach(n => items.push({
+                    id: `note-${n.id}`, type: "note", date: n.created_at, data: n,
+                  }));
+
+                  // History changes
+                  history.forEach(h => items.push({
+                    id: `history-${h.id}`, type: "change", date: h.created_at, data: h,
+                  }));
+
+                  // Sort by date descending (newest first)
+                  items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                  if (items.length === 0) {
+                    return <p className="text-xs text-muted-foreground text-center py-8 ml-8">Nenhuma atividade ainda.</p>;
+                  }
+
+                  return items.map((item) => (
+                    <div key={item.id} className="flex gap-3 pb-4 relative">
+                      {/* Icon */}
+                      <div className="w-[30px] flex-shrink-0 flex justify-center z-10">
+                        {item.type === "task_pending" && (
+                          <div className="w-7 h-7 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
+                            <Circle className="w-3 h-3 text-primary" />
+                          </div>
+                        )}
+                        {item.type === "task_completed" && (
+                          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                        )}
+                        {item.type === "note" && (
+                          <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center">
+                            <FileText className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        )}
+                        {item.type === "change" && (
+                          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                            <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        {item.type === "task_pending" && (
+                          <EditableTaskRow task={item.data}
+                            onComplete={() => handleCompleteTask(item.data)}
+                            onUpdate={(updates) => updateTask.mutate({ id: item.data.id, ...updates })}
+                            isPending={completeTask.isPending} />
+                        )}
+
+                        {item.type === "task_completed" && (
+                          <div className="p-2.5 rounded-lg bg-muted/50 opacity-70 group">
+                            <div className="flex items-center gap-2">
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Checkbox checked onCheckedChange={() => uncompleteTask.mutate(item.data.id)}
+                                  disabled={uncompleteTask.isPending} className="border-muted-foreground data-[state=checked]:bg-muted-foreground" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-muted-foreground line-through">{item.data.title}</p>
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              Concluída em {item.data.completed_at ? new Date(item.data.completed_at).toLocaleString("pt-BR") : "—"}
+                            </p>
+                          </div>
+                        )}
+
+                        {item.type === "note" && (
+                          <div className="bg-muted rounded-lg p-3 group border-l-2 border-primary/50">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm text-foreground whitespace-pre-wrap">{item.data.content}</p>
+                              <Button variant="ghost" size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0"
+                                onClick={() => deleteNote.mutate({ id: item.data.id, lead_id: item.data.lead_id })}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-2">{formatDateTime(item.data.created_at)}</p>
+                          </div>
+                        )}
+
+                        {item.type === "change" && (
+                          <div className="py-1">
+                            <p className="text-sm text-foreground">
+                              <span className="font-medium">{item.data.field_label}</span>
+                              {item.data.old_value ? (
+                                <>{": "}<span className="text-muted-foreground line-through">{item.data.old_value}</span> → <span>{item.data.new_value || "—"}</span></>
+                              ) : (
+                                <>{": "}<span>{item.data.new_value || "—"}</span></>
+                              )}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">{formatDateTime(item.data.created_at)}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
           </div>
         </div>
