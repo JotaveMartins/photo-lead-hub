@@ -1,123 +1,107 @@
 
-# Evolucao CRM v1.0 - Hub para Fotografos
+
+# Plano: Ajuste do Fluxo de Tarefas do CRM
 
 ## Resumo
 
-Transformar o sistema atual em um CRM completo estilo Pipedrive com modulos de Servicos, Pacotes compostos, Kanban de leads e pagina de detalhes com historico de notas. As categorias de fotografia serao campos de texto livre (nao enum fixo), permitindo que cada fotografo cadastre os tipos que quiser.
+Reestruturar a logica de cadencia de tarefas para separar claramente 3 fases: Pre-Proposta (manter como esta), Follow-up (criar 1 tarefa por vez com confirmacao) e etapas finais (limpar tudo). Inclui modais de confirmacao e limpeza automatica de tarefas pendentes em cada transicao de etapa.
 
 ---
 
-## Etapa 1 - Banco de Dados (Migracoes SQL)
+## Mudancas por Etapa
 
-### Nova tabela `services`
-- id, user_id, nome, categoria (text livre - ex: "Casamento", "Debutante", "Corporativo", "Batizado", etc), descricao, valor_base, custo_interno (opcional), ativo (boolean, default true), created_at, updated_at
-- RLS por user_id
+### 1. Proposta Enviada -- Mover automaticamente para Follow-up + Modal
 
-### Evolucao da tabela `packages`
-- Adicionar colunas: descricao (text), categoria (text), preco_final (numeric)
-- Nova tabela `package_services` (id, package_id FK, service_id FK, created_at) com RLS
+**Comportamento atual:** Ao mover para "Proposta Enviada", cancela tarefas de cadencia pendentes via trigger no banco.
 
-### Nova tabela `lead_notes`
-- id, lead_id (FK leads), user_id, content (text), created_at
-- RLS por user_id
+**Novo comportamento:**
+- Ao mover para "Proposta Enviada", alem de cancelar tarefas pendentes, mover automaticamente o lead para "Follow-up".
+- Exibir modal: "Deseja ativar sequencia recomendada de follow-up?"
+  - **Sim:** Cria 1 tarefa "Follow-up 1" com data padrao D+2 (editavel antes de salvar).
+  - **Nao:** Nao cria tarefas; usuario gerencia manualmente.
 
-### Alteracao na tabela `leads`
-- Atualizar o enum `lead_status` para as novas etapas do Kanban:
-  - Novo Lead, Contato Iniciado, Proposta Enviada, Follow-up, Contrato Enviado, Fechado Ganho, Fechado Perdido
-- Adicionar coluna `origem` (text) - de onde veio o lead
-- Adicionar coluna `package_id` (uuid, FK para packages, nullable)
+### 2. Conclusao de Follow-up -- Modal para proximo
 
-### RLS
-- Todas as novas tabelas seguem o padrao existente: SELECT/INSERT/UPDATE/DELETE restrito a `auth.uid() = user_id`
-- `package_services` usa join com packages para validar user_id
+**Comportamento atual:** Ao concluir tarefa de cadencia, cria proxima automaticamente.
 
----
+**Novo comportamento para tarefas de follow-up:**
+- Ao concluir uma tarefa de follow-up, exibir modal: "Deseja criar proximo follow-up?"
+  - **Sim:** Cria "Follow-up N+1" com data sugerida D+3 (editavel).
+  - **Nao:** Nao cria nada.
+- Nunca criar multiplos follow-ups de uma vez.
 
-## Etapa 2 - Hooks e Camada de Dados
+### 3. Contrato Enviado -- Limpar tudo
 
-- `useServices` - CRUD completo para servicos
-- `usePackageServices` - vincular/desvincular servicos de pacotes, calcular valor total
-- `useLeadNotes` - CRUD de notas dentro de cada lead
-- Atualizar `useLeads` e `usePackages` para os novos campos
+**Comportamento atual:** Nao ha logica especifica.
 
----
+**Novo comportamento:**
+- Cancelar todas as tarefas pendentes automaticamente.
+- Nenhum modal, nenhuma nova tarefa.
 
-## Etapa 3 - Pagina de Servicos (nova)
+### 4. Fechado Ganho / Fechado Perdido -- Limpar tudo
 
-- Rota `/servicos`
-- Tabela listando servicos com filtro por categoria e status (ativo/inativo)
-- Modal para criar/editar servico
-- Campo categoria como input de texto com sugestoes (combobox) baseadas nas categorias ja usadas pelo usuario
+**Comportamento atual:** Nao ha logica especifica.
 
----
+**Novo comportamento:**
+- Cancelar todas as tarefas pendentes automaticamente.
+- Nenhum modal, nenhuma nova tarefa.
 
-## Etapa 4 - Pagina de Pacotes (evolucao)
+### 5. Pre-Proposta (cadencia 1-5) -- Manter como esta
 
-- Rota `/pacotes`
-- Interface para criar pacote selecionando multiplos servicos cadastrados
-- Calculo automatico do valor total dos servicos selecionados
-- Campo para preco final do pacote
-- Exibicao do percentual de economia automaticamente
-- Vinculo a uma categoria
-
----
-
-## Etapa 5 - Kanban Board para Leads
-
-- Componente `KanbanBoard` com 7 colunas (Novo Lead ate Fechado Perdido)
-- Cards arrastaveis usando drag-and-drop com HTML5 Drag API (sem dependencia extra)
-- Ao mover um card, atualiza o status no banco
-- Toggle para alternar entre visualizacao Kanban e Tabela na pagina de Leads
-- Cards mostram: nome, WhatsApp, interesse/pacote, data do evento
-
----
-
-## Etapa 6 - Pagina de Detalhes do Lead (estilo Pipedrive)
-
-- Ao clicar em um lead (no Kanban ou tabela), abrir modal/drawer com visao completa
-- Aba de informacoes do lead (dados, origem, pacote vinculado)
-- Aba de timeline/historico com notas
-- Area para adicionar novas anotacoes
-- Historico de mudancas de status exibido na timeline
-- Campo "Origem" (Instagram, Indicacao, Google, etc) como texto livre com sugestoes
-
----
-
-## Etapa 7 - Menu Lateral Atualizado
-
-Novo menu:
-- Dashboard
-- Leads (Kanban + Tabela)
-- Servicos (novo)
-- Pacotes (novo)
-- Agenda
-- Mensagens
-- Relatorios
+- Ao clicar em "Iniciar atendimento", cria tarefas 1 a 5 sequencialmente.
+- Ao concluir, cria a proxima automaticamente para o dia seguinte.
+- Ao mover para "Proposta Enviada", cancela pendentes (ja implementado).
 
 ---
 
 ## Detalhes Tecnicos
 
-### Categorias flexiveis
-Em vez de usar um enum fixo para categorias de fotografia, sera usado campo `text` livre. Um combobox mostrara sugestoes baseadas nas categorias ja cadastradas pelo usuario (query distinct), permitindo qualquer tipo: Casamento, Debutante, Infantil, Corporativo, Batizado, Ensaio, Formatura, Cabine, e qualquer outro que o fotografo precise.
+### Banco de dados (Migration SQL)
 
-### Enum de status do lead
-Migrar de:
-`Sem resposta | Interessado sem resposta | Sem interesse | Em andamento | Indisponibilidade Agenda | Fechado`
+Atualizar o trigger `delete_cadence_on_proposta` para:
+- Apagar **todas** as tarefas pendentes (nao apenas `is_cadence = true`) quando o lead mover para "Contrato Enviado", "Fechado Ganho" ou "Fechado Perdido".
+- Manter o comportamento atual para "Proposta Enviada" (apagar apenas cadencia pendente).
 
-Para:
-`Novo Lead | Contato Iniciado | Proposta Enviada | Follow-up | Contrato Enviado | Fechado Ganho | Fechado Perdido`
+```text
+Trigger expandido:
+  IF status muda para "Proposta Enviada" -> DELETE tarefas WHERE is_cadence=true AND completed=false
+  IF status muda para "Contrato Enviado", "Fechado Ganho", "Fechado Perdido" -> DELETE tarefas WHERE completed=false
+```
 
-Isso requer renomear valores do enum existente e atualizar leads existentes.
+### Novo componente: FollowUpModal
 
-### Drag-and-drop
-Implementado com HTML5 Drag API nativa (onDragStart, onDragOver, onDrop), sem bibliotecas extras.
+Componente React com dois usos:
+1. **Ativacao de sequencia:** Aparece ao mover para "Proposta Enviada" -> "Follow-up". Pergunta se quer ativar sequencia. Se sim, permite editar a data (padrao D+2) e cria "Follow-up 1".
+2. **Proximo follow-up:** Aparece ao concluir um follow-up. Pergunta se quer criar o proximo. Se sim, permite editar data (padrao D+3) e cria "Follow-up N+1".
 
-### Sequencia de implementacao
-1. Migracoes de banco (tudo numa unica migracao)
-2. Hooks de dados
-3. Servicos + Pacotes (paginas)
-4. Kanban + Detalhes do Lead
-5. Menu lateral + rotas
+### Alteracoes em `useLeadTasks.ts`
 
-Isso e uma evolucao grande, entao sera implementado em etapas sequenciais para manter estabilidade.
+- `useCompleteLeadTask`: Separar logica de cadencia pre-proposta (auto-criar proxima) da logica de follow-up (retornar flag para o componente exibir modal em vez de criar automaticamente). A mutacao retornara um objeto indicando se o modal de follow-up deve ser exibido.
+- Adicionar hook `useDeletePendingTasks` para limpar tarefas pendentes de um lead.
+
+### Alteracoes em `KanbanBoard.tsx`
+
+- Ao dropar lead em "Proposta Enviada":
+  1. Validar campos obrigatorios (valor) -- ja existe.
+  2. Apos confirmar, atualizar status para "Follow-up" (pular "Proposta Enviada" como etapa persistente, ou gravar "Proposta Enviada" e imediatamente mover para "Follow-up").
+  3. Exibir FollowUpModal.
+
+- Ao dropar em "Contrato Enviado", "Fechado Ganho", "Fechado Perdido": o trigger no banco limpa as tarefas automaticamente.
+
+### Alteracoes em `LeadDetailDrawer.tsx`
+
+- Ao mudar status via select para "Proposta Enviada":
+  1. Mesma logica do Kanban: validar valor, mover para Follow-up, exibir modal.
+- Ao concluir tarefa de follow-up: exibir FollowUpModal para confirmar criacao da proxima.
+
+### Arquivos afetados
+
+| Arquivo | Acao |
+|---|---|
+| `supabase/migrations/novo.sql` | Atualizar trigger para cobrir Contrato Enviado, Ganho, Perdido |
+| `src/components/FollowUpModal.tsx` | Novo componente de confirmacao de follow-up |
+| `src/hooks/useLeadTasks.ts` | Ajustar logica de conclusao; distinguir cadencia vs follow-up |
+| `src/components/KanbanBoard.tsx` | Interceptar drop em Proposta Enviada para redirecionar a Follow-up + modal |
+| `src/components/LeadDetailDrawer.tsx` | Mesma logica no select de status + modal ao concluir follow-up |
+| `src/components/RequiredFieldsModal.tsx` | Sem alteracao |
+
