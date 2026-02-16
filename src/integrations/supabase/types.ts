@@ -414,6 +414,7 @@ export type Database = {
           email: string | null
           id: string
           nome: string
+          senha: string | null
           updated_at: string
           user_id: string
         }
@@ -423,6 +424,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome: string
+          senha?: string | null
           updated_at?: string
           user_id: string
         }
@@ -432,6 +434,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome?: string
+          senha?: string | null
           updated_at?: string
           user_id?: string
         }

@@ -86,6 +86,9 @@ Deno.serve(async (req) => {
       role: 'user',
     })
 
+    // Save generated password in profile for admin reference
+    await adminClient.from('profiles').update({ senha: password }).eq('user_id', newUser.user.id)
+
     return new Response(JSON.stringify({ 
       user: { id: newUser.user.id, email: newUser.user.email },
       password 

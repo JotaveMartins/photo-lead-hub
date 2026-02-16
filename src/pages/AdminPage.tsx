@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { UserPlus, Trash2 } from "lucide-react";
+import { UserPlus, Trash2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -13,6 +13,7 @@ import CreateUserModal from "@/components/CreateUserModal";
 const AdminPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ user_id: string; nome: string } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const { users, isLoading, deleteUser } = useAdminUsers();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
@@ -26,6 +27,12 @@ const AdminPage = () => {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     }
     setDeleteTarget(null);
+  };
+
+  const handleCopy = (id: string, senha: string) => {
+    navigator.clipboard.writeText(senha);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
@@ -47,6 +54,7 @@ const AdminPage = () => {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Senha</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="w-16"></TableHead>
             </TableRow>
@@ -54,17 +62,38 @@ const AdminPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : users?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
               </TableRow>
             ) : (
               users?.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.nome}</TableCell>
                   <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    {(user as any).senha ? (
+                      <div className="flex items-center gap-1">
+                        <code className="text-sm font-mono text-primary">{(user as any).senha}</code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleCopy(user.id, (user as any).senha)}
+                        >
+                          {copiedId === user.id ? (
+                            <Check className="w-3.5 h-3.5 text-green-500" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell>
                     {user.user_id !== currentUser?.id && (
