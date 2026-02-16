@@ -1,107 +1,97 @@
 
-
-# Plano: Ajuste do Fluxo de Tarefas do CRM
+# Painel de Administrador - Gerenciamento de Clientes
 
 ## Resumo
+Criar um sistema de roles (admin/user) e um painel exclusivo para o administrador, onde ele pode criar contas de clientes com senha aleatória gerada automaticamente.
 
-Reestruturar a logica de cadencia de tarefas para separar claramente 3 fases: Pre-Proposta (manter como esta), Follow-up (criar 1 tarefa por vez com confirmacao) e etapas finais (limpar tudo). Inclui modais de confirmacao e limpeza automatica de tarefas pendentes em cada transicao de etapa.
+## Como vai funcionar
 
----
-
-## Mudancas por Etapa
-
-### 1. Proposta Enviada -- Mover automaticamente para Follow-up + Modal
-
-**Comportamento atual:** Ao mover para "Proposta Enviada", cancela tarefas de cadencia pendentes via trigger no banco.
-
-**Novo comportamento:**
-- Ao mover para "Proposta Enviada", alem de cancelar tarefas pendentes, mover automaticamente o lead para "Follow-up".
-- Exibir modal: "Deseja ativar sequencia recomendada de follow-up?"
-  - **Sim:** Cria 1 tarefa "Follow-up 1" com data padrao D+2 (editavel antes de salvar).
-  - **Nao:** Nao cria tarefas; usuario gerencia manualmente.
-
-### 2. Conclusao de Follow-up -- Modal para proximo
-
-**Comportamento atual:** Ao concluir tarefa de cadencia, cria proxima automaticamente.
-
-**Novo comportamento para tarefas de follow-up:**
-- Ao concluir uma tarefa de follow-up, exibir modal: "Deseja criar proximo follow-up?"
-  - **Sim:** Cria "Follow-up N+1" com data sugerida D+3 (editavel).
-  - **Nao:** Nao cria nada.
-- Nunca criar multiplos follow-ups de uma vez.
-
-### 3. Contrato Enviado -- Limpar tudo
-
-**Comportamento atual:** Nao ha logica especifica.
-
-**Novo comportamento:**
-- Cancelar todas as tarefas pendentes automaticamente.
-- Nenhum modal, nenhuma nova tarefa.
-
-### 4. Fechado Ganho / Fechado Perdido -- Limpar tudo
-
-**Comportamento atual:** Nao ha logica especifica.
-
-**Novo comportamento:**
-- Cancelar todas as tarefas pendentes automaticamente.
-- Nenhum modal, nenhuma nova tarefa.
-
-### 5. Pre-Proposta (cadencia 1-5) -- Manter como esta
-
-- Ao clicar em "Iniciar atendimento", cria tarefas 1 a 5 sequencialmente.
-- Ao concluir, cria a proxima automaticamente para o dia seguinte.
-- Ao mover para "Proposta Enviada", cancela pendentes (ja implementado).
-
----
+1. **Você (avanzosolucoesdigitais@gmail.com) sera o admin** - Ao fazer login, verá um item extra no menu lateral: "Clientes"
+2. **Na pagina Clientes**, você podera:
+   - Ver a lista de todos os clientes cadastrados (nome, email, data de criacao)
+   - Criar um novo cliente informando nome e email
+   - Uma senha aleatoria de 8 caracteres sera gerada automaticamente
+   - A senha sera exibida na tela para voce copiar e enviar ao cliente
+3. **Clientes normais** continuam acessando normalmente suas paginas de Leads e Tarefas, sem ver o menu "Clientes"
 
 ## Detalhes Tecnicos
 
-### Banco de dados (Migration SQL)
+### 1. Banco de Dados - Tabela de Roles
+Seguindo as boas praticas de seguranca, criar uma tabela separada `user_roles`:
 
-Atualizar o trigger `delete_cadence_on_proposta` para:
-- Apagar **todas** as tarefas pendentes (nao apenas `is_cadence = true`) quando o lead mover para "Contrato Enviado", "Fechado Ganho" ou "Fechado Perdido".
-- Manter o comportamento atual para "Proposta Enviada" (apagar apenas cadencia pendente).
+```sql
+CREATE TYPE public.app_role AS ENUM ('admin', 'user');
 
-```text
-Trigger expandido:
-  IF status muda para "Proposta Enviada" -> DELETE tarefas WHERE is_cadence=true AND completed=false
-  IF status muda para "Contrato Enviado", "Fechado Ganho", "Fechado Perdido" -> DELETE tarefas WHERE completed=false
+CREATE TABLE public.user_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role app_role NOT NULL DEFAULT 'user',
+  UNIQUE (user_id, role)
+);
+
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 ```
 
-### Novo componente: FollowUpModal
+Funcao `has_role` (SECURITY DEFINER) para checar roles sem recursao:
 
-Componente React com dois usos:
-1. **Ativacao de sequencia:** Aparece ao mover para "Proposta Enviada" -> "Follow-up". Pergunta se quer ativar sequencia. Se sim, permite editar a data (padrao D+2) e cria "Follow-up 1".
-2. **Proximo follow-up:** Aparece ao concluir um follow-up. Pergunta se quer criar o proximo. Se sim, permite editar data (padrao D+3) e cria "Follow-up N+1".
+```sql
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
+```
 
-### Alteracoes em `useLeadTasks.ts`
+Politicas RLS na `user_roles`:
+- SELECT: usuario ve apenas seu proprio role
+- INSERT/UPDATE/DELETE: somente admins
 
-- `useCompleteLeadTask`: Separar logica de cadencia pre-proposta (auto-criar proxima) da logica de follow-up (retornar flag para o componente exibir modal em vez de criar automaticamente). A mutacao retornara um objeto indicando se o modal de follow-up deve ser exibido.
-- Adicionar hook `useDeletePendingTasks` para limpar tarefas pendentes de um lead.
+Inserir o role admin para a conta `avanzosolucoesdigitais@gmail.com`:
 
-### Alteracoes em `KanbanBoard.tsx`
+```sql
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('c8efc0bc-3370-49fc-b9f3-2166f782fe65', 'admin');
+```
 
-- Ao dropar lead em "Proposta Enviada":
-  1. Validar campos obrigatorios (valor) -- ja existe.
-  2. Apos confirmar, atualizar status para "Follow-up" (pular "Proposta Enviada" como etapa persistente, ou gravar "Proposta Enviada" e imediatamente mover para "Follow-up").
-  3. Exibir FollowUpModal.
+### 2. Edge Function - `create-user`
+Uma funcao backend que:
+- Valida que quem esta chamando e admin (via `has_role`)
+- Recebe `nome` e `email`
+- Gera uma senha aleatoria de 8 caracteres
+- Usa o Supabase Admin API (`service_role_key`) para criar o usuario via `supabase.auth.admin.createUser()`
+- Retorna a senha gerada para o admin copiar
 
-- Ao dropar em "Contrato Enviado", "Fechado Ganho", "Fechado Perdido": o trigger no banco limpa as tarefas automaticamente.
+### 3. Frontend
 
-### Alteracoes em `LeadDetailDrawer.tsx`
+**Hook `useUserRole`**: consulta a tabela `user_roles` para saber se o usuario logado e admin.
 
-- Ao mudar status via select para "Proposta Enviada":
-  1. Mesma logica do Kanban: validar valor, mover para Follow-up, exibir modal.
-- Ao concluir tarefa de follow-up: exibir FollowUpModal para confirmar criacao da proxima.
+**Sidebar atualizado**: se o usuario for admin, exibe o item "Clientes" no menu.
 
-### Arquivos afetados
+**Pagina `AdminPage.tsx`**:
+- Tabela listando todos os profiles (somente admin pode ver todos)
+- Botao "Novo Cliente" que abre um modal
+- Modal com campos Nome e Email
+- Ao criar, exibe a senha gerada em um dialogo para o admin copiar
+- Botao de copiar senha para a area de transferencia
+
+**Rota `/admin`**: protegida, so acessivel para admins.
+
+### 4. Ajustes de RLS na tabela `profiles`
+Adicionar politica para que admins possam ler todos os perfis (para listar clientes).
+
+### Arquivos que serao criados/modificados
 
 | Arquivo | Acao |
 |---|---|
-| `supabase/migrations/novo.sql` | Atualizar trigger para cobrir Contrato Enviado, Ganho, Perdido |
-| `src/components/FollowUpModal.tsx` | Novo componente de confirmacao de follow-up |
-| `src/hooks/useLeadTasks.ts` | Ajustar logica de conclusao; distinguir cadencia vs follow-up |
-| `src/components/KanbanBoard.tsx` | Interceptar drop em Proposta Enviada para redirecionar a Follow-up + modal |
-| `src/components/LeadDetailDrawer.tsx` | Mesma logica no select de status + modal ao concluir follow-up |
-| `src/components/RequiredFieldsModal.tsx` | Sem alteracao |
-
+| Migration SQL | Criar tabela `user_roles`, funcao `has_role`, seed admin, RLS |
+| `supabase/functions/create-user/index.ts` | Edge function para criar usuarios |
+| `supabase/config.toml` | Configurar `verify_jwt = false` para a edge function |
+| `src/hooks/useUserRole.ts` | Hook para consultar role do usuario |
+| `src/hooks/useAdminUsers.ts` | Hook para listar e criar usuarios (admin) |
+| `src/pages/AdminPage.tsx` | Pagina de gerenciamento de clientes |
+| `src/components/CreateUserModal.tsx` | Modal de criacao de cliente |
+| `src/components/Sidebar.tsx` | Adicionar item "Clientes" condicional |
+| `src/App.tsx` | Adicionar rota `/admin` |
