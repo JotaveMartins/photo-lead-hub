@@ -3,6 +3,11 @@ import {
   CheckSquare,
   LogOut,
   UserCog,
+  BarChart3,
+  Wrench,
+  Package,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +21,11 @@ interface SidebarProps {
 const baseMenuItems = [
   { id: 'leads', label: 'Leads', icon: Users },
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
+  { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+  { id: 'servicos', label: 'Serviços', icon: Wrench },
+  { id: 'pacotes', label: 'Pacotes', icon: Package },
+  { id: 'agenda', label: 'Agenda', icon: Calendar },
+  { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
 ];
 
 const adminMenuItems = [
