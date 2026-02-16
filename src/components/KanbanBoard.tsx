@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import type { Database } from "@/integrations/supabase/types";
 import { isBefore, isToday, parseISO, startOfDay } from "date-fns";
 
@@ -68,6 +69,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
+  const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
+  const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
+
+  const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
@@ -113,11 +118,29 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     if (draggedLeadId) {
       const lead = leads.find((l) => l.id === draggedLeadId);
       if (lead && lead.status !== newStatus) {
-        updateLead.mutate({ id: draggedLeadId, status: newStatus });
+        // Check if valor is required and missing
+        if (REQUIRED_FIELDS_STATUSES.includes(newStatus) && (!lead.valor || lead.valor <= 0)) {
+          setRequiredFieldsLead(lead);
+          setRequiredFieldsTarget(newStatus);
+        } else {
+          updateLead.mutate({ id: draggedLeadId, status: newStatus });
+        }
       }
     }
     setDraggedLeadId(null);
     setIsDragging(false);
+  };
+
+  const handleRequiredFieldsConfirm = (fields: { valor: number }) => {
+    if (requiredFieldsLead && requiredFieldsTarget) {
+      updateLead.mutate({
+        id: requiredFieldsLead.id,
+        status: requiredFieldsTarget,
+        valor: fields.valor,
+      });
+      setRequiredFieldsLead(null);
+      setRequiredFieldsTarget(null);
+    }
   };
 
   const formatDate = (d: string | null) => {
@@ -282,6 +305,16 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           })}
         </div>
       )}
+
+      {/* Required Fields Modal */}
+      <RequiredFieldsModal
+        open={!!requiredFieldsLead}
+        onOpenChange={(open) => { if (!open) { setRequiredFieldsLead(null); setRequiredFieldsTarget(null); } }}
+        leadName={requiredFieldsLead?.nome || ""}
+        targetStatus={requiredFieldsTarget || ""}
+        currentValor={requiredFieldsLead?.valor ?? null}
+        onConfirm={handleRequiredFieldsConfirm}
+      />
     </div>
   );
 };

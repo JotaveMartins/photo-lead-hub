@@ -10,6 +10,7 @@ import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircl
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask } from "@/hooks/useLeadTasks";
 import { useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
+import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -201,6 +202,10 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDate, setNewTaskDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [newTaskTime, setNewTaskTime] = useState("");
+  const [requiredFieldsOpen, setRequiredFieldsOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<LeadStatus | null>(null);
+
+  const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
   const { data: notes = [] } = useLeadNotes(lead?.id);
   const { data: tasks = [] } = useLeadTasks(lead?.id);
@@ -226,7 +231,19 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
 
   const handleStatusChange = async (status: LeadStatus) => {
     if (!lead) return;
+    if (REQUIRED_FIELDS_STATUSES.includes(status) && (!lead.valor || lead.valor <= 0)) {
+      setPendingStatus(status);
+      setRequiredFieldsOpen(true);
+      return;
+    }
     await updateLead.mutateAsync({ id: lead.id, status });
+  };
+
+  const handleRequiredFieldsConfirm = async (fields: { valor: number }) => {
+    if (!lead || !pendingStatus) return;
+    await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, valor: fields.valor });
+    setRequiredFieldsOpen(false);
+    setPendingStatus(null);
   };
 
   const handleCreateTask = async () => {
@@ -284,6 +301,7 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
   ];
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[60vw] bg-card border-border overflow-y-auto p-0">
         {/* Header */}
@@ -483,6 +501,16 @@ const LeadDetailDrawer = ({ lead, open, onOpenChange }: LeadDetailDrawerProps) =
         </div>
       </SheetContent>
     </Sheet>
+
+    <RequiredFieldsModal
+      open={requiredFieldsOpen}
+      onOpenChange={(open) => { setRequiredFieldsOpen(open); if (!open) setPendingStatus(null); }}
+      leadName={lead?.nome || ""}
+      targetStatus={pendingStatus || ""}
+      currentValor={lead?.valor ?? null}
+      onConfirm={handleRequiredFieldsConfirm}
+    />
+    </>
   );
 };
 
