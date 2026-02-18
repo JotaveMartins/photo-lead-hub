@@ -6,7 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAuth } from "@/contexts/AuthContext";
 import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
 import { Checkbox } from "@/components/ui/checkbox";
-import { isToday, isBefore, parseISO, startOfDay } from "date-fns";
+import { isToday, isBefore, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface DashboardHeaderProps {
   onNewLead?: () => void;
@@ -19,7 +20,7 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
 
   const today = startOfDay(new Date());
   const urgentTasks = pendingTasks.filter(t => {
-    const d = parseISO(t.due_date);
+    const d = parseLocalDate(t.due_date);
     return isToday(d) || isBefore(d, today);
   });
 
@@ -66,7 +67,7 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa urgente 🎉</p>
               ) : (
                 urgentTasks.map((task) => {
-                  const isOverdue = isBefore(parseISO(task.due_date), today);
+                  const isOverdue = isBefore(parseLocalDate(task.due_date), today);
                   return (
                     <div key={task.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0 hover:bg-muted/50">
                       <Checkbox

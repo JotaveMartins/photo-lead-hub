@@ -11,14 +11,9 @@ import { useEvents, useCreateEvent } from "@/hooks/useEvents";
 import { useLeads } from "@/hooks/useLeads";
 import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
 import { format, isSameDay } from "date-fns";
-
-// Parse date-only strings (YYYY-MM-DD) as local dates to avoid UTC timezone shift
-const parseLocalDate = (dateStr: string): Date => {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
-};
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { parseLocalDate } from "@/lib/utils";
 
 const AgendaPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());

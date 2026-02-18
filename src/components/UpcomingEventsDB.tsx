@@ -1,15 +1,16 @@
 import { useLeads } from "@/hooks/useLeads";
 import { Calendar, MapPin } from "lucide-react";
-import { format, isFuture, parseISO } from "date-fns";
+import { format, isFuture } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/utils";
 
 const UpcomingEventsDB = () => {
   const { data: leads = [] } = useLeads();
 
   // Get leads with future events
   const upcomingEvents = leads
-    .filter((lead) => lead.data_evento && isFuture(parseISO(lead.data_evento)))
-    .sort((a, b) => new Date(a.data_evento!).getTime() - new Date(b.data_evento!).getTime())
+    .filter((lead) => lead.data_evento && isFuture(parseLocalDate(lead.data_evento)))
+    .sort((a, b) => parseLocalDate(a.data_evento!).getTime() - parseLocalDate(b.data_evento!).getTime())
     .slice(0, 5);
 
   return (
@@ -41,10 +42,10 @@ const UpcomingEventsDB = () => {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-xs font-medium text-primary">
-                    {format(parseISO(lead.data_evento!), "dd MMM", { locale: ptBR })}
+                    {format(parseLocalDate(lead.data_evento!), "dd MMM", { locale: ptBR })}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {format(parseISO(lead.data_evento!), "yyyy")}
+                    {format(parseLocalDate(lead.data_evento!), "yyyy")}
                   </p>
                 </div>
               </div>
