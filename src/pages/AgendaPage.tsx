@@ -10,7 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEvents, useCreateEvent } from "@/hooks/useEvents";
 import { useLeads } from "@/hooks/useLeads";
 import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
-import { format, isSameDay, parseISO } from "date-fns";
+import { format, isSameDay } from "date-fns";
+
+// Parse date-only strings (YYYY-MM-DD) as local dates to avoid UTC timezone shift
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -33,11 +39,11 @@ const AgendaPage = () => {
   );
 
   const leadsForDate = leads.filter((lead) =>
-    lead.data_evento && selectedDate && isSameDay(parseISO(lead.data_evento), selectedDate)
+    lead.data_evento && selectedDate && isSameDay(parseLocalDate(lead.data_evento), selectedDate)
   );
 
   const tasksForDate = pendingTasks.filter((task) =>
-    selectedDate && isSameDay(parseISO(task.due_date), selectedDate)
+    selectedDate && isSameDay(parseLocalDate(task.due_date), selectedDate)
   );
 
   const handleCreateEvent = async () => {
@@ -69,8 +75,8 @@ const AgendaPage = () => {
 
   const eventDates = [
     ...events.map((e) => new Date(e.data_evento)),
-    ...leads.filter((l) => l.data_evento).map((l) => parseISO(l.data_evento!)),
-    ...pendingTasks.map((t) => parseISO(t.due_date)),
+    ...leads.filter((l) => l.data_evento).map((l) => parseLocalDate(l.data_evento!)),
+    ...pendingTasks.map((t) => parseLocalDate(t.due_date)),
   ];
 
   return (
