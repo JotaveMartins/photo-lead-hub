@@ -194,7 +194,7 @@ const EditableTaskRow = ({
         <p className="text-sm text-foreground">{task.title}</p>
         {task.description && <p className="text-[11px] text-muted-foreground truncate">{task.description}</p>}
         <p className="text-[11px] text-muted-foreground">
-          {new Date(task.due_date).toLocaleDateString("pt-BR")}
+          {(() => { const [y,m,d] = task.due_date.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("pt-BR"); })()}
           {task.due_time && ` às ${task.due_time}`}
           {task.is_cadence && <span className="ml-1 text-primary">• Cadência</span>}
         </p>
@@ -217,10 +217,15 @@ const EditableSystemField = ({
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
+  const parseLocalDate = (v: string) => {
+    const [y, m, d] = v.substring(0, 10).split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   const displayValue = value
     ? isTimestamp
       ? new Date(value).toLocaleString("pt-BR")
-      : new Date(value).toLocaleDateString("pt-BR")
+      : parseLocalDate(value).toLocaleDateString("pt-BR")
     : "—";
 
   const inputValue = value
@@ -440,7 +445,13 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   };
 
   const formatDateTime = (d: string) => new Date(d).toLocaleString("pt-BR");
-  const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "";
+  const formatDate = (d: string | null) => {
+    if (!d) return "";
+    // Parse date-only strings (YYYY-MM-DD) as local to avoid UTC timezone shift
+    const dateOnly = d.substring(0, 10);
+    const [year, month, day] = dateOnly.split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
+  };
 
   const formatStageDuration = (dateStr: string | null | undefined) => {
     if (!dateStr) return null;
