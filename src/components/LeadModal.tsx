@@ -56,6 +56,10 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
 
+  // Extract YYYY-MM-DD from any date/timestamp string to avoid timezone shifts
+  const toDateOnly = (v: string | null | undefined): string => 
+    v ? v.substring(0, 10) : "";
+
   useEffect(() => {
     if (lead) {
       setNome(lead.nome);
@@ -63,14 +67,14 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setInteresse(lead.interesse || "");
       setStatus(lead.status);
       setOrigem(lead.origem || "");
-      setDataEvento(lead.data_evento || "");
-      setDataContato((lead as any).data_contato || "");
-      setDataProposta(lead.data_proposta || "");
-      setFollowUp1(lead.follow_up_1 || "");
-      setFollowUp2(lead.follow_up_2 || "");
-      setFollowUp3(lead.follow_up_3 || "");
-      setFollowUp4((lead as any).follow_up_4 || "");
-      setFollowUp5((lead as any).follow_up_5 || "");
+      setDataEvento(toDateOnly(lead.data_evento));
+      setDataContato(toDateOnly((lead as any).data_contato));
+      setDataProposta(toDateOnly(lead.data_proposta));
+      setFollowUp1(toDateOnly(lead.follow_up_1));
+      setFollowUp2(toDateOnly(lead.follow_up_2));
+      setFollowUp3(toDateOnly(lead.follow_up_3));
+      setFollowUp4(toDateOnly((lead as any).follow_up_4));
+      setFollowUp5(toDateOnly((lead as any).follow_up_5));
       setValor(lead.valor?.toString() || "");
       setMotivoPerda(lead.motivo_perda || "");
     } else {
