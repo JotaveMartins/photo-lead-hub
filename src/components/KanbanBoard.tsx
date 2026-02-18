@@ -16,7 +16,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
 import type { Database } from "@/integrations/supabase/types";
-import { isBefore, isToday, parseISO, startOfDay } from "date-fns";
+import { isBefore, isToday, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
@@ -49,9 +50,9 @@ const getLeadTaskStatus = (leadId: string, tasks: LeadTask[]): TaskStatus => {
   if (leadTasks.length === 0) return "none";
   
   const today = startOfDay(new Date());
-  const hasOverdue = leadTasks.some(t => isBefore(parseISO(t.due_date), today));
+  const hasOverdue = leadTasks.some(t => isBefore(parseLocalDate(t.due_date), today));
   if (hasOverdue) return "overdue";
-  const hasToday = leadTasks.some(t => isToday(parseISO(t.due_date)));
+  const hasToday = leadTasks.some(t => isToday(parseLocalDate(t.due_date)));
   if (hasToday) return "today";
   return "future";
 };
@@ -179,7 +180,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const formatDate = (d: string | null) => {
     if (!d) return null;
-    return new Date(d).toLocaleDateString("pt-BR");
+    return parseLocalDate(d).toLocaleDateString("pt-BR");
   };
 
   const formatCurrency = (value: number) => {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { parseLocalDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History } from "lucide-react";
@@ -217,10 +218,8 @@ const EditableSystemField = ({
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
-  const parseLocalDate = (v: string) => {
-    const [y, m, d] = v.substring(0, 10).split("-").map(Number);
-    return new Date(y, m - 1, d);
-  };
+
+
 
   const displayValue = value
     ? isTimestamp

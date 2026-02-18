@@ -13,8 +13,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import LeadDetailDrawer from "@/components/LeadDetailDrawer";
 import { useAllTasks, useCompleteLeadTask, useCreateLeadTask } from "@/hooks/useLeadTasks";
 import { useLeads } from "@/hooks/useLeads";
-import { isBefore, isToday, isThisWeek, addDays, parseISO, startOfDay } from "date-fns";
+import { isBefore, isToday, isThisWeek, startOfDay } from "date-fns";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -44,7 +45,7 @@ const TarefasPage = () => {
 
     // Filter by status
     tasks = tasks.filter((task) => {
-      const dueDate = parseISO(task.due_date);
+      const dueDate = parseLocalDate(task.due_date);
       switch (filter) {
         case "todo": return !task.completed;
         case "completed": return task.completed;
@@ -70,8 +71,8 @@ const TarefasPage = () => {
 
   const stats = useMemo(() => {
     const pending = allTasks.filter(t => !t.completed);
-    const overdue = pending.filter(t => isBefore(parseISO(t.due_date), today));
-    const todayTasks = pending.filter(t => isToday(parseISO(t.due_date)));
+    const overdue = pending.filter(t => isBefore(parseLocalDate(t.due_date), today));
+    const todayTasks = pending.filter(t => isToday(parseLocalDate(t.due_date)));
     return { pending: pending.length, overdue: overdue.length, today: todayTasks.length, total: allTasks.length };
   }, [allTasks, today]);
 
@@ -93,7 +94,7 @@ const TarefasPage = () => {
 
   const getRowStatusClass = (task: typeof allTasks[0]) => {
     if (task.completed) return "opacity-50";
-    const dueDate = parseISO(task.due_date);
+    const dueDate = parseLocalDate(task.due_date);
     if (isBefore(dueDate, today)) return "border-l-2 border-l-red-500";
     if (isToday(dueDate)) return "border-l-2 border-l-green-500";
     return "";
@@ -216,7 +217,7 @@ const TarefasPage = () => {
                   </TableCell>
                   <TableCell onClick={() => handleTaskClick(task)}>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm">{new Date(task.due_date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
+                      <span className="text-sm">{parseLocalDate(task.due_date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
                       {task.due_time && (
                         <span className="text-xs text-muted-foreground">{task.due_time}</span>
                       )}
