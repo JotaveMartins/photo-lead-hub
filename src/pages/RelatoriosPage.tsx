@@ -3,7 +3,7 @@ import { BarChart3, Users, PhoneCall, FileText, Send, Trophy, XCircle, DollarSig
 import { useReportData } from "@/hooks/useReportData";
 import ReportFilters, { PeriodOption, getDateRange } from "@/components/reports/ReportFilters";
 import FunnelChart from "@/components/reports/FunnelChart";
-import DailyChart from "@/components/reports/DailyChart";
+
 import RevenueSection from "@/components/reports/RevenueSection";
 import ConversionTimeSection from "@/components/reports/ConversionTimeSection";
 import LossSection from "@/components/reports/LossSection";
@@ -62,30 +62,6 @@ const RelatoriosPage = () => {
     { label: "Ganho", value: kpis.ganhos },
   ], [kpis]);
 
-  // === Daily chart ===
-  const dailyData = useMemo(() => {
-    const map: Record<string, { leads: number; propostas: number; ganhos: number }> = {};
-    const addDay = (ts: string | null, key: "leads" | "propostas" | "ganhos") => {
-      if (!ts || !inRange(ts)) return;
-      const d = format(new Date(ts), "dd/MM");
-      if (!map[d]) map[d] = { leads: 0, propostas: 0, ganhos: 0 };
-      map[d][key]++;
-    };
-    leads.forEach((l) => {
-      addDay(l.created_at, "leads");
-      addDay(l.data_entrada_proposta_enviada, "propostas");
-      addDay(l.data_entrada_fechado_ganho, "ganhos");
-    });
-
-    // Sort by actual date
-    const days: string[] = [];
-    const current = new Date(dateRange.start);
-    while (current < dateRange.end) {
-      days.push(format(current, "dd/MM"));
-      current.setDate(current.getDate() + 1);
-    }
-    return days.filter((d) => map[d]).map((d) => ({ date: d, ...map[d] }));
-  }, [leads, dateRange]);
 
   // === Revenue daily ===
   const { revenueDailyData } = useMemo(() => {
@@ -247,11 +223,6 @@ const RelatoriosPage = () => {
       {/* Funnel */}
       <div className="mb-6">
         <FunnelChart steps={funnelSteps} />
-      </div>
-
-      {/* Daily chart */}
-      <div className="mb-6">
-        <DailyChart data={dailyData} />
       </div>
 
       {/* Revenue */}
