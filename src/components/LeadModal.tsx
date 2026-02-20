@@ -17,7 +17,7 @@ const whatsappSchema = z.string().regex(/^\d{10,11}$/, "WhatsApp deve ter 10 ou 
 const nomeSchema = z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100);
 
 const ORIGEM_OPTIONS = [
-  "Instagram", "Facebook", "Google", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
+  "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
 ];
 
 const statusOptions: { value: LeadStatus; label: string }[] = [
@@ -47,9 +47,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [dataProposta, setDataProposta] = useState("");
   const [followUp1, setFollowUp1] = useState("");
   const [followUp2, setFollowUp2] = useState("");
-  const [followUp3, setFollowUp3] = useState("");
-  const [followUp4, setFollowUp4] = useState("");
-  const [followUp5, setFollowUp5] = useState("");
   const [valor, setValor] = useState("");
   const [motivoPerda, setMotivoPerda] = useState("");
 
@@ -72,9 +69,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setDataProposta(toDateOnly(lead.data_proposta));
       setFollowUp1(toDateOnly(lead.follow_up_1));
       setFollowUp2(toDateOnly(lead.follow_up_2));
-      setFollowUp3(toDateOnly(lead.follow_up_3));
-      setFollowUp4(toDateOnly((lead as any).follow_up_4));
-      setFollowUp5(toDateOnly((lead as any).follow_up_5));
       setValor(lead.valor?.toString() || "");
       setMotivoPerda(lead.motivo_perda || "");
     } else {
@@ -85,7 +79,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const resetForm = () => {
     setNome(""); setWhatsapp(""); setInteresse(""); setStatus("Novo Lead"); setOrigem("");
     setDataEvento(""); setDataContato(""); setDataProposta("");
-    setFollowUp1(""); setFollowUp2(""); setFollowUp3(""); setFollowUp4(""); setFollowUp5("");
+    setFollowUp1(""); setFollowUp2("");
     setValor(""); setMotivoPerda("");
   };
 
@@ -118,9 +112,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
         data_proposta: dataProposta || null,
         follow_up_1: followUp1 || null,
         follow_up_2: followUp2 || null,
-        follow_up_3: followUp3 || null,
-        follow_up_4: followUp4 || null,
-        follow_up_5: followUp5 || null,
         valor: valor ? parseFloat(valor) : null,
         motivo_perda: motivoPerda || null,
       };
@@ -161,6 +152,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {lead && (
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as LeadStatus)}>
@@ -172,6 +164,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
                 </SelectContent>
               </Select>
             </div>
+          )}
             <div className="space-y-2">
               <Label>Interesse</Label>
               <Input value={interesse} onChange={(e) => setInteresse(e.target.value)} placeholder="Ex: Casamento 2028" className="bg-muted border-border" />
@@ -211,13 +204,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="space-y-2"><Label>FU 1</Label><Input type="date" value={followUp1} onChange={(e) => setFollowUp1(e.target.value)} className="bg-muted border-border" /></div>
-            <div className="space-y-2"><Label>FU 2</Label><Input type="date" value={followUp2} onChange={(e) => setFollowUp2(e.target.value)} className="bg-muted border-border" /></div>
-            <div className="space-y-2"><Label>FU 3</Label><Input type="date" value={followUp3} onChange={(e) => setFollowUp3(e.target.value)} className="bg-muted border-border" /></div>
-            <div className="space-y-2"><Label>FU 4</Label><Input type="date" value={followUp4} onChange={(e) => setFollowUp4(e.target.value)} className="bg-muted border-border" /></div>
-            <div className="space-y-2"><Label>FU 5</Label><Input type="date" value={followUp5} onChange={(e) => setFollowUp5(e.target.value)} className="bg-muted border-border" /></div>
-          </div>
 
           {status === "Fechado Perdido" && (
             <div className="space-y-2">
