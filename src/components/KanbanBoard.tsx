@@ -314,52 +314,54 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         })}
       </div>
 
-      {/* Drop zones for Ganho/Perdido/Excluir */}
+      {/* Drop zones for Ganho/Perdido/Excluir - FIXED at bottom of screen */}
       {isDragging && (
-        <div className="flex gap-3 animate-fade-in">
-          {CLOSED_COLUMNS.map((col) => {
-            const isDragOverCol = dragOverColumn === col.status;
-            return (
-              <div
-                key={col.status}
-                className={`flex-1 border-2 border-dashed rounded-xl p-6 flex items-center justify-center gap-2 transition-all ${
-                  isDragOverCol
-                    ? col.status === "Fechado Ganho"
-                      ? "border-[hsl(var(--status-success))] bg-[hsl(var(--status-success))]/10 text-[hsl(var(--status-success))]"
-                      : "border-[hsl(var(--status-danger))] bg-[hsl(var(--status-danger))]/10 text-[hsl(var(--status-danger))]"
-                    : "border-border text-muted-foreground"
-                }`}
-                onDragOver={(e) => handleDragOver(e, col.status)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, col.status)}
-              >
-                <div className={`w-3 h-3 rounded-full ${col.color}`} />
-                <span className="font-semibold text-sm">{col.label}</span>
-              </div>
-            );
-          })}
-          {/* Delete drop zone */}
-          <div
-            className={`flex-1 border-2 border-dashed rounded-xl p-6 flex items-center justify-center gap-2 transition-all ${
-              dragOverColumn === "DELETE"
-                ? "border-destructive bg-destructive/10 text-destructive"
-                : "border-border text-muted-foreground"
-            }`}
-            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverColumn("DELETE"); }}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOverColumn(null);
-              if (draggedLeadId) {
-                const lead = leads.find((l) => l.id === draggedLeadId);
-                if (lead) setDeleteConfirmLead(lead);
-              }
-              setDraggedLeadId(null);
-              setIsDragging(false);
-            }}
-          >
-            <Trash2 className="w-4 h-4" />
-            <span className="font-semibold text-sm">Excluir</span>
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-fade-in">
+          <div className="flex gap-3 max-w-5xl mx-auto">
+            {CLOSED_COLUMNS.map((col) => {
+              const isDragOverCol = dragOverColumn === col.status;
+              return (
+                <div
+                  key={col.status}
+                  className={`flex-1 border-2 border-dashed rounded-xl p-4 flex items-center justify-center gap-2 transition-all ${
+                    isDragOverCol
+                      ? col.status === "Fechado Ganho"
+                        ? "border-[hsl(var(--status-success))] bg-[hsl(var(--status-success))]/10 text-[hsl(var(--status-success))]"
+                        : "border-[hsl(var(--status-danger))] bg-[hsl(var(--status-danger))]/10 text-[hsl(var(--status-danger))]"
+                      : "border-border text-muted-foreground bg-card/80 backdrop-blur-sm"
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, col.status)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, col.status)}
+                >
+                  <div className={`w-3 h-3 rounded-full ${col.color}`} />
+                  <span className="font-semibold text-sm">{col.label}</span>
+                </div>
+              );
+            })}
+            {/* Delete drop zone */}
+            <div
+              className={`flex-1 border-2 border-dashed rounded-xl p-4 flex items-center justify-center gap-2 transition-all ${
+                dragOverColumn === "DELETE"
+                  ? "border-destructive bg-destructive/10 text-destructive"
+                  : "border-border text-muted-foreground bg-card/80 backdrop-blur-sm"
+              }`}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverColumn("DELETE"); }}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverColumn(null);
+                if (draggedLeadId) {
+                  const lead = leads.find((l) => l.id === draggedLeadId);
+                  if (lead) setDeleteConfirmLead(lead);
+                }
+                setDraggedLeadId(null);
+                setIsDragging(false);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="font-semibold text-sm">Excluir</span>
+            </div>
           </div>
         </div>
       )}
