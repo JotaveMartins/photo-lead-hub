@@ -87,14 +87,81 @@ export const useDeleteLead = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("leads")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() } as any)
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Lead excluído com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["deleted_leads"] });
+      toast.success("Lead movido para a lixeira!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir lead: " + error.message);
+    },
+  });
+};
+
+export const useDeletedLeads = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["deleted_leads", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+
+      if (error) throw error;
+      return data as (Lead & { deleted_at: string })[];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useRestoreLead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ deleted_at: null } as any)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["deleted_leads"] });
+      toast.success("Lead restaurado com sucesso!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao restaurar lead: " + error.message);
+    },
+  });
+};
+
+export const usePermanentDeleteLead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("leads")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deleted_leads"] });
+      toast.success("Lead excluído permanentemente!");
     },
     onError: (error: Error) => {
       toast.error("Erro ao excluir lead: " + error.message);

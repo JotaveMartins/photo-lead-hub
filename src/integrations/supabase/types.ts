@@ -201,6 +201,7 @@ export type Database = {
           data_fechamento: string | null
           data_pedido: string | null
           data_proposta: string | null
+          deleted_at: string | null
           follow_up_1: string | null
           follow_up_2: string | null
           follow_up_3: string | null
@@ -238,6 +239,7 @@ export type Database = {
           data_fechamento?: string | null
           data_pedido?: string | null
           data_proposta?: string | null
+          deleted_at?: string | null
           follow_up_1?: string | null
           follow_up_2?: string | null
           follow_up_3?: string | null
@@ -275,6 +277,7 @@ export type Database = {
           data_fechamento?: string | null
           data_pedido?: string | null
           data_proposta?: string | null
+          deleted_at?: string | null
           follow_up_1?: string | null
           follow_up_2?: string | null
           follow_up_3?: string | null
