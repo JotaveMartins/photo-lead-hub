@@ -15,6 +15,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
+import LossReasonModal from "@/components/LossReasonModal";
 import type { Database } from "@/integrations/supabase/types";
 import { isBefore, isToday, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
@@ -82,6 +83,9 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   // Delete confirmation state
   const [deleteConfirmLead, setDeleteConfirmLead] = useState<Lead | null>(null);
+  // Loss reason modal state
+  const [lossReasonLead, setLossReasonLead] = useState<Lead | null>(null);
+  const [lossReasonOpen, setLossReasonOpen] = useState(false);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -143,20 +147,38 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     if (draggedLeadId) {
       const lead = leads.find((l) => l.id === draggedLeadId);
       if (lead && lead.status !== newStatus) {
-        const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(newStatus) && (
-          (!lead.valor || lead.valor <= 0) ||
-          ((newStatus === "Proposta Enviada") && (!lead.data_proposta || !lead.data_evento || !lead.interesse || !lead.origem))
-        );
-        if (needsRequiredFields) {
-          setRequiredFieldsLead(lead);
-          setRequiredFieldsTarget(newStatus);
+        if (newStatus === "Fechado Perdido") {
+          setLossReasonLead(lead);
+          setLossReasonOpen(true);
         } else {
-          moveLeadToStatus(lead, newStatus);
+          const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(newStatus) && (
+            (!lead.valor || lead.valor <= 0) ||
+            ((newStatus === "Proposta Enviada") && (!lead.data_proposta || !lead.data_evento || !lead.interesse || !lead.origem))
+          );
+          if (needsRequiredFields) {
+            setRequiredFieldsLead(lead);
+            setRequiredFieldsTarget(newStatus);
+          } else {
+            moveLeadToStatus(lead, newStatus);
+          }
         }
       }
     }
     setDraggedLeadId(null);
     setIsDragging(false);
+  };
+
+  const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null }) => {
+    if (lossReasonLead) {
+      updateLead.mutate({
+        id: lossReasonLead.id,
+        status: "Fechado Perdido" as LeadStatus,
+        motivo_perda: data.motivo_perda,
+        observacao_perda: data.observacao_perda,
+      });
+      setLossReasonLead(null);
+      setLossReasonOpen(false);
+    }
   };
 
   const handleRequiredFieldsConfirm = (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
@@ -415,6 +437,14 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         leadName={followUpLead?.nome || ""}
         onConfirm={handleFollowUpConfirm}
         onDecline={handleFollowUpDecline}
+      />
+
+      {/* Loss Reason Modal */}
+      <LossReasonModal
+        open={lossReasonOpen}
+        onOpenChange={(v) => { setLossReasonOpen(v); if (!v) setLossReasonLead(null); }}
+        leadName={lossReasonLead?.nome || ""}
+        onConfirm={handleLossReasonConfirm}
       />
     </div>
   );

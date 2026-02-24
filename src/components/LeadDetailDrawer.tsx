@@ -16,6 +16,7 @@ import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useQueryClient } from "@tanstack/react-query";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
+import LossReasonModal from "@/components/LossReasonModal";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -309,6 +310,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [followUpMode, setFollowUpMode] = useState<"activate" | "next">("activate");
   const [followUpNextNumber, setFollowUpNextNumber] = useState(1);
+  // Loss reason modal state
+  const [lossReasonOpen, setLossReasonOpen] = useState(false);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -331,7 +334,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const FIELD_LABELS: Record<string, string> = {
     nome: "Nome", whatsapp: "WhatsApp", interesse: "Interesse", origem: "Origem",
     valor: "Valor", data_evento: "Data do Evento", data_contato: "Data do Contato",
-    data_proposta: "Data da Proposta", motivo_perda: "Motivo da Perda", status: "Status",
+    data_proposta: "Data da Proposta", motivo_perda: "Motivo da Perda", observacao_perda: "Observação da Perda", status: "Status",
     iniciar_atendimento: "Iniciar Atendimento", package_id: "Pacote",
     data_entrada_novo_lead: "Entrada em Novo Lead",
     data_entrada_contato_iniciado: "Entrada em Contato Iniciado",
@@ -371,6 +374,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
   const handleStatusChange = async (status: LeadStatus) => {
     if (!lead) return;
+    if (status === "Fechado Perdido") {
+      setLossReasonOpen(true);
+      return;
+    }
     const isProposalTarget = status === "Proposta Enviada";
     const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(status) && (
       (!lead.valor || lead.valor <= 0) ||
@@ -389,6 +396,17 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       return;
     }
     await updateLead.mutateAsync({ id: lead.id, status });
+  };
+
+  const handleLossReasonConfirm = async (data: { motivo_perda: string; observacao_perda: string | null }) => {
+    if (!lead) return;
+    await updateLead.mutateAsync({
+      id: lead.id,
+      status: "Fechado Perdido" as LeadStatus,
+      motivo_perda: data.motivo_perda,
+      observacao_perda: data.observacao_perda,
+    });
+    setLossReasonOpen(false);
   };
 
   const handleRequiredFieldsConfirm = async (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
@@ -598,10 +616,12 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
               onSave={(v) => handleFieldSave("data_proposta", v || null)} />
 
             {lead.status === "Fechado Perdido" && (
-              <div className="space-y-1 pt-2 border-t border-border">
-                <Label className="text-xs text-muted-foreground">Motivo da Perda</Label>
-                <InlineField label="" value={lead.motivo_perda || ""} displayValue={lead.motivo_perda || ""}
+              <div className="space-y-3 pt-2 border-t border-border">
+                <InlineSelectField label="Motivo da Perda" value={lead.motivo_perda || ""}
+                  options={["Sem orçamento disponível", "Fechou com outro fotógrafo", "Sem resposta", "Cancelou ou adiou o evento", "Data indisponível", "Lead desqualificado", "Outro"]}
                   onSave={(v) => handleFieldSave("motivo_perda", v)} />
+                <InlineField label="Observação da Perda" value={(lead as any).observacao_perda || ""} displayValue={(lead as any).observacao_perda || ""}
+                  onSave={(v) => handleFieldSave("observacao_perda", v || null)} />
               </div>
             )}
 
@@ -857,6 +877,13 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <LossReasonModal
+      open={lossReasonOpen}
+      onOpenChange={setLossReasonOpen}
+      leadName={lead?.nome || ""}
+      onConfirm={handleLossReasonConfirm}
+    />
     </>
   );
 };

@@ -212,6 +212,7 @@ export type Database = {
           interesse: string | null
           motivo_perda: string | null
           nome: string
+          observacao_perda: string | null
           origem: string | null
           package_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
@@ -250,6 +251,7 @@ export type Database = {
           interesse?: string | null
           motivo_perda?: string | null
           nome: string
+          observacao_perda?: string | null
           origem?: string | null
           package_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
@@ -288,6 +290,7 @@ export type Database = {
           interesse?: string | null
           motivo_perda?: string | null
           nome?: string
+          observacao_perda?: string | null
           origem?: string | null
           package_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
