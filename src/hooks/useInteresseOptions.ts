@@ -26,7 +26,6 @@ export const useCreateInteresseOption = () => {
       const { error } = await supabase
         .from("interesse_options" as any)
         .insert({ nome, user_id: user!.id } as any);
-      // Ignore unique constraint violations (option already exists)
       if (error && !error.message.includes("duplicate")) throw error;
     },
     onSuccess: () => {
@@ -47,6 +46,33 @@ export const useDeleteInteresseOption = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["interesse_options"] });
+    },
+  });
+};
+
+export const useRenameInteresseOption = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ oldName, newName }: { oldName: string; newName: string }) => {
+      // 1. Update all leads that have the old interesse value
+      const { error: leadsError } = await supabase
+        .from("leads")
+        .update({ interesse: newName })
+        .eq("interesse", oldName);
+      if (leadsError) throw leadsError;
+
+      // 2. Update the option name
+      const { error: optError } = await supabase
+        .from("interesse_options" as any)
+        .update({ nome: newName } as any)
+        .eq("nome", oldName)
+        .eq("user_id", user!.id);
+      if (optError) throw optError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interesse_options"] });
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
   });
 };

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Users, LayoutGrid, List, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LeadsTableDB from "@/components/LeadsTableDB";
@@ -17,12 +18,25 @@ import type { Database } from "@/integrations/supabase/types";
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
 const LeadsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const { data: leads = [] } = useLeads();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const completeTask = useCompleteLeadTask();
+
+  // Handle ?open=leadId from reports drill-down
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (openId && leads.length > 0) {
+      const lead = leads.find((l) => l.id === openId);
+      if (lead) {
+        setSelectedLead(lead);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, leads]);
 
   const today = startOfDay(new Date());
   const todayTasks = pendingTasks.filter(t => {
