@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/Sidebar";
+import { TutorialModal, HelpButton } from "@/components/TutorialModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -60,6 +61,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-glow pointer-events-none opacity-50" />
         {children}
       </main>
+      <TutorialModal />
+      <HelpButton />
     </div>
   );
 };
