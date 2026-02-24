@@ -5,6 +5,7 @@ interface FunnelStep {
 
 interface FunnelChartProps {
   steps: FunnelStep[];
+  onStepClick?: (label: string) => void;
 }
 
 const FUNNEL_COLORS = [
@@ -17,7 +18,7 @@ const FUNNEL_COLORS = [
   { from: "hsl(222, 47%, 16%)", to: "hsl(222, 47%, 12%)" },
 ];
 
-const FunnelChart = ({ steps }: FunnelChartProps) => {
+const FunnelChart = ({ steps, onStepClick }: FunnelChartProps) => {
   if (!steps.length) return null;
 
   const firstValue = steps[0]?.value || 0;
@@ -59,7 +60,7 @@ const FunnelChart = ({ steps }: FunnelChartProps) => {
           return (
             <div
               key={step.label}
-              className="relative flex items-center justify-center text-center transition-all group"
+              className={`relative flex items-center justify-center text-center transition-all group ${onStepClick && step.value > 0 ? "cursor-pointer hover:brightness-110" : ""}`}
               style={{
                 width: "100%",
                 minHeight: isLast ? "68px" : "58px",
@@ -68,6 +69,7 @@ const FunnelChart = ({ steps }: FunnelChartProps) => {
                 borderRadius: isFirst ? "12px 12px 0 0" : undefined,
                 marginTop: i > 0 ? "-1px" : undefined,
               }}
+              onClick={() => onStepClick && step.value > 0 && onStepClick(step.label)}
             >
               <div className="flex items-center gap-3 z-10">
                 <span className="text-xl font-bold text-white drop-shadow-md">

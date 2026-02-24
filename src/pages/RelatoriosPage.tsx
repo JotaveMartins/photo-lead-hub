@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { BarChart3, Users, PhoneCall, FileText, Send, Trophy, XCircle, DollarSign, TrendingUp, Percent } from "lucide-react";
-import { useReportData } from "@/hooks/useReportData";
+import { useReportData, type ReportLead } from "@/hooks/useReportData";
 import ReportFilters, { PeriodOption, getDateRange } from "@/components/reports/ReportFilters";
 import FunnelChart from "@/components/reports/FunnelChart";
+import ReportDrillDown from "@/components/reports/ReportDrillDown";
 
 import RevenueSection from "@/components/reports/RevenueSection";
 import ConversionTimeSection from "@/components/reports/ConversionTimeSection";
@@ -11,12 +12,20 @@ import TasksSection from "@/components/reports/TasksSection";
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 
+type DrillDown = {
+  title: string;
+  leads: ReportLead[];
+  dateField: keyof ReportLead;
+  dateLabel: string;
+} | null;
+
 const RelatoriosPage = () => {
   const [period, setPeriod] = useState<PeriodOption>("this_month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [origem, setOrigem] = useState("");
   const [clienteUserId, setClienteUserId] = useState("");
+  const [drillDown, setDrillDown] = useState<DrillDown>(null);
 
   const { leads, tasks, profiles, isLoading, isAdmin } = useReportData({ origem, clienteUserId });
 
@@ -36,22 +45,33 @@ const RelatoriosPage = () => {
     return d >= dateRange.start && d < dateRange.end;
   };
 
+  // === Filtered lead sets (reusable for drill-down) ===
+  const leadSets = useMemo(() => ({
+    created: leads.filter((l) => inRange(l.created_at)),
+    contato: leads.filter((l) => inRange(l.data_entrada_contato_iniciado)),
+    propostas: leads.filter((l) => inRange(l.data_entrada_proposta_enviada)),
+    contratos: leads.filter((l) => inRange(l.data_entrada_contrato_enviado)),
+    ganhos: leads.filter((l) => inRange(l.data_entrada_fechado_ganho)),
+    perdidos: leads.filter((l) => inRange(l.data_entrada_fechado_perdido)),
+  }), [leads, dateRange]);
+
   // === KPIs ===
   const kpis = useMemo(() => {
-    const created = leads.filter((l) => inRange(l.created_at)).length;
-    const contato = leads.filter((l) => inRange(l.data_entrada_contato_iniciado)).length;
-    const propostas = leads.filter((l) => inRange(l.data_entrada_proposta_enviada)).length;
-    const contratos = leads.filter((l) => inRange(l.data_entrada_contrato_enviado)).length;
-    const ganhos = leads.filter((l) => inRange(l.data_entrada_fechado_ganho)).length;
-    const perdidos = leads.filter((l) => inRange(l.data_entrada_fechado_perdido)).length;
-
-    const receitaLeads = leads.filter((l) => inRange(l.data_entrada_fechado_ganho) && l.valor);
+    const receitaLeads = leadSets.ganhos.filter((l) => l.valor);
     const receita = receitaLeads.reduce((s, l) => s + (l.valor || 0), 0);
-    const ticket = ganhos > 0 ? receita / ganhos : 0;
-    const taxa = created > 0 ? (ganhos / created) * 100 : 0;
+    const ticket = leadSets.ganhos.length > 0 ? receita / leadSets.ganhos.length : 0;
+    const taxa = leadSets.created.length > 0 ? (leadSets.ganhos.length / leadSets.created.length) * 100 : 0;
 
-    return { created, contato, propostas, contratos, ganhos, perdidos, receita, ticket, taxa };
-  }, [leads, dateRange]);
+    return {
+      created: leadSets.created.length,
+      contato: leadSets.contato.length,
+      propostas: leadSets.propostas.length,
+      contratos: leadSets.contratos.length,
+      ganhos: leadSets.ganhos.length,
+      perdidos: leadSets.perdidos.length,
+      receita, ticket, taxa,
+    };
+  }, [leadSets]);
 
   // === Funnel ===
   const funnelSteps = useMemo(() => [
@@ -62,6 +82,30 @@ const RelatoriosPage = () => {
     { label: "Ganho", value: kpis.ganhos },
   ], [kpis]);
 
+  const handleFunnelClick = (label: string) => {
+    const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
+      "Leads": { leads: leadSets.created, dateField: "created_at", dateLabel: "Criado em" },
+      "Contato Iniciado": { leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
+      "Proposta": { leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
+      "Contrato Enviado": { leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
+      "Ganho": { leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em" },
+    };
+    const item = map[label];
+    if (item) setDrillDown({ title: label, ...item });
+  };
+
+  const handleKpiClick = (key: string) => {
+    const map: Record<string, { title: string; leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
+      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "created_at", dateLabel: "Criado em" },
+      "Contato Iniciado": { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
+      "Propostas": { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
+      "Contratos Enviados": { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
+      "Ganhos": { title: "Negócios Ganhos", leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em" },
+      "Perdidos": { title: "Negócios Perdidos", leads: leadSets.perdidos, dateField: "data_entrada_fechado_perdido", dateLabel: "Perdido em" },
+    };
+    const item = map[key];
+    if (item) setDrillDown(item);
+  };
 
   // === Revenue daily ===
   const { revenueDailyData } = useMemo(() => {
@@ -103,7 +147,7 @@ const RelatoriosPage = () => {
 
   // === Losses ===
   const lossData = useMemo(() => {
-    const lost = leads.filter((l) => inRange(l.data_entrada_fechado_perdido));
+    const lost = leadSets.perdidos;
     const byReason: Record<string, number> = {};
     lost.forEach((l) => {
       const m = l.motivo_perda || "Sem motivo";
@@ -114,7 +158,17 @@ const RelatoriosPage = () => {
       .map(([motivo, count]) => ({ motivo, count, percent: total > 0 ? (count / total) * 100 : 0 }))
       .sort((a, b) => b.count - a.count);
     return { totalLost: total, byReason: arr };
-  }, [leads, dateRange]);
+  }, [leadSets.perdidos]);
+
+  const handleLossReasonClick = (motivo: string) => {
+    const filtered = leadSets.perdidos.filter((l) => (l.motivo_perda || "Sem motivo") === motivo);
+    setDrillDown({
+      title: `Perdidos — ${motivo}`,
+      leads: filtered,
+      dateField: "data_entrada_fechado_perdido",
+      dateLabel: "Perdido em",
+    });
+  };
 
   // === Tasks ===
   const taskData = useMemo(() => {
@@ -163,9 +217,9 @@ const RelatoriosPage = () => {
   ];
 
   const revenueCards = [
-    { label: "Receita Total", value: fmtCurrency(kpis.receita), icon: DollarSign },
-    { label: "Ticket Médio", value: fmtCurrency(kpis.ticket), icon: TrendingUp },
-    { label: "Taxa de Conversão", value: `${kpis.taxa.toFixed(1)}%`, icon: Percent },
+    { label: "Receita Total", value: fmtCurrency(kpis.receita), icon: DollarSign, clickKey: "Ganhos" },
+    { label: "Ticket Médio", value: fmtCurrency(kpis.ticket), icon: TrendingUp, clickKey: "Ganhos" },
+    { label: "Taxa de Conversão", value: `${kpis.taxa.toFixed(1)}%`, icon: Percent, clickKey: null },
   ];
 
   if (isLoading) {
@@ -199,7 +253,11 @@ const RelatoriosPage = () => {
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
         {kpiCards.map((c) => (
-          <div key={c.label} className="bg-card border border-border rounded-xl p-4">
+          <div
+            key={c.label}
+            className={`bg-card border border-border rounded-xl p-4 transition-colors ${c.value > 0 ? "cursor-pointer hover:border-primary/50" : ""}`}
+            onClick={() => c.value > 0 && handleKpiClick(c.label)}
+          >
             <div className="flex items-center gap-2 mb-1">
               <c.icon className={`w-4 h-4 ${c.color}`} />
               <p className="text-xs text-muted-foreground truncate">{c.label}</p>
@@ -210,7 +268,11 @@ const RelatoriosPage = () => {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {revenueCards.map((c) => (
-          <div key={c.label} className="bg-card border border-border rounded-xl p-4">
+          <div
+            key={c.label}
+            className={`bg-card border border-border rounded-xl p-4 transition-colors ${c.clickKey ? "cursor-pointer hover:border-primary/50" : ""}`}
+            onClick={() => c.clickKey && handleKpiClick(c.clickKey)}
+          >
             <div className="flex items-center gap-2 mb-1">
               <c.icon className="w-4 h-4 text-primary" />
               <p className="text-xs text-muted-foreground">{c.label}</p>
@@ -222,7 +284,7 @@ const RelatoriosPage = () => {
 
       {/* Funnel */}
       <div className="mb-6">
-        <FunnelChart steps={funnelSteps} />
+        <FunnelChart steps={funnelSteps} onStepClick={handleFunnelClick} />
       </div>
 
       {/* Revenue */}
@@ -237,13 +299,23 @@ const RelatoriosPage = () => {
 
       {/* Losses */}
       <div className="mb-6">
-        <LossSection totalLost={lossData.totalLost} byReason={lossData.byReason} />
+        <LossSection totalLost={lossData.totalLost} byReason={lossData.byReason} onReasonClick={handleLossReasonClick} />
       </div>
 
       {/* Tasks */}
       <div className="mb-6">
         <TasksSection {...taskData} />
       </div>
+
+      {/* Drill-down panel */}
+      <ReportDrillDown
+        open={!!drillDown}
+        onOpenChange={(v) => { if (!v) setDrillDown(null); }}
+        title={drillDown?.title || ""}
+        leads={drillDown?.leads || []}
+        dateField={drillDown?.dateField || "created_at"}
+        dateLabel={drillDown?.dateLabel || "Data"}
+      />
     </>
   );
 };

@@ -26,7 +26,7 @@ type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
 
 const ORIGEM_OPTIONS = [
-  "Instagram", "Facebook", "Google", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
+  "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
 ];
 
 const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
