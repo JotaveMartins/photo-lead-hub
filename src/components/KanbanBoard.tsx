@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useInteresseOptions } from "@/hooks/useInteresseOptions";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
@@ -68,6 +69,7 @@ const TASK_STATUS_CONFIG: Record<TaskStatus, { color: string; bg: string; label:
 const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: leads = [], isLoading } = useLeads();
   const { data: pendingTasks = [] } = useAllPendingTasks();
+  const { data: interesseOptions = [] } = useInteresseOptions();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
@@ -76,6 +78,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
+  const [interesseFilter, setInteresseFilter] = useState<string>("all");
   const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
   const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
   // Follow-up modal state
@@ -95,9 +98,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         lead.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lead.whatsapp.includes(searchQuery);
       const matchesOrigem = origemFilter === "all" || lead.origem === origemFilter;
-      return matchesSearch && matchesOrigem;
+      const matchesInteresse = interesseFilter === "all" || lead.interesse === interesseFilter;
+      return matchesSearch && matchesOrigem && matchesInteresse;
     });
-  }, [leads, searchQuery, origemFilter]);
+  }, [leads, searchQuery, origemFilter, interesseFilter]);
 
   const getColumnValue = (status: LeadStatus) => {
     return filteredLeads
@@ -234,6 +238,18 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           <SelectContent>
             <SelectItem value="all">Todas origens</SelectItem>
             {ORIGEM_OPTIONS.map((o) => (
+              <SelectItem key={o} value={o}>{o}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={interesseFilter} onValueChange={setInteresseFilter}>
+          <SelectTrigger className="w-[180px] bg-muted border-border h-9">
+            <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
+            <SelectValue placeholder="Interesse" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos interesses</SelectItem>
+            {interesseOptions.map((o) => (
               <SelectItem key={o} value={o}>{o}</SelectItem>
             ))}
           </SelectContent>

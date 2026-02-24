@@ -55,6 +55,27 @@ export type Database = {
           },
         ]
       }
+      interesse_options: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_history: {
         Row: {
           created_at: string

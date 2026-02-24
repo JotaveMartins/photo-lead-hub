@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
 import LossReasonModal from "@/components/LossReasonModal";
+import InteresseSelect from "@/components/InteresseSelect";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -591,9 +592,14 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
               value={lead.whatsapp} displayValue={lead.whatsapp}
               onSave={(v) => handleFieldSave("whatsapp", v)} />
 
-            <InlineField label="Interesse"
-              value={lead.interesse || ""} displayValue={lead.interesse || ""}
-              onSave={(v) => handleFieldSave("interesse", v)} />
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Interesse</Label>
+              <InteresseSelect
+                value={lead.interesse || ""}
+                onValueChange={(v) => handleFieldSave("interesse", v || null)}
+                className="h-8 text-sm"
+              />
+            </div>
 
             <InlineSelectField label="Origem" value={lead.origem || ""}
               options={ORIGEM_OPTIONS}

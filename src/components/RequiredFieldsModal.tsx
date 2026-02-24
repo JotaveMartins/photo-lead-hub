@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
+import InteresseSelect from "@/components/InteresseSelect";
 
 interface RequiredFieldsModalProps {
   open: boolean;
@@ -112,8 +113,7 @@ const RequiredFieldsModal = ({
           {needsInteresse && (
             <div className="space-y-2">
               <Label>Interesse <span className="text-destructive">*</span></Label>
-              <Input placeholder="Ex: Casamento 2028" value={interesse}
-                onChange={(e) => setInteresse(e.target.value)} className="bg-muted border-border" />
+              <InteresseSelect value={interesse} onValueChange={setInteresse} />
             </div>
           )}
 
