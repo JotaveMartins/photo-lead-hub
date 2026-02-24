@@ -1,51 +1,57 @@
 
 
-# Criar Leads de Demonstracao na Conta Admin
+## Plano: Motivos de Perda com Observação
 
-## Resumo
+### Contexto
+O banco já possui o campo `motivo_perda` (text) na tabela `leads`. Precisamos:
+1. Adicionar um campo `observacao_perda` (text) na tabela
+2. Criar um modal que aparece ao mover um lead para "Fechado Perdido" (tanto no Kanban quanto no Drawer)
+3. Exibir essas informações no painel de detalhes do lead
 
-Criar uma edge function temporaria para inserir 50 leads de demonstracao na conta admin, com dados realistas distribuidos ao longo dos ultimos 45 dias, atingindo as metricas desejadas:
+### Mudanças no Banco de Dados
+- **Migration**: `ALTER TABLE leads ADD COLUMN observacao_perda text;`
 
-- **50 leads** no total
-- **4 ganhos** (taxa de conversao de 8%)
-- **Receita total: R$12.800** (ticket medio de R$3.200)
-- **12 perdidos** com motivos variados
-- **8 propostas enviadas**
-- **4 follow-ups**
-- **4 contratos enviados**
-- **10 contatos iniciados**
-- **6 novos leads**
-- **Tarefas associadas** (concluidas e pendentes)
+### Mudanças no Código
 
-## Distribuicao dos Dados
+#### 1. Novo componente: `src/components/LossReasonModal.tsx`
+- Modal com select para motivo de perda (opções predefinidas):
+  - Sem orçamento disponível
+  - Fechou com outro fotógrafo
+  - Sem resposta
+  - Cancelou ou adiou o evento
+  - Data indisponível
+  - Lead desqualificado
+  - Outro
+- Campo textarea para observação (opcional)
+- Botão "Confirmar" que retorna `{ motivo_perda, observacao_perda }`
+- Motivo obrigatório, observação opcional
 
-| Status | Quantidade | Detalhes |
-|--------|-----------|----------|
-| Fechado Ganho | 4 | Valores: R$3.500, R$2.800, R$3.800, R$2.700 |
-| Fechado Perdido | 12 | Motivos: Preco (5), Outro fornecedor (3), Evento cancelado (2), Nao respondeu (2) |
-| Proposta Enviada | 8 | Em negociacao |
-| Follow-up | 4 | Acompanhamento pos-proposta |
-| Contrato Enviado | 4 | Quase fechando |
-| Contato Iniciado | 10 | Primeiros contatos |
-| Novo Lead | 6 | Recentes, sem contato |
+#### 2. `src/components/KanbanBoard.tsx`
+- Importar e usar o `LossReasonModal`
+- Ao dropar lead em "Fechado Perdido", abrir o modal ao invés de mover direto
+- No confirm do modal, chamar `updateLead` com status + motivo + observação
 
-Origens: Instagram, Google, Indicacao (distribuidas igualmente)
-Interesses: Casamento, Formatura, Corporativo, Aniversario
+#### 3. `src/components/LeadDetailDrawer.tsx`
+- Ao mudar status para "Fechado Perdido" via select, abrir o `LossReasonModal`
+- Na seção de detalhes (painel esquerdo), onde já mostra `motivo_perda` para leads perdidos, adicionar também a exibição da `observacao_perda`
+- Ambos campos editáveis inline, visíveis apenas quando `status === "Fechado Perdido"`
 
-## Implementacao
+#### 4. `src/components/RequiredFieldsModal.tsx`
+- Remover a lógica de "Fechado Perdido" deste modal (se houver), pois agora será tratada pelo `LossReasonModal`
 
-1. Criar edge function `seed-demo-leads` que:
-   - Insere os 50 leads com todas as datas de entrada em cada etapa preenchidas
-   - Cria tarefas associadas (cadencias concluidas para ganhos, pendentes para contatos)
-   - Usa service role key para bypassar RLS
+#### 5. `src/integrations/supabase/types.ts`
+- Será atualizado automaticamente com o novo campo `observacao_perda`
 
-2. Executar a function uma vez para popular os dados
-
-3. Deletar a edge function apos uso (codigo temporario)
-
-## Arquivo
-
-| Arquivo | Acao |
-|---------|------|
-| `supabase/functions/seed-demo-leads/index.ts` | Criar (temporario) |
+### Fluxo do Usuário
+```text
+Arrasta lead → "Perdido"
+       ↓
+ LossReasonModal abre
+  ├─ Select: motivo (obrigatório)
+  ├─ Textarea: observação (opcional)  
+  └─ Confirmar → salva status + motivo + obs
+       ↓
+ No drawer do lead perdido:
+  Detalhes mostra motivo + observação
+```
 
