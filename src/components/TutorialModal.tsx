@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { HelpCircle, X } from "lucide-react";
 
 const TUTORIAL_SEEN_KEY = "crm_tutorial_seen";
-const YOUTUBE_VIDEO_ID = "SEU_VIDEO_ID_AQUI"; // Substitua pelo ID do vídeo do YouTube
+const YOUTUBE_VIDEO_ID = "U0CQWJsrpWA";
 
 interface TutorialModalProps {
   forceOpen?: boolean;
