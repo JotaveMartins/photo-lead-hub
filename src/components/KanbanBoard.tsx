@@ -38,7 +38,7 @@ const CLOSED_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
 ];
 
 const ORIGEM_OPTIONS = [
-  "Instagram", "Facebook", "Google", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
+  "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
 ];
 
 interface KanbanBoardProps {

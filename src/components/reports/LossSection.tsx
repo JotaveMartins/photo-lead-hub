@@ -4,9 +4,10 @@ import { TrendingDown } from "lucide-react";
 interface LossSectionProps {
   totalLost: number;
   byReason: { motivo: string; count: number; percent: number }[];
+  onReasonClick?: (motivo: string) => void;
 }
 
-const LossSection = ({ totalLost, byReason }: LossSectionProps) => {
+const LossSection = ({ totalLost, byReason, onReasonClick }: LossSectionProps) => {
   return (
     <div className="bg-card border border-border rounded-xl p-6">
       <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -33,7 +34,12 @@ const LossSection = ({ totalLost, byReason }: LossSectionProps) => {
                   color: "hsl(var(--foreground))",
                 }}
               />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+              <Bar
+                dataKey="count"
+                radius={[0, 4, 4, 0]}
+                cursor={onReasonClick ? "pointer" : undefined}
+                onClick={(data: any) => onReasonClick && onReasonClick(data.motivo)}
+              >
                 {byReason.map((_, i) => (
                   <Cell key={i} fill="hsl(0, 84%, 60%)" />
                 ))}
