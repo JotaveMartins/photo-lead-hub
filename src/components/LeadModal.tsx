@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import InteresseSelect from "@/components/InteresseSelect";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -167,7 +168,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
           )}
             <div className="space-y-2">
               <Label>Interesse</Label>
-              <Input value={interesse} onChange={(e) => setInteresse(e.target.value)} placeholder="Ex: Casamento 2028" className="bg-muted border-border" />
+              <InteresseSelect value={interesse} onValueChange={setInteresse} />
             </div>
           </div>
 
