@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN observacao_perda text;
