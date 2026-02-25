@@ -1,24 +1,26 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { UserPlus, Trash2, Copy, Check, Eye } from "lucide-react";
+import { UserPlus, Trash2, Copy, Check, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useToast } from "@/hooks/use-toast";
 import CreateUserModal from "@/components/CreateUserModal";
-import AdminKanbanView from "@/components/AdminKanbanView";
 
 const AdminPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ user_id: string; nome: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [kanbanTarget, setKanbanTarget] = useState<{ user_id: string; nome: string } | null>(null);
   const { users, isLoading, deleteUser } = useAdminUsers();
   const { user: currentUser } = useAuth();
+  const { startImpersonation } = useImpersonation();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -35,6 +37,11 @@ const AdminPage = () => {
     navigator.clipboard.writeText(senha);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleImpersonate = (userId: string, nome: string) => {
+    startImpersonation(userId, nome);
+    navigate("/leads");
   };
 
   return (
@@ -57,7 +64,7 @@ const AdminPage = () => {
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Senha</TableHead>
-              <TableHead>Funil</TableHead>
+              <TableHead>Acessar</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="w-16"></TableHead>
             </TableRow>
@@ -65,11 +72,11 @@ const AdminPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell>
-            </TableRow>
-          ) : users?.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell>
+              </TableRow>
+            ) : users?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
               </TableRow>
             ) : (
               users?.map((user) => (
@@ -99,12 +106,13 @@ const AdminPage = () => {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setKanbanTarget({ user_id: user.user_id, nome: user.nome })}
-                      className="text-muted-foreground hover:text-primary"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleImpersonate(user.user_id, user.nome)}
+                      className="gap-1.5 text-xs"
                     >
-                      <Eye className="w-4 h-4" />
+                      <LogIn className="w-3.5 h-3.5" />
+                      Entrar
                     </Button>
                   </TableCell>
                   <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
@@ -145,13 +153,6 @@ const AdminPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AdminKanbanView
-        open={!!kanbanTarget}
-        onOpenChange={(open) => !open && setKanbanTarget(null)}
-        userId={kanbanTarget?.user_id || ""}
-        userName={kanbanTarget?.nome || ""}
-      />
     </div>
   );
 };

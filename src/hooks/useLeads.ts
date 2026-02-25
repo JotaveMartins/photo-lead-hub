@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -9,36 +9,37 @@ type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
 
 export const useLeads = () => {
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["leads", user?.id],
+    queryKey: ["leads", effectiveUserId],
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("user_id", effectiveUserId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Lead[];
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 };
 
 export const useCreateLead = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (lead: Omit<LeadInsert, "user_id">) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!effectiveUserId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("leads")
-        .insert({ ...lead, user_id: user.id })
+        .insert({ ...lead, user_id: effectiveUserId })
         .select()
         .single();
 
@@ -104,23 +105,24 @@ export const useDeleteLead = () => {
 };
 
 export const useDeletedLeads = () => {
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["deleted_leads", user?.id],
+    queryKey: ["deleted_leads", effectiveUserId],
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("user_id", effectiveUserId)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false });
 
       if (error) throw error;
       return data as (Lead & { deleted_at: string })[];
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 };
 
