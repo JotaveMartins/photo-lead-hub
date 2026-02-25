@@ -1,57 +1,31 @@
 
 
-## Plano: Motivos de Perda com Observação
+## Diagnóstico: Travamento ao Cadastrar Lead
 
-### Contexto
-O banco já possui o campo `motivo_perda` (text) na tabela `leads`. Precisamos:
-1. Adicionar um campo `observacao_perda` (text) na tabela
-2. Criar um modal que aparece ao mover um lead para "Fechado Perdido" (tanto no Kanban quanto no Drawer)
-3. Exibir essas informações no painel de detalhes do lead
+### Análise
 
-### Mudanças no Banco de Dados
-- **Migration**: `ALTER TABLE leads ADD COLUMN observacao_perda text;`
+Revisei todo o fluxo de cadastro (`LeadModal`, `InteresseSelect`, `useCreateLead`, `useLeads`). Não há bugs que causem travamento. O código é funcional e direto.
 
-### Mudanças no Código
+**Causa mais provável**: falta de feedback visual durante o envio. O botão "Criar lead" não mostra loading -- se a internet do cliente for lenta, parece que travou. Ele pode clicar várias vezes, gerando múltiplas requisições simultâneas.
 
-#### 1. Novo componente: `src/components/LossReasonModal.tsx`
-- Modal com select para motivo de perda (opções predefinidas):
-  - Sem orçamento disponível
-  - Fechou com outro fotógrafo
-  - Sem resposta
-  - Cancelou ou adiou o evento
-  - Data indisponível
-  - Lead desqualificado
-  - Outro
-- Campo textarea para observação (opcional)
-- Botão "Confirmar" que retorna `{ motivo_perda, observacao_perda }`
-- Motivo obrigatório, observação opcional
+### Plano de Correção
 
-#### 2. `src/components/KanbanBoard.tsx`
-- Importar e usar o `LossReasonModal`
-- Ao dropar lead em "Fechado Perdido", abrir o modal ao invés de mover direto
-- No confirm do modal, chamar `updateLead` com status + motivo + observação
+Adicionar indicadores de loading e proteção contra cliques duplos nos formulários de lead:
 
-#### 3. `src/components/LeadDetailDrawer.tsx`
-- Ao mudar status para "Fechado Perdido" via select, abrir o `LossReasonModal`
-- Na seção de detalhes (painel esquerdo), onde já mostra `motivo_perda` para leads perdidos, adicionar também a exibição da `observacao_perda`
-- Ambos campos editáveis inline, visíveis apenas quando `status === "Fechado Perdido"`
+1. **`LeadModal.tsx`** -- Desabilitar o botão de submit e mostrar spinner/texto "Criando..." enquanto a mutation estiver em andamento (`createLead.isPending` / `updateLead.isPending`)
 
-#### 4. `src/components/RequiredFieldsModal.tsx`
-- Remover a lógica de "Fechado Perdido" deste modal (se houver), pois agora será tratada pelo `LossReasonModal`
+2. **`RequiredFieldsModal.tsx`** -- Mesmo tratamento para o botão "Confirmar e mover"
 
-#### 5. `src/integrations/supabase/types.ts`
-- Será atualizado automaticamente com o novo campo `observacao_perda`
+3. **`InteresseSelect.tsx`** -- Mostrar "Carregando..." enquanto as opções estiverem sendo buscadas (`isLoading` do query)
 
-### Fluxo do Usuário
-```text
-Arrasta lead → "Perdido"
-       ↓
- LossReasonModal abre
-  ├─ Select: motivo (obrigatório)
-  ├─ Textarea: observação (opcional)  
-  └─ Confirmar → salva status + motivo + obs
-       ↓
- No drawer do lead perdido:
-  Detalhes mostra motivo + observação
-```
+4. **`KanbanBoard.tsx`** -- Desabilitar drag-and-drop durante mutations pendentes para evitar múltiplas movimentações
+
+### Detalhes Técnicos
+
+- Usar a prop `isPending` das mutations do TanStack Query para controlar o estado dos botões
+- Adicionar `disabled={createLead.isPending || updateLead.isPending}` nos botões de submit
+- Trocar o texto do botão para "Criando..." / "Salvando..." durante o loading
+- No `InteresseSelect`, usar `isLoading` do `useInteresseOptions` para mostrar estado de carregamento
+
+Alterações em 4 arquivos, sem mudanças no banco de dados.
 
