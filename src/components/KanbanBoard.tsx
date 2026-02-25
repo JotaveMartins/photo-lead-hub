@@ -109,7 +109,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       .reduce((sum, l) => sum + (l.valor || 0), 0);
   };
 
+  const isUpdating = updateLead.isPending;
+
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
+    if (isUpdating) return;
     e.dataTransfer.effectAllowed = "move";
     setDraggedLeadId(leadId);
     setIsDragging(true);
@@ -442,6 +445,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         currentInteresse={requiredFieldsLead?.interesse ?? null}
         currentOrigem={requiredFieldsLead?.origem ?? null}
         onConfirm={handleRequiredFieldsConfirm}
+        isPending={isUpdating}
       />
 
       {/* Follow-up Modal */}

@@ -84,8 +84,11 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
     setValor(""); setMotivoPerda("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    const isPending = createLead.isPending || updateLead.isPending;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (isPending) return;
     try {
       nomeSchema.parse(nome);
       whatsappSchema.parse(whatsapp.replace(/\D/g, ""));
@@ -214,8 +217,10 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
           )}
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" className="bg-gradient-primary hover:opacity-90">{lead ? "Salvar alterações" : "Criar lead"}</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>Cancelar</Button>
+            <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={isPending}>
+              {isPending ? (lead ? "Salvando..." : "Criando...") : (lead ? "Salvar alterações" : "Criar lead")}
+            </Button>
           </div>
         </form>
       </DialogContent>
