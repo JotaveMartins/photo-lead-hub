@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -8,16 +8,17 @@ type Message = Database["public"]["Tables"]["messages"]["Row"];
 type MessageInsert = Database["public"]["Tables"]["messages"]["Insert"];
 
 export const useMessages = (leadId?: string) => {
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["messages", user?.id, leadId],
+    queryKey: ["messages", effectiveUserId, leadId],
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       
       let query = supabase
         .from("messages")
         .select("*, leads(nome)")
+        .eq("user_id", effectiveUserId)
         .order("created_at", { ascending: false });
 
       if (leadId) {
@@ -29,21 +30,21 @@ export const useMessages = (leadId?: string) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 };
 
 export const useCreateMessage = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (message: Omit<MessageInsert, "user_id">) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!effectiveUserId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("messages")
-        .insert({ ...message, user_id: user.id })
+        .insert({ ...message, user_id: effectiveUserId })
         .select()
         .single();
 

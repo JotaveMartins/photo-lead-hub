@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 
 export interface LeadHistoryEntry {
   id: string;
@@ -32,14 +32,14 @@ export const useLeadHistory = (leadId: string | undefined) => {
 
 export const useCreateLeadHistory = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (entry: { lead_id: string; field_name: string; field_label: string; old_value: string | null; new_value: string | null }) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!effectiveUserId) throw new Error("Usuário não autenticado");
       const { error } = await supabase
         .from("lead_history")
-        .insert({ ...entry, user_id: user.id });
+        .insert({ ...entry, user_id: effectiveUserId });
       if (error) throw error;
     },
     onSuccess: () => {

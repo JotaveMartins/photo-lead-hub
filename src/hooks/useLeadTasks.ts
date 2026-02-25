@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 
 // Helper to get today's date string in local timezone (YYYY-MM-DD)
 const getLocalDateStr = (offsetDays = 0): string => {
   const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // convert to local
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   if (offsetDays !== 0) now.setDate(now.getDate() + offsetDays);
   return now.toISOString().slice(0, 10);
 };
@@ -44,61 +44,63 @@ export const useLeadTasks = (leadId: string | undefined) => {
 };
 
 export const useAllTasks = () => {
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["lead_tasks", "all", user?.id],
+    queryKey: ["lead_tasks", "all", effectiveUserId],
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       const { data, error } = await supabase
         .from("lead_tasks")
         .select("*, leads(nome, whatsapp)")
+        .eq("user_id", effectiveUserId)
         .order("due_date", { ascending: true });
       if (error) throw error;
       return data as (LeadTask & { leads: { nome: string; whatsapp: string } })[];
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 };
 
 export const useAllPendingTasks = () => {
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["lead_tasks", "all_pending", user?.id],
+    queryKey: ["lead_tasks", "all_pending", effectiveUserId],
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       const { data, error } = await supabase
         .from("lead_tasks")
         .select("*, leads(nome, whatsapp)")
+        .eq("user_id", effectiveUserId)
         .eq("completed", false)
         .order("due_date", { ascending: true });
       if (error) throw error;
       return data as (LeadTask & { leads: { nome: string; whatsapp: string } })[];
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 };
 
 export const useTasksByLeadIds = (leadIds: string[]) => {
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["lead_tasks", "by_leads", user?.id],
+    queryKey: ["lead_tasks", "by_leads", effectiveUserId],
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       const { data, error } = await supabase
         .from("lead_tasks")
         .select("*")
+        .eq("user_id", effectiveUserId)
         .eq("completed", false);
       if (error) throw error;
       return data as LeadTask[];
     },
-    enabled: !!user && leadIds.length > 0,
+    enabled: !!effectiveUserId && leadIds.length > 0,
   });
 };
 
-// Returns { isFollowUp: boolean; followUpNumber: number } to signal if modal should show
 export const useCompleteLeadTask = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (task: LeadTask): Promise<{ isFollowUp: boolean; followUpNumber: number }> => {
@@ -108,12 +110,10 @@ export const useCompleteLeadTask = () => {
         .eq("id", task.id);
       if (error) throw error;
 
-      // Check if this is a follow-up task (title starts with "Follow-up")
       const isFollowUp = task.title.startsWith("Follow-up");
       if (isFollowUp) {
         const match = task.title.match(/Follow-up\s+(\d+)/);
         const currentNum = match ? parseInt(match[1]) : 1;
-        // Record follow-up date on lead
         if (currentNum >= 1 && currentNum <= 5) {
           const fieldName = `follow_up_${currentNum}` as string;
           const todayStr = getLocalDateStr();
@@ -122,14 +122,12 @@ export const useCompleteLeadTask = () => {
         return { isFollowUp: true, followUpNumber: currentNum + 1 };
       }
 
-      // Pre-proposal cadence: record date on lead + auto-create next task
       if (task.is_cadence && task.task_number >= 1 && task.task_number <= 5) {
-        // Record cadence completion date
         const fieldName = `cadencia_${task.task_number}` as string;
         await supabase.from("leads").update({ [fieldName]: new Date().toISOString() } as any).eq("id", task.lead_id);
       }
 
-      if (task.is_cadence && task.task_number < 5 && user) {
+      if (task.is_cadence && task.task_number < 5 && effectiveUserId) {
         const nextNumber = task.task_number + 1;
         const { data: existing } = await supabase
           .from("lead_tasks")
@@ -144,7 +142,7 @@ export const useCompleteLeadTask = () => {
             .from("lead_tasks")
             .insert({
               lead_id: task.lead_id,
-              user_id: user.id,
+              user_id: effectiveUserId,
               title: `${nextNumber}º Entrar em contato`,
               task_number: nextNumber,
               due_date: tomorrowStr,
@@ -154,7 +152,7 @@ export const useCompleteLeadTask = () => {
         }
       }
 
-      if (task.is_cadence && task.task_number === 5 && user) {
+      if (task.is_cadence && task.task_number === 5 && effectiveUserId) {
         const { data: existing } = await supabase
           .from("lead_tasks")
           .select("id")
@@ -168,7 +166,7 @@ export const useCompleteLeadTask = () => {
             .from("lead_tasks")
             .insert({
               lead_id: task.lead_id,
-              user_id: user.id,
+              user_id: effectiveUserId,
               title: "Mover para Fechado Perdido",
               task_number: 6,
               due_date: todayStr,
@@ -193,16 +191,16 @@ export const useCompleteLeadTask = () => {
 
 export const useCreateFollowUpTask = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async ({ leadId, followUpNumber, dueDate }: { leadId: string; followUpNumber: number; dueDate: string }) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!effectiveUserId) throw new Error("Usuário não autenticado");
       const { error } = await supabase
         .from("lead_tasks")
         .insert({
           lead_id: leadId,
-          user_id: user.id,
+          user_id: effectiveUserId,
           title: `Follow-up ${followUpNumber}`,
           task_number: followUpNumber,
           due_date: dueDate,
@@ -264,16 +262,16 @@ export const useUpdateLeadTask = () => {
 
 export const useCreateLeadTask = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (task: { lead_id: string; title: string; description?: string; due_date: string; due_time?: string }) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!effectiveUserId) throw new Error("Usuário não autenticado");
       const { data, error } = await supabase
         .from("lead_tasks")
         .insert({
           lead_id: task.lead_id,
-          user_id: user.id,
+          user_id: effectiveUserId,
           title: task.title,
           description: task.description || null,
           due_date: task.due_date,

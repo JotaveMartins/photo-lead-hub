@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useUserRole } from "@/hooks/useUserRole";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -15,18 +16,21 @@ interface UseReportDataParams {
 
 export const useReportData = (params: UseReportDataParams = {}) => {
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
   const { isAdmin } = useUserRole();
 
   const leadsQuery = useQuery({
-    queryKey: ["report-leads", user?.id, isAdmin, params.origem, params.clienteUserId],
+    queryKey: ["report-leads", effectiveUserId, isAdmin, params.origem, params.clienteUserId],
     queryFn: async () => {
       let query = supabase.from("leads").select("*");
 
-      // If admin with a specific client filter, filter by that user_id
+      // If admin with a specific client filter from report filters, use that
       if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
+      } else {
+        // Otherwise use effective user id (handles impersonation)
+        query = query.eq("user_id", effectiveUserId!);
       }
-      // If not admin, RLS handles filtering automatically
 
       if (params.origem) {
         query = query.eq("origem", params.origem);
@@ -36,23 +40,25 @@ export const useReportData = (params: UseReportDataParams = {}) => {
       if (error) throw error;
       return data as ReportLead[];
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 
   const tasksQuery = useQuery({
-    queryKey: ["report-tasks", user?.id, isAdmin, params.clienteUserId],
+    queryKey: ["report-tasks", effectiveUserId, isAdmin, params.clienteUserId],
     queryFn: async () => {
       let query = supabase.from("lead_tasks").select("*");
 
       if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
+      } else {
+        query = query.eq("user_id", effectiveUserId!);
       }
 
       const { data, error } = await query;
       if (error) throw error;
       return data as ReportTask[];
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 
   const profilesQuery = useQuery({

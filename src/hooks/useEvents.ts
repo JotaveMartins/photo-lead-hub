@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -8,36 +8,37 @@ type Event = Database["public"]["Tables"]["events"]["Row"];
 type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
 
 export const useEvents = () => {
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["events", user?.id],
+    queryKey: ["events", effectiveUserId],
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       
       const { data, error } = await supabase
         .from("events")
         .select("*, leads(nome)")
+        .eq("user_id", effectiveUserId)
         .order("data_evento", { ascending: true });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!effectiveUserId,
   });
 };
 
 export const useCreateEvent = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (event: Omit<EventInsert, "user_id">) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!effectiveUserId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("events")
-        .insert({ ...event, user_id: user.id })
+        .insert({ ...event, user_id: effectiveUserId })
         .select()
         .single();
 
