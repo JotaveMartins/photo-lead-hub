@@ -21,7 +21,7 @@ const InteresseSelect = ({
   className,
   manageable = true,
 }: InteresseSelectProps) => {
-  const { data: options = [] } = useInteresseOptions();
+  const { data: options = [], isLoading: optionsLoading } = useInteresseOptions();
   const createOption = useCreateInteresseOption();
   const deleteOption = useDeleteInteresseOption();
   const renameOption = useRenameInteresseOption();
@@ -99,7 +99,7 @@ const InteresseSelect = ({
             className
           )}
         >
-          <span className="truncate">{value || placeholder}</span>
+          <span className="truncate">{optionsLoading ? "Carregando..." : (value || placeholder)}</span>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

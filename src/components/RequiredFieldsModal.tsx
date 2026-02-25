@@ -18,6 +18,7 @@ interface RequiredFieldsModalProps {
   currentInteresse: string | null;
   currentOrigem: string | null;
   onConfirm: (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => void;
+  isPending?: boolean;
 }
 
 const ORIGEM_OPTIONS = [
@@ -27,7 +28,7 @@ const ORIGEM_OPTIONS = [
 const RequiredFieldsModal = ({
   open, onOpenChange, leadName, targetStatus,
   currentValor, currentDataProposta, currentDataEvento, currentInteresse, currentOrigem,
-  onConfirm,
+  onConfirm, isPending = false,
 }: RequiredFieldsModalProps) => {
   const [valor, setValor] = useState(currentValor?.toString() || "");
   const [dataProposta, setDataProposta] = useState(currentDataProposta || "");
@@ -130,9 +131,9 @@ const RequiredFieldsModal = ({
           )}
 
           <div className="flex gap-3 justify-end pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleConfirm} disabled={!canSubmit()} className="bg-gradient-primary hover:opacity-90">
-              Confirmar e mover
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>Cancelar</Button>
+            <Button onClick={handleConfirm} disabled={!canSubmit() || isPending} className="bg-gradient-primary hover:opacity-90">
+              {isPending ? "Movendo..." : "Confirmar e mover"}
             </Button>
           </div>
         </div>
