@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import InteresseSelect from "@/components/InteresseSelect";
+import DatePickerField from "@/components/DatePickerField";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -196,15 +197,15 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Data do Evento</Label>
-              <Input type="date" value={dataEvento} onChange={(e) => setDataEvento(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataEvento} onChange={setDataEvento} placeholder="Selecione" />
             </div>
             <div className="space-y-2">
               <Label>Data do Contato {!lead && <span className="text-destructive">*</span>}</Label>
-              <Input type="date" value={dataContato} onChange={(e) => setDataContato(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataContato} onChange={setDataContato} placeholder="Selecione" />
             </div>
             <div className="space-y-2">
               <Label>Data da Proposta</Label>
-              <Input type="date" value={dataProposta} onChange={(e) => setDataProposta(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataProposta} onChange={setDataProposta} placeholder="Selecione" />
             </div>
           </div>
 
