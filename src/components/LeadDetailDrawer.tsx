@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import DatePickerField from "@/components/DatePickerField";
+import TimePickerField from "@/components/TimePickerField";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -172,8 +173,7 @@ const EditableTaskRow = ({
           <div className="flex-1">
             <DatePickerField value={dueDate} onChange={setDueDate} placeholder="Data" />
           </div>
-          <Input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)}
-            className="bg-muted border-border h-8 text-sm w-28" />
+          <TimePickerField value={dueTime} onChange={setDueTime} />
         </div>
         <div className="flex gap-2 justify-between">
           <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
@@ -687,8 +687,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                   <div className="flex-1">
                     <DatePickerField value={newTaskDate} onChange={setNewTaskDate} placeholder="Data" />
                   </div>
-                  <Input type="time" value={newTaskTime} onChange={(e) => setNewTaskTime(e.target.value)}
-                    placeholder="Hora" className="bg-muted border-border h-8 text-sm w-28" />
+                   <TimePickerField value={newTaskTime} onChange={setNewTaskTime} />
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowNewTask(false)}>Cancelar</Button>

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import DatePickerField from "@/components/DatePickerField";
 
+import TimePickerField from "@/components/TimePickerField";
 import { CheckSquare, Plus, Calendar, Clock, User, Circle, Search, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -265,7 +266,7 @@ const TarefasPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Hora (opcional)</Label>
-                <Input type="time" value={newDueTime} onChange={(e) => setNewDueTime(e.target.value)} className="bg-muted border-border" />
+                <TimePickerField value={newDueTime} onChange={setNewDueTime} />
               </div>
             </div>
             <div className="flex gap-3 justify-end pt-4">
