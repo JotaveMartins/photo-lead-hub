@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import DatePickerField from "@/components/DatePickerField";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -168,8 +169,9 @@ const EditableTaskRow = ({
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)}
           className="bg-muted border-border text-sm min-h-[50px]" placeholder="Anotação / Script (opcional)" />
         <div className="flex gap-2">
-          <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-            className="bg-muted border-border h-8 text-sm flex-1" />
+          <div className="flex-1">
+            <DatePickerField value={dueDate} onChange={setDueDate} placeholder="Data" />
+          </div>
           <Input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)}
             className="bg-muted border-border h-8 text-sm w-28" />
         </div>
@@ -682,8 +684,9 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                 <Textarea value={newTaskDescription} onChange={(e) => setNewTaskDescription(e.target.value)}
                   placeholder="Anotação / Script (opcional)" className="bg-muted border-border text-sm min-h-[60px]" />
                 <div className="flex gap-2">
-                  <Input type="date" value={newTaskDate} onChange={(e) => setNewTaskDate(e.target.value)}
-                    className="bg-muted border-border h-8 text-sm flex-1" />
+                  <div className="flex-1">
+                    <DatePickerField value={newTaskDate} onChange={setNewTaskDate} placeholder="Data" />
+                  </div>
                   <Input type="time" value={newTaskTime} onChange={(e) => setNewTaskTime(e.target.value)}
                     placeholder="Hora" className="bg-muted border-border h-8 text-sm w-28" />
                 </div>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import DatePickerField from "@/components/DatePickerField";
 
 import { CheckSquare, Plus, Calendar, Clock, User, Circle, Search, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -260,7 +261,7 @@ const TarefasPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Data</Label>
-                <Input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="bg-muted border-border" />
+                <DatePickerField value={newDueDate} onChange={setNewDueDate} placeholder="Selecione a data" />
               </div>
               <div className="space-y-2">
                 <Label>Hora (opcional)</Label>

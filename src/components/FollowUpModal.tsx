@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import DatePickerField from "@/components/DatePickerField";
 import { CalendarCheck, ArrowRight } from "lucide-react";
 
 interface FollowUpModalProps {
@@ -74,12 +74,7 @@ const FollowUpModal = ({
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Data sugerida (editável)</Label>
-              <Input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="bg-muted border-border h-8 text-sm"
-              />
+              <DatePickerField value={dueDate} onChange={setDueDate} placeholder="Selecione a data" />
             </div>
           </div>
           <div className="flex gap-3 justify-end">

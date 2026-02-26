@@ -131,6 +131,8 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
+      } else {
+        toast.error("Erro ao salvar lead. Tente novamente.");
       }
     }
   };
