@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import TimePickerField from "@/components/TimePickerField";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEvents, useCreateEvent } from "@/hooks/useEvents";
@@ -210,7 +211,7 @@ const AgendaPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Hora</Label>
-                <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="bg-muted border-border" />
+                <TimePickerField value={hora} onChange={setHora} />
               </div>
             </div>
 
