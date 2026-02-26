@@ -1,37 +1,28 @@
 
 
-## Diagnóstico completo: Travamento no cadastro de lead (Chrome)
+## Análise completa: inputs nativos restantes que podem causar travamento
 
-### Causa raiz confirmada
+### Problema encontrado
 
-O `DatePickerField` usa um **Popover (Radix)** dentro de um **Dialog (Radix)**. O Popover renderiza seu conteudo via Portal **fora** do DOM do Dialog. Quando o Popover abre, o **focus trap do Dialog** detecta que o foco saiu e puxa de volta. Isso cria um **loop infinito de foco** que congela o navegador. No Chrome isso é mais agressivo que em outros browsers.
+Ainda existem **5 `<input type="date">` nativos** no sistema que NÃO foram convertidos para o `DatePickerField` customizado:
 
-O `pointer-events-auto` resolve cliques, mas **não resolve o conflito de focus trap**.
+1. **`src/components/LeadDetailDrawer.tsx`** (linhas 614, 618, 622) — 3 campos `InlineField` com `type="date"` para Data do Evento, Data do Contato e Data da Proposta. Esses ficam dentro de um `Sheet` (Radix), que também tem focus trap. Quando o cliente clica para editar a data no drawer do lead, o input nativo entra em conflito.
 
-Além disso, existem **4 outros `<Input type="date">` nativos** dentro de modais que mantêm o mesmo problema original:
-- `FollowUpModal.tsx` (linha 78) -- `<Input type="date">` dentro de Dialog
-- `LeadDetailDrawer.tsx` (linhas 171, 685) -- `<Input type="date">` dentro de Sheet (edição de tarefas)
-- `LeadDetailDrawer.tsx` (linhas 612-622) -- InlineField com `type="date"` dentro de Sheet
-- `TarefasPage.tsx` (linha 263) -- verificar contexto
+2. **`src/components/reports/ReportFilters.tsx`** (linhas 109, 113) — 2 campos `<Input type="date">` para filtro de período customizado nos relatórios. Esses estão fora de modal, então o risco é menor, mas para consistência devem ser convertidos também.
 
-### Plano de correção (4 arquivos)
+### Por que o travamento é intermitente
 
-1. **`src/components/DatePickerField.tsx`** -- Adicionar `onOpenAutoFocus={(e) => e.preventDefault()}` e `onCloseAutoFocus={(e) => e.preventDefault()}` no `PopoverContent`. Isso impede o Popover de lutar com o Dialog pelo foco. Também adicionar `modal={true}` no Popover para que ele gerencie seu próprio focus trap independente do Dialog.
+O componente `InlineField` no drawer funciona assim: o usuário clica no texto → o campo muda para `<input>` com `autoFocus` via `useEffect`. Se o `type="date"` for renderizado, o Chrome pode abrir o date picker nativo automaticamente ao receber foco, criando o conflito com o focus trap do Sheet. Isso explica por que às vezes funciona (se o usuário não toca nos campos de data do drawer) e às vezes trava.
 
-2. **`src/components/FollowUpModal.tsx`** -- Substituir `<Input type="date">` (linha 78) por `DatePickerField` para eliminar o conflito com o Dialog.
+### Plano de correção
 
-3. **`src/components/LeadDetailDrawer.tsx`** -- Substituir os `<Input type="date">` nas linhas 171 e 685 (edição de tarefas) por `DatePickerField`. Para os `InlineField` com `type="date"` (linhas 612-622), mudar para usar DatePickerField inline ou manter o input nativo apenas fora de modais (Sheet é menos agressivo, mas melhor prevenir).
+**Arquivo 1: `src/components/LeadDetailDrawer.tsx`**
+- Converter os 3 `InlineField` com `type="date"` (linhas 614-624) para usar `DatePickerField` diretamente, sem o padrão click-to-edit do `InlineField` (que renderiza `<input type="date">`)
+- Cada campo passará a exibir o `DatePickerField` permanentemente em vez de alternar entre texto e input
 
-4. **`src/components/LeadModal.tsx`** -- Adicionar tratamento de erro genérico no catch (o catch atual só trata ZodError, qualquer erro de rede/banco é silenciado e parece travamento).
+**Arquivo 2: `src/components/reports/ReportFilters.tsx`**
+- Converter os 2 `<Input type="date">` (linhas 109, 113) para usar `DatePickerField`
+- Ajuste menor pois estão fora de modal, mas mantém consistência
 
-### Detalhe técnico do fix principal
-
-```text
-PopoverContent
-  ├─ onOpenAutoFocus={e => e.preventDefault()}   ← impede roubo de foco
-  ├─ onCloseAutoFocus={e => e.preventDefault()}  ← impede loop ao fechar
-  └─ className="w-auto p-0 pointer-events-auto"
-```
-
-Total: 4 arquivos modificados. Sem mudanças no banco.
+Total: 2 arquivos modificados, 0 novos.
 
