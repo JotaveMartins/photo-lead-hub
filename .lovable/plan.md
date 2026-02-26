@@ -1,31 +1,25 @@
 
 
-## Diagnóstico: Travamento ao Cadastrar Lead
+## Causa raiz: `<input type="date">` dentro de Dialog Radix
 
-### Análise
+O problema é um **conflito conhecido** entre o date picker nativo do navegador (`<input type="date">`) e o **focus trap** do Radix Dialog. Quando o usuário clica no campo de data, o navegador tenta abrir o calendário nativo, mas o Dialog captura o foco de volta, criando um loop que trava a interface. Isso varia por navegador e sistema operacional — por isso funciona para alguns e não para outros.
 
-Revisei todo o fluxo de cadastro (`LeadModal`, `InteresseSelect`, `useCreateLead`, `useLeads`). Não há bugs que causem travamento. O código é funcional e direto.
+### Solução
 
-**Causa mais provável**: falta de feedback visual durante o envio. O botão "Criar lead" não mostra loading -- se a internet do cliente for lenta, parece que travou. Ele pode clicar várias vezes, gerando múltiplas requisições simultâneas.
+Substituir todos os `<Input type="date">` dentro de modais por **Datepickers customizados** usando Calendar + Popover do Shadcn, que são compatíveis com o Dialog Radix.
 
-### Plano de Correção
+### Arquivos alterados
 
-Adicionar indicadores de loading e proteção contra cliques duplos nos formulários de lead:
+1. **`src/components/LeadModal.tsx`** — Substituir os 3 campos `<Input type="date">` (Data do Evento, Data do Contato, Data da Proposta) por componentes Popover + Calendar
+2. **`src/components/RequiredFieldsModal.tsx`** — Substituir os 2 campos `<Input type="date">` (Data da Proposta, Data do Evento) por Popover + Calendar
+3. **`src/components/ui/calendar.tsx`** — Adicionar `pointer-events-auto` na className do DayPicker para garantir interatividade dentro de dialogs
 
-1. **`LeadModal.tsx`** -- Desabilitar o botão de submit e mostrar spinner/texto "Criando..." enquanto a mutation estiver em andamento (`createLead.isPending` / `updateLead.isPending`)
+### Detalhes técnicos
 
-2. **`RequiredFieldsModal.tsx`** -- Mesmo tratamento para o botão "Confirmar e mover"
-
-3. **`InteresseSelect.tsx`** -- Mostrar "Carregando..." enquanto as opções estiverem sendo buscadas (`isLoading` do query)
-
-4. **`KanbanBoard.tsx`** -- Desabilitar drag-and-drop durante mutations pendentes para evitar múltiplas movimentações
-
-### Detalhes Técnicos
-
-- Usar a prop `isPending` das mutations do TanStack Query para controlar o estado dos botões
-- Adicionar `disabled={createLead.isPending || updateLead.isPending}` nos botões de submit
-- Trocar o texto do botão para "Criando..." / "Salvando..." durante o loading
-- No `InteresseSelect`, usar `isLoading` do `useInteresseOptions` para mostrar estado de carregamento
-
-Alterações em 4 arquivos, sem mudanças no banco de dados.
+- Criar um componente auxiliar `DatePickerField` reutilizável que encapsula Popover + PopoverTrigger (Button) + PopoverContent (Calendar)
+- Recebe `value: string` (YYYY-MM-DD), `onChange: (value: string) => void`, e `label`
+- Usa `format(date, "dd/MM/yyyy")` para exibição amigável em pt-BR
+- Usa `parseLocalDate()` já existente em `lib/utils.ts` para evitar shift de timezone
+- Calendar com `className="p-3 pointer-events-auto"` para funcionar dentro do Dialog
+- Total: 3 arquivos modificados, 1 componente novo opcional
 
