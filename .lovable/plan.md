@@ -1,25 +1,37 @@
 
 
-## Causa raiz: `<input type="date">` dentro de Dialog Radix
+## Diagnóstico completo: Travamento no cadastro de lead (Chrome)
 
-O problema é um **conflito conhecido** entre o date picker nativo do navegador (`<input type="date">`) e o **focus trap** do Radix Dialog. Quando o usuário clica no campo de data, o navegador tenta abrir o calendário nativo, mas o Dialog captura o foco de volta, criando um loop que trava a interface. Isso varia por navegador e sistema operacional — por isso funciona para alguns e não para outros.
+### Causa raiz confirmada
 
-### Solução
+O `DatePickerField` usa um **Popover (Radix)** dentro de um **Dialog (Radix)**. O Popover renderiza seu conteudo via Portal **fora** do DOM do Dialog. Quando o Popover abre, o **focus trap do Dialog** detecta que o foco saiu e puxa de volta. Isso cria um **loop infinito de foco** que congela o navegador. No Chrome isso é mais agressivo que em outros browsers.
 
-Substituir todos os `<Input type="date">` dentro de modais por **Datepickers customizados** usando Calendar + Popover do Shadcn, que são compatíveis com o Dialog Radix.
+O `pointer-events-auto` resolve cliques, mas **não resolve o conflito de focus trap**.
 
-### Arquivos alterados
+Além disso, existem **4 outros `<Input type="date">` nativos** dentro de modais que mantêm o mesmo problema original:
+- `FollowUpModal.tsx` (linha 78) -- `<Input type="date">` dentro de Dialog
+- `LeadDetailDrawer.tsx` (linhas 171, 685) -- `<Input type="date">` dentro de Sheet (edição de tarefas)
+- `LeadDetailDrawer.tsx` (linhas 612-622) -- InlineField com `type="date"` dentro de Sheet
+- `TarefasPage.tsx` (linha 263) -- verificar contexto
 
-1. **`src/components/LeadModal.tsx`** — Substituir os 3 campos `<Input type="date">` (Data do Evento, Data do Contato, Data da Proposta) por componentes Popover + Calendar
-2. **`src/components/RequiredFieldsModal.tsx`** — Substituir os 2 campos `<Input type="date">` (Data da Proposta, Data do Evento) por Popover + Calendar
-3. **`src/components/ui/calendar.tsx`** — Adicionar `pointer-events-auto` na className do DayPicker para garantir interatividade dentro de dialogs
+### Plano de correção (4 arquivos)
 
-### Detalhes técnicos
+1. **`src/components/DatePickerField.tsx`** -- Adicionar `onOpenAutoFocus={(e) => e.preventDefault()}` e `onCloseAutoFocus={(e) => e.preventDefault()}` no `PopoverContent`. Isso impede o Popover de lutar com o Dialog pelo foco. Também adicionar `modal={true}` no Popover para que ele gerencie seu próprio focus trap independente do Dialog.
 
-- Criar um componente auxiliar `DatePickerField` reutilizável que encapsula Popover + PopoverTrigger (Button) + PopoverContent (Calendar)
-- Recebe `value: string` (YYYY-MM-DD), `onChange: (value: string) => void`, e `label`
-- Usa `format(date, "dd/MM/yyyy")` para exibição amigável em pt-BR
-- Usa `parseLocalDate()` já existente em `lib/utils.ts` para evitar shift de timezone
-- Calendar com `className="p-3 pointer-events-auto"` para funcionar dentro do Dialog
-- Total: 3 arquivos modificados, 1 componente novo opcional
+2. **`src/components/FollowUpModal.tsx`** -- Substituir `<Input type="date">` (linha 78) por `DatePickerField` para eliminar o conflito com o Dialog.
+
+3. **`src/components/LeadDetailDrawer.tsx`** -- Substituir os `<Input type="date">` nas linhas 171 e 685 (edição de tarefas) por `DatePickerField`. Para os `InlineField` com `type="date"` (linhas 612-622), mudar para usar DatePickerField inline ou manter o input nativo apenas fora de modais (Sheet é menos agressivo, mas melhor prevenir).
+
+4. **`src/components/LeadModal.tsx`** -- Adicionar tratamento de erro genérico no catch (o catch atual só trata ZodError, qualquer erro de rede/banco é silenciado e parece travamento).
+
+### Detalhe técnico do fix principal
+
+```text
+PopoverContent
+  ├─ onOpenAutoFocus={e => e.preventDefault()}   ← impede roubo de foco
+  ├─ onCloseAutoFocus={e => e.preventDefault()}  ← impede loop ao fechar
+  └─ className="w-auto p-0 pointer-events-auto"
+```
+
+Total: 4 arquivos modificados. Sem mudanças no banco.
 
