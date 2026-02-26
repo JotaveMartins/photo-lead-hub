@@ -1,28 +1,20 @@
 
 
-## Análise completa: inputs nativos restantes que podem causar travamento
+## Correção: Select do Radix travando dentro de Dialogs
 
-### Problema encontrado
+### Causa raiz
+O componente `SelectContent` (em `src/components/ui/select.tsx`, linha 65) usa `SelectPrimitive.Portal` para renderizar o dropdown **fora** do DOM do Dialog. O focus trap do Dialog detecta que o foco saiu e puxa de volta, criando o loop infinito que trava o Chrome. O texto concatenado ("Selecione a origemInstagram") é o render glitchado desse loop.
 
-Ainda existem **5 `<input type="date">` nativos** no sistema que NÃO foram convertidos para o `DatePickerField` customizado:
+### Correção (1 arquivo)
 
-1. **`src/components/LeadDetailDrawer.tsx`** (linhas 614, 618, 622) — 3 campos `InlineField` com `type="date"` para Data do Evento, Data do Contato e Data da Proposta. Esses ficam dentro de um `Sheet` (Radix), que também tem focus trap. Quando o cliente clica para editar a data no drawer do lead, o input nativo entra em conflito.
+**`src/components/ui/select.tsx`** (linha 65):
+- Remover o wrapper `SelectPrimitive.Portal` do `SelectContent`
+- Sem o Portal, o conteúdo do Select fica dentro do DOM do Dialog, e o focus trap não detecta que o foco "saiu" — eliminando o conflito
 
-2. **`src/components/reports/ReportFilters.tsx`** (linhas 109, 113) — 2 campos `<Input type="date">` para filtro de período customizado nos relatórios. Esses estão fora de modal, então o risco é menor, mas para consistência devem ser convertidos também.
+Essa é a correção recomendada pela própria documentação do Radix para o uso de Select dentro de Dialog. Afeta todos os Selects do sistema de uma vez, incluindo Origem, Status, e qualquer outro Select usado dentro de modais.
 
-### Por que o travamento é intermitente
-
-O componente `InlineField` no drawer funciona assim: o usuário clica no texto → o campo muda para `<input>` com `autoFocus` via `useEffect`. Se o `type="date"` for renderizado, o Chrome pode abrir o date picker nativo automaticamente ao receber foco, criando o conflito com o focus trap do Sheet. Isso explica por que às vezes funciona (se o usuário não toca nos campos de data do drawer) e às vezes trava.
-
-### Plano de correção
-
-**Arquivo 1: `src/components/LeadDetailDrawer.tsx`**
-- Converter os 3 `InlineField` com `type="date"` (linhas 614-624) para usar `DatePickerField` diretamente, sem o padrão click-to-edit do `InlineField` (que renderiza `<input type="date">`)
-- Cada campo passará a exibir o `DatePickerField` permanentemente em vez de alternar entre texto e input
-
-**Arquivo 2: `src/components/reports/ReportFilters.tsx`**
-- Converter os 2 `<Input type="date">` (linhas 109, 113) para usar `DatePickerField`
-- Ajuste menor pois estão fora de modal, mas mantém consistência
-
-Total: 2 arquivos modificados, 0 novos.
+### Impacto
+- Corrige o travamento do campo Origem no LeadModal
+- Corrige preventivamente qualquer outro Select dentro de Dialog/Sheet no sistema
+- Zero mudança visual — o dropdown continua aparecendo no mesmo lugar graças ao `position="popper"`
 
