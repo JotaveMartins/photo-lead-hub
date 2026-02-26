@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import InteresseSelect from "@/components/InteresseSelect";
+import DatePickerField from "@/components/DatePickerField";
 
 interface RequiredFieldsModalProps {
   open: boolean;
@@ -98,16 +99,14 @@ const RequiredFieldsModal = ({
           {needsDataProposta && (
             <div className="space-y-2">
               <Label>Data da Proposta <span className="text-destructive">*</span></Label>
-              <Input type="date" value={dataProposta}
-                onChange={(e) => setDataProposta(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataProposta} onChange={setDataProposta} placeholder="Selecione" />
             </div>
           )}
 
           {needsDataEvento && (
             <div className="space-y-2">
               <Label>Data do Evento <span className="text-destructive">*</span></Label>
-              <Input type="date" value={dataEvento}
-                onChange={(e) => setDataEvento(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataEvento} onChange={setDataEvento} placeholder="Selecione" />
             </div>
           )}
 
