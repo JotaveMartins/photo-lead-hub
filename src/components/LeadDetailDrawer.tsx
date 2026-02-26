@@ -611,17 +611,20 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
               value={lead.valor?.toString() || ""} displayValue={lead.valor ? `R$ ${lead.valor.toLocaleString("pt-BR")}` : ""}
               onSave={(v) => handleFieldSave("valor", v ? parseFloat(v) : null)} />
 
-            <InlineField label="Data do Evento" icon={<Calendar className="w-3.5 h-3.5" />} type="date"
-              value={lead.data_evento || ""} displayValue={formatDate(lead.data_evento)}
-              onSave={(v) => handleFieldSave("data_evento", v || null)} />
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Data do Evento</span>
+              <DatePickerField value={lead.data_evento || ""} onChange={(v) => handleFieldSave("data_evento", v || null)} className="h-8 text-xs w-[150px]" />
+            </div>
 
-            <InlineField label="Data do Contato" type="date"
-              value={lead.data_contato || ""} displayValue={formatDate(lead.data_contato)}
-              onSave={(v) => handleFieldSave("data_contato", v || null)} />
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs text-muted-foreground">Data do Contato</span>
+              <DatePickerField value={lead.data_contato || ""} onChange={(v) => handleFieldSave("data_contato", v || null)} className="h-8 text-xs w-[150px]" />
+            </div>
 
-            <InlineField label="Data da Proposta" type="date"
-              value={lead.data_proposta || ""} displayValue={formatDate(lead.data_proposta)}
-              onSave={(v) => handleFieldSave("data_proposta", v || null)} />
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs text-muted-foreground">Data da Proposta</span>
+              <DatePickerField value={lead.data_proposta || ""} onChange={(v) => handleFieldSave("data_proposta", v || null)} className="h-8 text-xs w-[150px]" />
+            </div>
 
             {lead.status === "Fechado Perdido" && (
               <div className="space-y-3 pt-2 border-t border-border">

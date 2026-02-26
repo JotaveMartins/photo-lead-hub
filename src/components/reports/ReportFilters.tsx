@@ -1,5 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import DatePickerField from "@/components/DatePickerField";
 import { Label } from "@/components/ui/label";
 import { ReportProfile } from "@/hooks/useReportData";
 
@@ -106,11 +106,11 @@ const ReportFilters = (props: ReportFiltersProps) => {
         <>
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Início</Label>
-            <Input type="date" className="h-9 w-[150px]" value={props.customStart} onChange={(e) => props.onCustomStartChange(e.target.value)} />
+            <DatePickerField value={props.customStart} onChange={props.onCustomStartChange} className="h-9 w-[150px]" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Fim</Label>
-            <Input type="date" className="h-9 w-[150px]" value={props.customEnd} onChange={(e) => props.onCustomEndChange(e.target.value)} />
+            <DatePickerField value={props.customEnd} onChange={props.onCustomEndChange} className="h-9 w-[150px]" />
           </div>
         </>
       )}
