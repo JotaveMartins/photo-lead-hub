@@ -48,7 +48,7 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
           {selected ? format(selected, "dd/MM/yyyy", { locale: ptBR }) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent className="w-auto p-0" align="start" side="top" onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
         <Calendar
           mode="single"
           selected={selected}
