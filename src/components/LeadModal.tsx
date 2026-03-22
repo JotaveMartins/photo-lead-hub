@@ -146,6 +146,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
           </DialogTitle>
         </DialogHeader>
 
+        <div className="max-h-[calc(90vh-8rem)] overflow-y-auto pr-1">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
