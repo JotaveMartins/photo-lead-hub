@@ -227,6 +227,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
             </Button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
