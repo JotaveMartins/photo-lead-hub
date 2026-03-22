@@ -139,7 +139,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-2xl max-h-[90vh] bg-card border-border overflow-visible">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">
             {lead ? "Editar Lead" : "Novo Lead"}
