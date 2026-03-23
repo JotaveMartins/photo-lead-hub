@@ -182,14 +182,18 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Origem {!lead && <span className="text-destructive">*</span>}</Label>
-              <Select value={origem} onValueChange={setOrigem}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
-                <SelectContent>
-                  {ORIGEM_OPTIONS.map((o) => (
-                    <SelectItem key={o} value={o}>{o}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                id="origem"
+                value={origem}
+                onChange={(e) => setOrigem(e.target.value)}
+                required={!lead}
+                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Selecione a origem</option>
+                {ORIGEM_OPTIONS.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="valor">Valor (R$)</Label>
