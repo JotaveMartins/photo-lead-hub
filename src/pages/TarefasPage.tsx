@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -250,14 +249,16 @@ const TarefasPage = () => {
             </div>
             <div className="space-y-2">
               <Label>Lead</Label>
-              <Select value={newLeadId} onValueChange={setNewLeadId}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione um lead" /></SelectTrigger>
-                <SelectContent>
-                  {leads.map((lead) => (
-                    <SelectItem key={lead.id} value={lead.id}>{lead.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={newLeadId}
+                onChange={(e) => setNewLeadId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Selecione um lead</option>
+                {leads.map((lead) => (
+                  <option key={lead.id} value={lead.id}>{lead.nome}</option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
