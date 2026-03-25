@@ -9,13 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const LOSS_REASONS = [
   "Sem orçamento disponível",
@@ -68,16 +61,18 @@ const LossReasonModal = ({ open, onOpenChange, leadName, onConfirm }: LossReason
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label className="text-sm text-foreground">Motivo *</Label>
-            <Select value={motivo} onValueChange={setMotivo}>
-              <SelectTrigger className="bg-muted border-border">
-                <SelectValue placeholder="Selecione o motivo" />
-              </SelectTrigger>
-              <SelectContent>
-                {LOSS_REASONS.map((r) => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">Selecione o motivo</option>
+              {LOSS_REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">
