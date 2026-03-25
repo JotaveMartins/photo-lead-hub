@@ -152,7 +152,7 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
                     key={lead.id} 
                     className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
                     onClick={() => onLeadClick?.(lead)}
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    
                   >
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
