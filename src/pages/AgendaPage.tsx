@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import TimePickerField from "@/components/TimePickerField";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEvents, useCreateEvent } from "@/hooks/useEvents";
 import { useLeads } from "@/hooks/useLeads";
 import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
@@ -200,14 +199,15 @@ const AgendaPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="evento">Evento</SelectItem>
-                    <SelectItem value="follow_up">Follow-up</SelectItem>
-                    <SelectItem value="reuniao">Reunião</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="evento">Evento</option>
+                  <option value="follow_up">Follow-up</option>
+                  <option value="reuniao">Reunião</option>
+                </select>
               </div>
               <div className="space-y-2">
                 <Label>Hora</Label>
@@ -217,15 +217,16 @@ const AgendaPage = () => {
 
             <div className="space-y-2">
               <Label>Lead (opcional)</Label>
-              <Select value={selectedLeadId} onValueChange={setSelectedLeadId}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione um lead" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
-                  {leads.map((lead) => (
-                    <SelectItem key={lead.id} value={lead.id}>{lead.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={selectedLeadId}
+                onChange={(e) => setSelectedLeadId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Nenhum</option>
+                {leads.map((lead) => (
+                  <option key={lead.id} value={lead.id}>{lead.nome}</option>
+                ))}
+              </select>
             </div>
 
             <div className="flex gap-3 justify-end pt-4">

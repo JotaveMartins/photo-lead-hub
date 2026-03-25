@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { parseLocalDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask, useDeleteLeadTask } from "@/hooks/useLeadTasks";
@@ -87,7 +86,7 @@ const InlineField = ({
   );
 };
 
-// Inline select field
+// Inline select field (native)
 const InlineSelectField = ({
   label, value, options, onSave,
 }: {
@@ -96,12 +95,16 @@ const InlineSelectField = ({
   return (
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Select value={value || ""} onValueChange={(v) => onSave(v)}>
-        <SelectTrigger className="bg-transparent border-0 shadow-none h-auto p-0 text-sm text-foreground hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 [&>svg]:ml-1 [&>svg]:w-3 [&>svg]:h-3">
-          <SelectValue placeholder="—" />
-        </SelectTrigger>
-        <SelectContent>{options.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}</SelectContent>
-      </Select>
+      <select
+        value={value || ""}
+        onChange={(e) => onSave(e.target.value)}
+        className="bg-transparent border-0 shadow-none h-auto p-0 text-sm text-foreground hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+      >
+        <option value="">—</option>
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
     </div>
   );
 };
@@ -544,14 +547,15 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
             </SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <Select value={lead.status} onValueChange={(v) => handleStatusChange(v as LeadStatus)}>
-              <SelectTrigger className="w-auto bg-muted border-border h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={lead.status}
+              onChange={(e) => handleStatusChange(e.target.value as LeadStatus)}
+              className="h-8 px-2 rounded-md border border-input bg-muted text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
             {stageDate && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Nesta etapa há {formatStageDuration(stageDate)}
