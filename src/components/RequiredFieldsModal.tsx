@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import InteresseSelect from "@/components/InteresseSelect";
 import DatePickerField from "@/components/DatePickerField";
@@ -120,12 +119,18 @@ const RequiredFieldsModal = ({
           {needsOrigem && (
             <div className="space-y-2">
               <Label>Origem <span className="text-destructive">*</span></Label>
-              <Select value={origem} onValueChange={setOrigem}>
-                <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {ORIGEM_OPTIONS.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
-                </SelectContent>
-              </Select>
+              <select
+                value={origem}
+                onChange={(e) => setOrigem(e.target.value)}
+                className="h-10 w-full rounded-md border border-border bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Selecione</option>
+                {ORIGEM_OPTIONS.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
