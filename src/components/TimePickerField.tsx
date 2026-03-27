@@ -1,6 +1,5 @@
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TimePickerFieldProps {
   value: string; // HH:mm
@@ -27,27 +26,35 @@ const TimePickerField = ({ value, onChange, placeholder = "Hora", className, dis
   return (
     <div className={cn("flex items-center gap-1", className)}>
       <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-      <Select value={h} onValueChange={handleHourChange} disabled={disabled}>
-        <SelectTrigger className="w-[70px] h-8 bg-muted border-border text-sm px-2">
-          <SelectValue placeholder="--" />
-        </SelectTrigger>
-        <SelectContent>
-          {hours.map((hour) => (
-            <SelectItem key={hour} value={hour}>{hour}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        aria-label={`${placeholder} - hora`}
+        value={h}
+        onChange={(e) => handleHourChange(e.target.value)}
+        disabled={disabled}
+        className="w-[70px] h-8 rounded-md border border-border bg-muted px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <option value="">--</option>
+        {hours.map((hour) => (
+          <option key={hour} value={hour}>
+            {hour}
+          </option>
+        ))}
+      </select>
       <span className="text-muted-foreground font-medium">:</span>
-      <Select value={m} onValueChange={handleMinuteChange} disabled={disabled}>
-        <SelectTrigger className="w-[70px] h-8 bg-muted border-border text-sm px-2">
-          <SelectValue placeholder="--" />
-        </SelectTrigger>
-        <SelectContent>
-          {minutes.map((min) => (
-            <SelectItem key={min} value={min}>{min}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        aria-label={`${placeholder} - minutos`}
+        value={m}
+        onChange={(e) => handleMinuteChange(e.target.value)}
+        disabled={disabled}
+        className="w-[70px] h-8 rounded-md border border-border bg-muted px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <option value="">--</option>
+        {minutes.map((min) => (
+          <option key={min} value={min}>
+            {min}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };
