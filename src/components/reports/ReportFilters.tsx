@@ -1,4 +1,3 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DatePickerField from "@/components/DatePickerField";
 import { Label } from "@/components/ui/label";
 import { ReportProfile } from "@/hooks/useReportData";
@@ -92,14 +91,17 @@ const ReportFilters = (props: ReportFiltersProps) => {
     <div className="flex flex-wrap items-end gap-4 mb-6 bg-card border border-border rounded-xl p-4">
       <div className="flex flex-col gap-1.5 min-w-[180px]">
         <Label className="text-xs text-muted-foreground">Período</Label>
-        <Select value={props.period} onValueChange={(v) => props.onPeriodChange(v as PeriodOption)}>
-          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {Object.entries(periodLabels).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={props.period}
+          onChange={(e) => props.onPeriodChange(e.target.value as PeriodOption)}
+          className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          {Object.entries(periodLabels).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
       </div>
 
       {props.period === "custom" && (
@@ -117,29 +119,35 @@ const ReportFilters = (props: ReportFiltersProps) => {
 
       <div className="flex flex-col gap-1.5 min-w-[160px]">
         <Label className="text-xs text-muted-foreground">Origem</Label>
-        <Select value={props.origem || "__all__"} onValueChange={(v) => props.onOrigemChange(v === "__all__" ? "" : v)}>
-          <SelectTrigger className="h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todas</SelectItem>
-            {props.origens.map((o) => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={props.origem || "__all__"}
+          onChange={(e) => props.onOrigemChange(e.target.value === "__all__" ? "" : e.target.value)}
+          className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          <option value="__all__">Todas</option>
+          {props.origens.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
       </div>
 
       {props.isAdmin && (
         <div className="flex flex-col gap-1.5 min-w-[200px]">
           <Label className="text-xs text-muted-foreground">Cliente</Label>
-          <Select value={props.clienteUserId || "__all__"} onValueChange={(v) => props.onClienteChange(v === "__all__" ? "" : v)}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todos os clientes</SelectItem>
-              {props.profiles.map((p) => (
-                <SelectItem key={p.user_id} value={p.user_id}>{p.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select
+            value={props.clienteUserId || "__all__"}
+            onChange={(e) => props.onClienteChange(e.target.value === "__all__" ? "" : e.target.value)}
+            className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <option value="__all__">Todos os clientes</option>
+            {props.profiles.map((p) => (
+              <option key={p.user_id} value={p.user_id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
         </div>
       )}
     </div>
