@@ -6,13 +6,6 @@ import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
 import { Phone, Calendar, GripVertical, Search, Filter, DollarSign, ChevronRight, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import FollowUpModal from "@/components/FollowUpModal";
@@ -233,30 +226,38 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
             className="pl-9 bg-muted border-border h-9"
           />
         </div>
-        <Select value={origemFilter} onValueChange={setOrigemFilter}>
-          <SelectTrigger className="w-[180px] bg-muted border-border h-9">
-            <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Origem" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas origens</SelectItem>
+        <div className="relative w-[180px]">
+          <Filter className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <select
+            aria-label="Filtrar por origem"
+            value={origemFilter}
+            onChange={(e) => setOrigemFilter(e.target.value)}
+            className="h-9 w-full rounded-md border border-border bg-muted pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <option value="all">Todas origens</option>
             {ORIGEM_OPTIONS.map((o) => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
+              <option key={o} value={o}>
+                {o}
+              </option>
             ))}
-          </SelectContent>
-        </Select>
-        <Select value={interesseFilter} onValueChange={setInteresseFilter}>
-          <SelectTrigger className="w-[180px] bg-muted border-border h-9">
-            <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Interesse" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos interesses</SelectItem>
+          </select>
+        </div>
+        <div className="relative w-[180px]">
+          <Filter className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <select
+            aria-label="Filtrar por interesse"
+            value={interesseFilter}
+            onChange={(e) => setInteresseFilter(e.target.value)}
+            className="h-9 w-full rounded-md border border-border bg-muted pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <option value="all">Todos interesses</option>
             {interesseOptions.map((o) => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
+              <option key={o} value={o}>
+                {o}
+              </option>
             ))}
-          </SelectContent>
-        </Select>
+          </select>
+        </div>
       </div>
 
       {/* Kanban columns */}
