@@ -350,6 +350,78 @@ const ClienteDetailPage = () => {
           </div>
         </TabsContent>
 
+        {/* Tab: Serviços & Pacotes */}
+        <TabsContent value="servicos" className="mt-4">
+          {/* Serviços */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-3">
+              <Wrench className="w-4 h-4" />
+              Serviços Contratados
+            </h3>
+            {servicosContratados.length === 0 ? (
+              <Card className="bg-card border-border">
+                <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
+                  <Wrench className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Nenhum serviço vinculado</p>
+                  <p className="text-xs text-muted-foreground/70">Serviços aparecem aqui quando eventos são criados para este cliente</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {servicosContratados.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{s.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.count} {s.count === 1 ? "evento" : "eventos"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-foreground">
+                        {s.valor_base.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pacotes */}
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-3">
+              <Package className="w-4 h-4" />
+              Pacotes Contratados
+            </h3>
+            {pacotesContratados.length === 0 ? (
+              <Card className="bg-card border-border">
+                <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
+                  <Package className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Nenhum pacote vinculado</p>
+                  <p className="text-xs text-muted-foreground/70">Pacotes aparecem aqui quando identificados nas cobranças deste cliente</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {pacotesContratados.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{p.nome}</p>
+                    </div>
+                    <div className="text-right">
+                      {p.preco_final && (
+                        <p className="text-sm font-bold text-foreground">
+                          {p.preco_final.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
         {/* Tab: Agenda */}
         <TabsContent value="agenda" className="mt-4">
           {eventos.length === 0 ? (
