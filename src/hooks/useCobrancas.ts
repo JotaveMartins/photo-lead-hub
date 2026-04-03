@@ -82,6 +82,7 @@ export const useAllCobrancas = () => {
         .from("cobrancas")
         .select("*")
         .eq("user_id", effectiveUserId)
+        .is("deleted_at", null)
         .order("vencimento", { ascending: true });
       if (error) throw error;
       return (data || []) as Cobranca[];
