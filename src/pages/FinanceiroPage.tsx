@@ -6,6 +6,7 @@ import CobrancaCards from "@/components/financeiro/CobrancaCards";
 import CobrancaTable from "@/components/financeiro/CobrancaTable";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
 import EditCobrancaModal from "@/components/financeiro/EditCobrancaModal";
+import CobrancaTrashBin from "@/components/financeiro/CobrancaTrashBin";
 import { useCobrancas, useAllCobrancas } from "@/hooks/useCobrancas";
 import type { Cobranca } from "@/hooks/useCobrancas";
 
