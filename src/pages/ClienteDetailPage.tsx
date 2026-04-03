@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditClienteModal from "@/components/clientes/EditClienteModal";
 import type { Cobranca } from "@/hooks/useCobrancas";
+import type { Service } from "@/hooks/useServices";
 
 const ClienteDetailPage = () => {
   const { id } = useParams<{ id: string }>();
