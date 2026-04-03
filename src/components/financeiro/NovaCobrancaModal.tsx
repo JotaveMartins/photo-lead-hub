@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import DatePickerField from "@/components/DatePickerField";
 import { useCreateCobranca, useCreateCobrancasBatch } from "@/hooks/useCobrancas";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import { useClientes } from "@/hooks/useClientes";
 import { toast } from "sonner";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
