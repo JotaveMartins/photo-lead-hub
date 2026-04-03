@@ -34,6 +34,11 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
   const { data: clientes = [] } = useClientes();
 
   const [clienteId, setClienteId] = useState(initialClienteId || "");
+
+  // Sync when initialClienteId prop changes
+  useEffect(() => {
+    if (initialClienteId) setClienteId(initialClienteId);
+  }, [initialClienteId]);
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<PaymentMethod>("pix");
