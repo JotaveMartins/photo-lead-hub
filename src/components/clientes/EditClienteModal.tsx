@@ -80,7 +80,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>CPF/CNPJ</Label>
-              <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} />
+              <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))} maxLength={18} />
             </div>
             <div>
               <Label>Origem</Label>

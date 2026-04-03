@@ -95,7 +95,7 @@ const NovoClienteModal = ({ open, onClose }: NovoClienteModalProps) => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>CPF/CNPJ</Label>
-                <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} placeholder="000.000.000-00" />
+                <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))} placeholder="000.000.000-00" maxLength={18} />
               </div>
               <div>
                 <Label>Origem</Label>
