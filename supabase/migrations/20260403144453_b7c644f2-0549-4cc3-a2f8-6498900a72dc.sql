@@ -1,0 +1,1 @@
+ALTER TABLE public.cobrancas ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;

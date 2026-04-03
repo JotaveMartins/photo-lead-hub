@@ -52,6 +52,7 @@ export const useCobrancas = (month?: Date) => {
         .from("cobrancas")
         .select("*")
         .eq("user_id", effectiveUserId)
+        .is("deleted_at", null)
         .order("vencimento", { ascending: true });
 
       if (month) {
@@ -81,6 +82,7 @@ export const useAllCobrancas = () => {
         .from("cobrancas")
         .select("*")
         .eq("user_id", effectiveUserId)
+        .is("deleted_at", null)
         .order("vencimento", { ascending: true });
       if (error) throw error;
       return (data || []) as Cobranca[];
@@ -155,13 +157,72 @@ export const useDeleteCobranca = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("cobrancas").delete().eq("id", id);
+      const { error } = await supabase
+        .from("cobrancas")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cobrancas"] });
       queryClient.invalidateQueries({ queryKey: ["cobrancas-all"] });
-      toast.success("Cobrança excluída!");
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-deleted"] });
+      toast.success("Cobrança movida para a lixeira!");
+    },
+  });
+};
+
+export const useDeletedCobrancas = () => {
+  const effectiveUserId = useEffectiveUserId();
+
+  return useQuery({
+    queryKey: ["cobrancas-deleted", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return [];
+      const { data, error } = await supabase
+        .from("cobrancas")
+        .select("*")
+        .eq("user_id", effectiveUserId)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as (Cobranca & { deleted_at: string })[];
+    },
+    enabled: !!effectiveUserId,
+  });
+};
+
+export const useRestoreCobranca = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("cobrancas")
+        .update({ deleted_at: null } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cobrancas"] });
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-all"] });
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-deleted"] });
+      toast.success("Cobrança restaurada!");
+    },
+  });
+};
+
+export const usePermanentDeleteCobranca = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("cobrancas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cobrancas-deleted"] });
+      toast.success("Cobrança excluída permanentemente!");
     },
   });
 };
