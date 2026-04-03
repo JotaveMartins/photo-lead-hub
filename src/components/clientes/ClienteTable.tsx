@@ -15,6 +15,7 @@ interface ClienteTableProps {
 }
 
 const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTableProps) => {
+  const navigate = useNavigate();
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
