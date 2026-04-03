@@ -132,11 +132,16 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const moveLeadToStatus = (lead: Lead, newStatus: LeadStatus, extraFields?: Record<string, any>) => {
     if (newStatus === "Proposta Enviada") {
-      // Move to Follow-up instead, then show follow-up modal
       updateLead.mutate({ id: lead.id, status: "Follow-up" as LeadStatus, ...extraFields }, {
         onSuccess: () => {
           setFollowUpLead(lead);
           setFollowUpModalOpen(true);
+        }
+      });
+    } else if (newStatus === "Fechado Ganho") {
+      updateLead.mutate({ id: lead.id, status: newStatus, ...extraFields }, {
+        onSuccess: () => {
+          setLeadToClienteLead(lead);
         }
       });
     } else {
