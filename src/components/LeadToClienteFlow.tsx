@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import TimePickerField from "@/components/TimePickerField";
-import { Receipt, CreditCard, ArrowDownUp, CalendarIcon } from "lucide-react";
+import { Receipt, CreditCard, ArrowDownUp, Calendar as CalendarIcon } from "lucide-react";
 import { useCreateEvent } from "@/hooks/useEvents";
 import { useServices } from "@/hooks/useServices";
 import { format } from "date-fns";
