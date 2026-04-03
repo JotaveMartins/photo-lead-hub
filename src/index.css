@@ -87,6 +87,12 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
+
+  select,
+  select option {
+    background-color: hsl(222 47% 10%);
+    color: hsl(210 40% 98%);
+  }
 }
 
 @layer utilities {
