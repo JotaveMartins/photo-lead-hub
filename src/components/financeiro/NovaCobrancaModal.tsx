@@ -48,6 +48,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const [valorEntrada, setValorEntrada] = useState("");
   const [formaPagamentoEntrada, setFormaPagamentoEntrada] = useState<PaymentMethod>("pix");
   const [vencimentoEntrada, setVencimentoEntrada] = useState("");
+  const [selectedItemName, setSelectedItemName] = useState("");
 
   // Sync props
   useEffect(() => {
