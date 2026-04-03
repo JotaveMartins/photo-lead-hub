@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, Calendar } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, Calendar, ArrowDownUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import CobrancaCards from "@/components/financeiro/CobrancaCards";
@@ -10,7 +10,7 @@ import CobrancaTrashBin from "@/components/financeiro/CobrancaTrashBin";
 import { useCobrancas, useAllCobrancas } from "@/hooks/useCobrancas";
 import type { Cobranca } from "@/hooks/useCobrancas";
 
-type ModalType = "unica" | "parcelas";
+type ModalType = "unica" | "parcelas" | "entrada_parcelas";
 
 const FinanceiroPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -99,7 +99,7 @@ const FinanceiroPage = () => {
             {dropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[200px]">
+                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[220px]">
                   <button
                     onClick={() => openModal("unica")}
                     className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground"
@@ -113,6 +113,13 @@ const FinanceiroPage = () => {
                   >
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     Criar parcelas
+                  </button>
+                  <button
+                    onClick={() => openModal("entrada_parcelas")}
+                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground"
+                  >
+                    <ArrowDownUp className="w-4 h-4 text-muted-foreground" />
+                    Entrada + Parcelas
                   </button>
                 </div>
               </>
