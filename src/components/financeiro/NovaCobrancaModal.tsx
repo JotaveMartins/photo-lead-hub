@@ -48,6 +48,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const [valorEntrada, setValorEntrada] = useState("");
   const [formaPagamentoEntrada, setFormaPagamentoEntrada] = useState<PaymentMethod>("pix");
   const [vencimentoEntrada, setVencimentoEntrada] = useState("");
+  const [selectedItemName, setSelectedItemName] = useState("");
 
   // Sync props
   useEffect(() => {
@@ -70,6 +71,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     setValorEntrada("");
     setFormaPagamentoEntrada("pix");
     setVencimentoEntrada("");
+    setSelectedItemName("");
   };
 
   // Computed values for entrada+parcelas preview
@@ -209,7 +211,9 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             onSelect={(name, price) => {
               setDescricao(name);
               setValor(String(price));
+              setSelectedItemName(name);
             }}
+            selectedName={selectedItemName}
           />
 
           <div className="space-y-2">
@@ -497,9 +501,10 @@ const ClienteSearchSelect = ({ clientes, value, onChange }: ClienteSearchSelectP
 
 interface ItemSelectorProps {
   onSelect: (name: string, price: number) => void;
+  selectedName: string;
 }
 
-const ItemSelector = ({ onSelect }: ItemSelectorProps) => {
+const ItemSelector = ({ onSelect, selectedName }: ItemSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -528,10 +533,10 @@ const ItemSelector = ({ onSelect }: ItemSelectorProps) => {
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-muted-foreground"
+          className={`flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${selectedName ? "text-foreground" : "text-muted-foreground"}`}
         >
-          Vincular serviço ou pacote...
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          {selectedName || "Vincular serviço ou pacote..."}
+          <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
         </button>
 
         {open && (
