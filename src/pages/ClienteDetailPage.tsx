@@ -7,7 +7,7 @@ import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditClienteModal from "@/components/clientes/EditClienteModal";
