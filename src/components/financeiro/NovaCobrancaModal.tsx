@@ -73,7 +73,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
           valor: valorNum,
           forma_pagamento: formaPagamento,
           vencimento,
-        });
+          cliente_id: clienteId || null,
+        } as any);
         toast.success("Cobrança criada com sucesso!");
       } else {
         const n = parseInt(numParcelas);
