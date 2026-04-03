@@ -32,6 +32,7 @@ const baseMenuItems = [
   { id: 'pacotes', label: 'Pacotes', icon: Package },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'clientes', label: 'Clientes', icon: UserCheck },
+  { id: 'contratos', label: 'Contratos', icon: FileText },
 ];
 
 const financeiroSubItems = [
