@@ -47,7 +47,9 @@ const AppRoutes = () => {
       <Route path="/servicos" element={<ProtectedRoute><ComingSoon title="Serviços" icon={<Wrench className="w-10 h-10" />} /></ProtectedRoute>} />
       <Route path="/pacotes" element={<ProtectedRoute><ComingSoon title="Pacotes" icon={<Package className="w-10 h-10" />} /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute><ComingSoon title="Agenda" icon={<Calendar className="w-10 h-10" />} /></ProtectedRoute>} />
-      <Route path="/financeiro" element={<ProtectedRoute><FinanceiroPage /></ProtectedRoute>} />
+      <Route path="/financeiro/cobrancas" element={<ProtectedRoute><FinanceiroPage /></ProtectedRoute>} />
+      <Route path="/financeiro/despesas" element={<ProtectedRoute><ComingSoon title="Despesas" icon={<DollarSign className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/financeiro" element={<Navigate to="/financeiro/cobrancas" replace />} />
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

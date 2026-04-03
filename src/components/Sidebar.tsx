@@ -8,10 +8,14 @@ import {
   Package,
   Calendar,
   DollarSign,
+  ChevronDown,
+  Receipt,
+  TrendingDown,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useState } from "react";
 
 interface SidebarProps {
   activeItem: string;
@@ -27,15 +31,24 @@ const baseMenuItems = [
   { id: 'agenda', label: 'Agenda', icon: Calendar },
 ];
 
+const financeiroSubItems = [
+  { id: 'financeiro/cobrancas', label: 'Cobranças', icon: Receipt },
+  { id: 'financeiro/despesas', label: 'Despesas', icon: TrendingDown },
+];
+
 const adminMenuItems = [
-  { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
   { id: 'admin', label: 'Clientes', icon: UserCog },
 ];
 
 const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
-  const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
+  const isFinanceiroActive = activeItem.startsWith('financeiro');
+  const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroActive);
+
+  const menuItems = isAdmin ? baseMenuItems : baseMenuItems;
+  const showFinanceiro = isAdmin;
+  const showAdmin = isAdmin;
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -51,8 +64,59 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeItem === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onItemClick(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+            >
+              <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
+              {item.label}
+            </button>
+          );
+        })}
+
+        {/* Financeiro expandable group */}
+        {showFinanceiro && (
+          <div>
+            <button
+              onClick={() => setFinanceiroOpen(!financeiroOpen)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                ${isFinanceiroActive ? 'text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+            >
+              <DollarSign className={`w-5 h-5 ${isFinanceiroActive ? 'text-primary' : 'group-hover:text-primary'}`} />
+              Financeiro
+              <ChevronDown className={`w-4 h-4 ml-auto transition-transform duration-200 ${financeiroOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {financeiroOpen && (
+              <div className="ml-4 mt-1 space-y-1">
+                {financeiroSubItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeItem === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => onItemClick(item.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
+                        ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? '' : 'group-hover:text-primary'}`} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Admin items */}
+        {showAdmin && adminMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
           return (
