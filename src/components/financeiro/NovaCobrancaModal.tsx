@@ -7,6 +7,9 @@ import DatePickerField from "@/components/DatePickerField";
 import { useCreateCobranca, useCreateCobrancasBatch } from "@/hooks/useCobrancas";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useClientes } from "@/hooks/useClientes";
+import { useServices } from "@/hooks/useServices";
+import { usePackages } from "@/hooks/usePackages";
+import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import { toast } from "sonner";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
