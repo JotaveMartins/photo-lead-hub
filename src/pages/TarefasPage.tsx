@@ -130,9 +130,25 @@ const TarefasPage = () => {
             <p className="text-sm text-muted-foreground">{stats.total} atividades · {stats.pending} pendentes</p>
           </div>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow">
-          <Plus className="w-4 h-4" /> Atividade
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode("table")}
+              className={cn("p-2 transition-colors", viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("calendar")}
+              className={cn("p-2 transition-colors", viewMode === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
+            >
+              <CalendarIcon className="w-4 h-4" />
+            </button>
+          </div>
+          <Button onClick={() => setIsModalOpen(true)} className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow">
+            <Plus className="w-4 h-4" /> Atividade
+          </Button>
+        </div>
       </header>
 
       {/* Filters row */}
