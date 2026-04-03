@@ -209,7 +209,9 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             onSelect={(name, price) => {
               setDescricao(name);
               setValor(String(price));
+              setSelectedItemName(name);
             }}
+            selectedName={selectedItemName}
           />
 
           <div className="space-y-2">
