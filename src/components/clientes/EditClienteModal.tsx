@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpdateCliente, type Cliente } from "@/hooks/useClientes";
 
-const origemOptions = ["Instagram", "Google", "Indicação", "Facebook", "TikTok", "Site", "Outro"];
+const origemOptions = ["Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"];
 
 interface EditClienteModalProps {
   open: boolean;
