@@ -133,44 +133,64 @@ export type Database = {
       }
       events: {
         Row: {
+          cliente_id: string | null
           created_at: string
           data_evento: string
           descricao: string | null
           id: string
           lead_id: string | null
           local: string | null
+          service_id: string | null
           tipo: string
           titulo: string
           user_id: string
         }
         Insert: {
+          cliente_id?: string | null
           created_at?: string
           data_evento: string
           descricao?: string | null
           id?: string
           lead_id?: string | null
           local?: string | null
+          service_id?: string | null
           tipo?: string
           titulo: string
           user_id: string
         }
         Update: {
+          cliente_id?: string | null
           created_at?: string
           data_evento?: string
           descricao?: string | null
           id?: string
           lead_id?: string | null
           local?: string | null
+          service_id?: string | null
           tipo?: string
           titulo?: string
           user_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "events_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "events_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]

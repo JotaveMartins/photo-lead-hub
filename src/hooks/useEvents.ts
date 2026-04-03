@@ -2,10 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
-
-type Event = Database["public"]["Tables"]["events"]["Row"];
-type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
 
 export const useEvents = () => {
   const effectiveUserId = useEffectiveUserId();
@@ -17,7 +13,7 @@ export const useEvents = () => {
       
       const { data, error } = await supabase
         .from("events")
-        .select("*, leads(nome)")
+        .select("*, clientes(nome), services(nome)")
         .eq("user_id", effectiveUserId)
         .order("data_evento", { ascending: true });
 
@@ -33,12 +29,31 @@ export const useCreateEvent = () => {
   const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
-    mutationFn: async (event: Omit<EventInsert, "user_id">) => {
+    mutationFn: async (event: {
+      titulo: string;
+      tipo?: string;
+      data_evento: string;
+      descricao?: string | null;
+      local?: string | null;
+      cliente_id?: string | null;
+      service_id?: string | null;
+      lead_id?: string | null;
+    }) => {
       if (!effectiveUserId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("events")
-        .insert({ ...event, user_id: effectiveUserId })
+        .insert({
+          titulo: event.titulo,
+          tipo: event.tipo || "Evento",
+          data_evento: event.data_evento,
+          descricao: event.descricao || null,
+          local: event.local || null,
+          cliente_id: event.cliente_id || null,
+          service_id: event.service_id || null,
+          lead_id: event.lead_id || null,
+          user_id: effectiveUserId,
+        } as any)
         .select()
         .single();
 
