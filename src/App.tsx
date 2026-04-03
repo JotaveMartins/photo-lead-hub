@@ -25,10 +25,11 @@ import { BarChart3, Wrench, Package, Calendar, DollarSign, FileText } from "luci
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
   const { user, loading } = useAuth();
+  const { isAdmin, isLoading: isRoleLoading } = useUserRole();
 
-  if (loading) {
+  if (loading || (adminOnly && isRoleLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Carregando...</div>
@@ -38,6 +39,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (adminOnly && !isAdmin) {
+    return <DashboardLayout><Navigate to="/leads" replace /></DashboardLayout>;
   }
 
   return <DashboardLayout>{children}</DashboardLayout>;
