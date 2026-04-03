@@ -603,7 +603,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
               <InteresseSelect
                 value={lead.interesse || ""}
                 onValueChange={(v) => handleFieldSave("interesse", v || null)}
-                manageable={false}
+                manageable={true}
                 variant="inline"
               />
             </div>
