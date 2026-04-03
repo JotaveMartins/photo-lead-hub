@@ -76,10 +76,6 @@ const AgendaPage = () => {
     selectedDate && isSameDay(new Date(event.data_evento), selectedDate)
   );
 
-  const filteredClientes = clientes.filter((c) =>
-    !clienteSearch || c.nome.toLowerCase().includes(clienteSearch.toLowerCase()) ||
-    c.whatsapp?.includes(clienteSearch)
-  );
 
   const openModal = () => {
     setModalDate(selectedDate);
