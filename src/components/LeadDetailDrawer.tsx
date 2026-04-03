@@ -915,6 +915,11 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       leadName={lead?.nome || ""}
       onConfirm={handleLossReasonConfirm}
     />
+    <LeadToClienteFlow
+      lead={lead}
+      open={leadToClienteFlowOpen}
+      onClose={() => setLeadToClienteFlowOpen(false)}
+    />
     </>
   );
 };
