@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      cobrancas: {
+        Row: {
+          created_at: string
+          data_pagamento: string | null
+          descricao: string | null
+          forma_pagamento: Database["public"]["Enums"]["payment_method"]
+          grupo_id: string | null
+          id: string
+          lead_id: string | null
+          parcela_numero: number | null
+          parcela_total: number | null
+          status: Database["public"]["Enums"]["cobranca_status"]
+          tipo: Database["public"]["Enums"]["cobranca_tipo"]
+          updated_at: string
+          user_id: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento?: string | null
+          descricao?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["payment_method"]
+          grupo_id?: string | null
+          id?: string
+          lead_id?: string | null
+          parcela_numero?: number | null
+          parcela_total?: number | null
+          status?: Database["public"]["Enums"]["cobranca_status"]
+          tipo?: Database["public"]["Enums"]["cobranca_tipo"]
+          updated_at?: string
+          user_id: string
+          valor?: number
+          vencimento: string
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string | null
+          descricao?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["payment_method"]
+          grupo_id?: string | null
+          id?: string
+          lead_id?: string | null
+          parcela_numero?: number | null
+          parcela_total?: number | null
+          status?: Database["public"]["Enums"]["cobranca_status"]
+          tipo?: Database["public"]["Enums"]["cobranca_tipo"]
+          updated_at?: string
+          user_id?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
@@ -539,6 +601,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      cobranca_status: "aguardando" | "paga" | "vencida"
+      cobranca_tipo: "unica" | "parcela" | "recorrente"
       lead_status:
         | "Novo Lead"
         | "Contato Iniciado"
@@ -547,6 +611,7 @@ export type Database = {
         | "Follow-up"
         | "Fechado Ganho"
         | "Contrato Enviado"
+      payment_method: "pix" | "cartao" | "boleto" | "transferencia" | "dinheiro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -675,6 +740,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      cobranca_status: ["aguardando", "paga", "vencida"],
+      cobranca_tipo: ["unica", "parcela", "recorrente"],
       lead_status: [
         "Novo Lead",
         "Contato Iniciado",
@@ -684,6 +751,7 @@ export const Constants = {
         "Fechado Ganho",
         "Contrato Enviado",
       ],
+      payment_method: ["pix", "cartao", "boleto", "transferencia", "dinheiro"],
     },
   },
 } as const
