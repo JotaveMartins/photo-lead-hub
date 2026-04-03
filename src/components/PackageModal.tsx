@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ const PackageModal = ({ open, onOpenChange, packageId }: PackageModalProps) => {
   const [nome, setNome] = useState("");
   const [precoFinal, setPrecoFinal] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const initialized = useRef(false);
 
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -34,17 +35,26 @@ const PackageModal = ({ open, onOpenChange, packageId }: PackageModalProps) => {
   const pkg = packages.find((p) => p.id === packageId);
   const isEditing = !!packageId;
 
+  // Only initialize once when modal opens
   useEffect(() => {
-    if (isEditing && pkg) {
+    if (!open) {
+      initialized.current = false;
+      return;
+    }
+    if (initialized.current) return;
+
+    if (isEditing && pkg && packageServices.length >= 0) {
       setNome(pkg.nome);
       setPrecoFinal(pkg.preco_final?.toString() || "");
       setSelectedServiceIds(packageServices.map((ps) => ps.service_id));
-    } else {
+      initialized.current = true;
+    } else if (!isEditing) {
       setNome("");
       setPrecoFinal("");
       setSelectedServiceIds([]);
+      initialized.current = true;
     }
-  }, [pkg, packageServices, open]);
+  }, [open, pkg, packageServices, isEditing]);
 
   const totalOriginal = useMemo(() => {
     return services
@@ -52,20 +62,27 @@ const PackageModal = ({ open, onOpenChange, packageId }: PackageModalProps) => {
       .reduce((sum, s) => sum + s.valor_base, 0);
   }, [selectedServiceIds, services]);
 
-  // Auto-fill price when no manual override
-  useEffect(() => {
-    if (!precoFinal && totalOriginal > 0) {
-      setPrecoFinal(totalOriginal.toString());
-    }
-  }, [totalOriginal]);
+  const totalCusto = useMemo(() => {
+    return services
+      .filter((s) => selectedServiceIds.includes(s.id))
+      .reduce((sum, s) => sum + (s.custo_interno || 0), 0);
+  }, [selectedServiceIds, services]);
+
+  const precoFinalNum = parseFloat(precoFinal) || 0;
+
+  const lucroEstimado = precoFinalNum > 0 ? precoFinalNum - totalCusto : totalOriginal - totalCusto;
+  const margemLucro = precoFinalNum > 0 && precoFinalNum > 0
+    ? ((lucroEstimado / precoFinalNum) * 100).toFixed(0)
+    : totalOriginal > 0
+    ? (((totalOriginal - totalCusto) / totalOriginal) * 100).toFixed(0)
+    : null;
 
   const descontoPercent = useMemo(() => {
-    const final = parseFloat(precoFinal) || 0;
-    if (totalOriginal > 0 && final > 0 && final < totalOriginal) {
-      return ((1 - final / totalOriginal) * 100).toFixed(0);
+    if (totalOriginal > 0 && precoFinalNum > 0 && precoFinalNum < totalOriginal) {
+      return ((1 - precoFinalNum / totalOriginal) * 100).toFixed(0);
     }
     return null;
-  }, [precoFinal, totalOriginal]);
+  }, [precoFinalNum, totalOriginal]);
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -98,7 +115,6 @@ const PackageModal = ({ open, onOpenChange, packageId }: PackageModalProps) => {
         pkgId = data.id;
       }
 
-      // Sync services
       if (pkgId) {
         const currentIds = packageServices.map((ps) => ps.service_id);
         const toAdd = selectedServiceIds.filter((id) => !currentIds.includes(id));
@@ -156,38 +172,56 @@ const PackageModal = ({ open, onOpenChange, packageId }: PackageModalProps) => {
             </div>
           </div>
 
-          {selectedServiceIds.length > 0 && (
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+          {/* Resumo financeiro — sempre visível */}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            {selectedServiceIds.length > 0 && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Soma dos serviços ({selectedServiceIds.length} itens)</span>
                 <span className="font-medium text-foreground">{formatCurrency(totalOriginal)}</span>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label>Preço final do pacote (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={precoFinal}
-                  onChange={(e) => setPrecoFinal(e.target.value)}
-                  placeholder="0,00"
-                  className="bg-card border-border"
-                />
-              </div>
-
-              {descontoPercent && (
-                <div className="bg-[hsl(var(--status-success))]/10 border border-[hsl(var(--status-success))]/20 rounded-lg p-2.5 text-center">
-                  <span className="text-sm font-medium text-[hsl(var(--status-success))]">
-                    💰 Desconto de {descontoPercent}% — economia de {formatCurrency(totalOriginal - (parseFloat(precoFinal) || 0))}
-                  </span>
-                </div>
-              )}
+            <div className="space-y-2">
+              <Label>Preço final do pacote (R$) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={precoFinal}
+                onChange={(e) => setPrecoFinal(e.target.value)}
+                placeholder="0,00"
+                className="bg-card border-border"
+                required
+              />
             </div>
-          )}
+
+            {descontoPercent && (
+              <div className="bg-[hsl(var(--status-success))]/10 border border-[hsl(var(--status-success))]/20 rounded-lg p-2.5 text-center">
+                <span className="text-sm font-medium text-[hsl(var(--status-success))]">
+                  💰 Desconto de {descontoPercent}% — economia de {formatCurrency(totalOriginal - precoFinalNum)}
+                </span>
+              </div>
+            )}
+
+            {selectedServiceIds.length > 0 && totalCusto > 0 && precoFinalNum > 0 && (
+              <div className="flex items-center justify-between text-sm pt-2 border-t border-border/50">
+                <span className="text-muted-foreground">Custo total de execução</span>
+                <span className="text-muted-foreground">{formatCurrency(totalCusto)}</span>
+              </div>
+            )}
+
+            {selectedServiceIds.length > 0 && totalCusto > 0 && precoFinalNum > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-foreground">Lucro estimado</span>
+                <span className={`font-bold ${lucroEstimado >= 0 ? "text-[hsl(var(--status-success))]" : "text-destructive"}`}>
+                  {formatCurrency(lucroEstimado)} ({margemLucro}%)
+                </span>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={selectedServiceIds.length === 0}>
+            <Button type="submit" className="bg-gradient-primary hover:opacity-90">
               {isEditing ? "Salvar" : "Criar pacote"}
             </Button>
           </div>
