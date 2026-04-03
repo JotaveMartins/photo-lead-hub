@@ -55,6 +55,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       pacotes: "/pacotes",
       agenda: "/agenda",
       clientes: "/clientes",
+      contratos: "/contratos",
       "financeiro/cobrancas": "/financeiro/cobrancas",
       "financeiro/despesas": "/financeiro/despesas",
       admin: "/admin",
