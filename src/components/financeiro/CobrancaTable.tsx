@@ -1,7 +1,9 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
 import type { Cobranca } from "@/hooks/useCobrancas";
 import { useUpdateCobranca, useDeleteCobranca } from "@/hooks/useCobrancas";
+import { useClientes } from "@/hooks/useClientes";
 import { toast } from "sonner";
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -27,6 +29,10 @@ interface CobrancaTableProps {
 const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
   const updateCobranca = useUpdateCobranca();
   const deleteCobranca = useDeleteCobranca();
+  const { data: clientes = [] } = useClientes();
+  const navigate = useNavigate();
+
+  const clienteMap = Object.fromEntries(clientes.map((c) => [c.id, c]));
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -91,6 +97,7 @@ const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
             <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
               <th className="text-left p-4">Descrição</th>
               <th className="text-left p-4">Valor</th>
+              <th className="text-left p-4">Cliente</th>
               <th className="text-left p-4">Parcela</th>
               <th className="text-left p-4">Forma de Pagamento</th>
               <th className="text-left p-4">Vencimento</th>
@@ -107,6 +114,18 @@ const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
                   <td className="p-4 text-foreground">{c.descricao || "—"}</td>
                   <td className="p-4 font-medium text-foreground">
                     R$ {Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="p-4">
+                    {(c as any).cliente_id && clienteMap[(c as any).cliente_id] ? (
+                      <button
+                        onClick={() => navigate(`/clientes/${(c as any).cliente_id}`)}
+                        className="text-primary hover:underline text-sm font-medium"
+                      >
+                        {clienteMap[(c as any).cliente_id].nome}
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="p-4 text-muted-foreground">
                     {c.parcela_numero && c.parcela_total
