@@ -11,6 +11,7 @@ interface InteresseSelectProps {
   placeholder?: string;
   className?: string;
   manageable?: boolean;
+  variant?: "default" | "inline";
 }
 
 const InteresseSelect = ({
