@@ -52,7 +52,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       servicos: "/servicos",
       pacotes: "/pacotes",
       agenda: "/agenda",
-      financeiro: "/financeiro",
+      "financeiro/cobrancas": "/financeiro/cobrancas",
+      "financeiro/despesas": "/financeiro/despesas",
       admin: "/admin",
     };
     navigate(routes[item] || "/leads");
