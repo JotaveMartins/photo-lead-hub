@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 import type { Cliente } from "@/hooks/useClientes";
 
 interface ClienteTableProps {
@@ -14,6 +15,7 @@ interface ClienteTableProps {
 }
 
 const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTableProps) => {
+  const navigate = useNavigate();
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -52,7 +54,7 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
         </TableHeader>
         <TableBody>
           {clientes.map((c) => (
-            <TableRow key={c.id} className="hover:bg-muted/30">
+            <TableRow key={c.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/clientes/${c.id}`)}>
               <TableCell className="font-medium text-foreground">{c.nome}</TableCell>
               <TableCell className="text-muted-foreground">{c.whatsapp || "—"}</TableCell>
               <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
@@ -60,7 +62,7 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
               <TableCell className="text-muted-foreground">
                 {format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-end gap-1">
                   <Button variant="ghost" size="icon" onClick={() => onEdit(c)} className="h-8 w-8">
                     <Pencil className="w-4 h-4" />
