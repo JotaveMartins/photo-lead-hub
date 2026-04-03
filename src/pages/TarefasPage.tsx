@@ -15,9 +15,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import LeadDetailDrawer from "@/components/LeadDetailDrawer";
 import { useAllTasks, useCompleteLeadTask, useCreateLeadTask } from "@/hooks/useLeadTasks";
 import { useLeads } from "@/hooks/useLeads";
-import { isBefore, isToday, isThisWeek, startOfDay } from "date-fns";
+import { isBefore, isToday, isThisWeek, startOfDay, isSameDay } from "date-fns";
 import { format } from "date-fns";
-import { parseLocalDate } from "@/lib/utils";
+import { ptBR } from "date-fns/locale";
+import { parseLocalDate, cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
