@@ -434,6 +434,13 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       setFollowUpModalOpen(true);
       return;
     }
+    if (pendingStatus === "Fechado Ganho") {
+      await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
+      setRequiredFieldsOpen(false);
+      setPendingStatus(null);
+      setLeadToClienteFlowOpen(true);
+      return;
+    }
     await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
     setRequiredFieldsOpen(false);
     setPendingStatus(null);
