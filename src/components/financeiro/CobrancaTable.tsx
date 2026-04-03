@@ -29,6 +29,10 @@ interface CobrancaTableProps {
 const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
   const updateCobranca = useUpdateCobranca();
   const deleteCobranca = useDeleteCobranca();
+  const { data: clientes = [] } = useClientes();
+  const navigate = useNavigate();
+
+  const clienteMap = Object.fromEntries(clientes.map((c) => [c.id, c]));
 
   const today = new Date().toISOString().split("T")[0];
 
