@@ -130,6 +130,19 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
+            <Label>Cliente</Label>
+            <select
+              value={clienteId}
+              onChange={(e) => setClienteId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">Sem cliente vinculado</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
             <Label>Descrição{type !== "unica" ? " *" : ""}</Label>
             <Input
               value={descricao}
