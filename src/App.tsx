@@ -15,6 +15,7 @@ import ComingSoon from "./components/ComingSoon";
 import DespesasPage from "./pages/DespesasPage";
 import RelatoriosPage from "./pages/RelatoriosPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
+import FinanceiroResumoPage from "./pages/FinanceiroResumoPage";
 import ClientesPage from "./pages/ClientesPage";
 import ClienteDetailPage from "./pages/ClienteDetailPage";
 import ServicosPage from "./pages/ServicosPage";
