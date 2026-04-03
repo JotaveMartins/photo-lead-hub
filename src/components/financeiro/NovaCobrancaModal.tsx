@@ -71,6 +71,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     setValorEntrada("");
     setFormaPagamentoEntrada("pix");
     setVencimentoEntrada("");
+    setSelectedItemName("");
   };
 
   // Computed values for entrada+parcelas preview
