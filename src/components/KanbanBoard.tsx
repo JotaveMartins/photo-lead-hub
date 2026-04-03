@@ -475,6 +475,13 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         leadName={lossReasonLead?.nome || ""}
         onConfirm={handleLossReasonConfirm}
       />
+
+      {/* Lead to Cliente Flow */}
+      <LeadToClienteFlow
+        lead={leadToClienteLead}
+        open={!!leadToClienteLead}
+        onClose={() => setLeadToClienteLead(null)}
+      />
     </div>
   );
 };
