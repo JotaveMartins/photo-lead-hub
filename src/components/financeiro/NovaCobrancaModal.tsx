@@ -495,4 +495,98 @@ const ClienteSearchSelect = ({ clientes, value, onChange }: ClienteSearchSelectP
   );
 };
 
+interface ItemSelectorProps {
+  onSelect: (name: string, price: number) => void;
+}
+
+const ItemSelector = ({ onSelect }: ItemSelectorProps) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const { data: services = [] } = useServices();
+  const { data: packages = [] } = usePackages();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const formatCurrency = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  const s = search.toLowerCase();
+  const filteredServices = services.filter((sv) => sv.nome.toLowerCase().includes(s));
+  const filteredPackages = packages.filter((p) => !p.is_default && p.nome.toLowerCase().includes(s));
+
+  return (
+    <div className="space-y-2">
+      <Label>Serviço ou Pacote <span className="text-muted-foreground text-xs">opcional</span></Label>
+      <div ref={ref} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-muted-foreground"
+        >
+          Vincular serviço ou pacote...
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </button>
+
+        {open && (
+          <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg">
+            <div className="p-2">
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar serviço ou pacote..."
+                className="w-full rounded-md border border-input bg-muted px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto">
+              {filteredServices.length > 0 && (
+                <>
+                  <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50">Serviços</p>
+                  {filteredServices.map((sv) => (
+                    <button
+                      type="button"
+                      key={`s-${sv.id}`}
+                      onClick={() => { onSelect(sv.nome, sv.valor_base); setOpen(false); setSearch(""); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                    >
+                      <span className="text-foreground">{sv.nome}</span>
+                      <span className="text-xs text-muted-foreground">{formatCurrency(sv.valor_base)}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+              {filteredPackages.length > 0 && (
+                <>
+                  <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50">Pacotes</p>
+                  {filteredPackages.map((p) => (
+                    <button
+                      type="button"
+                      key={`p-${p.id}`}
+                      onClick={() => { onSelect(p.nome, p.preco_final || 0); setOpen(false); setSearch(""); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                    >
+                      <span className="text-foreground">{p.nome}</span>
+                      <span className="text-xs text-muted-foreground">{p.preco_final ? formatCurrency(p.preco_final) : "—"}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+              {filteredServices.length === 0 && filteredPackages.length === 0 && (
+                <p className="px-3 py-2 text-sm text-muted-foreground text-center">Nenhum item encontrado</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default NovaCobrancaModal;
