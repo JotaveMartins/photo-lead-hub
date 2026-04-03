@@ -17,6 +17,7 @@ import FinanceiroPage from "./pages/FinanceiroPage";
 import ClientesPage from "./pages/ClientesPage";
 import ClienteDetailPage from "./pages/ClienteDetailPage";
 import ServicosPage from "./pages/ServicosPage";
+import PacotesPage from "./pages/PacotesPage";
 import { BarChart3, Wrench, Package, Calendar, DollarSign, FileText } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -48,7 +49,7 @@ const AppRoutes = () => {
       <Route path="/tarefas" element={<ProtectedRoute><TarefasPage /></ProtectedRoute>} />
       <Route path="/relatorios" element={<ProtectedRoute><RelatoriosPage /></ProtectedRoute>} />
       <Route path="/servicos" element={<ProtectedRoute><ServicosPage /></ProtectedRoute>} />
-      <Route path="/pacotes" element={<ProtectedRoute><ComingSoon title="Pacotes" icon={<Package className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/pacotes" element={<ProtectedRoute><PacotesPage /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute><ComingSoon title="Agenda" icon={<Calendar className="w-10 h-10" />} /></ProtectedRoute>} />
       <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
       <Route path="/contratos" element={<ProtectedRoute><ComingSoon title="Contratos" icon={<FileText className="w-10 h-10" />} /></ProtectedRoute>} />
