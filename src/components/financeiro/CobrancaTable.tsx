@@ -1,7 +1,9 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
 import type { Cobranca } from "@/hooks/useCobrancas";
 import { useUpdateCobranca, useDeleteCobranca } from "@/hooks/useCobrancas";
+import { useClientes } from "@/hooks/useClientes";
 import { toast } from "sonner";
 
 const PAYMENT_LABELS: Record<string, string> = {
