@@ -319,6 +319,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [followUpNextNumber, setFollowUpNextNumber] = useState(1);
   // Loss reason modal state
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
+  // Lead to cliente flow state
+  const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
