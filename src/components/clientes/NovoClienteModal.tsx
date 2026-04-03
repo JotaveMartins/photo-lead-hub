@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 
-const origemOptions = ["Instagram", "Google", "Indicação", "Facebook", "TikTok", "Site", "Outro"];
+const origemOptions = ["Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"];
 
 interface NovoClienteModalProps {
   open: boolean;
