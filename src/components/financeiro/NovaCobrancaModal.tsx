@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import DatePickerField from "@/components/DatePickerField";
 import { useCreateCobranca, useCreateCobrancasBatch } from "@/hooks/useCobrancas";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import { useClientes } from "@/hooks/useClientes";
 import { toast } from "sonner";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
@@ -29,7 +30,9 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
   const effectiveUserId = useEffectiveUserId();
   const createCobranca = useCreateCobranca();
   const createBatch = useCreateCobrancasBatch();
+  const { data: clientes = [] } = useClientes();
 
+  const [clienteId, setClienteId] = useState("");
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<PaymentMethod>("pix");
@@ -39,6 +42,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
   const isPending = createCobranca.isPending || createBatch.isPending;
 
   const resetForm = () => {
+    setClienteId("");
     setDescricao("");
     setValor("");
     setFormaPagamento("pix");
@@ -69,7 +73,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
           valor: valorNum,
           forma_pagamento: formaPagamento,
           vencimento,
-        });
+          cliente_id: clienteId || null,
+        } as any);
         toast.success("Cobrança criada com sucesso!");
       } else {
         const n = parseInt(numParcelas);
@@ -93,7 +98,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
             vencimento: dueDate.toISOString().split("T")[0],
             parcela_numero: i + 1,
             parcela_total: n,
-          });
+            cliente_id: clienteId || null,
+          } as any);
         }
         await createBatch.mutateAsync(items);
       }
@@ -123,6 +129,19 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label>Cliente</Label>
+            <select
+              value={clienteId}
+              onChange={(e) => setClienteId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">Sem cliente vinculado</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
           <div className="space-y-2">
             <Label>Descrição{type !== "unica" ? " *" : ""}</Label>
             <Input
