@@ -33,7 +33,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
   const createBatch = useCreateCobrancasBatch();
   const { data: clientes = [] } = useClientes();
 
-  const [clienteId, setClienteId] = useState("");
+  const [clienteId, setClienteId] = useState(initialClienteId || "");
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<PaymentMethod>("pix");

@@ -119,22 +119,6 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
           </div>
         )}
 
-        {/* Admin items */}
-        {showAdmin && adminMenuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeItem === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onItemClick(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
-                ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
-            >
-              <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
-              {item.label}
-            </button>
-          );
-        })}
       </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-1">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatPhone, formatCpfCnpj } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,15 @@ const origemOptions = ["Instagram", "Google", "Indicação", "Facebook", "TikTok
 interface NovoClienteModalProps {
   open: boolean;
   onClose: () => void;
+  initialData?: {
+    nome?: string;
+    whatsapp?: string;
+    origem?: string;
+  };
+  onClienteCreated?: (clienteId: string) => void;
 }
 
-const NovoClienteModal = ({ open, onClose }: NovoClienteModalProps) => {
+const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated }: NovoClienteModalProps) => {
   const effectiveUserId = useEffectiveUserId();
   const createCliente = useCreateCliente();
   const navigate = useNavigate();
@@ -39,6 +45,15 @@ const NovoClienteModal = ({ open, onClose }: NovoClienteModalProps) => {
   const [origem, setOrigem] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [showCobrancaPrompt, setShowCobrancaPrompt] = useState(false);
+
+  // Pre-fill when initialData changes
+  useEffect(() => {
+    if (initialData && open) {
+      setNome(initialData.nome || "");
+      setWhatsapp(initialData.whatsapp || "");
+      setOrigem(initialData.origem || "");
+    }
+  }, [initialData, open]);
 
   const reset = () => {
     setNome("");
@@ -54,7 +69,7 @@ const NovoClienteModal = ({ open, onClose }: NovoClienteModalProps) => {
     e.preventDefault();
     if (!effectiveUserId || !nome.trim()) return;
 
-    await createCliente.mutateAsync({
+    const result = await createCliente.mutateAsync({
       user_id: effectiveUserId,
       nome: nome.trim(),
       whatsapp: whatsapp.trim() || null,
@@ -67,7 +82,13 @@ const NovoClienteModal = ({ open, onClose }: NovoClienteModalProps) => {
 
     reset();
     onClose();
-    setShowCobrancaPrompt(true);
+
+    // If there's a callback (lead flow), use it instead of showing the prompt
+    if (onClienteCreated && result?.id) {
+      onClienteCreated(result.id);
+    } else {
+      setShowCobrancaPrompt(true);
+    }
   };
 
   return (
