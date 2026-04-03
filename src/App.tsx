@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
@@ -25,10 +26,11 @@ import { BarChart3, Wrench, Package, Calendar, DollarSign, FileText } from "luci
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
   const { user, loading } = useAuth();
+  const { isAdmin, isLoading: isRoleLoading } = useUserRole();
 
-  if (loading) {
+  if (loading || (adminOnly && isRoleLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Carregando...</div>
@@ -38,6 +40,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (adminOnly && !isAdmin) {
+    return <DashboardLayout><Navigate to="/leads" replace /></DashboardLayout>;
   }
 
   return <DashboardLayout>{children}</DashboardLayout>;
@@ -57,9 +63,9 @@ const AppRoutes = () => {
       <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
       <Route path="/contratos" element={<ProtectedRoute><ComingSoon title="Contratos" icon={<FileText className="w-10 h-10" />} /></ProtectedRoute>} />
       <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDetailPage /></ProtectedRoute>} />
-      <Route path="/financeiro/cobrancas" element={<ProtectedRoute><FinanceiroPage /></ProtectedRoute>} />
-      <Route path="/financeiro/despesas" element={<ProtectedRoute><DespesasPage /></ProtectedRoute>} />
-      <Route path="/financeiro" element={<ProtectedRoute><FinanceiroResumoPage /></ProtectedRoute>} />
+      <Route path="/financeiro/cobrancas" element={<ProtectedRoute adminOnly><FinanceiroPage /></ProtectedRoute>} />
+      <Route path="/financeiro/despesas" element={<ProtectedRoute adminOnly><DespesasPage /></ProtectedRoute>} />
+      <Route path="/financeiro" element={<ProtectedRoute adminOnly><FinanceiroResumoPage /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
