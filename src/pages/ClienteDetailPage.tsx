@@ -51,6 +51,22 @@ const ClienteDetailPage = () => {
     enabled: !!id && !!effectiveUserId,
   });
 
+  const { data: eventos = [] } = useQuery({
+    queryKey: ["events-cliente", id],
+    queryFn: async () => {
+      if (!id || !effectiveUserId) return [];
+      const { data, error } = await supabase
+        .from("events")
+        .select("*, services(nome)")
+        .eq("user_id", effectiveUserId)
+        .eq("cliente_id", id)
+        .order("data_evento", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id && !!effectiveUserId,
+  });
+
   const handleDelete = async () => {
     if (!id) return;
     if (confirm("Tem certeza que deseja excluir este cliente?")) {
