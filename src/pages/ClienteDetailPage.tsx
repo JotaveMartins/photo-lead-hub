@@ -189,6 +189,10 @@ const ClienteDetailPage = () => {
             <DollarSign className="w-4 h-4" />
             Cobranças
           </TabsTrigger>
+          <TabsTrigger value="agenda" className="gap-1.5">
+            <Calendar className="w-4 h-4" />
+            Agenda
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab: Dados */}
