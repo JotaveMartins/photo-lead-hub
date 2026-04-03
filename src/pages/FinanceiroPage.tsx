@@ -2,7 +2,6 @@ import { useState } from "react";
 import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import DashboardHeader from "@/components/DashboardHeader";
 import CobrancaCards from "@/components/financeiro/CobrancaCards";
 import CobrancaTable from "@/components/financeiro/CobrancaTable";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
