@@ -58,7 +58,7 @@ const ClienteDetailPage = () => {
       if (!id || !effectiveUserId) return [];
       const { data, error } = await supabase
         .from("events")
-        .select("*, services(nome)")
+        .select("*, services(nome, valor_base, custo_interno)")
         .eq("user_id", effectiveUserId)
         .eq("cliente_id", id)
         .order("data_evento", { ascending: true });
@@ -66,6 +66,62 @@ const ClienteDetailPage = () => {
       return data || [];
     },
     enabled: !!id && !!effectiveUserId,
+  });
+
+  // Serviços únicos contratados (via eventos)
+  const servicosContratados = (() => {
+    const map = new Map<string, { nome: string; valor_base: number; custo_interno: number | null; count: number }>();
+    eventos.forEach((ev: any) => {
+      if (ev.services && ev.service_id) {
+        const s = ev.services as { nome: string; valor_base: number; custo_interno: number | null };
+        const existing = map.get(ev.service_id);
+        if (existing) {
+          existing.count++;
+        } else {
+          map.set(ev.service_id, { nome: s.nome, valor_base: s.valor_base, custo_interno: s.custo_interno, count: 1 });
+        }
+      }
+    });
+    return Array.from(map.entries()).map(([id, v]) => ({ id, ...v }));
+  })();
+
+  // Pacotes contratados (via cobranças com descrição de pacote - from lead package)
+  const { data: pacotesContratados = [] } = useQuery({
+    queryKey: ["packages-cliente", id, effectiveUserId],
+    queryFn: async () => {
+      if (!id || !effectiveUserId) return [];
+      // Get leads that originated this client (same whatsapp/nome)
+      // and have a package_id
+      const { data: leadsData } = await supabase
+        .from("leads")
+        .select("package_id, packages(id, nome, preco_final)")
+        .eq("user_id", effectiveUserId)
+        .not("package_id", "is", null);
+      
+      if (!leadsData) return [];
+      
+      // Also check cobrancas linked to this client for package info
+      const uniquePackages = new Map<string, { nome: string; preco_final: number | null }>();
+      
+      // From cobrancas descriptions that match package names
+      const { data: pkgs } = await supabase
+        .from("packages")
+        .select("id, nome, preco_final, descricao")
+        .eq("user_id", effectiveUserId);
+      
+      if (!pkgs) return [];
+      
+      // Check which packages appear in cobrancas for this client
+      const clienteCobrancas = cobrancas.map(c => c.descricao?.toLowerCase() || "");
+      pkgs.forEach(pkg => {
+        if (clienteCobrancas.some(desc => desc.includes(pkg.nome.toLowerCase()))) {
+          uniquePackages.set(pkg.id, { nome: pkg.nome, preco_final: pkg.preco_final });
+        }
+      });
+
+      return Array.from(uniquePackages.entries()).map(([id, v]) => ({ id, ...v }));
+    },
+    enabled: !!id && !!effectiveUserId && cobrancas.length >= 0,
   });
 
   const handleDelete = async () => {
