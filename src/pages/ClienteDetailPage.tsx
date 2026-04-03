@@ -288,6 +288,47 @@ const ClienteDetailPage = () => {
             <span>Atualizado em {format(new Date(cliente.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
           </div>
         </TabsContent>
+
+        {/* Tab: Agenda */}
+        <TabsContent value="agenda" className="mt-4">
+          {eventos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Calendar className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-medium text-muted-foreground">Nenhum evento agendado</p>
+              <p className="text-sm text-muted-foreground/70">Crie eventos na página Agenda</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/agenda")}>
+                Ir para Agenda
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {eventos.map((ev: any) => (
+                <div key={ev.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{ev.titulo}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(ev.data_evento), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {ev.tipo && ev.tipo !== "Evento" && ` • ${ev.tipo}`}
+                    </p>
+                    {ev.local && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3" />
+                        {ev.local}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    {ev.services && (
+                      <span className="text-xs text-primary font-medium">
+                        {(ev.services as { nome: string }).nome}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       <EditClienteModal open={editOpen} onClose={() => setEditOpen(false)} cliente={cliente} />
