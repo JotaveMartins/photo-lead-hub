@@ -57,7 +57,7 @@ const AppRoutes = () => {
       <Route path="/contratos" element={<ProtectedRoute><ComingSoon title="Contratos" icon={<FileText className="w-10 h-10" />} /></ProtectedRoute>} />
       <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDetailPage /></ProtectedRoute>} />
       <Route path="/financeiro/cobrancas" element={<ProtectedRoute><FinanceiroPage /></ProtectedRoute>} />
-      <Route path="/financeiro/despesas" element={<ProtectedRoute><ComingSoon title="Despesas" icon={<DollarSign className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/financeiro/despesas" element={<ProtectedRoute><DespesasPage /></ProtectedRoute>} />
       <Route path="/financeiro" element={<Navigate to="/financeiro/cobrancas" replace />} />
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
