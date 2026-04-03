@@ -14,8 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      clientes: {
+        Row: {
+          cpf_cnpj: string | null
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          origem: string | null
+          updated_at: string | null
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          origem?: string | null
+          updated_at?: string | null
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          origem?: string | null
+          updated_at?: string | null
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       cobrancas: {
         Row: {
+          cliente_id: string | null
           created_at: string
           data_pagamento: string | null
           descricao: string | null
@@ -33,6 +76,7 @@ export type Database = {
           vencimento: string
         }
         Insert: {
+          cliente_id?: string | null
           created_at?: string
           data_pagamento?: string | null
           descricao?: string | null
@@ -50,6 +94,7 @@ export type Database = {
           vencimento: string
         }
         Update: {
+          cliente_id?: string | null
           created_at?: string
           data_pagamento?: string | null
           descricao?: string | null
@@ -67,6 +112,13 @@ export type Database = {
           vencimento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cobrancas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cobrancas_lead_id_fkey"
             columns: ["lead_id"]
