@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Plus, Package, Search, Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Package, Search, Pencil, Trash2, MoreHorizontal, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePackages, useDeletePackage } from "@/hooks/usePackages";
+import { useServices } from "@/hooks/useServices";
+import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import PackageModal from "@/components/PackageModal";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -19,14 +21,20 @@ const PacotesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: packages = [], isLoading } = usePackages();
+  const { data: services = [] } = useServices();
   const deletePackage = useDeletePackage();
 
   const filtered = packages.filter((p) =>
-    p.nome.toLowerCase().includes(searchQuery.toLowerCase())
+    !p.is_default && p.nome.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatCurrency = (value: number | null) =>
     value ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value) : "—";
+
+  const totalPacotes = packages.filter(p => !p.is_default).length;
+  const ticketMedio = totalPacotes > 0
+    ? packages.filter(p => !p.is_default && p.preco_final).reduce((sum, p) => sum + (p.preco_final || 0), 0) / totalPacotes
+    : 0;
 
   return (
     <>
@@ -36,7 +44,7 @@ const PacotesPage = () => {
             <Package className="w-8 h-8 text-primary" />
             Pacotes
           </h1>
-          <p className="text-muted-foreground mt-1">{packages.length} pacotes cadastrados</p>
+          <p className="text-muted-foreground mt-1">Monte pacotes combinando seus serviços</p>
         </div>
         <Button
           onClick={() => { setEditingPackageId(null); setIsModalOpen(true); }}
@@ -47,9 +55,31 @@ const PacotesPage = () => {
         </Button>
       </header>
 
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="bg-card border border-border rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Package className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Total de pacotes</p>
+            <p className="text-2xl font-bold text-foreground">{totalPacotes}</p>
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[hsl(var(--status-success))]/10 flex items-center justify-center">
+            <TrendingUp className="w-6 h-6 text-[hsl(var(--status-success))]" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Ticket médio</p>
+            <p className="text-2xl font-bold text-foreground">{formatCurrency(ticketMedio)}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-in">
         <div className="p-4 border-b border-border">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar pacote..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-muted border-border" />
           </div>
@@ -60,7 +90,7 @@ const PacotesPage = () => {
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pacote</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoria</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Serviços</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preço Final</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ações</th>
               </tr>
@@ -69,40 +99,24 @@ const PacotesPage = () => {
               {isLoading ? (
                 <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Carregando...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nenhum pacote encontrado.</td></tr>
-              ) : filtered.map((pkg: any) => (
-                <tr key={pkg.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-4">
-                    <div>
-                      <p className="font-medium text-foreground">{pkg.nome}</p>
-                      {pkg.descricao && <p className="text-sm text-muted-foreground line-clamp-1">{pkg.descricao}</p>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="text-sm px-2 py-1 rounded-full bg-primary/10 text-primary">{pkg.categoria || "—"}</span>
-                  </td>
-                  <td className="px-4 py-4 text-sm text-foreground">{formatCurrency(pkg.preco_final)}</td>
-                  <td className="px-4 py-4 text-right">
-                    {!pkg.is_default && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setEditingPackageId(pkg.id); setIsModalOpen(true); }}>
-                            <Pencil className="w-4 h-4 mr-2" />Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeletingId(pkg.id)}>
-                            <Trash2 className="w-4 h-4 mr-2" />Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </td>
-                </tr>
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                  {totalPacotes === 0 ? "Nenhum pacote cadastrado." : "Nenhum pacote encontrado."}
+                </td></tr>
+              ) : filtered.map((pkg) => (
+                <PackageRow
+                  key={pkg.id}
+                  pkg={pkg}
+                  services={services}
+                  formatCurrency={formatCurrency}
+                  onEdit={() => { setEditingPackageId(pkg.id); setIsModalOpen(true); }}
+                  onDelete={() => setDeletingId(pkg.id)}
+                />
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="p-4 border-t border-border text-sm text-muted-foreground">
+          Mostrando {filtered.length} de {totalPacotes} pacotes
         </div>
       </div>
 
@@ -121,6 +135,53 @@ const PacotesPage = () => {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+};
+
+// Sub-component to load package services per row
+const PackageRow = ({ pkg, services, formatCurrency, onEdit, onDelete }: {
+  pkg: any;
+  services: any[];
+  formatCurrency: (v: number | null) => string;
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
+  const { data: packageServices = [] } = usePackageServicesForPackage(pkg.id);
+  const serviceNames = packageServices
+    .map((ps) => services.find((s) => s.id === ps.service_id)?.nome)
+    .filter(Boolean);
+
+  return (
+    <tr className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+      <td className="px-4 py-4">
+        <p className="font-medium text-foreground">{pkg.nome}</p>
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex flex-wrap gap-1.5">
+          {serviceNames.length === 0 ? (
+            <span className="text-sm text-muted-foreground">—</span>
+          ) : serviceNames.map((name, i) => (
+            <span key={i} className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">{name}</span>
+          ))}
+        </div>
+      </td>
+      <td className="px-4 py-4 text-sm font-medium text-foreground">{formatCurrency(pkg.preco_final)}</td>
+      <td className="px-4 py-4 text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil className="w-4 h-4 mr-2" />Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+    </tr>
   );
 };
 
