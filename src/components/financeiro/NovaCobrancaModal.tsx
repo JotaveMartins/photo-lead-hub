@@ -501,9 +501,10 @@ const ClienteSearchSelect = ({ clientes, value, onChange }: ClienteSearchSelectP
 
 interface ItemSelectorProps {
   onSelect: (name: string, price: number) => void;
+  selectedName: string;
 }
 
-const ItemSelector = ({ onSelect }: ItemSelectorProps) => {
+const ItemSelector = ({ onSelect, selectedName }: ItemSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
