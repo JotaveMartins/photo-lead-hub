@@ -29,7 +29,6 @@ const AgendaPage = () => {
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [hora, setHora] = useState("10:00");
   const [modalDate, setModalDate] = useState<Date | undefined>(undefined);
-  const [clienteSearch, setClienteSearch] = useState("");
   const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
   const [filter, setFilter] = useState<FilterKey>("proximos");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
