@@ -131,6 +131,71 @@ export type Database = {
           },
         ]
       }
+      despesas: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string
+          evento_id: string | null
+          forma_pagamento: Database["public"]["Enums"]["payment_method"]
+          grupo_id: string | null
+          id: string
+          observacoes: string | null
+          parcela_numero: number | null
+          parcela_total: number | null
+          recorrente: boolean
+          status: Database["public"]["Enums"]["despesa_status"]
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          data: string
+          descricao: string
+          evento_id?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["payment_method"]
+          grupo_id?: string | null
+          id?: string
+          observacoes?: string | null
+          parcela_numero?: number | null
+          parcela_total?: number | null
+          recorrente?: boolean
+          status?: Database["public"]["Enums"]["despesa_status"]
+          updated_at?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          evento_id?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["payment_method"]
+          grupo_id?: string | null
+          id?: string
+          observacoes?: string | null
+          parcela_numero?: number | null
+          parcela_total?: number | null
+          recorrente?: boolean
+          status?: Database["public"]["Enums"]["despesa_status"]
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           cliente_id: string | null
@@ -681,6 +746,7 @@ export type Database = {
       app_role: "admin" | "user"
       cobranca_status: "aguardando" | "paga" | "vencida"
       cobranca_tipo: "unica" | "parcela" | "recorrente"
+      despesa_status: "paga" | "prevista"
       lead_status:
         | "Novo Lead"
         | "Contato Iniciado"
@@ -820,6 +886,7 @@ export const Constants = {
       app_role: ["admin", "user"],
       cobranca_status: ["aguardando", "paga", "vencida"],
       cobranca_tipo: ["unica", "parcela", "recorrente"],
+      despesa_status: ["paga", "prevista"],
       lead_status: [
         "Novo Lead",
         "Contato Iniciado",
