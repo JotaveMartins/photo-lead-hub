@@ -54,7 +54,7 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
         </TableHeader>
         <TableBody>
           {clientes.map((c) => (
-            <TableRow key={c.id} className="hover:bg-muted/30">
+            <TableRow key={c.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/clientes/${c.id}`)}>
               <TableCell className="font-medium text-foreground">{c.nome}</TableCell>
               <TableCell className="text-muted-foreground">{c.whatsapp || "—"}</TableCell>
               <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
