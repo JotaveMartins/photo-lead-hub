@@ -1,92 +1,49 @@
 
 
-## Plano: Módulo de Clientes (sem integração com leads)
+## Plano: Integração Lead → Cliente + Aba Contratos na Sidebar + Reposicionar Admin
 
-### Escopo
-Criar a seção de Clientes no CRM: tabela no banco, sidebar, página com cards de resumo, tabela listando clientes, modal de criação/edição e popup pós-criação perguntando se quer criar cobrança.
+### 3 entregas
 
-**Sem** integração automática com leads por enquanto.
+---
 
-### 1. Banco de dados — migration
+### 1. Fluxo "Fechado Ganho" → Criar Cliente → Criar Cobrança
 
-```sql
-CREATE TABLE public.clientes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
-  nome TEXT NOT NULL,
-  email TEXT,
-  whatsapp TEXT,
-  cpf_cnpj TEXT,
-  endereco TEXT,
-  origem TEXT,
-  observacoes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+Quando um lead for movido para "Fechado Ganho" (tanto no Kanban por drag-and-drop quanto no Drawer por seleção de status), em vez de apenas atualizar o status, o sistema vai:
 
-ALTER TABLE public.clientes ENABLE ROW LEVEL SECURITY;
+1. **Atualizar o status** do lead para "Fechado Ganho" normalmente
+2. **Abrir um modal de criação de cliente** pré-preenchido com os dados do lead (nome, whatsapp, origem)
+3. Após criar o cliente, **abrir o modal de criação de cobrança** com o cliente já vinculado
 
--- RLS: mesmo padrão das outras tabelas
-CREATE POLICY "Users manage own clientes" ON public.clientes FOR ALL TO authenticated
-  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Admins manage all clientes" ON public.clientes FOR ALL TO authenticated
-  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
+**Arquivos editados:**
+- `src/components/KanbanBoard.tsx` — adicionar estado para o modal de cliente pós-ganho, interceptar `moveLeadToStatus` quando status = "Fechado Ganho" para abrir o modal após a mutation
+- `src/components/LeadDetailDrawer.tsx` — mesma lógica no `handleStatusChange` e `handleRequiredFieldsConfirm`
+- `src/components/clientes/NovoClienteModal.tsx` — aceitar props opcionais `initialData` (nome, whatsapp, origem) para pré-preencher, e um callback `onClienteCreated(clienteId)` além do fluxo atual de cobrança
 
--- Trigger updated_at
-CREATE TRIGGER update_clientes_updated_at
-  BEFORE UPDATE ON public.clientes
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+**Novo componente:**
+- `src/components/LeadToClienteFlow.tsx` — componente que orquestra o fluxo em 2 passos (criar cliente → criar cobrança), reutilizando os modais existentes. Recebe o lead como prop e controla a sequência.
 
--- Adicionar cliente_id na tabela cobrancas
-ALTER TABLE public.cobrancas ADD COLUMN cliente_id UUID REFERENCES public.clientes(id) ON DELETE SET NULL;
-```
+### 2. Aba "Contratos" na Sidebar
 
-### 2. Sidebar — adicionar "Clientes"
+- Adicionar item `{ id: 'contratos', label: 'Contratos', icon: FileText }` no `baseMenuItems` do `Sidebar.tsx`
+- Adicionar rota `/contratos` no `App.tsx` apontando para `ComingSoon` com ícone de FileText
+- Mapear no `DashboardLayout.tsx` o `getActiveItem`
 
-- Novo item `{ id: 'clientes', label: 'Clientes', icon: UserCheck }` após "Agenda" no `baseMenuItems`.
-- Visível para todos os usuários.
+### 3. Reposicionar menu Admin (Clientes) mais para baixo
 
-### 3. Rota
+No `Sidebar.tsx`, mover a renderização dos `adminMenuItems` para **depois** do bloco Financeiro, ficando como último item antes do botão "Sair". Atualmente ele já fica depois do Financeiro, mas vou garantir que fique separado com um pequeno divisor visual ou espaço extra.
 
-- `App.tsx`: nova rota `/clientes` → `ClientesPage`.
-- `DashboardLayout.tsx`: adicionar mapeamento no `getActiveItem` e `handleItemClick`.
+---
 
-### 4. Hook `useClientes`
+### Resumo de arquivos
 
-- `useClientes()` — listar clientes do usuário com busca.
-- `useCreateCliente()` — criar cliente.
-- `useUpdateCliente()` — editar.
-- `useDeleteCliente()` — excluir.
-- Segue o padrão do `useCobrancas`.
-
-### 5. Página `ClientesPage`
-
-- **Header**: título "Clientes" + botão "+ Novo Cliente".
-- **Cards de resumo**: Total de Clientes, Novos este Mês.
-- **Barra de busca** por nome/email/whatsapp.
-- **Tabela**: Nome, WhatsApp, Email, Origem, Data de cadastro, Ações (editar/excluir).
-- **Estado vazio**: ilustração + botão de cadastrar.
-
-### 6. Modal `NovoClienteModal`
-
-Campos: Nome (obrigatório), WhatsApp, Email, CPF/CNPJ, Endereço, Origem (select com opções como Instagram, Google, Indicação etc.), Observações.
-
-Ao salvar com sucesso → toast de sucesso + popup: **"Deseja criar uma cobrança para este cliente?"** (Sim → navega para `/financeiro/cobrancas` com modal aberto / Não → fecha).
-
-### 7. Modal `EditClienteModal`
-
-Mesmo formulário do NovoClienteModal, pré-preenchido com dados existentes.
-
-### Arquivos novos
-- `src/hooks/useClientes.ts`
-- `src/pages/ClientesPage.tsx`
-- `src/components/clientes/NovoClienteModal.tsx`
-- `src/components/clientes/EditClienteModal.tsx`
-- `src/components/clientes/ClienteCards.tsx`
-- `src/components/clientes/ClienteTable.tsx`
-
-### Arquivos editados
-- `src/components/Sidebar.tsx` — novo item
-- `src/App.tsx` — nova rota
-- `src/components/DashboardLayout.tsx` — mapeamento da rota
+| Arquivo | Ação |
+|---|---|
+| `src/components/Sidebar.tsx` | Adicionar "Contratos", reposicionar Admin |
+| `src/components/DashboardLayout.tsx` | Mapear rota contratos |
+| `src/App.tsx` | Rota /contratos → ComingSoon |
+| `src/components/KanbanBoard.tsx` | Fluxo pós-ganho |
+| `src/components/LeadDetailDrawer.tsx` | Fluxo pós-ganho |
+| `src/components/clientes/NovoClienteModal.tsx` | Props initialData + onClienteCreated |
+| `src/components/financeiro/NovaCobrancaModal.tsx` | Aceitar clienteId pré-selecionado via prop |
+| `src/components/LeadToClienteFlow.tsx` | Novo — orquestrador do fluxo |
 
