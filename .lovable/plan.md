@@ -1,20 +1,24 @@
 
 
-## Correção: Select do Radix travando dentro de Dialogs
+## Plano: Unificar "Parcelas" e "Recorrente" em apenas duas opções
 
-### Causa raiz
-O componente `SelectContent` (em `src/components/ui/select.tsx`, linha 65) usa `SelectPrimitive.Portal` para renderizar o dropdown **fora** do DOM do Dialog. O focus trap do Dialog detecta que o foco saiu e puxa de volta, criando o loop infinito que trava o Chrome. O texto concatenado ("Selecione a origemInstagram") é o render glitchado desse loop.
+### O que muda
+Remover a opção "Cobrança recorrente" do dropdown e do modal, mantendo apenas **"Cobrança única"** e **"Criar parcelas"**.
 
-### Correção (1 arquivo)
+### Alterações
 
-**`src/components/ui/select.tsx`** (linha 65):
-- Remover o wrapper `SelectPrimitive.Portal` do `SelectContent`
-- Sem o Portal, o conteúdo do Select fica dentro do DOM do Dialog, e o focus trap não detecta que o foco "saiu" — eliminando o conflito
+**1. `src/pages/FinanceiroPage.tsx`**
+- Remover `"recorrente"` do tipo `ModalType` (fica `"unica" | "parcelas"`)
+- Remover o terceiro botão do dropdown ("Cobrança recorrente")
 
-Essa é a correção recomendada pela própria documentação do Radix para o uso de Select dentro de Dialog. Afeta todos os Selects do sistema de uma vez, incluindo Origem, Status, e qualquer outro Select usado dentro de modais.
+**2. `src/components/financeiro/NovaCobrancaModal.tsx`**
+- Remover `"recorrente"` do tipo `ModalType`
+- Remover estados `frequencia` e `quantidade`
+- Remover todo o bloco condicional `{type === "recorrente" && ...}` (linhas 238-302)
+- Remover a função `previewDates()`
+- Remover entradas de `titles`/`subtitles` para `"recorrente"`
+- Remover o branch `else` do `handleSubmit` que trata recorrente (linhas 106-133)
+- Ajustar texto do botão de submit (remover condição de recorrente)
 
-### Impacto
-- Corrige o travamento do campo Origem no LeadModal
-- Corrige preventivamente qualquer outro Select dentro de Dialog/Sheet no sistema
-- Zero mudança visual — o dropdown continua aparecendo no mesmo lugar graças ao `position="popper"`
+Nenhuma alteração no banco de dados é necessária — o enum `cobranca_tipo` pode manter o valor `recorrente` sem impacto.
 
