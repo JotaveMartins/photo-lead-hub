@@ -25,10 +25,10 @@ const baseMenuItems = [
   { id: 'servicos', label: 'Serviços', icon: Wrench },
   { id: 'pacotes', label: 'Pacotes', icon: Package },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
-  { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
 ];
 
 const adminMenuItems = [
+  { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
   { id: 'admin', label: 'Clientes', icon: UserCog },
 ];
 
