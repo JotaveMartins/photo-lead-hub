@@ -11,12 +11,6 @@ interface ServiceModalProps {
   service?: Service | null;
 }
 
-const SUGGESTION_CHIPS = [
-  "Pré-wedding", "Pós-wedding", "Trash the dress", "Ensaio lifestyle",
-  "Ensaio gestante", "Ensaio família", "Making of", "Álbum de fotos",
-  "Vídeo de casamento", "Drone", "Cobertura de evento", "Ensaio newborn",
-  "Ensaio infantil", "Formaturas", "Corporativo", "Batizado",
-];
 
 const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
   const [nome, setNome] = useState("");

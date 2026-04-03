@@ -138,6 +138,7 @@ export type Database = {
           descricao: string | null
           id: string
           lead_id: string | null
+          local: string | null
           tipo: string
           titulo: string
           user_id: string
@@ -148,6 +149,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           lead_id?: string | null
+          local?: string | null
           tipo?: string
           titulo: string
           user_id: string
@@ -158,6 +160,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           lead_id?: string | null
+          local?: string | null
           tipo?: string
           titulo?: string
           user_id?: string
