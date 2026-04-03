@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Receipt,
   TrendingDown,
+  FileText,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
