@@ -204,6 +204,14 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             value={clienteId}
             onChange={setClienteId}
           />
+
+          <ItemSelector
+            onSelect={(name, price) => {
+              setDescricao(name);
+              setValor(String(price));
+            }}
+          />
+
           <div className="space-y-2">
             <Label>Descrição{type !== "unica" ? " *" : ""}</Label>
             <Input
