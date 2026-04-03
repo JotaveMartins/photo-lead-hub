@@ -12,6 +12,7 @@ import TarefasPage from "./pages/TarefasPage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./components/ComingSoon";
+import DespesasPage from "./pages/DespesasPage";
 import RelatoriosPage from "./pages/RelatoriosPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
 import ClientesPage from "./pages/ClientesPage";
