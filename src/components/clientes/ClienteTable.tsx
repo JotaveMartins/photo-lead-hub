@@ -62,7 +62,7 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
               <TableCell className="text-muted-foreground">
                 {format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-end gap-1">
                   <Button variant="ghost" size="icon" onClick={() => onEdit(c)} className="h-8 w-8">
                     <Pencil className="w-4 h-4" />
