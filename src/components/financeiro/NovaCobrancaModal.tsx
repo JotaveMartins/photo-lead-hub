@@ -98,7 +98,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
             vencimento: dueDate.toISOString().split("T")[0],
             parcela_numero: i + 1,
             parcela_total: n,
-          });
+            cliente_id: clienteId || null,
+          } as any);
         }
         await createBatch.mutateAsync(items);
       }
