@@ -83,6 +83,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   // Loss reason modal state
   const [lossReasonLead, setLossReasonLead] = useState<Lead | null>(null);
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
+  // Lead to cliente flow state
+  const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
