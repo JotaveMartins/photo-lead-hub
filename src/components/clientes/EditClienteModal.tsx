@@ -70,7 +70,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>WhatsApp</Label>
-              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+              <Input value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} maxLength={15} />
             </div>
             <div>
               <Label>Email</Label>
