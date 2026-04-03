@@ -8,6 +8,7 @@ import {
   Package,
   Calendar,
   DollarSign,
+  UserCheck,
   ChevronDown,
   Receipt,
   TrendingDown,
