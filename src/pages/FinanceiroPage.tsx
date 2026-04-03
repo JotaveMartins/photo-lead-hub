@@ -112,13 +112,6 @@ const FinanceiroPage = () => {
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     Criar parcelas
                   </button>
-                  <button
-                    onClick={() => openModal("recorrente")}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground"
-                  >
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    Cobrança recorrente
-                  </button>
                 </div>
               </>
             )}
