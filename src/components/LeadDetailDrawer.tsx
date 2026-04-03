@@ -404,6 +404,11 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       setFollowUpModalOpen(true);
       return;
     }
+    if (status === "Fechado Ganho") {
+      await updateLead.mutateAsync({ id: lead.id, status });
+      setLeadToClienteFlowOpen(true);
+      return;
+    }
     await updateLead.mutateAsync({ id: lead.id, status });
   };
 
