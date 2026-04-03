@@ -380,48 +380,11 @@ const AgendaPage = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Cliente</Label>
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={clienteSearch}
-                  onChange={(e) => {
-                    setClienteSearch(e.target.value);
-                    if (!e.target.value) setSelectedClienteId("");
-                  }}
-                  placeholder="Buscar cliente..."
-                  className="bg-muted border-border pl-8"
-                />
-              </div>
-              {clienteSearch && !selectedClienteId && filteredClientes.length > 0 && (
-                <div className="max-h-32 overflow-y-auto rounded-md border border-border bg-muted">
-                  {filteredClientes.slice(0, 5).map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedClienteId(c.id);
-                        setClienteSearch(c.nome);
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex justify-between"
-                    >
-                      <span>{c.nome}</span>
-                      {c.whatsapp && <span className="text-xs text-muted-foreground">{c.whatsapp}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedClienteId && (
-                <button
-                  type="button"
-                  onClick={() => { setSelectedClienteId(""); setClienteSearch(""); }}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Limpar seleção
-                </button>
-              )}
-            </div>
+            <ClienteSearchSelect
+              clientes={clientes}
+              value={selectedClienteId}
+              onChange={setSelectedClienteId}
+            />
 
             <div className="space-y-2">
               <Label>Serviço</Label>
