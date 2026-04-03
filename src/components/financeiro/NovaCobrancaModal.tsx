@@ -24,9 +24,10 @@ interface NovaCobrancaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: ModalType;
+  initialClienteId?: string;
 }
 
-const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps) => {
+const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaCobrancaModalProps) => {
   const effectiveUserId = useEffectiveUserId();
   const createCobranca = useCreateCobranca();
   const createBatch = useCreateCobrancasBatch();
