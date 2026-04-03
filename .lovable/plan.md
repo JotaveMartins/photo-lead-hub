@@ -1,36 +1,42 @@
 
 
-## Plano: Integração Lead → Cliente + Aba Contratos na Sidebar + Reposicionar Admin
+## Plano: Melhorar Agenda + Remover sugestões do modal de Serviços
 
-### 3 entregas
+### 1. Modal de Serviços — remover chips de sugestão
+
+Remover o array `SUGGESTION_CHIPS` e todo o bloco de chips do `ServiceModal.tsx`. O campo "Nome do serviço" continua como input livre.
+
+**Arquivo:** `src/components/ServiceModal.tsx`
 
 ---
 
-### 1. Fluxo "Fechado Ganho" → Criar Cliente → Criar Cobrança
+### 2. Agenda — campo "Tipo" livre (digitável pelo usuário)
 
-Quando um lead for movido para "Fechado Ganho" (tanto no Kanban por drag-and-drop quanto no Drawer por seleção de status), em vez de apenas atualizar o status, o sistema vai:
+Atualmente o tipo do evento é um `<select>` com 3 opções fixas (Evento, Follow-up, Reunião). Vamos trocar por um **input de texto livre** onde o fotógrafo digita o que quiser (ex: "Casamento", "Ensaio Pré-Wedding", "Visita Técnica").
 
-1. **Atualizar o status** do lead para "Fechado Ganho" normalmente
-2. **Abrir um modal de criação de cliente** pré-preenchido com os dados do lead (nome, whatsapp, origem)
-3. Após criar o cliente, **abrir o modal de criação de cobrança** com o cliente já vinculado
+- Trocar o `<select>` por um `<Input>` com placeholder "Ex: Casamento, Reunião..."
+- Manter o campo como opcional — se não preencher, salva como "Evento" por padrão
+- Adicionar campo **Local do evento** (input texto, opcional) ao modal, referenciando a imagem enviada
+- Adicionar campo **Data** com DatePicker no modal (atualmente usa apenas a data selecionada no calendário, o que pode ser confuso)
 
-**Arquivos editados:**
-- `src/components/KanbanBoard.tsx` — adicionar estado para o modal de cliente pós-ganho, interceptar `moveLeadToStatus` quando status = "Fechado Ganho" para abrir o modal após a mutation
-- `src/components/LeadDetailDrawer.tsx` — mesma lógica no `handleStatusChange` e `handleRequiredFieldsConfirm`
-- `src/components/clientes/NovoClienteModal.tsx` — aceitar props opcionais `initialData` (nome, whatsapp, origem) para pré-preencher, e um callback `onClienteCreated(clienteId)` além do fluxo atual de cobrança
+**Arquivos:** `src/pages/AgendaPage.tsx`
 
-**Novo componente:**
-- `src/components/LeadToClienteFlow.tsx` — componente que orquestra o fluxo em 2 passos (criar cliente → criar cobrança), reutilizando os modais existentes. Recebe o lead como prop e controla a sequência.
+---
 
-### 2. Aba "Contratos" na Sidebar
+### 3. Exibir local e excluir eventos na listagem lateral
 
-- Adicionar item `{ id: 'contratos', label: 'Contratos', icon: FileText }` no `baseMenuItems` do `Sidebar.tsx`
-- Adicionar rota `/contratos` no `App.tsx` apontando para `ComingSoon` com ícone de FileText
-- Mapear no `DashboardLayout.tsx` o `getActiveItem`
+- Mostrar o local do evento (se preenchido) no card do evento na listagem da data selecionada
+- Adicionar botão de excluir evento (já existe `useDeleteEvent` no hook)
 
-### 3. Reposicionar menu Admin (Clientes) mais para baixo
+**Arquivo:** `src/pages/AgendaPage.tsx`
 
-No `Sidebar.tsx`, mover a renderização dos `adminMenuItems` para **depois** do bloco Financeiro, ficando como último item antes do botão "Sair". Atualmente ele já fica depois do Financeiro, mas vou garantir que fique separado com um pequeno divisor visual ou espaço extra.
+---
+
+### 4. Migration — adicionar coluna `local` na tabela events
+
+```sql
+ALTER TABLE public.events ADD COLUMN local text;
+```
 
 ---
 
@@ -38,12 +44,7 @@ No `Sidebar.tsx`, mover a renderização dos `adminMenuItems` para **depois** do
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/Sidebar.tsx` | Adicionar "Contratos", reposicionar Admin |
-| `src/components/DashboardLayout.tsx` | Mapear rota contratos |
-| `src/App.tsx` | Rota /contratos → ComingSoon |
-| `src/components/KanbanBoard.tsx` | Fluxo pós-ganho |
-| `src/components/LeadDetailDrawer.tsx` | Fluxo pós-ganho |
-| `src/components/clientes/NovoClienteModal.tsx` | Props initialData + onClienteCreated |
-| `src/components/financeiro/NovaCobrancaModal.tsx` | Aceitar clienteId pré-selecionado via prop |
-| `src/components/LeadToClienteFlow.tsx` | Novo — orquestrador do fluxo |
+| `src/components/ServiceModal.tsx` | Remover SUGGESTION_CHIPS e bloco de chips |
+| `src/pages/AgendaPage.tsx` | Tipo livre, campo local, date picker, botão excluir |
+| Migration SQL | Adicionar coluna `local` |
 
