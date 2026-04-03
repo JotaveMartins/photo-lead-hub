@@ -88,15 +88,23 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
         {/* Financeiro expandable group */}
         {showFinanceiro && (
           <div>
-            <button
-              onClick={() => setFinanceiroOpen(!financeiroOpen)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
-                ${isFinanceiroActive ? 'text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
-            >
-              <DollarSign className={`w-5 h-5 ${isFinanceiroActive ? 'text-primary' : 'group-hover:text-primary'}`} />
-              Financeiro
-              <ChevronDown className={`w-4 h-4 ml-auto transition-transform duration-200 ${financeiroOpen ? 'rotate-180' : ''}`} />
-            </button>
+            <div className="flex items-center">
+              <button
+                onClick={() => onItemClick('financeiro')}
+                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-l-lg text-sm font-medium transition-all duration-200 group
+                  ${activeItem === 'financeiro' ? 'bg-primary text-primary-foreground shadow-glow' : isFinanceiroActive ? 'text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+              >
+                <DollarSign className={`w-5 h-5 ${activeItem === 'financeiro' || isFinanceiroActive ? '' : 'group-hover:text-primary'}`} />
+                Financeiro
+              </button>
+              <button
+                onClick={() => setFinanceiroOpen(!financeiroOpen)}
+                className={`px-2 py-3 rounded-r-lg text-sm transition-all duration-200
+                  ${activeItem === 'financeiro' ? 'bg-primary text-primary-foreground' : isFinanceiroActive ? 'text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent'}`}
+              >
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${financeiroOpen ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
             {financeiroOpen && (
               <div className="ml-4 mt-1 space-y-1">
                 {financeiroSubItems.map((item) => {

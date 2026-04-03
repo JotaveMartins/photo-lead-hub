@@ -15,6 +15,7 @@ import ComingSoon from "./components/ComingSoon";
 import DespesasPage from "./pages/DespesasPage";
 import RelatoriosPage from "./pages/RelatoriosPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
+import FinanceiroResumoPage from "./pages/FinanceiroResumoPage";
 import ClientesPage from "./pages/ClientesPage";
 import ClienteDetailPage from "./pages/ClienteDetailPage";
 import ServicosPage from "./pages/ServicosPage";
@@ -58,7 +59,7 @@ const AppRoutes = () => {
       <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDetailPage /></ProtectedRoute>} />
       <Route path="/financeiro/cobrancas" element={<ProtectedRoute><FinanceiroPage /></ProtectedRoute>} />
       <Route path="/financeiro/despesas" element={<ProtectedRoute><DespesasPage /></ProtectedRoute>} />
-      <Route path="/financeiro" element={<Navigate to="/financeiro/cobrancas" replace />} />
+      <Route path="/financeiro" element={<ProtectedRoute><FinanceiroResumoPage /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
