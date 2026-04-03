@@ -69,7 +69,10 @@ const InteresseSelect = ({
         aria-label={placeholder}
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
-        className="h-10 w-full rounded-md border border-border bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className={variant === "inline"
+          ? "w-full bg-transparent border-0 p-0 px-1 py-0.5 -mx-1 h-auto text-sm text-foreground cursor-pointer hover:bg-muted/50 rounded focus:outline-none focus:ring-1 focus:ring-ring"
+          : "h-10 w-full rounded-md border border-border bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        }
       >
         <option value="">{optionsLoading ? "Carregando..." : placeholder}</option>
         {options.map((opt) => (
