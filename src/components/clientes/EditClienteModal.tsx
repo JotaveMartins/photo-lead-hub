@@ -29,9 +29,9 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
   useEffect(() => {
     if (cliente) {
       setNome(cliente.nome);
-      setWhatsapp(cliente.whatsapp || "");
+      setWhatsapp(cliente.whatsapp ? formatPhone(cliente.whatsapp) : "");
       setEmail(cliente.email || "");
-      setCpfCnpj(cliente.cpf_cnpj || "");
+      setCpfCnpj(cliente.cpf_cnpj ? formatCpfCnpj(cliente.cpf_cnpj) : "");
       setEndereco(cliente.endereco || "");
       setOrigem(cliente.origem || "");
       setObservacoes(cliente.observacoes || "");
