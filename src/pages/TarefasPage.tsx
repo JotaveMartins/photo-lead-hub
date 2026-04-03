@@ -33,6 +33,8 @@ const TarefasPage = () => {
 
   const [filter, setFilter] = useState<FilterKey>("todo");
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
