@@ -3,9 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { useCreateService, useUpdateService, useServiceCategories, type Service } from "@/hooks/useServices";
+import { useCreateService, useUpdateService, type Service } from "@/hooks/useServices";
 
 interface ServiceModalProps {
   open: boolean;
@@ -13,33 +11,30 @@ interface ServiceModalProps {
   service?: Service | null;
 }
 
+const SUGGESTION_CHIPS = [
+  "Pré-wedding", "Pós-wedding", "Trash the dress", "Ensaio lifestyle",
+  "Ensaio gestante", "Ensaio família", "Making of", "Álbum de fotos",
+  "Vídeo de casamento", "Drone", "Cobertura de evento", "Ensaio newborn",
+  "Ensaio infantil", "Formaturas", "Corporativo", "Batizado",
+];
+
 const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
   const [nome, setNome] = useState("");
-  const [categoria, setCategoria] = useState("");
-  const [descricao, setDescricao] = useState("");
   const [valorBase, setValorBase] = useState("");
   const [custoInterno, setCustoInterno] = useState("");
-  const [ativo, setAtivo] = useState(true);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const categories = useServiceCategories();
   const createService = useCreateService();
   const updateService = useUpdateService();
-
-  const filteredSuggestions = categories.filter(
-    (c) => c.toLowerCase().includes(categoria.toLowerCase()) && c.toLowerCase() !== categoria.toLowerCase()
-  );
 
   useEffect(() => {
     if (service) {
       setNome(service.nome);
-      setCategoria(service.categoria);
-      setDescricao(service.descricao || "");
       setValorBase(service.valor_base.toString());
       setCustoInterno(service.custo_interno?.toString() || "");
-      setAtivo(service.ativo);
     } else {
-      setNome(""); setCategoria(""); setDescricao(""); setValorBase(""); setCustoInterno(""); setAtivo(true);
+      setNome("");
+      setValorBase("");
+      setCustoInterno("");
     }
   }, [service, open]);
 
@@ -47,11 +42,10 @@ const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
     e.preventDefault();
     const data = {
       nome,
-      categoria,
-      descricao: descricao || null,
+      categoria: "",
       valor_base: parseFloat(valorBase) || 0,
       custo_interno: custoInterno ? parseFloat(custoInterno) : null,
-      ativo,
+      ativo: true,
     };
 
     if (service) {
@@ -61,6 +55,10 @@ const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
     }
     onOpenChange(false);
   };
+
+  const filteredChips = SUGGESTION_CHIPS.filter(
+    (chip) => !nome || chip.toLowerCase().includes(nome.toLowerCase())
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,27 +71,28 @@ const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Nome *</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Cobertura Fotográfica" className="bg-muted border-border" required />
-          </div>
-
-          <div className="space-y-2 relative">
-            <Label>Categoria *</Label>
+            <Label>Nome do serviço *</Label>
             <Input
-              value={categoria}
-              onChange={(e) => { setCategoria(e.target.value); setShowSuggestions(true); }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              placeholder="Ex: Casamento, Debutante, Corporativo..."
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex: Pré-wedding, Ensaio gestante..."
               className="bg-muted border-border"
               required
             />
-            {showSuggestions && filteredSuggestions.length > 0 && (
-              <div className="absolute z-50 top-full left-0 right-0 bg-popover border border-border rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
-                {filteredSuggestions.map((c) => (
-                  <button key={c} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
-                    onClick={() => { setCategoria(c); setShowSuggestions(false); }}>
-                    {c}
+            {!service && filteredChips.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {filteredChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setNome(chip)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      nome === chip
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted border-border text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {chip}
                   </button>
                 ))}
               </div>
@@ -101,29 +100,35 @@ const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição do serviço..." className="bg-muted border-border" />
+            <Label>Valor (R$) *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={valorBase}
+              onChange={(e) => setValorBase(e.target.value)}
+              placeholder="0,00"
+              className="bg-muted border-border"
+              required
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Valor Base (R$) *</Label>
-              <Input type="number" step="0.01" value={valorBase} onChange={(e) => setValorBase(e.target.value)} placeholder="0,00" className="bg-muted border-border" required />
-            </div>
-            <div className="space-y-2">
-              <Label>Custo Interno (R$)</Label>
-              <Input type="number" step="0.01" value={custoInterno} onChange={(e) => setCustoInterno(e.target.value)} placeholder="Opcional" className="bg-muted border-border" />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Switch checked={ativo} onCheckedChange={setAtivo} />
-            <Label>{ativo ? "Ativo" : "Inativo"}</Label>
+          <div className="space-y-2">
+            <Label>Custo de execução (R$) <span className="text-muted-foreground text-xs">opcional</span></Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={custoInterno}
+              onChange={(e) => setCustoInterno(e.target.value)}
+              placeholder="Opcional"
+              className="bg-muted border-border"
+            />
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" className="bg-gradient-primary hover:opacity-90">{service ? "Salvar" : "Criar serviço"}</Button>
+            <Button type="submit" className="bg-gradient-primary hover:opacity-90">
+              {service ? "Salvar" : "Criar serviço"}
+            </Button>
           </div>
         </form>
       </DialogContent>
