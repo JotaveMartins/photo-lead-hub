@@ -9,7 +9,7 @@ import EditCobrancaModal from "@/components/financeiro/EditCobrancaModal";
 import { useCobrancas, useAllCobrancas } from "@/hooks/useCobrancas";
 import type { Cobranca } from "@/hooks/useCobrancas";
 
-type ModalType = "unica" | "parcelas" | "recorrente";
+type ModalType = "unica" | "parcelas";
 
 const FinanceiroPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
