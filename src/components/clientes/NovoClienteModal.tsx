@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatPhone, formatCpfCnpj } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +85,7 @@ const NovoClienteModal = ({ open, onClose }: NovoClienteModalProps) => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>WhatsApp</Label>
-                <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" />
+                <Input value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} placeholder="(00) 00000-0000" maxLength={15} />
               </div>
               <div>
                 <Label>Email</Label>
@@ -94,7 +95,7 @@ const NovoClienteModal = ({ open, onClose }: NovoClienteModalProps) => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>CPF/CNPJ</Label>
-                <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} placeholder="000.000.000-00" />
+                <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))} placeholder="000.000.000-00" maxLength={18} />
               </div>
               <div>
                 <Label>Origem</Label>

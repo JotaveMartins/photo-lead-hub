@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatPhone, formatCpfCnpj } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,9 +29,9 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
   useEffect(() => {
     if (cliente) {
       setNome(cliente.nome);
-      setWhatsapp(cliente.whatsapp || "");
+      setWhatsapp(cliente.whatsapp ? formatPhone(cliente.whatsapp) : "");
       setEmail(cliente.email || "");
-      setCpfCnpj(cliente.cpf_cnpj || "");
+      setCpfCnpj(cliente.cpf_cnpj ? formatCpfCnpj(cliente.cpf_cnpj) : "");
       setEndereco(cliente.endereco || "");
       setOrigem(cliente.origem || "");
       setObservacoes(cliente.observacoes || "");
@@ -69,7 +70,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>WhatsApp</Label>
-              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+              <Input value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} maxLength={15} />
             </div>
             <div>
               <Label>Email</Label>
@@ -79,7 +80,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>CPF/CNPJ</Label>
-              <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} />
+              <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))} maxLength={18} />
             </div>
             <div>
               <Label>Origem</Label>
