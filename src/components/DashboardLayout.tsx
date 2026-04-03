@@ -24,7 +24,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/servicos") return "servicos";
     if (path === "/pacotes") return "pacotes";
     if (path === "/agenda") return "agenda";
-    if (path === "/financeiro") return "financeiro";
+    if (path === "/financeiro/cobrancas") return "financeiro/cobrancas";
+    if (path === "/financeiro/despesas") return "financeiro/despesas";
+    if (path.startsWith("/financeiro")) return "financeiro/cobrancas";
     if (path === "/admin") return "admin";
     return "leads";
   };
@@ -50,7 +52,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       servicos: "/servicos",
       pacotes: "/pacotes",
       agenda: "/agenda",
-      financeiro: "/financeiro",
+      "financeiro/cobrancas": "/financeiro/cobrancas",
+      "financeiro/despesas": "/financeiro/despesas",
       admin: "/admin",
     };
     navigate(routes[item] || "/leads");
