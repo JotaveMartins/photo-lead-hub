@@ -9,7 +9,7 @@ import EditCobrancaModal from "@/components/financeiro/EditCobrancaModal";
 import { useCobrancas, useAllCobrancas } from "@/hooks/useCobrancas";
 import type { Cobranca } from "@/hooks/useCobrancas";
 
-type ModalType = "unica" | "parcelas" | "recorrente";
+type ModalType = "unica" | "parcelas";
 
 const FinanceiroPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -111,13 +111,6 @@ const FinanceiroPage = () => {
                   >
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     Criar parcelas
-                  </button>
-                  <button
-                    onClick={() => openModal("recorrente")}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground"
-                  >
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    Cobrança recorrente
                   </button>
                 </div>
               </>
