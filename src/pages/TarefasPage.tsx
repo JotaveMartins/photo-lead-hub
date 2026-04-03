@@ -178,81 +178,152 @@ const TarefasPage = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {filteredTasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">Nenhuma atividade encontrada.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border bg-muted/30">
-                <TableHead className="w-10 px-3"></TableHead>
-                <TableHead className="font-medium">Assunto</TableHead>
-                <TableHead className="font-medium">Pessoa de contato</TableHead>
-                <TableHead className="font-medium">Telefone</TableHead>
-                <TableHead className="font-medium">Data de venc.</TableHead>
-                <TableHead className="font-medium hidden md:table-cell">Criada em</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.map((task) => (
-                <TableRow
-                  key={task.id}
-                  className={`border-border cursor-pointer hover:bg-muted/40 transition-colors ${getRowStatusClass(task)}`}
-                >
-                  <TableCell className="px-3" onClick={(e) => e.stopPropagation()}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center justify-center">
-                          {task.completed ? (
-                            <Checkbox checked disabled className="border-muted-foreground" />
-                          ) : (
-                            <Circle
-                              className="w-5 h-5 text-muted-foreground/50 cursor-pointer hover:text-primary hover:scale-110 transition-all"
-                              onClick={() => completeTask.mutate(task)}
-                            />
+      {viewMode === "table" ? (
+        /* Table */
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          {filteredTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">Nenhuma atividade encontrada.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border bg-muted/30">
+                  <TableHead className="w-10 px-3"></TableHead>
+                  <TableHead className="font-medium">Assunto</TableHead>
+                  <TableHead className="font-medium">Pessoa de contato</TableHead>
+                  <TableHead className="font-medium">Telefone</TableHead>
+                  <TableHead className="font-medium">Data de venc.</TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">Criada em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTasks.map((task) => (
+                  <TableRow
+                    key={task.id}
+                    className={`border-border cursor-pointer hover:bg-muted/40 transition-colors ${getRowStatusClass(task)}`}
+                  >
+                    <TableCell className="px-3" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center justify-center">
+                            {task.completed ? (
+                              <Checkbox checked disabled className="border-muted-foreground" />
+                            ) : (
+                              <Circle
+                                className="w-5 h-5 text-muted-foreground/50 cursor-pointer hover:text-primary hover:scale-110 transition-all"
+                                onClick={() => completeTask.mutate(task)}
+                              />
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent><p className="text-xs">{task.completed ? "Concluída" : "Marcar como concluída"}</p></TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell onClick={() => handleTaskClick(task)}>
+                      <div className="flex items-center gap-2">
+                        {task.is_cadence && <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                        <div>
+                          <p className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                            {task.title}
+                          </p>
+                          {task.description && (
+                            <p className="text-xs text-muted-foreground truncate max-w-xs">{task.description}</p>
                           )}
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent><p className="text-xs">{task.completed ? "Concluída" : "Marcar como concluída"}</p></TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell onClick={() => handleTaskClick(task)}>
-                    <div className="flex items-center gap-2">
-                      {task.is_cadence && <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
-                      <div>
-                        <p className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="text-xs text-muted-foreground truncate max-w-xs">{task.description}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell onClick={() => handleTaskClick(task)}>
+                      <span className="text-sm text-foreground">{task.leads?.nome || "—"}</span>
+                    </TableCell>
+                    <TableCell onClick={() => handleTaskClick(task)}>
+                      <span className="text-sm text-muted-foreground">{task.leads?.whatsapp || "—"}</span>
+                    </TableCell>
+                    <TableCell onClick={() => handleTaskClick(task)}>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{parseLocalDate(task.due_date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
+                        {task.due_time && (
+                          <span className="text-xs text-muted-foreground">{task.due_time}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell" onClick={() => handleTaskClick(task)}>
+                      <span className="text-xs text-muted-foreground">{new Date(task.created_at).toLocaleDateString("pt-BR")}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      ) : (
+        /* Calendar View */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <Calendar
+                mode="single"
+                selected={calendarDate}
+                onSelect={setCalendarDate}
+                locale={ptBR}
+                className="w-full"
+                modifiers={{
+                  hasTask: allTasks.filter(t => !t.completed).map(t => parseLocalDate(t.due_date)),
+                }}
+                modifiersClassNames={{
+                  hasTask: "bg-primary/20 text-primary font-semibold",
+                }}
+              />
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h3 className="font-display font-semibold text-foreground mb-4">
+              {calendarDate
+                ? format(calendarDate, "dd 'de' MMMM", { locale: ptBR })
+                : "Selecione uma data"}
+            </h3>
+            <div className="space-y-2">
+              {allTasks
+                .filter(t => calendarDate && isSameDay(parseLocalDate(t.due_date), calendarDate))
+                .map((task) => (
+                  <div
+                    key={task.id}
+                    onClick={() => handleTaskClick(task)}
+                    className={cn(
+                      "p-3 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50",
+                      task.completed
+                        ? "bg-muted/30 border-border/50 opacity-60"
+                        : isBefore(parseLocalDate(task.due_date), today)
+                          ? "bg-destructive/5 border-destructive/20"
+                          : "bg-primary/5 border-primary/20"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {!task.completed ? (
+                        <Circle
+                          className="w-4 h-4 text-muted-foreground/50 cursor-pointer hover:text-primary flex-shrink-0"
+                          onClick={(e) => { e.stopPropagation(); completeTask.mutate(task); }}
+                        />
+                      ) : (
+                        <Checkbox checked disabled className="border-muted-foreground" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("font-medium text-sm", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
+                        {task.leads?.nome && (
+                          <p className="text-xs text-muted-foreground mt-0.5">Lead: {task.leads.nome}</p>
+                        )}
+                        {task.due_time && (
+                          <p className="text-xs text-muted-foreground">{task.due_time}</p>
                         )}
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell onClick={() => handleTaskClick(task)}>
-                    <span className="text-sm text-foreground">{task.leads?.nome || "—"}</span>
-                  </TableCell>
-                  <TableCell onClick={() => handleTaskClick(task)}>
-                    <span className="text-sm text-muted-foreground">{task.leads?.whatsapp || "—"}</span>
-                  </TableCell>
-                  <TableCell onClick={() => handleTaskClick(task)}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm">{parseLocalDate(task.due_date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
-                      {task.due_time && (
-                        <span className="text-xs text-muted-foreground">{task.due_time}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell" onClick={() => handleTaskClick(task)}>
-                    <span className="text-xs text-muted-foreground">{new Date(task.created_at).toLocaleDateString("pt-BR")}</span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+                  </div>
+                ))}
+              {calendarDate && allTasks.filter(t => isSameDay(parseLocalDate(t.due_date), calendarDate)).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade nesta data</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Task Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
