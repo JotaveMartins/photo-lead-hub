@@ -42,6 +42,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps)
   const isPending = createCobranca.isPending || createBatch.isPending;
 
   const resetForm = () => {
+    setClienteId("");
     setDescricao("");
     setValor("");
     setFormaPagamento("pix");
