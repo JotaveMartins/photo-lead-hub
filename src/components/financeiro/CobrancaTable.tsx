@@ -115,6 +115,18 @@ const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
                   <td className="p-4 font-medium text-foreground">
                     R$ {Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </td>
+                  <td className="p-4">
+                    {(c as any).cliente_id && clienteMap[(c as any).cliente_id] ? (
+                      <button
+                        onClick={() => navigate(`/clientes/${(c as any).cliente_id}`)}
+                        className="text-primary hover:underline text-sm font-medium"
+                      >
+                        {clienteMap[(c as any).cliente_id].nome}
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="p-4 text-muted-foreground">
                     {c.parcela_numero && c.parcela_total
                       ? `${c.parcela_numero}/${c.parcela_total}`
