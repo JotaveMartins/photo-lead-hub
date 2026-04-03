@@ -98,7 +98,8 @@ const InlineSelectField = ({
       <select
         value={value || ""}
         onChange={(e) => onSave(e.target.value)}
-        className="w-full bg-muted/30 border border-border rounded-md h-9 px-2 text-sm text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring appearance-auto"
+        style={{ colorScheme: "dark" }}
+        className="w-full bg-muted/30 border border-border rounded-md h-9 px-2 text-sm text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
       >
         <option value="">—</option>
         {options.map((o) => (
