@@ -81,12 +81,12 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated }: Novo
     });
 
     reset();
-    onClose();
 
-    // If there's a callback (lead flow), use it instead of showing the prompt
+    // If there's a callback (lead flow), use it instead of closing/showing the prompt
     if (onClienteCreated && result?.id) {
       onClienteCreated(result.id);
     } else {
+      onClose();
       setShowCobrancaPrompt(true);
     }
   };
