@@ -11,11 +11,11 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Receipt, CreditCard } from "lucide-react";
+import { Receipt, CreditCard, ArrowDownUp } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
-type CobrancaType = "unica" | "parcelas";
+type CobrancaType = "unica" | "parcelas" | "entrada_parcelas";
 
 interface LeadToClienteFlowProps {
   lead: Lead | null;
@@ -63,22 +63,22 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
 
       {step === "tipo" && (
         <AlertDialog open={true} onOpenChange={(v) => { if (!v) handleClose(); }}>
-          <AlertDialogContent className="bg-card border-border sm:max-w-md">
+          <AlertDialogContent className="bg-card border-border sm:max-w-lg">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-foreground">Cliente cadastrado! 🎉</AlertDialogTitle>
               <AlertDialogDescription>
                 Deseja criar uma cobrança para este cliente?
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="grid grid-cols-3 gap-3 py-2">
               <Button
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-center gap-2 border-border hover:border-primary hover:bg-primary/5"
                 onClick={() => handleSelectType("unica")}
               >
                 <Receipt className="w-6 h-6 text-primary" />
-                <span className="font-medium text-foreground">Cobrança Única</span>
-                <span className="text-xs text-muted-foreground">Pagamento avulso</span>
+                <span className="font-medium text-foreground text-xs">Cobrança Única</span>
+                <span className="text-[10px] text-muted-foreground">Pagamento avulso</span>
               </Button>
               <Button
                 variant="outline"
@@ -86,8 +86,17 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
                 onClick={() => handleSelectType("parcelas")}
               >
                 <CreditCard className="w-6 h-6 text-primary" />
-                <span className="font-medium text-foreground">Parcelas</span>
-                <span className="text-xs text-muted-foreground">Dividir em parcelas</span>
+                <span className="font-medium text-foreground text-xs">Parcelas</span>
+                <span className="text-[10px] text-muted-foreground">Dividir em parcelas</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-center gap-2 border-border hover:border-primary hover:bg-primary/5"
+                onClick={() => handleSelectType("entrada_parcelas")}
+              >
+                <ArrowDownUp className="w-6 h-6 text-primary" />
+                <span className="font-medium text-foreground text-xs">Entrada + Parcelas</span>
+                <span className="text-[10px] text-muted-foreground">Entrada + restante parcelado</span>
               </Button>
             </div>
             <AlertDialogFooter>
@@ -103,6 +112,7 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
           onOpenChange={(v) => { if (!v) handleClose(); }}
           type={cobrancaType}
           initialClienteId={createdClienteId || undefined}
+          initialValor={lead.valor || undefined}
         />
       )}
     </>

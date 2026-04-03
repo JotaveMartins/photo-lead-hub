@@ -10,7 +10,7 @@ import { useClientes } from "@/hooks/useClientes";
 import { toast } from "sonner";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
-type ModalType = "unica" | "parcelas";
+type ModalType = "unica" | "parcelas" | "entrada_parcelas";
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "pix", label: "Pix" },
@@ -25,25 +25,35 @@ interface NovaCobrancaModalProps {
   onOpenChange: (open: boolean) => void;
   type: ModalType;
   initialClienteId?: string;
+  initialValor?: number;
 }
 
-const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaCobrancaModalProps) => {
+const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initialValor }: NovaCobrancaModalProps) => {
   const effectiveUserId = useEffectiveUserId();
   const createCobranca = useCreateCobranca();
   const createBatch = useCreateCobrancasBatch();
   const { data: clientes = [] } = useClientes();
 
   const [clienteId, setClienteId] = useState(initialClienteId || "");
-
-  // Sync when initialClienteId prop changes
-  useEffect(() => {
-    if (initialClienteId) setClienteId(initialClienteId);
-  }, [initialClienteId]);
   const [descricao, setDescricao] = useState("");
-  const [valor, setValor] = useState("");
+  const [valor, setValor] = useState(initialValor ? String(initialValor) : "");
   const [formaPagamento, setFormaPagamento] = useState<PaymentMethod>("pix");
   const [vencimento, setVencimento] = useState("");
   const [numParcelas, setNumParcelas] = useState("3");
+
+  // Entrada + Parcelas specific
+  const [valorEntrada, setValorEntrada] = useState("");
+  const [formaPagamentoEntrada, setFormaPagamentoEntrada] = useState<PaymentMethod>("pix");
+  const [vencimentoEntrada, setVencimentoEntrada] = useState("");
+
+  // Sync props
+  useEffect(() => {
+    if (initialClienteId) setClienteId(initialClienteId);
+  }, [initialClienteId]);
+
+  useEffect(() => {
+    if (initialValor) setValor(String(initialValor));
+  }, [initialValor]);
 
   const isPending = createCobranca.isPending || createBatch.isPending;
 
@@ -54,7 +64,17 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
     setFormaPagamento("pix");
     setVencimento("");
     setNumParcelas("3");
+    setValorEntrada("");
+    setFormaPagamentoEntrada("pix");
+    setVencimentoEntrada("");
   };
+
+  // Computed values for entrada+parcelas preview
+  const valorTotal = parseFloat(valor) || 0;
+  const entradaNum = parseFloat(valorEntrada) || 0;
+  const restante = Math.max(0, valorTotal - entradaNum);
+  const nParcelas = parseInt(numParcelas) || 2;
+  const valorParcela = nParcelas > 0 ? Math.round((restante / nParcelas) * 100) / 100 : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,13 +85,10 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
       toast.error("Informe um valor válido");
       return;
     }
-    if (!vencimento) {
-      toast.error("Informe a data de vencimento");
-      return;
-    }
 
     try {
       if (type === "unica") {
+        if (!vencimento) { toast.error("Informe a data de vencimento"); return; }
         await createCobranca.mutateAsync({
           user_id: effectiveUserId,
           tipo: "unica",
@@ -82,13 +99,11 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
           cliente_id: clienteId || null,
         } as any);
         toast.success("Cobrança criada com sucesso!");
-      } else {
+      } else if (type === "parcelas") {
+        if (!vencimento) { toast.error("Informe a data de vencimento"); return; }
         const n = parseInt(numParcelas);
-        if (!n || n < 2) {
-          toast.error("Informe pelo menos 2 parcelas");
-          return;
-        }
-        const valorParcela = Math.round((valorNum / n) * 100) / 100;
+        if (!n || n < 2) { toast.error("Informe pelo menos 2 parcelas"); return; }
+        const vp = Math.round((valorNum / n) * 100) / 100;
         const grupoId = crypto.randomUUID();
         const items: CobrancaInsert[] = [];
         for (let i = 0; i < n; i++) {
@@ -99,7 +114,49 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
             tipo: "parcela",
             grupo_id: grupoId,
             descricao: descricao || null,
-            valor: valorParcela,
+            valor: vp,
+            forma_pagamento: formaPagamento,
+            vencimento: dueDate.toISOString().split("T")[0],
+            parcela_numero: i + 1,
+            parcela_total: n,
+            cliente_id: clienteId || null,
+          } as any);
+        }
+        await createBatch.mutateAsync(items);
+      } else if (type === "entrada_parcelas") {
+        if (!vencimentoEntrada) { toast.error("Informe a data da entrada"); return; }
+        if (!vencimento) { toast.error("Informe a data do 1º vencimento das parcelas"); return; }
+        if (entradaNum <= 0) { toast.error("Informe o valor da entrada"); return; }
+        if (entradaNum >= valorNum) { toast.error("A entrada deve ser menor que o valor total"); return; }
+        const n = parseInt(numParcelas);
+        if (!n || n < 1) { toast.error("Informe pelo menos 1 parcela"); return; }
+
+        const grupoId = crypto.randomUUID();
+        const items: CobrancaInsert[] = [];
+
+        // Entrada
+        items.push({
+          user_id: effectiveUserId,
+          tipo: "unica",
+          grupo_id: grupoId,
+          descricao: descricao ? `Entrada - ${descricao}` : "Entrada",
+          valor: entradaNum,
+          forma_pagamento: formaPagamentoEntrada,
+          vencimento: vencimentoEntrada,
+          cliente_id: clienteId || null,
+        } as any);
+
+        // Parcelas
+        const vp = Math.round((restante / n) * 100) / 100;
+        for (let i = 0; i < n; i++) {
+          const dueDate = new Date(vencimento + "T12:00:00");
+          dueDate.setMonth(dueDate.getMonth() + i);
+          items.push({
+            user_id: effectiveUserId,
+            tipo: "parcela",
+            grupo_id: grupoId,
+            descricao: descricao || null,
+            valor: vp,
             forma_pagamento: formaPagamento,
             vencimento: dueDate.toISOString().split("T")[0],
             parcela_numero: i + 1,
@@ -119,16 +176,20 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
   const titles: Record<ModalType, string> = {
     unica: "Nova Cobrança",
     parcelas: "Criar Parcelas",
+    entrada_parcelas: "Entrada + Parcelas",
   };
 
   const subtitles: Record<ModalType, string> = {
     unica: "Crie uma nova cobrança em segundos",
     parcelas: "Configure o parcelamento do pagamento",
+    entrada_parcelas: "Entrada avulsa + parcelas do restante",
   };
+
+  const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-card border-border">
+      <DialogContent className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">{titles[type]}</DialogTitle>
           <p className="text-sm text-muted-foreground">{subtitles[type]}</p>
@@ -152,7 +213,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
           </div>
 
           <div className="space-y-2">
-            <Label>{type === "parcelas" ? "Valor Total *" : "Valor *"}</Label>
+            <Label>{type === "unica" ? "Valor *" : "Valor Total *"}</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-semibold text-sm">R$</span>
               <Input
@@ -168,6 +229,102 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
             </div>
           </div>
 
+          {/* ===== ENTRADA + PARCELAS ===== */}
+          {type === "entrada_parcelas" && (
+            <>
+              <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wide">Entrada</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Valor da Entrada *</Label>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-primary font-semibold text-xs">R$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorEntrada}
+                        onChange={(e) => setValorEntrada(e.target.value)}
+                        placeholder="0,00"
+                        className="bg-muted border-border pl-8 text-right text-sm h-9"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Vencimento *</Label>
+                    <DatePickerField value={vencimentoEntrada} onChange={setVencimentoEntrada} placeholder="Selecione" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Pagamento</Label>
+                    <select
+                      value={formaPagamentoEntrada}
+                      onChange={(e) => setFormaPagamentoEntrada(e.target.value as PaymentMethod)}
+                      className="flex h-9 w-full rounded-md border border-input bg-muted px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      {PAYMENT_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-4">
+                <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Parcelas do restante</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Nº Parcelas</Label>
+                    <select
+                      value={numParcelas}
+                      onChange={(e) => setNumParcelas(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-muted px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>{n}x</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">1º Vencimento *</Label>
+                    <DatePickerField value={vencimento} onChange={setVencimento} placeholder="Selecione" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Pagamento</Label>
+                    <select
+                      value={formaPagamento}
+                      onChange={(e) => setFormaPagamento(e.target.value as PaymentMethod)}
+                      className="flex h-9 w-full rounded-md border border-input bg-muted px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      {PAYMENT_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              {valorTotal > 0 && entradaNum > 0 && entradaNum < valorTotal && (
+                <div className="p-3 rounded-lg bg-muted border border-border text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Entrada</span>
+                    <span className="font-medium text-foreground">{formatCurrency(entradaNum)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{nParcelas}x parcelas</span>
+                    <span className="font-medium text-foreground">{formatCurrency(valorParcela)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-1 mt-1">
+                    <span className="text-muted-foreground font-medium">Total</span>
+                    <span className="font-bold text-primary">{formatCurrency(entradaNum + valorParcela * nParcelas)}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ===== PARCELAS ONLY ===== */}
           {type === "parcelas" && (
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
@@ -201,6 +358,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
             </div>
           )}
 
+          {/* ===== UNICA ONLY ===== */}
           {type === "unica" && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -227,7 +385,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaC
               Cancelar
             </Button>
             <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={isPending}>
-              {isPending ? "Criando..." : type === "parcelas" ? "Salvar" : "Criar cobrança"}
+              {isPending ? "Criando..." : "Criar cobrança"}
             </Button>
           </div>
         </form>
