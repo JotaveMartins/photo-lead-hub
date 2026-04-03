@@ -11,12 +11,6 @@ interface ServiceModalProps {
   service?: Service | null;
 }
 
-const SUGGESTION_CHIPS = [
-  "Pré-wedding", "Pós-wedding", "Trash the dress", "Ensaio lifestyle",
-  "Ensaio gestante", "Ensaio família", "Making of", "Álbum de fotos",
-  "Vídeo de casamento", "Drone", "Cobertura de evento", "Ensaio newborn",
-  "Ensaio infantil", "Formaturas", "Corporativo", "Batizado",
-];
 
 const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
   const [nome, setNome] = useState("");
@@ -56,10 +50,6 @@ const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
     onOpenChange(false);
   };
 
-  const filteredChips = SUGGESTION_CHIPS.filter(
-    (chip) => !nome || chip.toLowerCase().includes(nome.toLowerCase())
-  );
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg bg-card border-border">
@@ -79,24 +69,6 @@ const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
               className="bg-muted border-border"
               required
             />
-            {!service && filteredChips.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {filteredChips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => setNome(chip)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                      nome === chip
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-muted border-border text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="space-y-2">
