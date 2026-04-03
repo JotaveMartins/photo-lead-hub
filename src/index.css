@@ -8,6 +8,7 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
     /* Core palette: Navy/Dark Blue + Cyan/Teal accents */
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
