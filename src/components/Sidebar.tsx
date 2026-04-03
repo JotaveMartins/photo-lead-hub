@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Receipt,
   TrendingDown,
+  FileText,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,6 +32,7 @@ const baseMenuItems = [
   { id: 'pacotes', label: 'Pacotes', icon: Package },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'clientes', label: 'Clientes', icon: UserCheck },
+  { id: 'contratos', label: 'Contratos', icon: FileText },
 ];
 
 const financeiroSubItems = [
@@ -117,7 +119,10 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
           </div>
         )}
 
-        {/* Admin items */}
+      </nav>
+
+      <div className="p-4 border-t border-sidebar-border space-y-1">
+        {/* Admin items - at the bottom */}
         {showAdmin && adminMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
@@ -133,9 +138,6 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
             </button>
           );
         })}
-      </nav>
-
-      <div className="p-4 border-t border-sidebar-border space-y-1">
         <button
           onClick={signOut}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200"

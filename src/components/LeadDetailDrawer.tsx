@@ -16,6 +16,7 @@ import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useQueryClient } from "@tanstack/react-query";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
+import LeadToClienteFlow from "@/components/LeadToClienteFlow";
 import FollowUpModal from "@/components/FollowUpModal";
 import LossReasonModal from "@/components/LossReasonModal";
 import InteresseSelect from "@/components/InteresseSelect";
@@ -318,6 +319,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [followUpNextNumber, setFollowUpNextNumber] = useState(1);
   // Loss reason modal state
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
+  // Lead to cliente flow state
+  const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -401,6 +404,11 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       setFollowUpModalOpen(true);
       return;
     }
+    if (status === "Fechado Ganho") {
+      await updateLead.mutateAsync({ id: lead.id, status });
+      setLeadToClienteFlowOpen(true);
+      return;
+    }
     await updateLead.mutateAsync({ id: lead.id, status });
   };
 
@@ -424,6 +432,13 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       setFollowUpMode("activate");
       setFollowUpNextNumber(1);
       setFollowUpModalOpen(true);
+      return;
+    }
+    if (pendingStatus === "Fechado Ganho") {
+      await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
+      setRequiredFieldsOpen(false);
+      setPendingStatus(null);
+      setLeadToClienteFlowOpen(true);
       return;
     }
     await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
@@ -899,6 +914,11 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       onOpenChange={setLossReasonOpen}
       leadName={lead?.nome || ""}
       onConfirm={handleLossReasonConfirm}
+    />
+    <LeadToClienteFlow
+      lead={lead}
+      open={leadToClienteFlowOpen}
+      onClose={() => setLeadToClienteFlowOpen(false)}
     />
     </>
   );

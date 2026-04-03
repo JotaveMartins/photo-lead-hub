@@ -24,15 +24,21 @@ interface NovaCobrancaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: ModalType;
+  initialClienteId?: string;
 }
 
-const NovaCobrancaModal = ({ open, onOpenChange, type }: NovaCobrancaModalProps) => {
+const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId }: NovaCobrancaModalProps) => {
   const effectiveUserId = useEffectiveUserId();
   const createCobranca = useCreateCobranca();
   const createBatch = useCreateCobrancasBatch();
   const { data: clientes = [] } = useClientes();
 
-  const [clienteId, setClienteId] = useState("");
+  const [clienteId, setClienteId] = useState(initialClienteId || "");
+
+  // Sync when initialClienteId prop changes
+  useEffect(() => {
+    if (initialClienteId) setClienteId(initialClienteId);
+  }, [initialClienteId]);
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<PaymentMethod>("pix");

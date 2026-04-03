@@ -8,6 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
+import LeadToClienteFlow from "@/components/LeadToClienteFlow";
 import FollowUpModal from "@/components/FollowUpModal";
 import LossReasonModal from "@/components/LossReasonModal";
 import type { Database } from "@/integrations/supabase/types";
@@ -82,6 +83,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   // Loss reason modal state
   const [lossReasonLead, setLossReasonLead] = useState<Lead | null>(null);
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
+  // Lead to cliente flow state
+  const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -129,11 +132,16 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const moveLeadToStatus = (lead: Lead, newStatus: LeadStatus, extraFields?: Record<string, any>) => {
     if (newStatus === "Proposta Enviada") {
-      // Move to Follow-up instead, then show follow-up modal
       updateLead.mutate({ id: lead.id, status: "Follow-up" as LeadStatus, ...extraFields }, {
         onSuccess: () => {
           setFollowUpLead(lead);
           setFollowUpModalOpen(true);
+        }
+      });
+    } else if (newStatus === "Fechado Ganho") {
+      updateLead.mutate({ id: lead.id, status: newStatus, ...extraFields }, {
+        onSuccess: () => {
+          setLeadToClienteLead(lead);
         }
       });
     } else {
@@ -466,6 +474,13 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         onOpenChange={(v) => { setLossReasonOpen(v); if (!v) setLossReasonLead(null); }}
         leadName={lossReasonLead?.nome || ""}
         onConfirm={handleLossReasonConfirm}
+      />
+
+      {/* Lead to Cliente Flow */}
+      <LeadToClienteFlow
+        lead={leadToClienteLead}
+        open={!!leadToClienteLead}
+        onClose={() => setLeadToClienteLead(null)}
       />
     </div>
   );
