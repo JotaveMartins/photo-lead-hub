@@ -17,6 +17,7 @@ import FinanceiroPage from "./pages/FinanceiroPage";
 import ClientesPage from "./pages/ClientesPage";
 import ClienteDetailPage from "./pages/ClienteDetailPage";
 import ServicosPage from "./pages/ServicosPage";
+import PacotesPage from "./pages/PacotesPage";
 import { BarChart3, Wrench, Package, Calendar, DollarSign, FileText } from "lucide-react";
 
 const queryClient = new QueryClient();
