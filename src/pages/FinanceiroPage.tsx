@@ -41,11 +41,15 @@ const FinanceiroPage = () => {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader
-        title="Cobranças"
-        subtitle="Gerencie todas as cobranças dos seus clientes"
-        icon={<DollarSign className="w-6 h-6 text-primary" />}
-      />
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <DollarSign className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Cobranças</h1>
+          <p className="text-sm text-muted-foreground">Gerencie todas as cobranças dos seus clientes</p>
+        </div>
+      </div>
 
       <CobrancaCards cobrancas={monthCobrancas} allCobrancas={allCobrancas} />
 
