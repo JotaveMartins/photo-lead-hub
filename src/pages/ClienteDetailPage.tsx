@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditClienteModal from "@/components/clientes/EditClienteModal";
 import type { Cobranca } from "@/hooks/useCobrancas";
+import type { Service } from "@/hooks/useServices";
 
 const ClienteDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +58,7 @@ const ClienteDetailPage = () => {
       if (!id || !effectiveUserId) return [];
       const { data, error } = await supabase
         .from("events")
-        .select("*, services(nome)")
+        .select("*, services(nome, valor_base, custo_interno)")
         .eq("user_id", effectiveUserId)
         .eq("cliente_id", id)
         .order("data_evento", { ascending: true });
@@ -65,6 +66,62 @@ const ClienteDetailPage = () => {
       return data || [];
     },
     enabled: !!id && !!effectiveUserId,
+  });
+
+  // Serviços únicos contratados (via eventos)
+  const servicosContratados = (() => {
+    const map = new Map<string, { nome: string; valor_base: number; custo_interno: number | null; count: number }>();
+    eventos.forEach((ev: any) => {
+      if (ev.services && ev.service_id) {
+        const s = ev.services as { nome: string; valor_base: number; custo_interno: number | null };
+        const existing = map.get(ev.service_id);
+        if (existing) {
+          existing.count++;
+        } else {
+          map.set(ev.service_id, { nome: s.nome, valor_base: s.valor_base, custo_interno: s.custo_interno, count: 1 });
+        }
+      }
+    });
+    return Array.from(map.entries()).map(([id, v]) => ({ id, ...v }));
+  })();
+
+  // Pacotes contratados (via cobranças com descrição de pacote - from lead package)
+  const { data: pacotesContratados = [] } = useQuery({
+    queryKey: ["packages-cliente", id, effectiveUserId],
+    queryFn: async () => {
+      if (!id || !effectiveUserId) return [];
+      // Get leads that originated this client (same whatsapp/nome)
+      // and have a package_id
+      const { data: leadsData } = await supabase
+        .from("leads")
+        .select("package_id, packages(id, nome, preco_final)")
+        .eq("user_id", effectiveUserId)
+        .not("package_id", "is", null);
+      
+      if (!leadsData) return [];
+      
+      // Also check cobrancas linked to this client for package info
+      const uniquePackages = new Map<string, { nome: string; preco_final: number | null }>();
+      
+      // From cobrancas descriptions that match package names
+      const { data: pkgs } = await supabase
+        .from("packages")
+        .select("id, nome, preco_final, descricao")
+        .eq("user_id", effectiveUserId);
+      
+      if (!pkgs) return [];
+      
+      // Check which packages appear in cobrancas for this client
+      const clienteCobrancas = cobrancas.map(c => c.descricao?.toLowerCase() || "");
+      pkgs.forEach(pkg => {
+        if (clienteCobrancas.some(desc => desc.includes(pkg.nome.toLowerCase()))) {
+          uniquePackages.set(pkg.id, { nome: pkg.nome, preco_final: pkg.preco_final });
+        }
+      });
+
+      return Array.from(uniquePackages.entries()).map(([id, v]) => ({ id, ...v }));
+    },
+    enabled: !!id && !!effectiveUserId && cobrancas.length >= 0,
   });
 
   const handleDelete = async () => {
@@ -189,6 +246,10 @@ const ClienteDetailPage = () => {
             <DollarSign className="w-4 h-4" />
             Cobranças
           </TabsTrigger>
+          <TabsTrigger value="servicos" className="gap-1.5">
+            <Wrench className="w-4 h-4" />
+            Serviços
+          </TabsTrigger>
           <TabsTrigger value="agenda" className="gap-1.5">
             <Calendar className="w-4 h-4" />
             Agenda
@@ -286,6 +347,78 @@ const ClienteDetailPage = () => {
           <div className="flex items-center justify-between mt-6 text-xs text-muted-foreground">
             <span>Criado em {format(new Date(cliente.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
             <span>Atualizado em {format(new Date(cliente.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+          </div>
+        </TabsContent>
+
+        {/* Tab: Serviços & Pacotes */}
+        <TabsContent value="servicos" className="mt-4">
+          {/* Serviços */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-3">
+              <Wrench className="w-4 h-4" />
+              Serviços Contratados
+            </h3>
+            {servicosContratados.length === 0 ? (
+              <Card className="bg-card border-border">
+                <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
+                  <Wrench className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Nenhum serviço vinculado</p>
+                  <p className="text-xs text-muted-foreground/70">Serviços aparecem aqui quando eventos são criados para este cliente</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {servicosContratados.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{s.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.count} {s.count === 1 ? "evento" : "eventos"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-foreground">
+                        {s.valor_base.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pacotes */}
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-3">
+              <Package className="w-4 h-4" />
+              Pacotes Contratados
+            </h3>
+            {pacotesContratados.length === 0 ? (
+              <Card className="bg-card border-border">
+                <CardContent className="flex flex-col items-center justify-center py-8 gap-2">
+                  <Package className="w-8 h-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Nenhum pacote vinculado</p>
+                  <p className="text-xs text-muted-foreground/70">Pacotes aparecem aqui quando identificados nas cobranças deste cliente</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {pacotesContratados.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{p.nome}</p>
+                    </div>
+                    <div className="text-right">
+                      {p.preco_final && (
+                        <p className="text-sm font-bold text-foreground">
+                          {p.preco_final.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
 
