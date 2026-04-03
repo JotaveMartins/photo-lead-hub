@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import DatePickerField from "@/components/DatePickerField";
 
 import TimePickerField from "@/components/TimePickerField";
-import { CheckSquare, Plus, Calendar, Clock, User, Circle, Search, Phone } from "lucide-react";
+import { CheckSquare, Plus, Calendar as CalendarIcon, Clock, User, Circle, Search, Phone, List } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
