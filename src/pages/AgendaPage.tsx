@@ -118,7 +118,6 @@ const AgendaPage = () => {
     setLocal("");
     setSelectedClienteId("");
     setSelectedServiceId("");
-    setClienteSearch("");
   };
 
   const handleServiceChange = (serviceId: string) => {
