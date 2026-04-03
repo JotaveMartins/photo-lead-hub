@@ -20,6 +20,7 @@ const InteresseSelect = ({
   placeholder = "Selecione o interesse",
   className,
   manageable = true,
+  variant = "default",
 }: InteresseSelectProps) => {
   const { data: options = [], isLoading: optionsLoading } = useInteresseOptions();
   const createOption = useCreateInteresseOption();
