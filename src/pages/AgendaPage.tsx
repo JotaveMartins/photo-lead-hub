@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Calendar as CalendarIcon, Plus, Trash2, MapPin, Search, List, ArrowUpDown } from "lucide-react";
+import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
