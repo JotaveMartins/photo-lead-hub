@@ -97,6 +97,7 @@ const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
             <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
               <th className="text-left p-4">Descrição</th>
               <th className="text-left p-4">Valor</th>
+              <th className="text-left p-4">Cliente</th>
               <th className="text-left p-4">Parcela</th>
               <th className="text-left p-4">Forma de Pagamento</th>
               <th className="text-left p-4">Vencimento</th>
