@@ -61,6 +61,7 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           data_pagamento: string | null
+          deleted_at: string | null
           descricao: string | null
           forma_pagamento: Database["public"]["Enums"]["payment_method"]
           grupo_id: string | null
@@ -79,6 +80,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data_pagamento?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           forma_pagamento?: Database["public"]["Enums"]["payment_method"]
           grupo_id?: string | null
@@ -97,6 +99,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data_pagamento?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           forma_pagamento?: Database["public"]["Enums"]["payment_method"]
           grupo_id?: string | null
