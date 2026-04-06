@@ -212,10 +212,10 @@ const FinanceiroResumoPage = () => {
 
         {/* Distribuição de despesas */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Despesas por categoria · {fmt(totalDespesas)}</h2>
+          <h2 className="text-lg font-semibold text-foreground">Despesas por categoria</h2>
           {categoriaData.length > 0 ? (
             <div className="flex flex-col items-center gap-4">
-              <div className="relative">
+              <div className="relative w-full" style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height={220}>
                   <RechartsPie>
                     <Pie
@@ -232,28 +232,28 @@ const FinanceiroResumoPage = () => {
                         <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                       ))}
                     </Pie>
-                  <Tooltip
-                    formatter={(value: number, name: string) => {
-                      const pct = totalDespesas > 0 ? ((value / totalDespesas) * 100).toFixed(1) : "0";
-                      return [`${fmt(value)} (${pct}%)`, name];
-                    }}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      color: "hsl(var(--foreground))",
-                    }}
-                    itemStyle={{ color: "hsl(var(--foreground))" }}
-                    labelStyle={{ display: "none" }}
-                  />
-                </RechartsPie>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-foreground">{fmt(totalDespesas)}</p>
-                  <p className="text-[10px] text-muted-foreground">Total</p>
+                    <Tooltip
+                      formatter={(value: number, name: string) => {
+                        const pct = totalDespesas > 0 ? ((value / totalDespesas) * 100).toFixed(1) : "0";
+                        return [`${fmt(value)} (${pct}%)`, name];
+                      }}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        color: "hsl(var(--foreground))",
+                      }}
+                      itemStyle={{ color: "hsl(var(--foreground))" }}
+                      labelStyle={{ display: "none" }}
+                    />
+                  </RechartsPie>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-foreground">{fmt(totalDespesas)}</p>
+                    <p className="text-[10px] text-muted-foreground">Total</p>
+                  </div>
                 </div>
-              </div>
               </div>
               <div className="flex flex-wrap gap-3 justify-center">
                 {categoriaData.map((cat, idx) => {
