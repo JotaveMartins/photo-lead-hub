@@ -69,12 +69,14 @@ const FinanceiroResumoPage = () => {
     .sort((a, b) => b.value - a.value);
 
   const COLORS = [
-    "hsl(var(--primary))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
-    "hsl(var(--destructive))",
+    "hsl(186, 100%, 60%)",
+    "hsl(200, 90%, 55%)",
+    "hsl(215, 85%, 50%)",
+    "hsl(230, 80%, 55%)",
+    "hsl(245, 75%, 60%)",
+    "hsl(260, 70%, 55%)",
+    "hsl(190, 95%, 45%)",
+    "hsl(210, 80%, 65%)",
   ];
 
   const summaryCards = [
@@ -210,7 +212,7 @@ const FinanceiroResumoPage = () => {
 
         {/* Distribuição de despesas */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Despesas por categoria</h2>
+          <h2 className="text-lg font-semibold text-foreground">Despesas por categoria · {fmt(totalDespesas)}</h2>
           {categoriaData.length > 0 ? (
             <div className="flex flex-col items-center gap-4">
               <ResponsiveContainer width="100%" height={220}>
@@ -223,13 +225,17 @@ const FinanceiroResumoPage = () => {
                     outerRadius={90}
                     dataKey="value"
                     paddingAngle={2}
+                    stroke="none"
                   >
                     {categoriaData.map((_, idx) => (
                       <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number, name: string) => [fmt(value), name]}
+                    formatter={(value: number, name: string) => {
+                      const pct = totalDespesas > 0 ? ((value / totalDespesas) * 100).toFixed(1) : "0";
+                      return [`${fmt(value)} (${pct}%)`, name];
+                    }}
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
                       border: "1px solid hsl(var(--border))",
@@ -237,18 +243,21 @@ const FinanceiroResumoPage = () => {
                       color: "hsl(var(--foreground))",
                     }}
                     itemStyle={{ color: "hsl(var(--foreground))" }}
-                    labelStyle={{ color: "hsl(var(--foreground))", display: "none" }}
+                    labelStyle={{ display: "none" }}
                   />
                 </RechartsPie>
               </ResponsiveContainer>
               <div className="flex flex-wrap gap-3 justify-center">
-                {categoriaData.map((cat, idx) => (
-                  <div key={cat.name} className="flex items-center gap-2 text-xs">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                    <span className="text-muted-foreground">{cat.name}</span>
-                    <span className="font-medium text-foreground">{fmt(cat.value)}</span>
-                  </div>
-                ))}
+                {categoriaData.map((cat, idx) => {
+                  const pct = totalDespesas > 0 ? ((cat.value / totalDespesas) * 100).toFixed(0) : "0";
+                  return (
+                    <div key={cat.name} className="flex items-center gap-2 text-xs">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                      <span className="text-muted-foreground">{cat.name}</span>
+                      <span className="font-medium text-foreground">{fmt(cat.value)} ({pct}%)</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (
