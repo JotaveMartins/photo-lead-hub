@@ -248,6 +248,13 @@ const FinanceiroResumoPage = () => {
                   />
                 </RechartsPie>
               </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-foreground">{fmt(totalDespesas)}</p>
+                  <p className="text-[10px] text-muted-foreground">Total</p>
+                </div>
+              </div>
+              </div>
               <div className="flex flex-wrap gap-3 justify-center">
                 {categoriaData.map((cat, idx) => {
                   const pct = totalDespesas > 0 ? ((cat.value / totalDespesas) * 100).toFixed(0) : "0";
