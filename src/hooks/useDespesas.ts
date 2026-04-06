@@ -23,6 +23,7 @@ export interface Despesa {
   recorrente: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface DespesaInsert {
@@ -51,6 +52,7 @@ export const useDespesas = (month?: Date) => {
         .from("despesas")
         .select("*")
         .eq("user_id", effectiveUserId)
+        .is("deleted_at", null)
         .order("data", { ascending: false });
 
       if (month) {
@@ -80,7 +82,28 @@ export const useAllDespesas = () => {
         .from("despesas")
         .select("*")
         .eq("user_id", effectiveUserId)
+        .is("deleted_at", null)
         .order("data", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Despesa[];
+    },
+    enabled: !!effectiveUserId,
+  });
+};
+
+export const useDeletedDespesas = () => {
+  const effectiveUserId = useEffectiveUserId();
+
+  return useQuery({
+    queryKey: ["despesas-deleted", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return [];
+      const { data, error } = await supabase
+        .from("despesas")
+        .select("*")
+        .eq("user_id", effectiveUserId)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
       if (error) throw error;
       return (data || []) as Despesa[];
     },
@@ -164,13 +187,54 @@ export const useDeleteDespesa = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("despesas").delete().eq("id", id);
+      const { error } = await supabase
+        .from("despesas")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["despesas"] });
       queryClient.invalidateQueries({ queryKey: ["despesas-all"] });
-      toast.success("Despesa excluída!");
+      queryClient.invalidateQueries({ queryKey: ["despesas-deleted"] });
+      toast.success("Despesa movida para a lixeira!");
+    },
+    onError: (err: Error) => toast.error("Erro ao excluir: " + err.message),
+  });
+};
+
+export const useRestoreDespesa = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("despesas")
+        .update({ deleted_at: null } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["despesas"] });
+      queryClient.invalidateQueries({ queryKey: ["despesas-all"] });
+      queryClient.invalidateQueries({ queryKey: ["despesas-deleted"] });
+      toast.success("Despesa restaurada!");
+    },
+    onError: (err: Error) => toast.error("Erro ao restaurar: " + err.message),
+  });
+};
+
+export const usePermanentDeleteDespesa = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("despesas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["despesas-deleted"] });
+      toast.success("Despesa excluída permanentemente!");
     },
     onError: (err: Error) => toast.error("Erro ao excluir: " + err.message),
   });
