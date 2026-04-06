@@ -229,7 +229,7 @@ const FinanceiroResumoPage = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => fmt(value)}
+                    formatter={(value: number, name: string) => [fmt(value), name]}
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
                       border: "1px solid hsl(var(--border))",
@@ -237,7 +237,7 @@ const FinanceiroResumoPage = () => {
                       color: "hsl(var(--foreground))",
                     }}
                     itemStyle={{ color: "hsl(var(--foreground))" }}
-                    labelStyle={{ color: "hsl(var(--foreground))" }}
+                    labelStyle={{ color: "hsl(var(--foreground))", display: "none" }}
                   />
                 </RechartsPie>
               </ResponsiveContainer>
