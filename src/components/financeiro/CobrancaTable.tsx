@@ -55,7 +55,8 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
     // Search
     if (!search) return true;
     const q = search.toLowerCase();
-    const clienteNome = c.cliente_id && clienteMap[c.cliente_id] ? clienteMap[c.cliente_id].nome.toLowerCase() : "";
+    const clienteId = (c as any).cliente_id;
+    const clienteNome = clienteId && clienteMap[clienteId] ? clienteMap[clienteId].nome.toLowerCase() : "";
     return (
       (c.descricao || "").toLowerCase().includes(q) ||
       PAYMENT_LABELS[c.forma_pagamento]?.toLowerCase().includes(q) ||
