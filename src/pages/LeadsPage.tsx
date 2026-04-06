@@ -22,11 +22,11 @@ const LeadsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { data: leads = [] } = useLeads();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const completeTask = useCompleteLeadTask();
 
-  // Handle ?open=leadId from reports drill-down
   useEffect(() => {
     const openId = searchParams.get("open");
     if (openId && leads.length > 0) {
@@ -36,16 +36,25 @@ const LeadsPage = () => {
         setSearchParams({}, { replace: true });
       }
     }
-  }, [searchParams, leads]);
+  }, [searchParams, leads, setSearchParams]);
 
   const today = startOfDay(new Date());
-  const todayTasks = pendingTasks.filter(t => {
-    const d = parseLocalDate(t.due_date);
-    return isToday(d) || isBefore(d, today);
-  });
+  const todayTasks = pendingTasks
+    .filter((t) => {
+      const d = parseLocalDate(t.due_date);
+      return isToday(d) || isBefore(d, today);
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  // Count only active leads (not closed)
-  const activeLeads = leads.filter(l => l.status !== "Fechado Ganho" && l.status !== "Fechado Perdido");
+  const activeLeads = leads.filter((l) => l.status !== "Fechado Ganho" && l.status !== "Fechado Perdido");
+
+  const handleTaskClick = (leadId: string) => {
+    const lead = leads.find((item) => item.id === leadId);
+    if (!lead) return;
+
+    setNotificationsOpen(false);
+    setSelectedLead(lead);
+  };
 
   return (
     <>
@@ -61,7 +70,7 @@ const LeadsPage = () => {
         <div className="flex items-center gap-2">
           <TrashBin />
 
-          <Popover>
+          <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-8 w-8">
                 <Bell className="w-4 h-4" />
@@ -83,20 +92,28 @@ const LeadsPage = () => {
                 ) : (
                   todayTasks.map((task) => {
                     const isOverdue = isBefore(parseLocalDate(task.due_date), today);
+                    const dueDateLabel = new Date(`${task.due_date}T12:00:00`).toLocaleDateString("pt-BR");
+
                     return (
-                      <div key={task.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0 hover:bg-muted/50">
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0 hover:bg-muted/50 cursor-pointer"
+                        onClick={() => handleTaskClick(task.lead_id)}
+                      >
                         <Checkbox
                           checked={false}
                           onCheckedChange={() => completeTask.mutate(task)}
                           disabled={completeTask.isPending}
                           className="border-primary data-[state=checked]:bg-primary"
+                          onClick={(e) => e.stopPropagation()}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground truncate">{task.title}</p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground truncate">
                             {task.leads?.nome}
                             {isOverdue && <span className="text-destructive ml-1">• Atrasada</span>}
                           </p>
+                          <p className="text-[11px] text-muted-foreground/80">Vence em {dueDateLabel}</p>
                         </div>
                       </div>
                     );
@@ -143,3 +160,4 @@ const LeadsPage = () => {
 };
 
 export default LeadsPage;
+
