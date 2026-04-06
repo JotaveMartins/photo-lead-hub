@@ -1,32 +1,32 @@
 import { useState } from "react";
-import { Plus, Package, Search, Pencil, Trash2, MoreHorizontal, TrendingUp } from "lucide-react";
+import { Plus, Package, Search, Pencil, Trash2, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { usePackages, useDeletePackage } from "@/hooks/usePackages";
+import { usePackages, useDeletePackage, useDeletedPackages, useRestorePackage, usePermanentDeletePackage } from "@/hooks/usePackages";
 import { useServices } from "@/hooks/useServices";
 import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import PackageModal from "@/components/PackageModal";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import GenericTrashBin from "@/components/GenericTrashBin";
 
 const PacotesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: packages = [], isLoading } = usePackages();
   const { data: services = [] } = useServices();
+  const { data: deletedPackages = [] } = useDeletedPackages();
   const deletePackage = useDeletePackage();
+  const restorePackage = useRestorePackage();
+  const permanentDeletePackage = usePermanentDeletePackage();
 
-  const filtered = packages.filter((p) =>
-    !p.is_default && p.nome.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = packages.filter((p) => {
+    if (p.is_default) return false;
+    const q = searchQuery.toLowerCase();
+    return p.nome.toLowerCase().includes(q) ||
+      p.descricao?.toLowerCase().includes(q) ||
+      p.categoria?.toLowerCase().includes(q);
+  });
 
   const formatCurrency = (value: number | null) =>
     value ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value) : "—";
@@ -35,6 +35,13 @@ const PacotesPage = () => {
   const ticketMedio = totalPacotes > 0
     ? packages.filter(p => !p.is_default && p.preco_final).reduce((sum, p) => sum + (p.preco_final || 0), 0) / totalPacotes
     : 0;
+
+  const trashItems = deletedPackages.filter(p => !p.is_default).map(p => ({
+    id: p.id,
+    label: p.nome,
+    sublabel: formatCurrency(p.preco_final),
+    deleted_at: (p as any).deleted_at,
+  }));
 
   return (
     <>
@@ -46,13 +53,22 @@ const PacotesPage = () => {
           </h1>
           <p className="text-muted-foreground mt-1">Monte pacotes combinando seus serviços</p>
         </div>
-        <Button
-          onClick={() => { setEditingPackageId(null); setIsModalOpen(true); }}
-          className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Pacote
-        </Button>
+        <div className="flex items-center gap-2">
+          <GenericTrashBin
+            items={trashItems}
+            onRestore={(id) => restorePackage.mutate(id)}
+            onPermanentDelete={(id) => permanentDeletePackage.mutate(id)}
+            isRestoring={restorePackage.isPending}
+            entityName="pacote"
+          />
+          <Button
+            onClick={() => { setEditingPackageId(null); setIsModalOpen(true); }}
+            className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Pacote
+          </Button>
+        </div>
       </header>
 
       {/* Stats */}
@@ -81,7 +97,7 @@ const PacotesPage = () => {
         <div className="p-4 border-b border-border">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar pacote..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-muted border-border" />
+            <Input placeholder="Buscar por nome, descrição..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-muted border-border" />
           </div>
         </div>
 
@@ -109,7 +125,7 @@ const PacotesPage = () => {
                   services={services}
                   formatCurrency={formatCurrency}
                   onEdit={() => { setEditingPackageId(pkg.id); setIsModalOpen(true); }}
-                  onDelete={() => setDeletingId(pkg.id)}
+                  onDelete={() => deletePackage.mutate(pkg.id)}
                 />
               ))}
             </tbody>
@@ -121,24 +137,10 @@ const PacotesPage = () => {
       </div>
 
       <PackageModal open={isModalOpen} onOpenChange={setIsModalOpen} packageId={editingPackageId} />
-
-      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir pacote?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (deletingId) { deletePackage.mutate(deletingId); setDeletingId(null); } }} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };
 
-// Sub-component to load package services per row
 const PackageRow = ({ pkg, services, formatCurrency, onEdit, onDelete }: {
   pkg: any;
   services: any[];
@@ -152,7 +154,10 @@ const PackageRow = ({ pkg, services, formatCurrency, onEdit, onDelete }: {
     .filter(Boolean);
 
   return (
-    <tr className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+    <tr
+      className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
+      onClick={onEdit}
+    >
       <td className="px-4 py-4">
         <p className="font-medium text-foreground">{pkg.nome}</p>
       </td>
@@ -166,20 +171,21 @@ const PackageRow = ({ pkg, services, formatCurrency, onEdit, onDelete }: {
         </div>
       </td>
       <td className="px-4 py-4 text-sm font-medium text-foreground">{formatCurrency(pkg.preco_final)}</td>
-      <td className="px-4 py-4 text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Pencil className="w-4 h-4 mr-2" />Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-              <Trash2 className="w-4 h-4 mr-2" />Excluir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={onEdit}
+            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </td>
     </tr>
   );
