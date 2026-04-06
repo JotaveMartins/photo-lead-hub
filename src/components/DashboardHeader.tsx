@@ -8,6 +8,7 @@ import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
+import { useSearchParams } from "react-router-dom";
 
 interface DashboardHeaderProps {
   onNewLead?: () => void;
@@ -17,12 +18,16 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
   const { signOut } = useAuth();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const completeTask = useCompleteLeadTask();
+  const [, setSearchParams] = useSearchParams();
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const today = startOfDay(new Date());
-  const urgentTasks = pendingTasks.filter(t => {
-    const d = parseLocalDate(t.due_date);
-    return isToday(d) || isBefore(d, today);
-  });
+  const urgentTasks = pendingTasks
+    .filter(t => {
+      const d = parseLocalDate(t.due_date);
+      return isToday(d) || isBefore(d, today);
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const currentDate = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -30,6 +35,11 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
     month: 'long',
     day: 'numeric'
   });
+
+  const handleTaskClick = (leadId: string) => {
+    setPopoverOpen(false);
+    setSearchParams({ open: leadId });
+  };
 
   return (
     <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-8">
@@ -46,7 +56,7 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
           <Input placeholder="Buscar..." className="pl-9 bg-card border-border" />
         </div>
         
-        <Popover>
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
@@ -69,12 +79,19 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
                 urgentTasks.map((task) => {
                   const isOverdue = isBefore(parseLocalDate(task.due_date), today);
                   return (
-                    <div key={task.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0 hover:bg-muted/50">
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0 hover:bg-muted/50 cursor-pointer"
+                      onClick={() => handleTaskClick(task.lead_id)}
+                    >
                       <Checkbox
                         checked={false}
-                        onCheckedChange={() => completeTask.mutate(task)}
+                        onCheckedChange={(e) => {
+                          e && completeTask.mutate(task);
+                        }}
                         disabled={completeTask.isPending}
                         className="border-primary data-[state=checked]:bg-primary"
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-foreground truncate">{task.title}</p>
