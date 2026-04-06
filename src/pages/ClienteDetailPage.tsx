@@ -369,7 +369,11 @@ const ClienteDetailPage = () => {
             ) : (
               <div className="space-y-2">
                 {servicosContratados.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => navigate("/servicos")}
+                  >
                     <div>
                       <p className="text-sm font-medium text-foreground">{s.nome}</p>
                       <p className="text-xs text-muted-foreground">
@@ -404,7 +408,11 @@ const ClienteDetailPage = () => {
             ) : (
               <div className="space-y-2">
                 {pacotesContratados.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => navigate("/pacotes")}
+                  >
                     <div>
                       <p className="text-sm font-medium text-foreground">{p.nome}</p>
                     </div>
@@ -436,7 +444,11 @@ const ClienteDetailPage = () => {
           ) : (
             <div className="space-y-2">
               {eventos.map((ev: any) => (
-                <div key={ev.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div
+                  key={ev.id}
+                  className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                  onClick={() => navigate("/agenda")}
+                >
                   <div>
                     <p className="text-sm font-medium text-foreground">{ev.titulo}</p>
                     <p className="text-xs text-muted-foreground">

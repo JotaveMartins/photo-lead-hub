@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, TrendingDown, Clock, Hash, Tag, PieChart, BarChart3 } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, TrendingDown, Clock, Hash, Tag, PieChart, BarChart3, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import NovaDespesaModal from "@/components/financeiro/NovaDespesaModal";
-import { useDespesas, useDeleteDespesa, type Despesa } from "@/hooks/useDespesas";
+import GenericTrashBin from "@/components/GenericTrashBin";
+import { useDespesas, useDeleteDespesa, useDeletedDespesas, useRestoreDespesa, usePermanentDeleteDespesa, type Despesa } from "@/hooks/useDespesas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart as RePieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -16,9 +17,13 @@ const DespesasPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingDespesa, setEditingDespesa] = useState<Despesa | null>(null);
 
   const { data: despesas = [], isLoading } = useDespesas(currentMonth);
+  const { data: deletedDespesas = [] } = useDeletedDespesas();
   const deleteDespesa = useDeleteDespesa();
+  const restoreDespesa = useRestoreDespesa();
+  const permanentDeleteDespesa = usePermanentDeleteDespesa();
 
   const prevMonth = () => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
   const nextMonth = () => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
@@ -27,18 +32,19 @@ const DespesasPage = () => {
     if (!search.trim()) return despesas;
     const q = search.toLowerCase();
     return despesas.filter((d) =>
-      d.descricao.toLowerCase().includes(q) || d.categoria.toLowerCase().includes(q)
+      d.descricao.toLowerCase().includes(q) ||
+      d.categoria.toLowerCase().includes(q) ||
+      d.observacoes?.toLowerCase().includes(q) ||
+      format(new Date(d.data + "T12:00:00"), "dd/MM/yyyy").includes(q)
     );
   }, [despesas, search]);
 
-  // Stats
   const totalMes = despesas.reduce((s, d) => s + d.valor, 0);
   const previstas = despesas.filter((d) => d.status === "prevista").reduce((s, d) => s + d.valor, 0);
   const pagas = despesas.filter((d) => d.status === "paga").reduce((s, d) => s + d.valor, 0);
   const qtd = despesas.length;
   const media = qtd > 0 ? totalMes / qtd : 0;
 
-  // Category aggregation
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     despesas.forEach((d) => map.set(d.categoria, (map.get(d.categoria) || 0) + d.valor));
@@ -51,15 +57,25 @@ const DespesasPage = () => {
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Tem certeza que deseja excluir esta despesa?")) {
-      await deleteDespesa.mutateAsync(id);
-    }
+  const openEdit = (d: Despesa) => {
+    setEditingDespesa(d);
+    setModalOpen(true);
   };
+
+  const openNew = () => {
+    setEditingDespesa(null);
+    setModalOpen(true);
+  };
+
+  const trashItems = deletedDespesas.map(d => ({
+    id: d.id,
+    label: d.descricao,
+    sublabel: formatCurrency(d.valor),
+    deleted_at: d.deleted_at!,
+  }));
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -68,10 +84,19 @@ const DespesasPage = () => {
           </h1>
           <p className="text-sm text-muted-foreground">Controle e organize todos os gastos do seu negócio</p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar despesa
-        </Button>
+        <div className="flex items-center gap-2">
+          <GenericTrashBin
+            items={trashItems}
+            onRestore={(id) => restoreDespesa.mutate(id)}
+            onPermanentDelete={(id) => permanentDeleteDespesa.mutate(id)}
+            isRestoring={restoreDespesa.isPending}
+            entityName="despesa"
+          />
+          <Button onClick={openNew}>
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar despesa
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -115,12 +140,12 @@ const DespesasPage = () => {
       {/* Search + Month Nav */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="relative w-56">
+          <div className="relative w-64">
             <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar despesa..."
+              placeholder="Buscar por descrição, categoria, data..."
               className="bg-muted border-border pl-8 h-9"
             />
           </div>
@@ -200,7 +225,7 @@ const DespesasPage = () => {
             <DollarSign className="w-12 h-12 text-muted-foreground/30" />
             <p className="font-medium text-foreground">Nenhuma despesa encontrada</p>
             <p className="text-sm text-muted-foreground">Adicione sua primeira despesa para começar a controlar</p>
-            <Button variant="outline" size="sm" onClick={() => setModalOpen(true)}>
+            <Button variant="outline" size="sm" onClick={openNew}>
               <Plus className="w-4 h-4 mr-2" />
               Adicionar despesa
             </Button>
@@ -217,12 +242,16 @@ const DespesasPage = () => {
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
-                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((d) => (
-                <TableRow key={d.id} className="border-border">
+                <TableRow
+                  key={d.id}
+                  className="border-border cursor-pointer hover:bg-muted/40 transition-colors"
+                  onClick={() => openEdit(d)}
+                >
                   <TableCell>
                     <p className="text-sm font-medium text-foreground">{d.descricao}</p>
                     {d.parcela_numero && (
@@ -244,10 +273,21 @@ const DespesasPage = () => {
                     </span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground capitalize">{d.forma_pagamento}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(d.id)}>
-                      ×
-                    </Button>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEdit(d)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => deleteDespesa.mutate(d.id)}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -256,7 +296,7 @@ const DespesasPage = () => {
         </Card>
       )}
 
-      <NovaDespesaModal open={modalOpen} onOpenChange={setModalOpen} />
+      <NovaDespesaModal open={modalOpen} onOpenChange={setModalOpen} despesa={editingDespesa} />
     </div>
   );
 };
