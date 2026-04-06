@@ -215,22 +215,23 @@ const FinanceiroResumoPage = () => {
           <h2 className="text-lg font-semibold text-foreground">Despesas por categoria · {fmt(totalDespesas)}</h2>
           {categoriaData.length > 0 ? (
             <div className="flex flex-col items-center gap-4">
-              <ResponsiveContainer width="100%" height={220}>
-                <RechartsPie>
-                  <Pie
-                    data={categoriaData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={90}
-                    dataKey="value"
-                    paddingAngle={2}
-                    stroke="none"
-                  >
-                    {categoriaData.map((_, idx) => (
-                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                    ))}
-                  </Pie>
+              <div className="relative">
+                <ResponsiveContainer width="100%" height={220}>
+                  <RechartsPie>
+                    <Pie
+                      data={categoriaData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={90}
+                      dataKey="value"
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {categoriaData.map((_, idx) => (
+                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                      ))}
+                    </Pie>
                   <Tooltip
                     formatter={(value: number, name: string) => {
                       const pct = totalDespesas > 0 ? ((value / totalDespesas) * 100).toFixed(1) : "0";
