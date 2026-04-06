@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, Calendar, ArrowDownUp } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, Calendar, ArrowDownUp, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CobrancaCards from "@/components/financeiro/CobrancaCards";
 import CobrancaTable from "@/components/financeiro/CobrancaTable";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
@@ -15,6 +16,8 @@ type ModalType = "unica" | "parcelas" | "entrada_parcelas";
 const FinanceiroPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPagamento, setFilterPagamento] = useState("all");
   const [showAll, setShowAll] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType | null>(null);
@@ -40,6 +43,8 @@ const FinanceiroPage = () => {
     setDropdownOpen(false);
   };
 
+  const hasActiveFilters = filterStatus !== "all" || filterPagamento !== "all";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -55,76 +60,102 @@ const FinanceiroPage = () => {
       <CobrancaCards cobrancas={monthCobrancas} allCobrancas={allCobrancas} />
 
       {/* Controls bar */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={prevMonth} className="h-9 w-9">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <span className="text-sm font-medium capitalize min-w-[120px] text-center">{monthLabel}</span>
-          {monthCount > 0 && (
-            <span className="text-xs bg-primary/20 text-primary rounded-full px-2 py-0.5">{monthCount}</span>
-          )}
-          <Button variant="outline" size="icon" onClick={nextMonth} className="h-9 w-9">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button
-            variant={showAll ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowAll(!showAll)}
-            className="ml-1"
-          >
-            <Calendar className="w-4 h-4 mr-1" /> Ver tudo
-          </Button>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={prevMonth} className="h-9 w-9">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium capitalize min-w-[120px] text-center">{monthLabel}</span>
+            {monthCount > 0 && (
+              <span className="text-xs bg-primary/20 text-primary rounded-full px-2 py-0.5">{monthCount}</span>
+            )}
+            <Button variant="outline" size="icon" onClick={nextMonth} className="h-9 w-9">
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={showAll ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowAll(!showAll)}
+              className="ml-1"
+            >
+              <Calendar className="w-4 h-4 mr-1" /> Ver tudo
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <CobrancaTrashBin />
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por descrição, cliente..."
+                className="pl-9 bg-muted border-border"
+              />
+            </div>
+
+            <div className="relative">
+              <Button
+                className="bg-gradient-primary hover:opacity-90"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar cobrança
+              </Button>
+              {dropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[220px]">
+                    <button onClick={() => openModal("unica")} className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />Cobrança única
+                    </button>
+                    <button onClick={() => openModal("parcelas")} className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground">
+                      <Calendar className="w-4 h-4 text-muted-foreground" />Criar parcelas
+                    </button>
+                    <button onClick={() => openModal("entrada_parcelas")} className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground">
+                      <ArrowDownUp className="w-4 h-4 text-muted-foreground" />Entrada + Parcelas
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <CobrancaTrashBin />
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por descrição..."
-              className="pl-9 bg-muted border-border"
-            />
-          </div>
+        {/* Filters */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" />Filtros:</div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[140px] h-8 text-xs bg-muted border-border">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos status</SelectItem>
+              <SelectItem value="paga">Paga</SelectItem>
+              <SelectItem value="aguardando">Aguardando</SelectItem>
+              <SelectItem value="vencida">Vencida</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <div className="relative">
-            <Button
-              className="bg-gradient-primary hover:opacity-90"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-            >
-              <Plus className="w-4 h-4 mr-1" /> Adicionar cobrança
+          <Select value={filterPagamento} onValueChange={setFilterPagamento}>
+            <SelectTrigger className="w-[150px] h-8 text-xs bg-muted border-border">
+              <SelectValue placeholder="Pagamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas formas</SelectItem>
+              <SelectItem value="pix">Pix</SelectItem>
+              <SelectItem value="cartao">Cartão</SelectItem>
+              <SelectItem value="boleto">Boleto</SelectItem>
+              <SelectItem value="transferencia">Transferência</SelectItem>
+              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setFilterStatus("all"); setFilterPagamento("all"); }}>
+              Limpar filtros
             </Button>
-            {dropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[220px]">
-                  <button
-                    onClick={() => openModal("unica")}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground"
-                  >
-                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    Cobrança única
-                  </button>
-                  <button
-                    onClick={() => openModal("parcelas")}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground"
-                  >
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    Criar parcelas
-                  </button>
-                  <button
-                    onClick={() => openModal("entrada_parcelas")}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-foreground"
-                  >
-                    <ArrowDownUp className="w-4 h-4 text-muted-foreground" />
-                    Entrada + Parcelas
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
@@ -132,7 +163,7 @@ const FinanceiroPage = () => {
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando...</div>
       ) : (
-        <CobrancaTable cobrancas={monthCobrancas} onEdit={setEditCobranca} search={search} />
+        <CobrancaTable cobrancas={monthCobrancas} onEdit={setEditCobranca} search={search} filterStatus={filterStatus} filterPagamento={filterPagamento} />
       )}
 
       {/* Modals */}

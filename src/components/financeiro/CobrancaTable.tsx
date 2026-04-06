@@ -24,9 +24,11 @@ interface CobrancaTableProps {
   cobrancas: Cobranca[];
   onEdit: (c: Cobranca) => void;
   search: string;
+  filterStatus?: string;
+  filterPagamento?: string;
 }
 
-const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
+const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filterPagamento = "all" }: CobrancaTableProps) => {
   const updateCobranca = useUpdateCobranca();
   const deleteCobranca = useDeleteCobranca();
   const { data: clientes = [] } = useClientes();
@@ -36,7 +38,6 @@ const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Compute effective status (auto-vencida)
   const getEffectiveStatus = (c: Cobranca) => {
     if (c.status === "paga") return "paga";
     if (c.vencimento < today) return "vencida";
@@ -44,11 +45,21 @@ const CobrancaTable = ({ cobrancas, onEdit, search }: CobrancaTableProps) => {
   };
 
   const filtered = cobrancas.filter((c) => {
+    // Status filter
+    if (filterStatus !== "all") {
+      const effective = getEffectiveStatus(c);
+      if (effective !== filterStatus) return false;
+    }
+    // Payment method filter
+    if (filterPagamento !== "all" && c.forma_pagamento !== filterPagamento) return false;
+    // Search
     if (!search) return true;
     const q = search.toLowerCase();
+    const clienteNome = c.cliente_id && clienteMap[c.cliente_id] ? clienteMap[c.cliente_id].nome.toLowerCase() : "";
     return (
       (c.descricao || "").toLowerCase().includes(q) ||
-      PAYMENT_LABELS[c.forma_pagamento]?.toLowerCase().includes(q)
+      PAYMENT_LABELS[c.forma_pagamento]?.toLowerCase().includes(q) ||
+      clienteNome.includes(q)
     );
   });
 
