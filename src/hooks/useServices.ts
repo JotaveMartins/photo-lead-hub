@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 
 export interface Service {
@@ -28,39 +29,43 @@ export interface ServiceInsert {
 
 export const useServices = () => {
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["services", user?.id],
+    queryKey: ["services", effectiveUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
+        .eq("user_id", effectiveUserId!)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Service[];
     },
-    enabled: !!user,
+    enabled: !!user && !!effectiveUserId,
   });
 };
 
 export const useDeletedServices = () => {
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["services-deleted", user?.id],
+    queryKey: ["services-deleted", effectiveUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
+        .eq("user_id", effectiveUserId!)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false });
 
       if (error) throw error;
       return data as Service[];
     },
-    enabled: !!user,
+    enabled: !!user && !!effectiveUserId,
   });
 };
 

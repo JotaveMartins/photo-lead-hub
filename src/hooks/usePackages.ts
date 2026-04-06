@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -8,13 +9,15 @@ type Package = Database["public"]["Tables"]["packages"]["Row"];
 
 export const usePackages = () => {
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["packages", user?.id],
+    queryKey: ["packages", effectiveUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
         .select("*")
+        .or(`user_id.eq.${effectiveUserId},is_default.eq.true`)
         .is("deleted_at", null)
         .order("is_default", { ascending: false })
         .order("nome", { ascending: true });
@@ -22,26 +25,28 @@ export const usePackages = () => {
       if (error) throw error;
       return data as Package[];
     },
-    enabled: !!user,
+    enabled: !!user && !!effectiveUserId,
   });
 };
 
 export const useDeletedPackages = () => {
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["packages-deleted", user?.id],
+    queryKey: ["packages-deleted", effectiveUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
         .select("*")
+        .eq("user_id", effectiveUserId!)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false });
 
       if (error) throw error;
       return data as Package[];
     },
-    enabled: !!user,
+    enabled: !!user && !!effectiveUserId,
   });
 };
 
