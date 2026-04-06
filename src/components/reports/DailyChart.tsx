@@ -24,6 +24,8 @@ const DailyChart = ({ data }: DailyChartProps) => {
                   borderRadius: "8px",
                   color: "hsl(var(--foreground))",
                 }}
+                itemStyle={{ color: "hsl(var(--foreground))" }}
+                labelStyle={{ color: "hsl(var(--foreground))" }}
               />
               <Legend />
               <Bar dataKey="leads" name="Leads" fill="hsl(199, 89%, 48%)" radius={[3, 3, 0, 0]} />

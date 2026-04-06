@@ -44,6 +44,8 @@ const RevenueSection = ({ total, ticketMedio, dailyData }: RevenueSectionProps) 
                   borderRadius: "8px",
                   color: "hsl(var(--foreground))",
                 }}
+                itemStyle={{ color: "hsl(var(--foreground))" }}
+                labelStyle={{ color: "hsl(var(--foreground))" }}
               />
               <Bar dataKey="receita" name="Receita" fill="hsl(142, 76%, 46%)" radius={[3, 3, 0, 0]} />
             </BarChart>

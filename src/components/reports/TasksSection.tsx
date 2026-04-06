@@ -55,6 +55,8 @@ const TasksSection = (props: TasksSectionProps) => {
                   borderRadius: "8px",
                   color: "hsl(var(--foreground))",
                 }}
+                itemStyle={{ color: "hsl(var(--foreground))" }}
+                labelStyle={{ color: "hsl(var(--foreground))" }}
               />
               <Bar dataKey="count" name="Concluídas" fill="hsl(173, 80%, 60%)" radius={[3, 3, 0, 0]} />
             </BarChart>
