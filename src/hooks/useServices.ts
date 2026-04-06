@@ -14,6 +14,7 @@ export interface Service {
   ativo: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface ServiceInsert {
@@ -34,7 +35,27 @@ export const useServices = () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Service[];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useDeletedServices = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["services-deleted", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("*")
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
 
       if (error) throw error;
       return data as Service[];
@@ -106,12 +127,56 @@ export const useDeleteService = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("services").delete().eq("id", id);
+      const { error } = await supabase
+        .from("services")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
-      toast.success("Serviço excluído com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["services-deleted"] });
+      toast.success("Serviço movido para a lixeira!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir serviço: " + error.message);
+    },
+  });
+};
+
+export const useRestoreService = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("services")
+        .update({ deleted_at: null } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["services-deleted"] });
+      toast.success("Serviço restaurado!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao restaurar serviço: " + error.message);
+    },
+  });
+};
+
+export const usePermanentDeleteService = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("services").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["services-deleted"] });
+      toast.success("Serviço excluído permanentemente!");
     },
     onError: (error: Error) => {
       toast.error("Erro ao excluir serviço: " + error.message);

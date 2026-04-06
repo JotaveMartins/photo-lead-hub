@@ -15,8 +15,28 @@ export const usePackages = () => {
       const { data, error } = await supabase
         .from("packages")
         .select("*")
+        .is("deleted_at", null)
         .order("is_default", { ascending: false })
         .order("nome", { ascending: true });
+
+      if (error) throw error;
+      return data as Package[];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useDeletedPackages = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["packages-deleted", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("packages")
+        .select("*")
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
 
       if (error) throw error;
       return data as Package[];
@@ -59,14 +79,60 @@ export const useDeletePackage = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("packages")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() } as any)
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["packages"] });
-      toast.success("Pacote excluído com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["packages-deleted"] });
+      toast.success("Pacote movido para a lixeira!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir pacote: " + error.message);
+    },
+  });
+};
+
+export const useRestorePackage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("packages")
+        .update({ deleted_at: null } as any)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["packages"] });
+      queryClient.invalidateQueries({ queryKey: ["packages-deleted"] });
+      toast.success("Pacote restaurado!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao restaurar pacote: " + error.message);
+    },
+  });
+};
+
+export const usePermanentDeletePackage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("packages")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["packages-deleted"] });
+      toast.success("Pacote excluído permanentemente!");
     },
     onError: (error: Error) => {
       toast.error("Erro ao excluir pacote: " + error.message);
