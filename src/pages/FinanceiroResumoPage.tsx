@@ -215,15 +215,15 @@ const FinanceiroResumoPage = () => {
           <h2 className="text-lg font-semibold text-foreground">Despesas por categoria</h2>
           {categoriaData.length > 0 ? (
             <div className="flex flex-col items-center gap-4">
-              <div className="relative w-full" style={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height={220}>
+              <div className="relative w-full" style={{ height: 280 }}>
+                <ResponsiveContainer width="100%" height={280}>
                   <RechartsPie>
                     <Pie
                       data={categoriaData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={50}
-                      outerRadius={90}
+                      innerRadius={65}
+                      outerRadius={120}
                       dataKey="value"
                       paddingAngle={2}
                       stroke="none"
@@ -250,7 +250,7 @@ const FinanceiroResumoPage = () => {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center">
-                    <p className="text-lg font-bold text-foreground">{fmt(totalDespesas)}</p>
+                    <p className="text-xl font-bold text-foreground">{fmt(totalDespesas)}</p>
                     <p className="text-[10px] text-muted-foreground">Total</p>
                   </div>
                 </div>
