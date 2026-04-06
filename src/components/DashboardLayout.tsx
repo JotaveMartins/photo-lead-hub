@@ -1,10 +1,19 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import Sidebar from "@/components/Sidebar";
 import { TutorialModal, HelpButton } from "@/components/TutorialModal";
+import VersionAnnouncementModal from "@/components/VersionAnnouncementModal";
 import { X } from "lucide-react";
+import {
+  agendaTutorial,
+  servicosTutorial,
+  pacotesTutorial,
+  cobrancasTutorial,
+  despesasTutorial,
+  clienteDetailTutorial,
+} from "@/data/pageTutorials";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -32,6 +41,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/admin") return "admin";
     return "leads";
   };
+
+  // Determine page-specific tutorial based on current route
+  const { pageTutorial, pageKey } = useMemo(() => {
+    const path = location.pathname;
+    if (path === "/agenda") return { pageTutorial: agendaTutorial, pageKey: "agenda" };
+    if (path === "/servicos") return { pageTutorial: servicosTutorial, pageKey: "servicos" };
+    if (path === "/pacotes") return { pageTutorial: pacotesTutorial, pageKey: "pacotes" };
+    if (path === "/financeiro/cobrancas") return { pageTutorial: cobrancasTutorial, pageKey: "cobrancas" };
+    if (path === "/financeiro/despesas") return { pageTutorial: despesasTutorial, pageKey: "despesas" };
+    if (path.startsWith("/clientes/") && path !== "/clientes") return { pageTutorial: clienteDetailTutorial, pageKey: "cliente-detail" };
+    return { pageTutorial: undefined, pageKey: undefined };
+  }, [location.pathname]);
 
   if (loading) {
     return (
@@ -91,7 +112,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {children}
       </main>
       <TutorialModal />
-      <HelpButton />
+      <VersionAnnouncementModal />
+      <HelpButton pageTutorial={pageTutorial} pageKey={pageKey} key={location.pathname} />
     </div>
   );
 };
