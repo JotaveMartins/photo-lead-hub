@@ -201,6 +201,7 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           data_evento: string
+          deleted_at: string | null
           descricao: string | null
           id: string
           lead_id: string | null
@@ -214,6 +215,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data_evento: string
+          deleted_at?: string | null
           descricao?: string | null
           id?: string
           lead_id?: string | null
@@ -227,6 +229,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data_evento?: string
+          deleted_at?: string | null
           descricao?: string | null
           id?: string
           lead_id?: string | null
@@ -610,6 +613,7 @@ export type Database = {
         Row: {
           categoria: string | null
           created_at: string
+          deleted_at: string | null
           descricao: string | null
           id: string
           is_default: boolean
@@ -620,6 +624,7 @@ export type Database = {
         Insert: {
           categoria?: string | null
           created_at?: string
+          deleted_at?: string | null
           descricao?: string | null
           id?: string
           is_default?: boolean
@@ -630,6 +635,7 @@ export type Database = {
         Update: {
           categoria?: string | null
           created_at?: string
+          deleted_at?: string | null
           descricao?: string | null
           id?: string
           is_default?: boolean
@@ -678,6 +684,7 @@ export type Database = {
           categoria: string
           created_at: string
           custo_interno: number | null
+          deleted_at: string | null
           descricao: string | null
           id: string
           nome: string
@@ -690,6 +697,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           custo_interno?: number | null
+          deleted_at?: string | null
           descricao?: string | null
           id?: string
           nome: string
@@ -702,6 +710,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           custo_interno?: number | null
+          deleted_at?: string | null
           descricao?: string | null
           id?: string
           nome?: string

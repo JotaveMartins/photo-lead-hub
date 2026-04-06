@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Calendar as CalendarIcon, Plus, Trash2, MapPin, Search, List, ArrowUpDown } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, Search, List, ArrowUpDown } from "lucide-react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import TimePickerField from "@/components/TimePickerField";
 import { Label } from "@/components/ui/label";
-import { useEvents, useCreateEvent, useDeleteEvent } from "@/hooks/useEvents";
+import GenericTrashBin from "@/components/GenericTrashBin";
+import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useDeletedEvents, useRestoreEvent, usePermanentDeleteEvent } from "@/hooks/useEvents";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
-import { format, isSameDay, isBefore, isAfter, startOfDay } from "date-fns";
+import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ type SortDir = "asc" | "desc";
 const AgendaPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
   const [titulo, setTitulo] = useState("");
   const [local, setLocal] = useState("");
   const [selectedClienteId, setSelectedClienteId] = useState("");
@@ -35,35 +37,37 @@ const AgendaPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: events = [] } = useEvents();
+  const { data: deletedEvents = [] } = useDeletedEvents();
   const { data: clientes = [] } = useClientes();
   const { data: services = [] } = useServices();
   const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
+  const restoreEvent = useRestoreEvent();
+  const permanentDeleteEvent = usePermanentDeleteEvent();
 
   const today = startOfDay(new Date());
 
   const filteredEvents = useMemo(() => {
     let filtered = [...events];
 
-    // Filter
     if (filter === "proximos") {
       filtered = filtered.filter(e => !isBefore(new Date(e.data_evento), today));
     } else if (filter === "passados") {
       filtered = filtered.filter(e => isBefore(new Date(e.data_evento), today));
     }
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(e =>
         e.titulo.toLowerCase().includes(q) ||
         (e as any).clientes?.nome?.toLowerCase().includes(q) ||
         (e as any).services?.nome?.toLowerCase().includes(q) ||
-        (e as any).local?.toLowerCase().includes(q)
+        (e as any).local?.toLowerCase().includes(q) ||
+        format(new Date(e.data_evento), "dd/MM/yyyy").includes(q)
       );
     }
 
-    // Sort
     filtered.sort((a, b) => {
       const diff = new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime();
       return sortDir === "asc" ? diff : -diff;
@@ -76,13 +80,25 @@ const AgendaPage = () => {
     selectedDate && isSameDay(new Date(event.data_evento), selectedDate)
   );
 
-
-  const openModal = () => {
-    setModalDate(selectedDate);
+  const openModal = (event?: any) => {
+    if (event) {
+      setEditingEvent(event);
+      setTitulo(event.titulo);
+      setLocal((event as any).local || "");
+      setSelectedClienteId(event.cliente_id || "");
+      setSelectedServiceId(event.service_id || "");
+      const eventDate = new Date(event.data_evento);
+      setModalDate(eventDate);
+      setHora(format(eventDate, "HH:mm"));
+    } else {
+      setEditingEvent(null);
+      setModalDate(selectedDate);
+      resetForm();
+    }
     setIsModalOpen(true);
   };
 
-  const handleCreateEvent = async () => {
+  const handleSaveEvent = async () => {
     if (!titulo.trim()) {
       toast.error("Preencha o título do evento");
       return;
@@ -97,13 +113,19 @@ const AgendaPage = () => {
     const eventDate = new Date(eventDateBase);
     eventDate.setHours(hours, minutes, 0, 0);
 
-    await createEvent.mutateAsync({
+    const payload = {
       titulo: titulo.trim(),
       data_evento: eventDate.toISOString(),
       local: local.trim() || null,
       cliente_id: selectedClienteId || null,
       service_id: selectedServiceId || null,
-    });
+    };
+
+    if (editingEvent) {
+      await updateEvent.mutateAsync({ id: editingEvent.id, ...payload });
+    } else {
+      await createEvent.mutateAsync(payload);
+    }
 
     setIsModalOpen(false);
     resetForm();
@@ -114,6 +136,7 @@ const AgendaPage = () => {
     setLocal("");
     setSelectedClienteId("");
     setSelectedServiceId("");
+    setEditingEvent(null);
   };
 
   const handleServiceChange = (serviceId: string) => {
@@ -139,6 +162,13 @@ const AgendaPage = () => {
     { key: "todos", label: "Todos" },
   ];
 
+  const trashItems = deletedEvents.map(e => ({
+    id: e.id,
+    label: e.titulo,
+    sublabel: format(new Date(e.data_evento), "dd/MM/yyyy HH:mm"),
+    deleted_at: (e as any).deleted_at,
+  }));
+
   return (
     <>
       <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
@@ -153,6 +183,13 @@ const AgendaPage = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <GenericTrashBin
+            items={trashItems}
+            onRestore={(id) => restoreEvent.mutate(id)}
+            onPermanentDelete={(id) => permanentDeleteEvent.mutate(id)}
+            isRestoring={restoreEvent.isPending}
+            entityName="evento"
+          />
           <div className="flex rounded-lg border border-border overflow-hidden">
             <button
               onClick={() => setViewMode("list")}
@@ -168,7 +205,7 @@ const AgendaPage = () => {
             </button>
           </div>
           <Button
-            onClick={openModal}
+            onClick={() => openModal()}
             className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
           >
             <Plus className="w-4 h-4" />
@@ -179,7 +216,6 @@ const AgendaPage = () => {
 
       {viewMode === "list" ? (
         <>
-          {/* Filters */}
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             {filters.map((f) => (
               <button
@@ -198,15 +234,14 @@ const AgendaPage = () => {
             <div className="ml-auto relative">
               <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar..."
+                placeholder="Buscar por evento, cliente, local, data..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 w-48 bg-muted border-border text-sm"
+                className="pl-8 h-8 w-64 bg-muted border-border text-sm"
               />
             </div>
           </div>
 
-          {/* Table */}
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             {filteredEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-12">Nenhum evento encontrado.</p>
@@ -228,14 +263,18 @@ const AgendaPage = () => {
                       </span>
                     </TableHead>
                     <TableHead className="font-medium">Status</TableHead>
-                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEvents.map((event) => {
                     const status = getEventStatus(event.data_evento);
                     return (
-                      <TableRow key={event.id} className="border-border hover:bg-muted/40 transition-colors">
+                      <TableRow
+                        key={event.id}
+                        className="border-border hover:bg-muted/40 transition-colors cursor-pointer"
+                        onClick={() => openModal(event)}
+                      >
                         <TableCell>
                           <p className="text-sm font-medium text-foreground">{event.titulo}</p>
                         </TableCell>
@@ -271,12 +310,20 @@ const AgendaPage = () => {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <button
-                            onClick={() => deleteEvent.mutate(event.id)}
-                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => openModal(event)}
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => deleteEvent.mutate(event.id)}
+                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -287,7 +334,6 @@ const AgendaPage = () => {
           </div>
         </>
       ) : (
-        /* Calendar View */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="bg-card border border-border rounded-xl p-6">
@@ -317,7 +363,11 @@ const AgendaPage = () => {
                 </p>
               ) : (
                 eventsForDate.map((event) => (
-                  <div key={event.id} className="p-3 rounded-lg bg-muted/50 border border-border/50 group">
+                  <div
+                    key={event.id}
+                    className="p-3 rounded-lg bg-muted/50 border border-border/50 group cursor-pointer hover:bg-muted/70 transition-colors"
+                    onClick={() => openModal(event)}
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-foreground">{event.titulo}</p>
@@ -341,12 +391,20 @@ const AgendaPage = () => {
                           </p>
                         )}
                       </div>
-                      <button
-                        onClick={() => deleteEvent.mutate(event.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => openModal(event)}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => deleteEvent.mutate(event.id)}
+                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -356,11 +414,11 @@ const AgendaPage = () => {
         </div>
       )}
 
-      {/* New Event Modal */}
+      {/* Event Modal (Create/Edit) */}
       <Dialog open={isModalOpen} onOpenChange={(v) => { if (!v) resetForm(); setIsModalOpen(v); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Novo Evento</DialogTitle>
+            <DialogTitle>{editingEvent ? "Editar Evento" : "Novo Evento"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -440,7 +498,9 @@ const AgendaPage = () => {
 
             <div className="flex gap-3 justify-end pt-4">
               <Button variant="outline" onClick={() => { resetForm(); setIsModalOpen(false); }}>Cancelar</Button>
-              <Button onClick={handleCreateEvent} className="bg-gradient-primary hover:opacity-90">Criar evento</Button>
+              <Button onClick={handleSaveEvent} className="bg-gradient-primary hover:opacity-90">
+                {editingEvent ? "Salvar" : "Criar evento"}
+              </Button>
             </div>
           </div>
         </DialogContent>
