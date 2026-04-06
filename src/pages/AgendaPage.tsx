@@ -334,82 +334,203 @@ const AgendaPage = () => {
           </div>
         </>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <div className="bg-card border border-border rounded-xl p-6">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                locale={ptBR}
-                className="w-full"
-                modifiers={{ hasEvent: eventDates }}
-                modifiersClassNames={{ hasEvent: "bg-primary/20 text-primary font-semibold" }}
+        <div className="space-y-6">
+          {/* Calendar + Day detail */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <div className="bg-card border border-border rounded-xl p-6">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  locale={ptBR}
+                  className="w-full"
+                  modifiers={{ hasEvent: eventDates }}
+                  modifiersClassNames={{ hasEvent: "bg-primary/20 text-primary font-semibold" }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="font-display font-semibold text-foreground mb-4">
+                {selectedDate
+                  ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR })
+                  : "Selecione uma data"}
+              </h3>
+
+              <div className="space-y-3">
+                {eventsForDate.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum evento nesta data
+                  </p>
+                ) : (
+                  eventsForDate.map((event) => (
+                    <div
+                      key={event.id}
+                      className="p-3 rounded-lg bg-muted/50 border border-border/50 group cursor-pointer hover:bg-muted/70 transition-colors"
+                      onClick={() => openModal(event)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-foreground">{event.titulo}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(event.data_evento), "HH:mm")}
+                          </p>
+                          {(event as any).local && (
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {(event as any).local}
+                            </p>
+                          )}
+                          {(event as any).clientes && (
+                            <p className="text-xs text-primary mt-1">
+                              Cliente: {((event as any).clientes as { nome: string }).nome}
+                            </p>
+                          )}
+                          {(event as any).services && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Serviço: {((event as any).services as { nome: string }).nome}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => openModal(event)}
+                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => deleteEvent.mutate(event.id)}
+                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Full event list below */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {filters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                  filter === f.key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+            <div className="ml-auto relative">
+              <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por evento, cliente, local, data..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 w-64 bg-muted border-border text-sm"
               />
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-display font-semibold text-foreground mb-4">
-              {selectedDate
-                ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR })
-                : "Selecione uma data"}
-            </h3>
-
-            <div className="space-y-3">
-              {eventsForDate.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum evento nesta data
-                </p>
-              ) : (
-                eventsForDate.map((event) => (
-                  <div
-                    key={event.id}
-                    className="p-3 rounded-lg bg-muted/50 border border-border/50 group cursor-pointer hover:bg-muted/70 transition-colors"
-                    onClick={() => openModal(event)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-foreground">{event.titulo}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(event.data_evento), "HH:mm")}
-                        </p>
-                        {(event as any).local && (
-                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {(event as any).local}
-                          </p>
-                        )}
-                        {(event as any).clientes && (
-                          <p className="text-xs text-primary mt-1">
-                            Cliente: {((event as any).clientes as { nome: string }).nome}
-                          </p>
-                        )}
-                        {(event as any).services && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Serviço: {((event as any).services as { nome: string }).nome}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => openModal(event)}
-                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => deleteEvent.mutate(event.id)}
-                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            {filteredEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-12">Nenhum evento encontrado.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border bg-muted/30">
+                    <TableHead className="font-medium">Evento</TableHead>
+                    <TableHead className="font-medium">Cliente</TableHead>
+                    <TableHead className="font-medium">Serviço</TableHead>
+                    <TableHead className="font-medium">Local</TableHead>
+                    <TableHead
+                      className="font-medium cursor-pointer select-none"
+                      onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+                    >
+                      <span className="flex items-center gap-1">
+                        Data
+                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+                      </span>
+                    </TableHead>
+                    <TableHead className="font-medium">Status</TableHead>
+                    <TableHead className="w-20"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEvents.map((event) => {
+                    const status = getEventStatus(event.data_evento);
+                    return (
+                      <TableRow
+                        key={event.id}
+                        className="border-border hover:bg-muted/40 transition-colors cursor-pointer"
+                        onClick={() => openModal(event)}
+                      >
+                        <TableCell>
+                          <p className="text-sm font-medium text-foreground">{event.titulo}</p>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-foreground">
+                            {(event as any).clientes?.nome || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-foreground">
+                            {(event as any).services?.nome || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {(event as any).local ? (
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {(event as any).local}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm">{format(new Date(event.data_evento), "dd/MM/yyyy")}</p>
+                            <p className="text-xs text-muted-foreground">{format(new Date(event.data_evento), "HH:mm")}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={cn("text-xs font-medium px-2 py-1 rounded-full", status.className)}>
+                            {status.label}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => openModal(event)}
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => deleteEvent.mutate(event.id)}
+                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </div>
       )}
