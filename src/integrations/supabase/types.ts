@@ -136,6 +136,7 @@ export type Database = {
           categoria: string
           created_at: string
           data: string
+          deleted_at: string | null
           descricao: string
           evento_id: string | null
           forma_pagamento: Database["public"]["Enums"]["payment_method"]
@@ -154,6 +155,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           data: string
+          deleted_at?: string | null
           descricao: string
           evento_id?: string | null
           forma_pagamento?: Database["public"]["Enums"]["payment_method"]
@@ -172,6 +174,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           data?: string
+          deleted_at?: string | null
           descricao?: string
           evento_id?: string | null
           forma_pagamento?: Database["public"]["Enums"]["payment_method"]

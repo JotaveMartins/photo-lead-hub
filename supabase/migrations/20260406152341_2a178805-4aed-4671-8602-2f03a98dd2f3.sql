@@ -1,0 +1,1 @@
+ALTER TABLE public.despesas ADD COLUMN deleted_at timestamptz DEFAULT NULL;
