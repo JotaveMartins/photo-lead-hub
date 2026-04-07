@@ -66,6 +66,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (session?.user) {
         refreshDemoData(session.user.id, session.access_token);
+        // Record last access
+        supabase
+          .from("profiles")
+          .update({ ultimo_acesso: new Date().toISOString() } as any)
+          .eq("user_id", session.user.id)
+          .then();
       }
     });
 
