@@ -14,7 +14,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
 
-const whatsappSchema = z.string().regex(/^\d{10,11}$/, "WhatsApp deve ter 10 ou 11 dígitos");
+const whatsappSchema = z.string().min(7, "WhatsApp deve ter pelo menos 7 dígitos").max(15, "WhatsApp deve ter no máximo 15 dígitos").regex(/^\d+$/, "WhatsApp deve conter apenas números");
 const nomeSchema = z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100);
 
 const ORIGEM_OPTIONS = [
