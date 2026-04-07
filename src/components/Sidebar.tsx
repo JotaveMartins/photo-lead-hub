@@ -50,8 +50,8 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
   const isFinanceiroActive = activeItem.startsWith('financeiro');
   const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroActive);
 
-  const menuItems = isAdmin ? baseMenuItems : baseMenuItems;
-  const showFinanceiro = isAdmin;
+  const menuItems = baseMenuItems;
+  const showFinanceiro = true;
   const showAdmin = isAdmin;
 
   return (
