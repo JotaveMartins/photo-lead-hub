@@ -73,7 +73,7 @@ const AdminPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : users?.length === 0 ? (
               <TableRow>
@@ -116,7 +116,14 @@ const AdminPage = () => {
                       Entrar
                     </Button>
                   </TableCell>
-                  <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                   <TableCell>
+                     {(user as any).ultimo_acesso ? (
+                       <span className="text-sm">{format(new Date((user as any).ultimo_acesso), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                     ) : (
+                       <span className="text-muted-foreground text-sm">Nunca</span>
+                     )}
+                   </TableCell>
+                   <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell>
                     {user.user_id !== currentUser?.id && (
                       <Button
