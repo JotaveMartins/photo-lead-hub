@@ -331,7 +331,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       {/* Kanban columns */}
       <div
         ref={boardRef}
-        className="flex gap-3 overflow-x-auto overflow-y-visible pb-4"
+        className="flex gap-3 overflow-x-auto overflow-y-visible pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {ACTIVE_COLUMNS.map((col) => {
           const columnLeads = filteredLeads.filter((l) => l.status === col.status);
