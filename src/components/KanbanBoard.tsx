@@ -307,7 +307,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
               </div>
 
               {/* Cards */}
-              <div className="p-2 flex-1 space-y-2 overflow-y-auto">
+              <div className="p-2 flex-1 space-y-2">
                 {columnLeads.map((lead) => {
                   const taskStatus = getLeadTaskStatus(lead.id, pendingTasks);
                   const taskConfig = TASK_STATUS_CONFIG[taskStatus];
