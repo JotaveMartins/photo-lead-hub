@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Plus, Wrench, Search, Pencil, Trash2, MoreHorizontal, TrendingUp } from "lucide-react";
+import { Plus, Wrench, Pencil, Trash2, MoreHorizontal, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { useServices, useDeleteService, useDeletedServices, useRestoreService, usePermanentDeleteService, type Service } from "@/hooks/useServices";
 import ServiceModal from "@/components/ServiceModal";
 import GenericTrashBin from "@/components/GenericTrashBin";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { normalizeText } from "@/lib/utils";
 
 const ServicosPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,10 +23,11 @@ const ServicosPage = () => {
   const permanentDeleteService = usePermanentDeleteService();
 
   const filtered = services.filter((s) => {
-    const q = searchQuery.toLowerCase();
-    return s.nome.toLowerCase().includes(q) ||
-      s.categoria?.toLowerCase().includes(q) ||
-      s.descricao?.toLowerCase().includes(q);
+    const q = normalizeText(searchQuery);
+    if (!q) return true;
+    return normalizeText(s.nome).includes(q) ||
+      normalizeText(s.categoria).includes(q) ||
+      normalizeText(s.descricao).includes(q);
   });
 
   const formatCurrency = (value: number) =>
@@ -94,10 +97,13 @@ const ServicosPage = () => {
 
       <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-in">
         <div className="p-4 border-b border-border">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome, categoria..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-muted border-border" />
-          </div>
+          <SearchInput
+            containerClassName="max-w-md"
+            placeholder="Buscar por nome, categoria..."
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            className="bg-muted border-border"
+          />
         </div>
 
         <div className="overflow-x-auto">

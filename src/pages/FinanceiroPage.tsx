@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, Calendar, ArrowDownUp, Filter } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, Plus, Calendar, ArrowDownUp, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CobrancaCards from "@/components/financeiro/CobrancaCards";
 import CobrancaTable from "@/components/financeiro/CobrancaTable";
@@ -85,15 +86,13 @@ const FinanceiroPage = () => {
 
           <div className="flex items-center gap-3 w-full md:w-auto">
             <CobrancaTrashBin />
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por descrição, cliente..."
-                className="pl-9 bg-muted border-border"
-              />
-            </div>
+            <SearchInput
+              containerClassName="flex-1 md:w-64"
+              value={search}
+              onValueChange={setSearch}
+              placeholder="Buscar por descrição, cliente..."
+              className="bg-muted border-border"
+            />
 
             <div className="relative">
               <Button

@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Plus, Package, Search, Pencil, Trash2, TrendingUp } from "lucide-react";
+import { Plus, Package, Pencil, Trash2, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { usePackages, useDeletePackage, useDeletedPackages, useRestorePackage, usePermanentDeletePackage } from "@/hooks/usePackages";
 import { useServices } from "@/hooks/useServices";
 import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import PackageModal from "@/components/PackageModal";
 import GenericTrashBin from "@/components/GenericTrashBin";
+import { normalizeText } from "@/lib/utils";
 
 const PacotesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,10 +24,11 @@ const PacotesPage = () => {
 
   const filtered = packages.filter((p) => {
     if (p.is_default) return false;
-    const q = searchQuery.toLowerCase();
-    return p.nome.toLowerCase().includes(q) ||
-      p.descricao?.toLowerCase().includes(q) ||
-      p.categoria?.toLowerCase().includes(q);
+    const q = normalizeText(searchQuery);
+    if (!q) return true;
+    return normalizeText(p.nome).includes(q) ||
+      normalizeText(p.descricao).includes(q) ||
+      normalizeText(p.categoria).includes(q);
   });
 
   const formatCurrency = (value: number | null) =>
@@ -95,10 +98,13 @@ const PacotesPage = () => {
 
       <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-in">
         <div className="p-4 border-b border-border">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome, descrição..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-muted border-border" />
-          </div>
+          <SearchInput
+            containerClassName="max-w-md"
+            placeholder="Buscar por nome, descrição..."
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            className="bg-muted border-border"
+          />
         </div>
 
         <div className="overflow-x-auto">
