@@ -89,10 +89,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
   const filteredLeads = useMemo(() => {
+    const q = normalizeText(searchQuery);
     return leads.filter((lead) => {
-      const matchesSearch = !searchQuery || 
-        lead.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.whatsapp.includes(searchQuery);
+      const matchesSearch = !q ||
+        normalizeText(lead.nome).includes(q) ||
+        normalizeText(lead.whatsapp).includes(q);
       const matchesOrigem = origemFilter === "all" || lead.origem === origemFilter;
       const matchesInteresse = interesseFilter === "all" || lead.interesse === interesseFilter;
       return matchesSearch && matchesOrigem && matchesInteresse;
@@ -225,15 +226,13 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     <div className="flex flex-col gap-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar leads..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-muted border-border h-9"
-          />
-        </div>
+        <SearchInput
+          containerClassName="flex-1 max-w-sm"
+          placeholder="Buscar leads..."
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          className="bg-muted border-border h-9"
+        />
         <div className="relative w-[180px]">
           <Filter className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <select
