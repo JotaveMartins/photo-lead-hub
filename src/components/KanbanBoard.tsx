@@ -469,6 +469,18 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         </div>
       )}
 
+      {/* Floating horizontal scrollbar pinned to viewport bottom (synced with the board) */}
+      {showProxy && !isDragging && (
+        <div
+          ref={proxyRef}
+          aria-hidden="true"
+          className="fixed bottom-0 left-64 right-0 z-40 overflow-x-auto overflow-y-hidden bg-background/80 backdrop-blur-sm border-t border-border"
+          style={{ height: 14 }}
+        >
+          <div style={{ width: scrollWidth, height: 1 }} />
+        </div>
+      )}
+
       {/* Delete confirmation dialog */}
       <AlertDialog open={!!deleteConfirmLead} onOpenChange={(open) => { if (!open) setDeleteConfirmLead(null); }}>
         <AlertDialogContent>
