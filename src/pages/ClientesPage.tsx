@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { UserPlus, Search } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { UserPlus } from "lucide-react";
 import { useClientes, useDeleteCliente, type Cliente } from "@/hooks/useClientes";
 import ClienteCards from "@/components/clientes/ClienteCards";
 import ClienteTable from "@/components/clientes/ClienteTable";
@@ -37,15 +37,12 @@ const ClientesPage = () => {
 
       <ClienteCards clientes={clientes} />
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, email ou WhatsApp..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <SearchInput
+        containerClassName="max-w-sm"
+        placeholder="Buscar por nome, email ou WhatsApp..."
+        value={search}
+        onValueChange={setSearch}
+      />
 
       <ClienteTable
         clientes={clientes}
