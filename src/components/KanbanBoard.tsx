@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { useInteresseOptions } from "@/hooks/useInteresseOptions";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
@@ -87,6 +87,57 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
+
+  // Refs for synchronized horizontal scrollbars (real board + floating proxy)
+  const boardRef = useRef<HTMLDivElement>(null);
+  const proxyRef = useRef<HTMLDivElement>(null);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  const [showProxy, setShowProxy] = useState(false);
+
+  // Keep the proxy scrollbar width in sync with the board content
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const update = () => {
+      setScrollWidth(board.scrollWidth);
+      setShowProxy(board.scrollWidth > board.clientWidth);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(board);
+    Array.from(board.children).forEach((c) => ro.observe(c as Element));
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  });
+
+  // Sync scroll positions between board and proxy bar
+  useEffect(() => {
+    const board = boardRef.current;
+    const proxy = proxyRef.current;
+    if (!board || !proxy) return;
+    let syncing = false;
+    const onBoard = () => {
+      if (syncing) return;
+      syncing = true;
+      proxy.scrollLeft = board.scrollLeft;
+      requestAnimationFrame(() => { syncing = false; });
+    };
+    const onProxy = () => {
+      if (syncing) return;
+      syncing = true;
+      board.scrollLeft = proxy.scrollLeft;
+      requestAnimationFrame(() => { syncing = false; });
+    };
+    board.addEventListener("scroll", onBoard);
+    proxy.addEventListener("scroll", onProxy);
+    return () => {
+      board.removeEventListener("scroll", onBoard);
+      proxy.removeEventListener("scroll", onProxy);
+    };
+  }, [showProxy]);
 
   const filteredLeads = useMemo(() => {
     const q = normalizeText(searchQuery);
@@ -268,12 +319,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       </div>
 
       {/* Kanban columns */}
-      {/*
-        Sticky horizontal scrollbar: the scroll container is pinned to the
-        bottom of the viewport so the horizontal scrollbar is always reachable
-        without scrolling the page. Vertical scrolling on the page works as before.
-      */}
-      <div className="sticky bottom-0 flex gap-3 overflow-x-auto overflow-y-visible pb-4">
+      <div
+        ref={boardRef}
+        className="flex gap-3 overflow-x-auto overflow-y-visible pb-4"
+      >
         {ACTIVE_COLUMNS.map((col) => {
           const columnLeads = filteredLeads.filter((l) => l.status === col.status);
           const isDragOver = dragOverColumn === col.status;
