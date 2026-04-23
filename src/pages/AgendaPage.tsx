@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, Search, List, ArrowUpDown } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, List, ArrowUpDown } from "lucide-react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import TimePickerField from "@/components/TimePickerField";
@@ -16,7 +17,7 @@ import { useServices } from "@/hooks/useServices";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, normalizeText } from "@/lib/utils";
 
 type FilterKey = "todos" | "proximos" | "passados";
 type SortDir = "asc" | "desc";
@@ -58,12 +59,12 @@ const AgendaPage = () => {
     }
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = normalizeText(searchQuery);
       filtered = filtered.filter(e =>
-        e.titulo.toLowerCase().includes(q) ||
-        (e as any).clientes?.nome?.toLowerCase().includes(q) ||
-        (e as any).services?.nome?.toLowerCase().includes(q) ||
-        (e as any).local?.toLowerCase().includes(q) ||
+        normalizeText(e.titulo).includes(q) ||
+        normalizeText((e as any).clientes?.nome).includes(q) ||
+        normalizeText((e as any).services?.nome).includes(q) ||
+        normalizeText((e as any).local).includes(q) ||
         format(new Date(e.data_evento), "dd/MM/yyyy").includes(q)
       );
     }
@@ -231,15 +232,13 @@ const AgendaPage = () => {
                 {f.label}
               </button>
             ))}
-            <div className="ml-auto relative">
-              <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por evento, cliente, local, data..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 w-64 bg-muted border-border text-sm"
-              />
-            </div>
+            <SearchInput
+              containerClassName="ml-auto w-64"
+              placeholder="Buscar por evento, cliente, local, data..."
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              className="h-8 bg-muted border-border text-sm"
+            />
           </div>
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -431,15 +430,13 @@ const AgendaPage = () => {
                 {f.label}
               </button>
             ))}
-            <div className="ml-auto relative">
-              <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por evento, cliente, local, data..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 w-64 bg-muted border-border text-sm"
-              />
-            </div>
+            <SearchInput
+              containerClassName="ml-auto w-64"
+              placeholder="Buscar por evento, cliente, local, data..."
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              className="h-8 bg-muted border-border text-sm"
+            />
           </div>
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">

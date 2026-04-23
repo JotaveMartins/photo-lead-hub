@@ -3,9 +3,9 @@ import { useInteresseOptions } from "@/hooks/useInteresseOptions";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
-import { Phone, Calendar, GripVertical, Search, Filter, DollarSign, ChevronRight, Trash2 } from "lucide-react";
+import { Phone, Calendar, GripVertical, Filter, DollarSign, ChevronRight, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import LeadToClienteFlow from "@/components/LeadToClienteFlow";
@@ -13,7 +13,7 @@ import FollowUpModal from "@/components/FollowUpModal";
 import LossReasonModal from "@/components/LossReasonModal";
 import type { Database } from "@/integrations/supabase/types";
 import { isBefore, isToday, startOfDay } from "date-fns";
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDate, normalizeText } from "@/lib/utils";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
@@ -89,10 +89,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
   const filteredLeads = useMemo(() => {
+    const q = normalizeText(searchQuery);
     return leads.filter((lead) => {
-      const matchesSearch = !searchQuery || 
-        lead.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.whatsapp.includes(searchQuery);
+      const matchesSearch = !q ||
+        normalizeText(lead.nome).includes(q) ||
+        normalizeText(lead.whatsapp).includes(q);
       const matchesOrigem = origemFilter === "all" || lead.origem === origemFilter;
       const matchesInteresse = interesseFilter === "all" || lead.interesse === interesseFilter;
       return matchesSearch && matchesOrigem && matchesInteresse;
@@ -225,15 +226,13 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     <div className="flex flex-col gap-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar leads..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-muted border-border h-9"
-          />
-        </div>
+        <SearchInput
+          containerClassName="flex-1 max-w-sm"
+          placeholder="Buscar leads..."
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          className="bg-muted border-border h-9"
+        />
         <div className="relative w-[180px]">
           <Filter className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <select
@@ -269,7 +268,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       </div>
 
       {/* Kanban columns */}
-      <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: "60vh" }}>
+      {/*
+        Use a fixed-height viewport-based container so the horizontal scrollbar
+        stays visible at the bottom of the screen without needing to scroll the page.
+        Each column scrolls vertically independently inside.
+      */}
+      <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-4 h-[calc(100vh-260px)]">
         {ACTIVE_COLUMNS.map((col) => {
           const columnLeads = filteredLeads.filter((l) => l.status === col.status);
           const isDragOver = dragOverColumn === col.status;
@@ -278,7 +282,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           return (
             <div
               key={col.status}
-              className={`flex-shrink-0 w-72 bg-card border rounded-xl flex flex-col transition-colors ${
+              className={`flex-shrink-0 w-72 h-full bg-card border rounded-xl flex flex-col transition-colors ${
                 isDragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
               onDragOver={(e) => handleDragOver(e, col.status)}

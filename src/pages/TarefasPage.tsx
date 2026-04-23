@@ -2,10 +2,11 @@ import { useState, useMemo } from "react";
 import DatePickerField from "@/components/DatePickerField";
 
 import TimePickerField from "@/components/TimePickerField";
-import { CheckSquare, Plus, Calendar as CalendarIcon, Clock, User, Circle, Search, Phone, List } from "lucide-react";
+import { CheckSquare, Plus, Calendar as CalendarIcon, Clock, User, Circle, Phone, List } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +19,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { isBefore, isToday, isThisWeek, startOfDay, isSameDay } from "date-fns";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate, cn } from "@/lib/utils";
+import { parseLocalDate, cn, normalizeText } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -64,10 +65,10 @@ const TarefasPage = () => {
 
     // Filter by search
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = normalizeText(searchQuery);
       tasks = tasks.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        t.leads?.nome?.toLowerCase().includes(q)
+        normalizeText(t.title).includes(q) ||
+        normalizeText(t.leads?.nome).includes(q)
       );
     }
 
@@ -167,15 +168,13 @@ const TarefasPage = () => {
           </button>
         ))}
 
-        <div className="ml-auto relative">
-          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-8 w-48 bg-muted border-border text-sm"
-          />
-        </div>
+        <SearchInput
+          containerClassName="ml-auto w-48"
+          placeholder="Buscar..."
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          className="h-8 bg-muted border-border text-sm"
+        />
       </div>
 
       {viewMode === "table" ? (

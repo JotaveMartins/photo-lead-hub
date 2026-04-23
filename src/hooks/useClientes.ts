@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
+import { normalizeText } from "@/lib/utils";
 
 export interface Cliente {
   id: string;
@@ -32,26 +33,29 @@ export const useClientes = (search?: string) => {
   const effectiveUserId = useEffectiveUserId();
 
   return useQuery({
-    queryKey: ["clientes", effectiveUserId, search],
+    queryKey: ["clientes", effectiveUserId],
     queryFn: async () => {
       if (!effectiveUserId) return [];
 
-      let query = supabase
+      const { data, error } = await supabase
         .from("clientes")
         .select("*")
         .eq("user_id", effectiveUserId)
         .order("created_at", { ascending: false });
 
-      if (search && search.trim()) {
-        const s = `%${search.trim()}%`;
-        query = query.or(`nome.ilike.${s},email.ilike.${s},whatsapp.ilike.${s}`);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as Cliente[];
     },
     enabled: !!effectiveUserId,
+    select: (data) => {
+      if (!search || !search.trim()) return data;
+      const q = normalizeText(search);
+      return data.filter((c) =>
+        normalizeText(c.nome).includes(q) ||
+        normalizeText(c.email).includes(q) ||
+        normalizeText(c.whatsapp).includes(q)
+      );
+    },
   });
 };
 

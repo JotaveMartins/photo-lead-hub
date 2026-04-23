@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { DollarSign, ChevronLeft, ChevronRight, Search, Plus, TrendingDown, Clock, Hash, Tag, PieChart, BarChart3, Pencil, Trash2, Filter } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, Plus, TrendingDown, Clock, Hash, Tag, PieChart, BarChart3, Pencil, Trash2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +12,7 @@ import { useDespesas, useDeleteDespesa, useDeletedDespesas, useRestoreDespesa, u
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart as RePieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { normalizeText } from "@/lib/utils";
 
 const CATEGORY_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#f59e0b", "#ef4444", "#10b981", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16", "#f97316"];
 
@@ -63,11 +65,11 @@ const DespesasPage = () => {
       if (filterCategoria !== "all" && d.categoria !== filterCategoria) return false;
       if (filterPagamento !== "all" && d.forma_pagamento !== filterPagamento) return false;
       if (search.trim()) {
-        const q = search.toLowerCase();
+        const q = normalizeText(search);
         return (
-          d.descricao.toLowerCase().includes(q) ||
-          d.categoria.toLowerCase().includes(q) ||
-          d.observacoes?.toLowerCase().includes(q) ||
+          normalizeText(d.descricao).includes(q) ||
+          normalizeText(d.categoria).includes(q) ||
+          normalizeText(d.observacoes).includes(q) ||
           format(new Date(d.data + "T12:00:00"), "dd/MM/yyyy").includes(q)
         );
       }
@@ -168,10 +170,13 @@ const DespesasPage = () => {
       {/* Search + Filters + Month Nav */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4">
-          <div className="relative w-64">
-            <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por descrição, categoria..." className="bg-muted border-border pl-8 h-9" />
-          </div>
+          <SearchInput
+            containerClassName="w-64"
+            value={search}
+            onValueChange={setSearch}
+            placeholder="Buscar por descrição, categoria..."
+            className="bg-muted border-border h-9"
+          />
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
             <span className="text-sm font-medium text-foreground min-w-[140px] text-center uppercase">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</span>

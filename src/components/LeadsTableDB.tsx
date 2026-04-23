@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Search, Filter, Phone, MoreHorizontal, Calendar, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { Filter, Phone, MoreHorizontal, Calendar, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { useLeads, useDeleteLead } from "@/hooks/useLeads";
 import LeadStatusBadgeDB from "./LeadStatusBadgeDB";
 import LeadModal from "./LeadModal";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
+import { normalizeText } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,8 +40,10 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
   const deleteLead = useDeleteLead();
 
   const filteredLeads = leads.filter((lead) => {
-    const matchesSearch = lead.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          lead.whatsapp.includes(searchQuery);
+    const q = normalizeText(searchQuery);
+    const matchesSearch = !q ||
+      normalizeText(lead.nome).includes(q) ||
+      normalizeText(lead.whatsapp).includes(q);
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -79,15 +82,13 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
         {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou telefone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-muted border-border"
-              />
-            </div>
+            <SearchInput
+              containerClassName="flex-1 max-w-md"
+              placeholder="Buscar por nome ou telefone..."
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              className="bg-muted border-border"
+            />
             <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
