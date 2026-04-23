@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Bell, Plus, Search, LogOut } from "lucide-react";
+import { Bell, Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
@@ -20,6 +20,7 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
   const completeTask = useCompleteLeadTask();
   const [, setSearchParams] = useSearchParams();
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [headerSearch, setHeaderSearch] = useState("");
 
   const today = startOfDay(new Date());
   const urgentTasks = pendingTasks
@@ -51,10 +52,13 @@ const DashboardHeader = ({ onNewLead }: DashboardHeaderProps) => {
       </div>
       
       <div className="flex items-center gap-3 w-full sm:w-auto">
-        <div className="relative flex-1 sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar..." className="pl-9 bg-card border-border" />
-        </div>
+        <SearchInput
+          containerClassName="flex-1 sm:w-64"
+          placeholder="Buscar..."
+          value={headerSearch}
+          onValueChange={setHeaderSearch}
+          className="bg-card border-border"
+        />
         
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
