@@ -98,9 +98,18 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   useLayoutEffect(() => {
     const board = boardRef.current;
     if (!board) return;
+    let raf = 0;
     const update = () => {
-      setScrollWidth(board.scrollWidth);
-      setShowProxy(board.scrollWidth > board.clientWidth);
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const sw = board.scrollWidth;
+        const cw = board.clientWidth;
+        setScrollWidth((prev) => (prev !== sw ? sw : prev));
+        setShowProxy((prev) => {
+          const next = sw > cw;
+          return prev !== next ? next : prev;
+        });
+      });
     };
     update();
     const ro = new ResizeObserver(update);
@@ -108,10 +117,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     Array.from(board.children).forEach((c) => ro.observe(c as Element));
     window.addEventListener("resize", update);
     return () => {
+      cancelAnimationFrame(raf);
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  });
+  }, [filteredLeads.length]);
 
   // Sync scroll positions between board and proxy bar
   useEffect(() => {
