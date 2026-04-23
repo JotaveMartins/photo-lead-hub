@@ -232,15 +232,13 @@ const AgendaPage = () => {
                 {f.label}
               </button>
             ))}
-            <div className="ml-auto relative">
-              <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por evento, cliente, local, data..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 w-64 bg-muted border-border text-sm"
-              />
-            </div>
+            <SearchInput
+              containerClassName="ml-auto w-64"
+              placeholder="Buscar por evento, cliente, local, data..."
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              className="h-8 bg-muted border-border text-sm"
+            />
           </div>
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
