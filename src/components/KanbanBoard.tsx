@@ -121,7 +121,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [filteredLeads.length]);
+  }, [leads.length]);
 
   // Sync scroll positions between board and proxy bar
   useEffect(() => {
