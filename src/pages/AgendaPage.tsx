@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, Search, List, ArrowUpDown } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, List, ArrowUpDown } from "lucide-react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import TimePickerField from "@/components/TimePickerField";
@@ -16,7 +17,7 @@ import { useServices } from "@/hooks/useServices";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, normalizeText } from "@/lib/utils";
 
 type FilterKey = "todos" | "proximos" | "passados";
 type SortDir = "asc" | "desc";
@@ -58,12 +59,12 @@ const AgendaPage = () => {
     }
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = normalizeText(searchQuery);
       filtered = filtered.filter(e =>
-        e.titulo.toLowerCase().includes(q) ||
-        (e as any).clientes?.nome?.toLowerCase().includes(q) ||
-        (e as any).services?.nome?.toLowerCase().includes(q) ||
-        (e as any).local?.toLowerCase().includes(q) ||
+        normalizeText(e.titulo).includes(q) ||
+        normalizeText((e as any).clientes?.nome).includes(q) ||
+        normalizeText((e as any).services?.nome).includes(q) ||
+        normalizeText((e as any).local).includes(q) ||
         format(new Date(e.data_evento), "dd/MM/yyyy").includes(q)
       );
     }
