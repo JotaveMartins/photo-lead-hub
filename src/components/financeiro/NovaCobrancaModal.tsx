@@ -454,13 +454,25 @@ const ItemSelector = ({ onSelect, selectedName }: ItemSelectorProps) => {
         {open && (
           <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg">
             <div className="p-2">
-              <input
-                autoFocus
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar serviço ou pacote..."
-                className="w-full rounded-md border border-input bg-muted px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              />
+              <div className="relative">
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar serviço ou pacote..."
+                  className={`w-full rounded-md border border-input bg-muted px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${search ? "pr-8" : ""}`}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Limpar busca"
+                    onClick={() => setSearch("")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
             </div>
             <div className="max-h-56 overflow-y-auto">
               {filteredServices.length > 0 && (
