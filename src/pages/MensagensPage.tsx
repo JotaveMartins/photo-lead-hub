@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MessageSquare, Send, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMessages, useCreateMessage } from "@/hooks/useMessages";
 import { useLeads } from "@/hooks/useLeads";
@@ -11,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 const MensagensPage = () => {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [leadSearch, setLeadSearch] = useState("");
 
   const { data: leads = [] } = useLeads();
   const { data: messages = [] } = useMessages(selectedLeadId || undefined);
@@ -54,8 +56,10 @@ const MensagensPage = () => {
         {/* Leads List */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="p-4 border-b border-border">
-            <Input
+            <SearchInput
               placeholder="Buscar lead..."
+              value={leadSearch}
+              onValueChange={setLeadSearch}
               className="bg-muted border-border"
             />
           </div>
