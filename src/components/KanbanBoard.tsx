@@ -268,7 +268,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       </div>
 
       {/* Kanban columns */}
-      <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: "60vh" }}>
+      {/*
+        Use a fixed-height viewport-based container so the horizontal scrollbar
+        stays visible at the bottom of the screen without needing to scroll the page.
+        Each column scrolls vertically independently inside.
+      */}
+      <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-4 h-[calc(100vh-260px)]">
         {ACTIVE_COLUMNS.map((col) => {
           const columnLeads = filteredLeads.filter((l) => l.status === col.status);
           const isDragOver = dragOverColumn === col.status;
@@ -277,7 +282,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           return (
             <div
               key={col.status}
-              className={`flex-shrink-0 w-72 bg-card border rounded-xl flex flex-col transition-colors ${
+              className={`flex-shrink-0 w-72 h-full bg-card border rounded-xl flex flex-col transition-colors ${
                 isDragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
               onDragOver={(e) => handleDragOver(e, col.status)}
