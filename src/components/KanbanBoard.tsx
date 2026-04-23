@@ -269,11 +269,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
       {/* Kanban columns */}
       {/*
-        Use a fixed-height viewport-based container so the horizontal scrollbar
-        stays visible at the bottom of the screen without needing to scroll the page.
-        Each column scrolls vertically independently inside.
+        Sticky horizontal scrollbar: the scroll container is pinned to the
+        bottom of the viewport so the horizontal scrollbar is always reachable
+        without scrolling the page. Vertical scrolling on the page works as before.
       */}
-      <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-4 h-[calc(100vh-260px)]">
+      <div className="sticky bottom-0 flex gap-3 overflow-x-auto overflow-y-visible pb-4">
         {ACTIVE_COLUMNS.map((col) => {
           const columnLeads = filteredLeads.filter((l) => l.status === col.status);
           const isDragOver = dragOverColumn === col.status;
@@ -282,7 +282,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           return (
             <div
               key={col.status}
-              className={`flex-shrink-0 w-72 h-full bg-card border rounded-xl flex flex-col transition-colors ${
+              className={`flex-shrink-0 w-72 bg-card border rounded-xl flex flex-col transition-colors ${
                 isDragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
               onDragOver={(e) => handleDragOver(e, col.status)}
@@ -307,7 +307,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
               </div>
 
               {/* Cards */}
-              <div className="p-2 flex-1 space-y-2 overflow-y-auto">
+              <div className="p-2 flex-1 space-y-2">
                 {columnLeads.map((lead) => {
                   const taskStatus = getLeadTaskStatus(lead.id, pendingTasks);
                   const taskConfig = TASK_STATUS_CONFIG[taskStatus];
