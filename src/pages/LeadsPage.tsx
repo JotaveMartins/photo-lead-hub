@@ -67,7 +67,7 @@ const LeadsPage = () => {
           <p className="text-muted-foreground mt-1">{activeLeads.length} leads ativos · {leads.length} total</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
           <TrashBin />
 
           <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
