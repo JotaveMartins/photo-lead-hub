@@ -79,7 +79,10 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
 
   const resetForm = () => {
     setNome(""); setWhatsapp(""); setInteresse(""); setStatus("Novo Lead"); setOrigem("");
-    setDataEvento(""); setDataContato(""); setDataProposta("");
+    // Default Data do Contato to today (local YYYY-MM-DD) for new leads
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    setDataEvento(""); setDataContato(todayStr); setDataProposta("");
     setFollowUp1(""); setFollowUp2("");
     setValor(""); setMotivoPerda("");
   };

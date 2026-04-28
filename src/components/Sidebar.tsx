@@ -13,6 +13,7 @@ import {
   Receipt,
   TrendingDown,
   FileText,
+  X,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +23,8 @@ import { useState } from "react";
 interface SidebarProps {
   activeItem: string;
   onItemClick: (item: string) => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 const baseMenuItems = [
@@ -44,7 +47,7 @@ const adminMenuItems = [
   { id: 'admin', label: 'Clientes', icon: UserCog },
 ];
 
-const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
+const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const isFinanceiroActive = activeItem.startsWith('financeiro');
@@ -54,19 +57,45 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
   const showFinanceiro = true;
   const showAdmin = isAdmin;
 
+  const handleItemClick = (id: string) => {
+    onItemClick(id);
+    onMobileClose?.();
+  };
+
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg overflow-hidden bg-primary/10 flex items-center justify-center">
-            <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
-          </div>
-          <div>
-            <h1 className="font-display font-bold text-lg text-foreground">CRM</h1>
-            <p className="text-xs text-muted-foreground">Hub do Fotógrafo</p>
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+          onClick={onMobileClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-200 ease-out
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+      >
+        <div className="p-6 border-b border-sidebar-border">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg overflow-hidden bg-primary/10 flex items-center justify-center">
+                <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
+              </div>
+              <div>
+                <h1 className="font-display font-bold text-lg text-foreground">CRM</h1>
+                <p className="text-xs text-muted-foreground">Hub do Fotógrafo</p>
+              </div>
+            </div>
+            <button
+              onClick={onMobileClose}
+              className="lg:hidden p-1.5 rounded-md hover:bg-sidebar-accent text-sidebar-foreground"
+              aria-label="Fechar menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
-      </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
@@ -75,7 +104,7 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
           return (
             <button
               key={item.id}
-              onClick={() => onItemClick(item.id)}
+              onClick={() => handleItemClick(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                 ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
             >
@@ -90,7 +119,7 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
           <div>
             <div className="flex items-center">
               <button
-                onClick={() => onItemClick('financeiro')}
+                onClick={() => handleItemClick('financeiro')}
                 className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-l-lg text-sm font-medium transition-all duration-200 group
                   ${activeItem === 'financeiro' ? 'bg-primary text-primary-foreground shadow-glow' : isFinanceiroActive ? 'text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
               >
@@ -113,7 +142,7 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => onItemClick(item.id)}
+                      onClick={() => handleItemClick(item.id)}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
                         ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
                     >
@@ -137,7 +166,7 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
           return (
             <button
               key={item.id}
-              onClick={() => onItemClick(item.id)}
+              onClick={() => handleItemClick(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
                 ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
             >
@@ -154,7 +183,8 @@ const Sidebar = ({ activeItem, onItemClick }: SidebarProps) => {
           Sair
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

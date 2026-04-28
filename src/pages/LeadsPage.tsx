@@ -67,7 +67,7 @@ const LeadsPage = () => {
           <p className="text-muted-foreground mt-1">{activeLeads.length} leads ativos · {leads.length} total</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
           <TrashBin />
 
           <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
@@ -142,7 +142,8 @@ const LeadsPage = () => {
             className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
           >
             <Plus className="w-4 h-4" />
-            Novo Lead
+            <span className="hidden sm:inline">Novo Lead</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </div>
       </header>
