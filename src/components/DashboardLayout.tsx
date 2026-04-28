@@ -1,11 +1,12 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import Sidebar from "@/components/Sidebar";
 import { TutorialModal, HelpButton } from "@/components/TutorialModal";
 import VersionAnnouncementModal from "@/components/VersionAnnouncementModal";
-import { X } from "lucide-react";
+import { X, Menu } from "lucide-react";
+import logo from "@/assets/logo.png";
 import {
   agendaTutorial,
   servicosTutorial,
@@ -24,6 +25,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { isImpersonating, impersonatedUserName, stopImpersonation } = useImpersonation();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const getActiveItem = () => {
     const path = location.pathname;
@@ -92,8 +94,28 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar activeItem={getActiveItem()} onItemClick={handleItemClick} />
-      <main className="ml-64 p-6 lg:p-8">
+      <Sidebar
+        activeItem={getActiveItem()}
+        onItemClick={handleItemClick}
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
+      />
+      {/* Mobile top bar */}
+      <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 bg-background/95 backdrop-blur border-b border-border">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 -ml-2 rounded-md hover:bg-muted text-foreground"
+          aria-label="Abrir menu"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <div className="flex items-center gap-2">
+          <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+          <span className="font-display font-bold text-foreground">CRM</span>
+        </div>
+        <div className="w-10" />
+      </div>
+      <main className="lg:ml-64 p-4 sm:p-6 lg:p-8">
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-glow pointer-events-none opacity-50" />
         {isImpersonating && (
           <div className="mb-4 -mt-2 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5">
