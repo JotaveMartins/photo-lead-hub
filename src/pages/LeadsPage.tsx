@@ -142,7 +142,8 @@ const LeadsPage = () => {
             className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
           >
             <Plus className="w-4 h-4" />
-            Novo Lead
+            <span className="hidden sm:inline">Novo Lead</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </div>
       </header>
