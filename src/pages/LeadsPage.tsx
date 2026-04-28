@@ -123,7 +123,7 @@ const LeadsPage = () => {
             </PopoverContent>
           </Popover>
 
-          <div className="flex bg-muted rounded-lg p-1">
+          <div className="hidden sm:flex bg-muted rounded-lg p-1">
             <button
               onClick={() => setViewMode("kanban")}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}

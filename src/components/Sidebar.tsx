@@ -67,13 +67,13 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
       {/* Mobile backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={onMobileClose}
           aria-hidden="true"
         />
       )}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-200 ease-out
+        className={`fixed left-0 top-0 h-screen w-[78%] max-w-[260px] lg:w-64 lg:max-w-none bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-200 ease-out shadow-2xl lg:shadow-none
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         <div className="p-6 border-b border-sidebar-border">
