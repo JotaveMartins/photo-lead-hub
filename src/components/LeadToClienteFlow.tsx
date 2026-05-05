@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import TimePickerField from "@/components/TimePickerField";
-import { Receipt, CreditCard, ArrowDownUp, Calendar as CalendarIcon } from "lucide-react";
+import { Receipt, CreditCard, ArrowDownUp, Calendar as CalendarIcon, ArrowLeft, Check } from "lucide-react";
 import { useCreateEvent } from "@/hooks/useEvents";
 import { useServices } from "@/hooks/useServices";
 import { format } from "date-fns";
@@ -58,14 +58,9 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
     setStep("cobranca");
   };
 
-  const handleCobrancaClose = () => {
-    // After cobrança, go to event step
-    if (lead?.data_evento) {
-      setEventoDate(parseLocalDate(lead.data_evento));
-    }
-    if (lead?.interesse) {
-      setEventoTitulo(lead.interesse);
-    }
+  const goToEvento = () => {
+    if (lead?.data_evento) setEventoDate(parseLocalDate(lead.data_evento));
+    if (lead?.interesse) setEventoTitulo(lead.interesse);
     setStep("evento");
   };
 
@@ -100,6 +95,35 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
 
   if (!open || !lead) return null;
 
+  const steps: { key: typeof step; label: string }[] = [
+    { key: "cliente", label: "Cliente" },
+    { key: "tipo", label: "Cobrança" },
+    { key: "cobranca", label: "Detalhes" },
+    { key: "evento", label: "Evento" },
+  ];
+  const currentIdx = steps.findIndex((s) => s.key === step);
+
+  const StepIndicator = (
+    <div className="flex items-center gap-1.5 pt-2">
+      {steps.map((s, i) => (
+        <div key={s.key} className="flex items-center gap-1.5">
+          <div
+            className={cn(
+              "h-1.5 w-8 rounded-full transition-colors",
+              i < currentIdx ? "bg-primary" : i === currentIdx ? "bg-primary" : "bg-muted"
+            )}
+          />
+          {i === currentIdx && (
+            <span className="text-[11px] text-muted-foreground">{s.label}</span>
+          )}
+        </div>
+      ))}
+      <span className="text-[11px] text-muted-foreground ml-auto">
+        Passo {currentIdx + 1} de {steps.length}
+      </span>
+    </div>
+  );
+
   return (
     <>
       {step === "cliente" && (
@@ -112,17 +136,21 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
             origem: lead.origem || "",
           }}
           onClienteCreated={handleClienteCreated}
+          lockOutsideClose
+          hideCobrancaPrompt
+          headerExtra={StepIndicator}
         />
       )}
 
       {step === "tipo" && (
-        <AlertDialog open={true} onOpenChange={(v) => { if (!v) handleClose(); }}>
+        <AlertDialog open={true}>
           <AlertDialogContent className="bg-card border-border sm:max-w-lg">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-foreground">Cliente cadastrado! 🎉</AlertDialogTitle>
               <AlertDialogDescription>
                 Deseja criar uma cobrança para este cliente?
               </AlertDialogDescription>
+              {StepIndicator}
             </AlertDialogHeader>
             <div className="grid grid-cols-3 gap-3 py-2">
               <Button
@@ -153,13 +181,13 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
                 <span className="text-[10px] text-muted-foreground">Entrada + restante parcelado</span>
               </Button>
             </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => {
-                // Skip cobrança, go to event
-                if (lead?.data_evento) setEventoDate(parseLocalDate(lead.data_evento));
-                if (lead?.interesse) setEventoTitulo(lead.interesse);
-                setStep("evento");
-              }}>Pular cobrança</AlertDialogCancel>
+            <AlertDialogFooter className="sm:justify-between">
+              <Button variant="ghost" size="sm" onClick={goToEvento}>
+                Pular cobrança →
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleClose}>
+                Concluir
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -168,15 +196,22 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
       {step === "cobranca" && (
         <NovaCobrancaModal
           open={true}
-          onOpenChange={(v) => { if (!v) handleCobrancaClose(); }}
+          onOpenChange={(v) => { if (!v) goToEvento(); }}
           type={cobrancaType}
           initialClienteId={createdClienteId || undefined}
           initialValor={lead.valor || undefined}
+          lockOutsideClose
+          headerExtra={StepIndicator}
+          footerExtra={
+            <Button type="button" variant="ghost" size="sm" onClick={() => setStep("tipo")} className="mr-auto gap-1">
+              <ArrowLeft className="w-3.5 h-3.5" /> Voltar
+            </Button>
+          }
         />
       )}
 
       {step === "evento" && (
-        <AlertDialog open={true} onOpenChange={(v) => { if (!v) handleClose(); }}>
+        <AlertDialog open={true}>
           <AlertDialogContent className="bg-card border-border sm:max-w-lg">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-foreground flex items-center gap-2">
@@ -186,6 +221,7 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
               <AlertDialogDescription>
                 Crie um evento na agenda para este cliente
               </AlertDialogDescription>
+              {StepIndicator}
             </AlertDialogHeader>
 
             <div className="space-y-4 py-2">
@@ -264,11 +300,18 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
               </div>
             </div>
 
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleClose}>Pular</AlertDialogCancel>
-              <Button onClick={handleCreateEvento} className="bg-gradient-primary hover:opacity-90">
-                Criar evento
+            <AlertDialogFooter className="sm:justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setStep("tipo")} className="gap-1">
+                <ArrowLeft className="w-3.5 h-3.5" /> Voltar
               </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleClose}>
+                  Pular e concluir
+                </Button>
+                <Button onClick={handleCreateEvento} className="bg-gradient-primary hover:opacity-90 gap-1">
+                  <Check className="w-4 h-4" /> Criar evento
+                </Button>
+              </div>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

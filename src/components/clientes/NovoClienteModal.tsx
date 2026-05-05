@@ -30,9 +30,13 @@ interface NovoClienteModalProps {
     origem?: string;
   };
   onClienteCreated?: (clienteId: string) => void;
+  lockOutsideClose?: boolean;
+  hideCobrancaPrompt?: boolean;
+  headerExtra?: React.ReactNode;
+  footerExtra?: React.ReactNode;
 }
 
-const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated }: NovoClienteModalProps) => {
+const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOutsideClose, hideCobrancaPrompt, headerExtra, footerExtra }: NovoClienteModalProps) => {
   const effectiveUserId = useEffectiveUserId();
   const createCliente = useCreateCliente();
   const navigate = useNavigate();
@@ -87,16 +91,21 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated }: Novo
       onClienteCreated(result.id);
     } else {
       onClose();
-      setShowCobrancaPrompt(true);
+      if (!hideCobrancaPrompt) setShowCobrancaPrompt(true);
     }
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+      <Dialog open={open} onOpenChange={(v) => { if (!v && !lockOutsideClose) onClose(); }}>
+        <DialogContent
+          className="sm:max-w-md bg-card border-border"
+          onPointerDownOutside={(e) => { if (lockOutsideClose) e.preventDefault(); }}
+          onEscapeKeyDown={(e) => { if (lockOutsideClose) e.preventDefault(); }}
+        >
           <DialogHeader>
             <DialogTitle className="text-foreground">Novo Cliente</DialogTitle>
+            {headerExtra}
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -141,6 +150,7 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated }: Novo
               <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Notas sobre o cliente..." rows={3} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
+              {footerExtra}
               <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
               <Button type="submit" disabled={createCliente.isPending}>
                 {createCliente.isPending ? "Salvando..." : "Salvar"}
