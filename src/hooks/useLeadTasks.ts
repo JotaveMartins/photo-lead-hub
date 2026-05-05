@@ -13,7 +13,8 @@ const getLocalDateStr = (offsetDays = 0): string => {
 
 export interface LeadTask {
   id: string;
-  lead_id: string;
+  lead_id: string | null;
+  cliente_id: string | null;
   user_id: string;
   title: string;
   description: string | null;
@@ -51,11 +52,11 @@ export const useAllTasks = () => {
       if (!effectiveUserId) return [];
       const { data, error } = await supabase
         .from("lead_tasks")
-        .select("*, leads(nome, whatsapp)")
+        .select("*, leads(nome, whatsapp), clientes(nome, whatsapp)")
         .eq("user_id", effectiveUserId)
         .order("due_date", { ascending: true });
       if (error) throw error;
-      return data as (LeadTask & { leads: { nome: string; whatsapp: string } })[];
+      return data as (LeadTask & { leads: { nome: string; whatsapp: string } | null; clientes: { nome: string; whatsapp: string } | null })[];
     },
     enabled: !!effectiveUserId,
   });
@@ -69,12 +70,12 @@ export const useAllPendingTasks = () => {
       if (!effectiveUserId) return [];
       const { data, error } = await supabase
         .from("lead_tasks")
-        .select("*, leads(nome, whatsapp)")
+        .select("*, leads(nome, whatsapp), clientes(nome, whatsapp)")
         .eq("user_id", effectiveUserId)
         .eq("completed", false)
         .order("due_date", { ascending: true });
       if (error) throw error;
-      return data as (LeadTask & { leads: { nome: string; whatsapp: string } })[];
+      return data as (LeadTask & { leads: { nome: string; whatsapp: string } | null; clientes: { nome: string; whatsapp: string } | null })[];
     },
     enabled: !!effectiveUserId,
   });
@@ -265,12 +266,14 @@ export const useCreateLeadTask = () => {
   const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
-    mutationFn: async (task: { lead_id: string; title: string; description?: string; due_date: string; due_time?: string }) => {
+    mutationFn: async (task: { lead_id?: string | null; cliente_id?: string | null; title: string; description?: string; due_date: string; due_time?: string }) => {
       if (!effectiveUserId) throw new Error("Usuário não autenticado");
+      if (!task.lead_id && !task.cliente_id) throw new Error("Vincule a tarefa a um lead ou cliente");
       const { data, error } = await supabase
         .from("lead_tasks")
         .insert({
-          lead_id: task.lead_id,
+          lead_id: task.lead_id || null,
+          cliente_id: task.cliente_id || null,
           user_id: effectiveUserId,
           title: task.title,
           description: task.description || null,
@@ -278,7 +281,7 @@ export const useCreateLeadTask = () => {
           due_time: task.due_time || null,
           is_cadence: false,
           task_number: 0,
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -291,6 +294,47 @@ export const useCreateLeadTask = () => {
     onError: (error: Error) => {
       toast.error("Erro ao criar tarefa: " + error.message);
     },
+  });
+};
+
+// Tarefas de um cliente específico
+export const useClienteTasks = (clienteId: string | undefined) => {
+  return useQuery({
+    queryKey: ["lead_tasks", "cliente", clienteId],
+    queryFn: async () => {
+      if (!clienteId) return [] as LeadTask[];
+      const { data, error } = await supabase
+        .from("lead_tasks")
+        .select("*")
+        .eq("cliente_id", clienteId)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      return (data || []) as LeadTask[];
+    },
+    enabled: !!clienteId,
+  });
+};
+
+// Tarefas de cliente vencendo até hoje (para sininho/badge)
+export const useTodayClienteTasks = () => {
+  const effectiveUserId = useEffectiveUserId();
+  return useQuery({
+    queryKey: ["lead_tasks", "cliente_today", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return [];
+      const todayStr = getLocalDateStr();
+      const { data, error } = await supabase
+        .from("lead_tasks")
+        .select("*, clientes(nome)")
+        .eq("user_id", effectiveUserId)
+        .eq("completed", false)
+        .not("cliente_id", "is", null)
+        .lte("due_date", todayStr)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      return (data || []) as (LeadTask & { clientes: { nome: string } | null })[];
+    },
+    enabled: !!effectiveUserId,
   });
 };
 

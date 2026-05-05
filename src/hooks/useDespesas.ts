@@ -24,6 +24,7 @@ export interface Despesa {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+  team_member_id?: string | null;
 }
 
 export interface DespesaInsert {
@@ -39,6 +40,7 @@ export interface DespesaInsert {
   parcela_total?: number | null;
   grupo_id?: string | null;
   recorrente?: boolean;
+  team_member_id?: string | null;
 }
 
 export const useDespesas = (month?: Date) => {

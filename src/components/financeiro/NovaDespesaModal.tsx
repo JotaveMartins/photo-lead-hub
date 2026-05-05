@@ -8,9 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import DatePickerField from "@/components/DatePickerField";
 import { useCreateDespesa, useCreateDespesasBatch, useUpdateDespesa, type DespesaInsert, type PaymentMethod, type DespesaStatus, type Despesa } from "@/hooks/useDespesas";
 import { useEvents } from "@/hooks/useEvents";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 
 const CATEGORIAS = [
-  "Equipamento", "Transporte", "Alimentação", "Software", "Marketing",
+  "Freelancer", "Equipamento", "Transporte", "Alimentação", "Software", "Marketing",
   "Aluguel", "Manutenção", "Impostos", "Pessoal", "Outros",
 ];
 
@@ -33,6 +34,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
   const createBatch = useCreateDespesasBatch();
   const updateDespesa = useUpdateDespesa();
   const { data: events = [] } = useEvents();
+  const { data: teamMembers = [] } = useTeamMembers();
 
   const isEditing = !!despesa;
 
@@ -47,6 +49,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
   const [parcelada, setParcelada] = useState(false);
   const [numParcelas, setNumParcelas] = useState("2");
   const [recorrente, setRecorrente] = useState(false);
+  const [teamMemberId, setTeamMemberId] = useState("");
 
   const isPending = createDespesa.isPending || createBatch.isPending || updateDespesa.isPending;
 
@@ -62,6 +65,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
       setObservacoes(despesa.observacoes || "");
       setRecorrente(despesa.recorrente);
       setParcelada(false);
+      setTeamMemberId(despesa.team_member_id || "");
     } else {
       resetForm();
     }
@@ -79,6 +83,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
     setParcelada(false);
     setNumParcelas("2");
     setRecorrente(false);
+    setTeamMemberId("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,6 +105,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
         evento_id: eventoId || null,
         observacoes: observacoes.trim() || null,
         recorrente,
+        team_member_id: categoria === "Freelancer" ? (teamMemberId || null) : null,
       });
       onOpenChange(false);
       return;
@@ -127,6 +133,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
           parcela_total: parcelas,
           grupo_id: grupoId,
           recorrente: false,
+          team_member_id: categoria === "Freelancer" ? (teamMemberId || null) : null,
         };
       });
 
@@ -142,6 +149,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
         evento_id: eventoId || null,
         observacoes: observacoes.trim() || null,
         recorrente,
+        team_member_id: categoria === "Freelancer" ? (teamMemberId || null) : null,
       });
     }
 
@@ -217,6 +225,24 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
+            {categoria === "Freelancer" && (
+              <div className="space-y-1 pt-2">
+                <Label className="text-xs text-muted-foreground">Profissional</Label>
+                <select
+                  value={teamMemberId}
+                  onChange={(e) => setTeamMemberId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="">Selecione um profissional</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.nome}{m.funcao ? ` — ${m.funcao}` : ""}</option>
+                  ))}
+                </select>
+                {teamMembers.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Cadastre profissionais na seção Equipe.</p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2 rounded-lg border border-border p-3">

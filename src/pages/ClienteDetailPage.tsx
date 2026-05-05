@@ -7,11 +7,15 @@ import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench, TrendingDown, BarChart3 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench, TrendingDown, BarChart3, CheckSquare, Plus, Circle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditClienteModal from "@/components/clientes/EditClienteModal";
 import type { Cobranca } from "@/hooks/useCobrancas";
+import { useClienteTasks, useCreateLeadTask, useCompleteLeadTask } from "@/hooks/useLeadTasks";
+import { Input } from "@/components/ui/input";
+import DatePickerField from "@/components/DatePickerField";
+import { parseLocalDate } from "@/lib/utils";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -21,6 +25,14 @@ const ClienteDetailPage = () => {
   const effectiveUserId = useEffectiveUserId();
   const deleteCliente = useDeleteCliente();
   const [editOpen, setEditOpen] = useState(false);
+  const { data: clienteTasks = [] } = useClienteTasks(id);
+  const createTask = useCreateLeadTask();
+  const completeTask = useCompleteLeadTask();
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDate, setNewTaskDate] = useState(() => {
+    const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  });
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ["cliente", id],
@@ -190,6 +202,7 @@ const ClienteDetailPage = () => {
           <TabsTrigger value="despesas" className="gap-1.5"><TrendingDown className="w-4 h-4" />Despesas</TabsTrigger>
           <TabsTrigger value="servicos" className="gap-1.5"><Wrench className="w-4 h-4" />Serviços</TabsTrigger>
           <TabsTrigger value="agenda" className="gap-1.5"><Calendar className="w-4 h-4" />Agenda</TabsTrigger>
+          <TabsTrigger value="tarefas" className="gap-1.5"><CheckSquare className="w-4 h-4" />Tarefas</TabsTrigger>
           <TabsTrigger value="relatorio" className="gap-1.5"><BarChart3 className="w-4 h-4" />Relatório</TabsTrigger>
         </TabsList>
 
@@ -353,6 +366,58 @@ const ClienteDetailPage = () => {
                   </div>
                   <div className="text-right">
                     {ev.services && <span className="text-xs text-primary font-medium">{(ev.services as { nome: string }).nome}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Tab: Tarefas */}
+        <TabsContent value="tarefas" className="mt-4 space-y-4">
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-end gap-2 flex-wrap">
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  <label className="text-xs text-muted-foreground">Nova tarefa</label>
+                  <Input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Ex: Procurar equipe para o casamento" className="bg-muted border-border" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Data</label>
+                  <DatePickerField value={newTaskDate} onChange={setNewTaskDate} />
+                </div>
+                <Button size="sm" disabled={!newTaskTitle.trim() || createTask.isPending} onClick={async () => {
+                  if (!id) return;
+                  await createTask.mutateAsync({ cliente_id: id, title: newTaskTitle.trim(), due_date: newTaskDate });
+                  setNewTaskTitle("");
+                }}>
+                  <Plus className="w-4 h-4 mr-1" />Adicionar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {clienteTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <CheckSquare className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-medium text-muted-foreground">Nenhuma tarefa para este cliente</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {clienteTasks.map((t) => (
+                <div key={t.id} className={`flex items-center justify-between rounded-lg border border-border p-3 ${t.completed ? "opacity-60" : ""}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {t.completed ? (
+                      <CheckSquare className="w-4 h-4 text-primary flex-shrink-0" />
+                    ) : (
+                      <button onClick={() => completeTask.mutate(t)} className="text-muted-foreground hover:text-primary">
+                        <Circle className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium ${t.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{t.title}</p>
+                      <p className="text-xs text-muted-foreground">{format(parseLocalDate(t.due_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -147,6 +147,7 @@ export type Database = {
           parcela_total: number | null
           recorrente: boolean
           status: Database["public"]["Enums"]["despesa_status"]
+          team_member_id: string | null
           updated_at: string
           user_id: string
           valor: number
@@ -166,6 +167,7 @@ export type Database = {
           parcela_total?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
+          team_member_id?: string | null
           updated_at?: string
           user_id: string
           valor?: number
@@ -185,6 +187,7 @@ export type Database = {
           parcela_total?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
+          team_member_id?: string | null
           updated_at?: string
           user_id?: string
           valor?: number
@@ -195,6 +198,49 @@ export type Database = {
             columns: ["evento_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_team_member_fk"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_team_members: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_team_members_event_fk"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_team_members_member_fk"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]
@@ -209,6 +255,7 @@ export type Database = {
           id: string
           lead_id: string | null
           local: string | null
+          responsavel_proprio: boolean
           service_id: string | null
           tipo: string
           titulo: string
@@ -223,6 +270,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           local?: string | null
+          responsavel_proprio?: boolean
           service_id?: string | null
           tipo?: string
           titulo: string
@@ -237,6 +285,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           local?: string | null
+          responsavel_proprio?: boolean
           service_id?: string | null
           tipo?: string
           titulo?: string
@@ -362,6 +411,7 @@ export type Database = {
       }
       lead_tasks: {
         Row: {
+          cliente_id: string | null
           completed: boolean
           completed_at: string | null
           created_at: string
@@ -370,12 +420,13 @@ export type Database = {
           due_time: string | null
           id: string
           is_cadence: boolean
-          lead_id: string
+          lead_id: string | null
           task_number: number
           title: string
           user_id: string
         }
         Insert: {
+          cliente_id?: string | null
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -384,12 +435,13 @@ export type Database = {
           due_time?: string | null
           id?: string
           is_cadence?: boolean
-          lead_id: string
+          lead_id?: string | null
           task_number?: number
           title: string
           user_id: string
         }
         Update: {
+          cliente_id?: string | null
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -398,12 +450,19 @@ export type Database = {
           due_time?: string | null
           id?: string
           is_cadence?: boolean
-          lead_id?: string
+          lead_id?: string | null
           task_number?: number
           title?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_tasks_cliente_fk"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
@@ -723,6 +782,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           valor_base?: number
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          deleted_at: string | null
+          funcao: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          funcao?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          funcao?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

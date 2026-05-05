@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, List, ArrowUpDown } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, List, ArrowUpDown, HardHat, UserPlus } from "lucide-react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import GenericTrashBin from "@/components/GenericTrashBin";
 import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useDeletedEvents, useRestoreEvent, usePermanentDeleteEvent } from "@/hooks/useEvents";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
+import { useTeamMembers, useEventTeamMembers, useReplaceEventTeam } from "@/hooks/useTeamMembers";
+import TeamMemberModal from "@/components/equipe/TeamMemberModal";
+import { Switch } from "@/components/ui/switch";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -36,11 +39,17 @@ const AgendaPage = () => {
   const [filter, setFilter] = useState<FilterKey>("proximos");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [responsavelProprio, setResponsavelProprio] = useState(true);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
 
   const { data: events = [] } = useEvents();
   const { data: deletedEvents = [] } = useDeletedEvents();
   const { data: clientes = [] } = useClientes();
   const { data: services = [] } = useServices();
+  const { data: teamMembers = [] } = useTeamMembers();
+  const { data: editingTeam = [] } = useEventTeamMembers(editingEvent?.id);
+  const replaceTeam = useReplaceEventTeam();
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
@@ -91,6 +100,7 @@ const AgendaPage = () => {
       const eventDate = new Date(event.data_evento);
       setModalDate(eventDate);
       setHora(format(eventDate, "HH:mm"));
+      setResponsavelProprio(event.responsavel_proprio !== false);
     } else {
       setEditingEvent(null);
       setModalDate(selectedDate);
@@ -98,6 +108,13 @@ const AgendaPage = () => {
     }
     setIsModalOpen(true);
   };
+
+  // Load existing team for editing event
+  useEffect(() => {
+    if (editingEvent && editingTeam.length >= 0) {
+      setSelectedTeamIds(editingTeam.map((t: any) => t.team_member_id));
+    }
+  }, [editingEvent, editingTeam]);
 
   const handleSaveEvent = async () => {
     if (!titulo.trim()) {
@@ -120,12 +137,21 @@ const AgendaPage = () => {
       local: local.trim() || null,
       cliente_id: selectedClienteId || null,
       service_id: selectedServiceId || null,
+      responsavel_proprio: responsavelProprio,
     };
 
+    let savedId: string | null = null;
     if (editingEvent) {
-      await updateEvent.mutateAsync({ id: editingEvent.id, ...payload });
+      await updateEvent.mutateAsync({ id: editingEvent.id, ...(payload as any) });
+      savedId = editingEvent.id;
     } else {
-      await createEvent.mutateAsync(payload);
+      const created = await createEvent.mutateAsync(payload as any);
+      savedId = (created as any)?.id || null;
+    }
+
+    if (savedId) {
+      const memberIds = responsavelProprio ? [] : selectedTeamIds;
+      await replaceTeam.mutateAsync({ eventId: savedId, memberIds });
     }
 
     setIsModalOpen(false);
@@ -138,6 +164,8 @@ const AgendaPage = () => {
     setSelectedClienteId("");
     setSelectedServiceId("");
     setEditingEvent(null);
+    setResponsavelProprio(true);
+    setSelectedTeamIds([]);
   };
 
   const handleServiceChange = (serviceId: string) => {
@@ -614,6 +642,49 @@ const AgendaPage = () => {
               />
             </div>
 
+            {/* Equipe */}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <HardHat className="w-4 h-4 text-muted-foreground" />
+                  <Label className="m-0">Eu mesmo vou neste evento</Label>
+                </div>
+                <Switch checked={responsavelProprio} onCheckedChange={setResponsavelProprio} />
+              </div>
+              {!responsavelProprio && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Profissionais escalados</Label>
+                  {teamMembers.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhum profissional cadastrado.</p>
+                  ) : (
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {teamMembers.map((m) => {
+                        const checked = selectedTeamIds.includes(m.id);
+                        return (
+                          <label key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                setSelectedTeamIds(prev => e.target.checked ? [...prev, m.id] : prev.filter(id => id !== m.id));
+                              }}
+                              className="rounded"
+                            />
+                            <span className="text-foreground">{m.nome}</span>
+                            {m.funcao && <span className="text-xs text-muted-foreground">· {m.funcao}</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={() => setTeamModalOpen(true)} className="w-full gap-2">
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Cadastrar novo profissional
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 justify-end pt-4">
               <Button variant="outline" onClick={() => { resetForm(); setIsModalOpen(false); }}>Cancelar</Button>
               <Button onClick={handleSaveEvent} className="bg-gradient-primary hover:opacity-90">
@@ -623,6 +694,8 @@ const AgendaPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <TeamMemberModal open={teamModalOpen} onOpenChange={setTeamModalOpen} onCreated={(id) => setSelectedTeamIds(prev => [...prev, id])} />
     </>
   );
 };
