@@ -12,6 +12,9 @@ import { useServices } from "@/hooks/useServices";
 import { usePackages } from "@/hooks/usePackages";
 import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import { toast } from "sonner";
+import ServiceModal from "@/components/ServiceModal";
+import PackageModal from "@/components/PackageModal";
+import { Plus } from "lucide-react";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
@@ -422,6 +425,8 @@ const ItemSelector = ({ onSelect, selectedName }: ItemSelectorProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const { data: services = [] } = useServices();
   const { data: packages = [] } = usePackages();
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [packageModalOpen, setPackageModalOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -511,9 +516,35 @@ const ItemSelector = ({ onSelect, selectedName }: ItemSelectorProps) => {
                 <p className="px-3 py-2 text-sm text-muted-foreground text-center">Nenhum item encontrado</p>
               )}
             </div>
+            <div className="border-t border-border p-1.5 flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setServiceModalOpen(true); }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded-md hover:bg-muted text-foreground transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" /> Novo serviço
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setPackageModalOpen(true); }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded-md hover:bg-muted text-foreground transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" /> Novo pacote
+              </button>
+            </div>
           </div>
         )}
       </div>
+      <ServiceModal
+        open={serviceModalOpen}
+        onOpenChange={setServiceModalOpen}
+        onCreated={(svc) => onSelect(svc.nome, svc.valor_base)}
+      />
+      <PackageModal
+        open={packageModalOpen}
+        onOpenChange={setPackageModalOpen}
+        onCreated={(pkg) => onSelect(pkg.nome, pkg.preco_final || 0)}
+      />
     </div>
   );
 };

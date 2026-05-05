@@ -9,10 +9,11 @@ interface ServiceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   service?: Service | null;
+  onCreated?: (service: Service) => void;
 }
 
 
-const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
+const ServiceModal = ({ open, onOpenChange, service, onCreated }: ServiceModalProps) => {
   const [nome, setNome] = useState("");
   const [valorBase, setValorBase] = useState("");
   const [custoInterno, setCustoInterno] = useState("");
@@ -45,7 +46,8 @@ const ServiceModal = ({ open, onOpenChange, service }: ServiceModalProps) => {
     if (service) {
       await updateService.mutateAsync({ id: service.id, ...data });
     } else {
-      await createService.mutateAsync(data);
+      const created = await createService.mutateAsync(data);
+      if (created && onCreated) onCreated(created as Service);
     }
     onOpenChange(false);
   };
