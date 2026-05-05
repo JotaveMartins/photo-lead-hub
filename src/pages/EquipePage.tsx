@@ -13,7 +13,8 @@ const EquipePage = () => {
   const [editing, setEditing] = useState<TeamMember | null>(null);
 
   const total = members.length;
-  const totalEventos = members.reduce((s, m) => s + (m.eventos_count || 0), 0);
+  const totalFuturos = members.reduce((s, m) => s + (m.eventos_futuros || 0), 0);
+  const totalRealizados = members.reduce((s, m) => s + (m.eventos_realizados || 0), 0);
 
   const handleEdit = (m: TeamMember) => {
     setEditing(m);
@@ -41,7 +42,7 @@ const EquipePage = () => {
         </Button>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="p-3 rounded-lg bg-primary/10"><HardHat className="w-5 h-5 text-primary" /></div>
@@ -50,8 +51,14 @@ const EquipePage = () => {
         </Card>
         <Card className="bg-card border-border">
           <CardContent className="flex items-center gap-4 p-5">
+            <div className="p-3 rounded-lg bg-blue-500/10"><HardHat className="w-5 h-5 text-blue-500" /></div>
+            <div><p className="text-sm text-muted-foreground">Eventos futuros</p><p className="text-2xl font-bold text-foreground">{totalFuturos}</p></div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardContent className="flex items-center gap-4 p-5">
             <div className="p-3 rounded-lg bg-green-500/10"><HardHat className="w-5 h-5 text-green-500" /></div>
-            <div><p className="text-sm text-muted-foreground">Total de eventos atendidos</p><p className="text-2xl font-bold text-foreground">{totalEventos}</p></div>
+            <div><p className="text-sm text-muted-foreground">Eventos realizados</p><p className="text-2xl font-bold text-foreground">{totalRealizados}</p></div>
           </CardContent>
         </Card>
       </div>
@@ -72,7 +79,8 @@ const EquipePage = () => {
                 <TableHead className="font-medium">Nome</TableHead>
                 <TableHead className="font-medium">Função</TableHead>
                 <TableHead className="font-medium">Telefone</TableHead>
-                <TableHead className="font-medium">Eventos</TableHead>
+                <TableHead className="font-medium">Futuros</TableHead>
+                <TableHead className="font-medium">Realizados</TableHead>
                 <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
@@ -91,8 +99,13 @@ const EquipePage = () => {
                     ) : <span className="text-sm text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">
-                      {m.eventos_count || 0} {m.eventos_count === 1 ? "evento" : "eventos"}
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-500/10 text-blue-500">
+                      {m.eventos_futuros || 0}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-500/10 text-green-500">
+                      {m.eventos_realizados || 0}
                     </span>
                   </TableCell>
                   <TableCell>
