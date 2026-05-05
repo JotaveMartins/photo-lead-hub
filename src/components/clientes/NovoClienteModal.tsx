@@ -101,7 +101,6 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
         <DialogContent
           className="sm:max-w-md bg-card border-border"
           onPointerDownOutside={(e) => { if (lockOutsideClose) e.preventDefault(); }}
-          onEscapeKeyDown={(e) => { if (lockOutsideClose) e.preventDefault(); }}
         >
           <DialogHeader>
             <DialogTitle className="text-foreground">Novo Cliente</DialogTitle>
