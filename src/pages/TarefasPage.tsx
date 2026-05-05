@@ -239,10 +239,13 @@ const TarefasPage = () => {
                       </div>
                     </TableCell>
                     <TableCell onClick={() => handleTaskClick(task)}>
-                      <span className="text-sm text-foreground">{task.leads?.nome || "—"}</span>
+                      <span className="text-sm text-foreground">
+                        {task.leads?.nome || (task as any).clientes?.nome || "—"}
+                        {(task as any).clientes && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">cliente</span>}
+                      </span>
                     </TableCell>
                     <TableCell onClick={() => handleTaskClick(task)}>
-                      <span className="text-sm text-muted-foreground">{task.leads?.whatsapp || "—"}</span>
+                      <span className="text-sm text-muted-foreground">{task.leads?.whatsapp || (task as any).clientes?.whatsapp || "—"}</span>
                     </TableCell>
                     <TableCell onClick={() => handleTaskClick(task)}>
                       <div className="flex items-center gap-1.5">

@@ -7,11 +7,15 @@ import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench, TrendingDown, BarChart3 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench, TrendingDown, BarChart3, CheckSquare, Plus, Circle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditClienteModal from "@/components/clientes/EditClienteModal";
 import type { Cobranca } from "@/hooks/useCobrancas";
+import { useClienteTasks, useCreateLeadTask, useCompleteLeadTask } from "@/hooks/useLeadTasks";
+import { Input } from "@/components/ui/input";
+import DatePickerField from "@/components/DatePickerField";
+import { parseLocalDate } from "@/lib/utils";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -21,6 +25,14 @@ const ClienteDetailPage = () => {
   const effectiveUserId = useEffectiveUserId();
   const deleteCliente = useDeleteCliente();
   const [editOpen, setEditOpen] = useState(false);
+  const { data: clienteTasks = [] } = useClienteTasks(id);
+  const createTask = useCreateLeadTask();
+  const completeTask = useCompleteLeadTask();
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDate, setNewTaskDate] = useState(() => {
+    const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  });
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ["cliente", id],
