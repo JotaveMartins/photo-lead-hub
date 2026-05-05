@@ -338,6 +338,35 @@ export const useTodayClienteTasks = () => {
   });
 };
 
+// Mapa cliente_id -> { atrasadas, hoje, futuras } (apenas pendentes)
+export const useClienteTaskCounts = () => {
+  const effectiveUserId = useEffectiveUserId();
+  return useQuery({
+    queryKey: ["lead_tasks", "cliente_counts", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return {} as Record<string, { atrasadas: number; hoje: number; futuras: number }>;
+      const { data, error } = await supabase
+        .from("lead_tasks")
+        .select("cliente_id, due_date")
+        .eq("user_id", effectiveUserId)
+        .eq("completed", false)
+        .not("cliente_id", "is", null);
+      if (error) throw error;
+      const todayStr = getLocalDateStr();
+      const map: Record<string, { atrasadas: number; hoje: number; futuras: number }> = {};
+      (data || []).forEach((t: any) => {
+        const id = t.cliente_id as string;
+        if (!map[id]) map[id] = { atrasadas: 0, hoje: 0, futuras: 0 };
+        if (t.due_date < todayStr) map[id].atrasadas++;
+        else if (t.due_date === todayStr) map[id].hoje++;
+        else map[id].futuras++;
+      });
+      return map;
+    },
+    enabled: !!effectiveUserId,
+  });
+};
+
 export const useDeleteLeadTask = () => {
   const queryClient = useQueryClient();
 

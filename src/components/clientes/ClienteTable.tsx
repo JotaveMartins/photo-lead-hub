@@ -5,6 +5,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import type { Cliente } from "@/hooks/useClientes";
+import { useClienteTaskCounts } from "@/hooks/useLeadTasks";
+import { cn } from "@/lib/utils";
 
 interface ClienteTableProps {
   clientes: Cliente[];
@@ -16,6 +18,7 @@ interface ClienteTableProps {
 
 const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTableProps) => {
   const navigate = useNavigate();
+  const { data: taskCounts = {} } = useClienteTaskCounts();
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -45,6 +48,7 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
         <TableHeader>
           <TableRow className="bg-muted/50">
             <TableHead className="text-foreground">Nome</TableHead>
+            <TableHead className="text-foreground w-24">Tarefas</TableHead>
             <TableHead className="text-foreground">WhatsApp</TableHead>
             <TableHead className="text-foreground">Email</TableHead>
             <TableHead className="text-foreground">Origem</TableHead>
@@ -53,9 +57,23 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
           </TableRow>
         </TableHeader>
         <TableBody>
-          {clientes.map((c) => (
+          {clientes.map((c) => {
+            const counts = taskCounts[c.id];
+            // Verde = pendentes futuras, Vermelho = atrasadas/hoje, Cinza = sem tarefas
+            const status = !counts || (counts.atrasadas + counts.hoje + counts.futuras === 0)
+              ? { color: "bg-muted-foreground/40", label: "Sem tarefas", text: "—" }
+              : counts.atrasadas + counts.hoje > 0
+              ? { color: "bg-destructive", label: `${counts.atrasadas + counts.hoje} pendente(s)`, text: String(counts.atrasadas + counts.hoje) }
+              : { color: "bg-[hsl(var(--status-success))]", label: `${counts.futuras} futura(s)`, text: String(counts.futuras) };
+            return (
             <TableRow key={c.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/clientes/${c.id}`)}>
               <TableCell className="font-medium text-foreground">{c.nome}</TableCell>
+              <TableCell>
+                <span title={status.label} className="inline-flex items-center gap-1.5">
+                  <span className={cn("w-2 h-2 rounded-full", status.color)} />
+                  <span className="text-xs text-muted-foreground">{status.text}</span>
+                </span>
+              </TableCell>
               <TableCell className="text-muted-foreground">{c.whatsapp || "—"}</TableCell>
               <TableCell className="text-muted-foreground">{c.email || "—"}</TableCell>
               <TableCell className="text-muted-foreground">{c.origem || "—"}</TableCell>
@@ -73,7 +91,8 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

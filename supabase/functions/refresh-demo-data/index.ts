@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
       .select("id, title")
       .eq("user_id", DEMO_USER_ID)
       .eq("completed", false)
+      .is("cliente_id", null)
       .order("created_at");
 
     if (tasks && tasks.length > 0) {
@@ -54,6 +55,26 @@ Deno.serve(async (req) => {
           .from("lead_tasks")
           .update({ due_date: toDateStr(addDays(today, offset)) })
           .eq("id", tasks[i].id);
+      }
+    }
+
+    // 1b. Client tasks (cliente_id NOT null) — also redistributed around today
+    const { data: clientTasks } = await supabase
+      .from("lead_tasks")
+      .select("id")
+      .eq("user_id", DEMO_USER_ID)
+      .eq("completed", false)
+      .not("cliente_id", "is", null)
+      .order("created_at");
+
+    if (clientTasks && clientTasks.length > 0) {
+      const clientOffsets = [-3, -2, -1, 0, 0, 0, 1, 2, 3, 5, 7, 10];
+      for (let i = 0; i < clientTasks.length; i++) {
+        const offset = clientOffsets[i % clientOffsets.length];
+        await supabase
+          .from("lead_tasks")
+          .update({ due_date: toDateStr(addDays(today, offset)) })
+          .eq("id", clientTasks[i].id);
       }
     }
 
