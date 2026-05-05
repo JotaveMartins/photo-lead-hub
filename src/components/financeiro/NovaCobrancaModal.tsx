@@ -12,6 +12,9 @@ import { useServices } from "@/hooks/useServices";
 import { usePackages } from "@/hooks/usePackages";
 import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import { toast } from "sonner";
+import ServiceModal from "@/components/ServiceModal";
+import PackageModal from "@/components/PackageModal";
+import { Plus } from "lucide-react";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
