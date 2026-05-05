@@ -36,6 +36,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/pacotes") return "pacotes";
     if (path === "/agenda") return "agenda";
     if (path === "/clientes" || path.startsWith("/clientes/")) return "clientes";
+    if (path === "/equipe") return "equipe";
     if (path === "/contratos") return "contratos";
     if (path === "/financeiro/cobrancas") return "financeiro/cobrancas";
     if (path === "/financeiro/despesas") return "financeiro/despesas";
@@ -78,6 +79,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       pacotes: "/pacotes",
       agenda: "/agenda",
       clientes: "/clientes",
+      equipe: "/equipe",
       contratos: "/contratos",
       financeiro: "/financeiro",
       "financeiro/cobrancas": "/financeiro/cobrancas",
