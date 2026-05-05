@@ -14,10 +14,12 @@ import {
   TrendingDown,
   FileText,
   X,
+  HardHat,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTodayClienteTasks } from "@/hooks/useLeadTasks";
 import { useState } from "react";
 
 interface SidebarProps {
@@ -35,6 +37,7 @@ const baseMenuItems = [
   { id: 'pacotes', label: 'Pacotes', icon: Package },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'clientes', label: 'Clientes', icon: UserCheck },
+  { id: 'equipe', label: 'Equipe', icon: HardHat },
   { id: 'contratos', label: 'Contratos', icon: FileText },
 ];
 
@@ -50,6 +53,8 @@ const adminMenuItems = [
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const { data: clienteTasksToday = [] } = useTodayClienteTasks();
+  const clienteBadge = clienteTasksToday.length;
   const isFinanceiroActive = activeItem.startsWith('financeiro');
   const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroActive);
 
@@ -101,6 +106,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
+          const showBadge = item.id === 'clientes' && clienteBadge > 0;
           return (
             <button
               key={item.id}
@@ -109,7 +115,12 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
                 ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
             >
               <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
-              {item.label}
+              <span className="flex-1 text-left">{item.label}</span>
+              {showBadge && (
+                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                  {clienteBadge}
+                </span>
+              )}
             </button>
           );
         })}
