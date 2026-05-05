@@ -147,6 +147,7 @@ export type Database = {
           parcela_total: number | null
           recorrente: boolean
           status: Database["public"]["Enums"]["despesa_status"]
+          team_member_id: string | null
           updated_at: string
           user_id: string
           valor: number
@@ -166,6 +167,7 @@ export type Database = {
           parcela_total?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
+          team_member_id?: string | null
           updated_at?: string
           user_id: string
           valor?: number
@@ -185,6 +187,7 @@ export type Database = {
           parcela_total?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
+          team_member_id?: string | null
           updated_at?: string
           user_id?: string
           valor?: number
@@ -199,6 +202,27 @@ export type Database = {
           },
         ]
       }
+      event_team_members: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           cliente_id: string | null
@@ -209,6 +233,7 @@ export type Database = {
           id: string
           lead_id: string | null
           local: string | null
+          responsavel_proprio: boolean
           service_id: string | null
           tipo: string
           titulo: string
@@ -223,6 +248,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           local?: string | null
+          responsavel_proprio?: boolean
           service_id?: string | null
           tipo?: string
           titulo: string
@@ -237,6 +263,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           local?: string | null
+          responsavel_proprio?: boolean
           service_id?: string | null
           tipo?: string
           titulo?: string
@@ -362,6 +389,7 @@ export type Database = {
       }
       lead_tasks: {
         Row: {
+          cliente_id: string | null
           completed: boolean
           completed_at: string | null
           created_at: string
@@ -370,12 +398,13 @@ export type Database = {
           due_time: string | null
           id: string
           is_cadence: boolean
-          lead_id: string
+          lead_id: string | null
           task_number: number
           title: string
           user_id: string
         }
         Insert: {
+          cliente_id?: string | null
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -384,12 +413,13 @@ export type Database = {
           due_time?: string | null
           id?: string
           is_cadence?: boolean
-          lead_id: string
+          lead_id?: string | null
           task_number?: number
           title: string
           user_id: string
         }
         Update: {
+          cliente_id?: string | null
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -398,7 +428,7 @@ export type Database = {
           due_time?: string | null
           id?: string
           is_cadence?: boolean
-          lead_id?: string
+          lead_id?: string | null
           task_number?: number
           title?: string
           user_id?: string
@@ -723,6 +753,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           valor_base?: number
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          deleted_at: string | null
+          funcao: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          funcao?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          funcao?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
