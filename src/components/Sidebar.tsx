@@ -19,7 +19,10 @@ import {
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useTodayClienteTasks } from "@/hooks/useLeadTasks";
+import { useTodayClienteTasks, useAllPendingTasks } from "@/hooks/useLeadTasks";
+import { useEvents } from "@/hooks/useEvents";
+import { isToday, isBefore, startOfDay } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { useState } from "react";
 
 interface SidebarProps {
@@ -54,7 +57,15 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const { data: clienteTasksToday = [] } = useTodayClienteTasks();
+  const { data: allPending = [] } = useAllPendingTasks();
+  const { data: events = [] } = useEvents();
   const clienteBadge = clienteTasksToday.length;
+  const today = startOfDay(new Date());
+  const tarefasBadge = allPending.filter((t) => {
+    const d = parseLocalDate(t.due_date);
+    return isToday(d) || isBefore(d, today);
+  }).length;
+  const agendaBadge = events.filter((e: any) => isToday(new Date(e.data_evento))).length;
   const isFinanceiroActive = activeItem.startsWith('financeiro');
   const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroActive);
 
@@ -106,7 +117,11 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
-          const showBadge = item.id === 'clientes' && clienteBadge > 0;
+          let badgeCount = 0;
+          if (item.id === 'clientes') badgeCount = clienteBadge;
+          else if (item.id === 'tarefas') badgeCount = tarefasBadge;
+          else if (item.id === 'agenda') badgeCount = agendaBadge;
+          const showBadge = badgeCount > 0;
           return (
             <button
               key={item.id}
@@ -118,7 +133,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
               <span className="flex-1 text-left">{item.label}</span>
               {showBadge && (
                 <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                  {clienteBadge}
+                  {badgeCount}
                 </span>
               )}
             </button>
