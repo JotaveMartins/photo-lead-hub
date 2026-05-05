@@ -200,6 +200,13 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "despesas_team_member_fk"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_team_members: {
@@ -221,7 +228,22 @@ export type Database = {
           id?: string
           team_member_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "event_team_members_event_fk"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_team_members_member_fk"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       events: {
         Row: {
@@ -434,6 +456,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_tasks_cliente_fk"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
