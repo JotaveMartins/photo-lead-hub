@@ -98,10 +98,11 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
   const steps: { key: typeof step; label: string }[] = [
     { key: "cliente", label: "Cliente" },
     { key: "tipo", label: "Cobrança" },
-    { key: "cobranca", label: "Detalhes" },
     { key: "evento", label: "Evento" },
   ];
-  const currentIdx = steps.findIndex((s) => s.key === step);
+  // "cobranca" shares the same step as "tipo"
+  const currentIdx = step === "cobranca" ? 1 : steps.findIndex((s) => s.key === step);
+  const totalSteps = steps.length;
 
   const StepIndicator = (
     <div className="flex items-center gap-1.5 pt-2">
@@ -119,7 +120,7 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
         </div>
       ))}
       <span className="text-[11px] text-muted-foreground ml-auto">
-        Passo {currentIdx + 1} de {steps.length}
+        Passo {currentIdx + 1} de {totalSteps}
       </span>
     </div>
   );
