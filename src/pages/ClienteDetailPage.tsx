@@ -373,6 +373,58 @@ const ClienteDetailPage = () => {
           )}
         </TabsContent>
 
+        {/* Tab: Tarefas */}
+        <TabsContent value="tarefas" className="mt-4 space-y-4">
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-end gap-2 flex-wrap">
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  <label className="text-xs text-muted-foreground">Nova tarefa</label>
+                  <Input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Ex: Procurar equipe para o casamento" className="bg-muted border-border" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Data</label>
+                  <DatePickerField value={newTaskDate} onChange={setNewTaskDate} />
+                </div>
+                <Button size="sm" disabled={!newTaskTitle.trim() || createTask.isPending} onClick={async () => {
+                  if (!id) return;
+                  await createTask.mutateAsync({ cliente_id: id, title: newTaskTitle.trim(), due_date: newTaskDate });
+                  setNewTaskTitle("");
+                }}>
+                  <Plus className="w-4 h-4 mr-1" />Adicionar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {clienteTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <CheckSquare className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-medium text-muted-foreground">Nenhuma tarefa para este cliente</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {clienteTasks.map((t) => (
+                <div key={t.id} className={`flex items-center justify-between rounded-lg border border-border p-3 ${t.completed ? "opacity-60" : ""}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {t.completed ? (
+                      <CheckSquare className="w-4 h-4 text-primary flex-shrink-0" />
+                    ) : (
+                      <button onClick={() => completeTask.mutate(t)} className="text-muted-foreground hover:text-primary">
+                        <Circle className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium ${t.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{t.title}</p>
+                      <p className="text-xs text-muted-foreground">{format(parseLocalDate(t.due_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         {/* Tab: Relatório */}
         <TabsContent value="relatorio" className="mt-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
