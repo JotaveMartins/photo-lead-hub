@@ -204,7 +204,6 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
       <DialogContent
         className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={(e) => { if (lockOutsideClose) e.preventDefault(); }}
-        onEscapeKeyDown={(e) => { if (lockOutsideClose) e.preventDefault(); }}
       >
         <DialogHeader>
           <DialogTitle className="text-xl font-display">{titles[type]}</DialogTitle>
