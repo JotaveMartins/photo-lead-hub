@@ -118,6 +118,28 @@ export const useEventTeamMembers = (eventId: string | undefined | null) => {
   });
 };
 
+export const useAllEventTeams = () => {
+  const effectiveUserId = useEffectiveUserId();
+  return useQuery({
+    queryKey: ["event_team_members_all", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return {} as Record<string, { id: string; nome: string }[]>;
+      const { data, error } = await (supabase as any)
+        .from("event_team_members")
+        .select("event_id, team_member_id, team_members(nome), events!inner(user_id)")
+        .eq("events.user_id", effectiveUserId);
+      if (error) throw error;
+      const map: Record<string, { id: string; nome: string }[]> = {};
+      (data || []).forEach((row: any) => {
+        if (!map[row.event_id]) map[row.event_id] = [];
+        map[row.event_id].push({ id: row.team_member_id, nome: row.team_members?.nome || "—" });
+      });
+      return map;
+    },
+    enabled: !!effectiveUserId,
+  });
+};
+
 export const useReplaceEventTeam = () => {
   const qc = useQueryClient();
   return useMutation({
