@@ -16,9 +16,10 @@ interface PackageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   packageId?: string | null;
+  onCreated?: (pkg: { id: string; nome: string; preco_final: number | null }) => void;
 }
 
-const PackageModal = ({ open, onOpenChange, packageId }: PackageModalProps) => {
+const PackageModal = ({ open, onOpenChange, packageId, onCreated }: PackageModalProps) => {
   const [nome, setNome] = useState("");
   const [precoFinal, setPrecoFinal] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -130,6 +131,9 @@ const PackageModal = ({ open, onOpenChange, packageId }: PackageModalProps) => {
 
       queryClient.invalidateQueries({ queryKey: ["packages"] });
       toast.success(isEditing ? "Pacote atualizado!" : "Pacote criado!");
+      if (!isEditing && pkgId && onCreated) {
+        onCreated({ id: pkgId, nome, preco_final: precoFinal ? parseFloat(precoFinal) : null });
+      }
       onOpenChange(false);
     } catch (error: any) {
       toast.error("Erro: " + error.message);
