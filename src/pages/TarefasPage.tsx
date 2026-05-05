@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import LeadDetailDrawer from "@/components/LeadDetailDrawer";
 import { useAllTasks, useCompleteLeadTask, useCreateLeadTask } from "@/hooks/useLeadTasks";
 import { useLeads } from "@/hooks/useLeads";
+import { useClientes } from "@/hooks/useClientes";
 import { isBefore, isToday, isThisWeek, startOfDay, isSameDay } from "date-fns";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -29,6 +30,7 @@ type FilterKey = "todo" | "overdue" | "today" | "this_week" | "future" | "comple
 const TarefasPage = () => {
   const { data: allTasks = [] } = useAllTasks();
   const { data: leads = [] } = useLeads();
+  const { data: clientes = [] } = useClientes();
   const completeTask = useCompleteLeadTask();
   const createTask = useCreateLeadTask();
 
@@ -42,6 +44,8 @@ const TarefasPage = () => {
   const [newDueDate, setNewDueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [newDueTime, setNewDueTime] = useState("");
   const [newLeadId, setNewLeadId] = useState("");
+  const [newClienteId, setNewClienteId] = useState("");
+  const [newTargetType, setNewTargetType] = useState<"lead" | "cliente">("lead");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const today = startOfDay(new Date());
@@ -83,9 +87,12 @@ const TarefasPage = () => {
   }, [allTasks, today]);
 
   const handleCreate = async () => {
-    if (!newTitle.trim() || !newLeadId) return;
+    if (!newTitle.trim()) return;
+    if (newTargetType === "lead" && !newLeadId) return;
+    if (newTargetType === "cliente" && !newClienteId) return;
     await createTask.mutateAsync({
-      lead_id: newLeadId,
+      lead_id: newTargetType === "lead" ? newLeadId : null,
+      cliente_id: newTargetType === "cliente" ? newClienteId : null,
       title: newTitle.trim(),
       description: newDescription.trim() || undefined,
       due_date: newDueDate,
@@ -96,6 +103,7 @@ const TarefasPage = () => {
     setNewDescription("");
     setNewDueTime("");
     setNewLeadId("");
+    setNewClienteId("");
   };
 
   const getRowStatusClass = (task: typeof allTasks[0]) => {
@@ -338,17 +346,30 @@ const TarefasPage = () => {
               <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Detalhes, script de contato..." className="bg-muted border-border min-h-[80px]" />
             </div>
             <div className="space-y-2">
-              <Label>Lead</Label>
-              <select
-                value={newLeadId}
-                onChange={(e) => setNewLeadId(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">Selecione um lead</option>
-                {leads.map((lead) => (
-                  <option key={lead.id} value={lead.id}>{lead.nome}</option>
-                ))}
-              </select>
+              <Label>Vincular a</Label>
+              <div className="flex gap-2 mb-2">
+                <button type="button" onClick={() => setNewTargetType("lead")}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${newTargetType === "lead" ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground"}`}>
+                  Lead
+                </button>
+                <button type="button" onClick={() => setNewTargetType("cliente")}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${newTargetType === "cliente" ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground"}`}>
+                  Cliente
+                </button>
+              </div>
+              {newTargetType === "lead" ? (
+                <select value={newLeadId} onChange={(e) => setNewLeadId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                  <option value="">Selecione um lead</option>
+                  {leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.nome}</option>)}
+                </select>
+              ) : (
+                <select value={newClienteId} onChange={(e) => setNewClienteId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                  <option value="">Selecione um cliente</option>
+                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -362,7 +383,7 @@ const TarefasPage = () => {
             </div>
             <div className="flex gap-3 justify-end pt-4">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate} disabled={!newTitle.trim() || !newLeadId} className="bg-gradient-primary hover:opacity-90">Criar atividade</Button>
+              <Button onClick={handleCreate} disabled={!newTitle.trim() || (newTargetType === "lead" ? !newLeadId : !newClienteId)} className="bg-gradient-primary hover:opacity-90">Criar atividade</Button>
             </div>
           </div>
         </DialogContent>
