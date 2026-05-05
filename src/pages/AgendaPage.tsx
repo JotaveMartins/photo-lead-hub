@@ -14,7 +14,7 @@ import GenericTrashBin from "@/components/GenericTrashBin";
 import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useDeletedEvents, useRestoreEvent, usePermanentDeleteEvent } from "@/hooks/useEvents";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
-import { useTeamMembers, useEventTeamMembers, useReplaceEventTeam } from "@/hooks/useTeamMembers";
+import { useTeamMembers, useEventTeamMembers, useReplaceEventTeam, useAllEventTeams } from "@/hooks/useTeamMembers";
 import TeamMemberModal from "@/components/equipe/TeamMemberModal";
 import { Switch } from "@/components/ui/switch";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
@@ -49,6 +49,7 @@ const AgendaPage = () => {
   const { data: services = [] } = useServices();
   const { data: teamMembers = [] } = useTeamMembers();
   const { data: editingTeam = [] } = useEventTeamMembers(editingEvent?.id);
+  const { data: allEventTeams = {} } = useAllEventTeams();
   const replaceTeam = useReplaceEventTeam();
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
