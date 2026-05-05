@@ -281,6 +281,7 @@ const AgendaPage = () => {
                     <TableHead className="font-medium">Cliente</TableHead>
                     <TableHead className="font-medium">Serviço</TableHead>
                     <TableHead className="font-medium">Local</TableHead>
+                    <TableHead className="font-medium">Equipe</TableHead>
                     <TableHead
                       className="font-medium cursor-pointer select-none"
                       onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
@@ -322,6 +323,21 @@ const AgendaPage = () => {
                               <MapPin className="w-3 h-3" />
                               {(event as any).local}
                             </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {event.responsavel_proprio !== false ? (
+                            <span className="text-xs text-muted-foreground">Eu mesmo</span>
+                          ) : (allEventTeams[event.id]?.length ?? 0) > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {allEventTeams[event.id].map((t) => (
+                                <span key={t.id} className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                                  {t.nome}
+                                </span>
+                              ))}
+                            </div>
                           ) : (
                             <span className="text-sm text-muted-foreground">—</span>
                           )}
