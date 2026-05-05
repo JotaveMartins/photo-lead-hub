@@ -33,9 +33,12 @@ interface NovaCobrancaModalProps {
   type: ModalType;
   initialClienteId?: string;
   initialValor?: number;
+  lockOutsideClose?: boolean;
+  headerExtra?: React.ReactNode;
+  footerExtra?: React.ReactNode;
 }
 
-const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initialValor }: NovaCobrancaModalProps) => {
+const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initialValor, lockOutsideClose, headerExtra, footerExtra }: NovaCobrancaModalProps) => {
   const effectiveUserId = useEffectiveUserId();
   const createCobranca = useCreateCobranca();
   const createBatch = useCreateCobrancasBatch();
@@ -197,11 +200,16 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(v) => { if (!v && lockOutsideClose) return; onOpenChange(v); }}>
+      <DialogContent
+        className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => { if (lockOutsideClose) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (lockOutsideClose) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle className="text-xl font-display">{titles[type]}</DialogTitle>
           <p className="text-sm text-muted-foreground">{subtitles[type]}</p>
+          {headerExtra}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -400,6 +408,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           )}
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
+            {footerExtra}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               Cancelar
             </Button>
