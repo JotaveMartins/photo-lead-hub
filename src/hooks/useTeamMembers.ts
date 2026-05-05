@@ -14,6 +14,8 @@ export interface TeamMember {
   created_at: string;
   updated_at: string;
   eventos_count?: number;
+  eventos_futuros?: number;
+  eventos_realizados?: number;
 }
 
 export const useTeamMembers = () => {
@@ -24,17 +26,20 @@ export const useTeamMembers = () => {
       if (!effectiveUserId) return [] as TeamMember[];
       const { data, error } = await (supabase as any)
         .from("team_members")
-        .select("*, event_team_members(event_id, events!inner(deleted_at))")
+        .select("*, event_team_members(event_id, events!inner(deleted_at, data_evento))")
         .eq("user_id", effectiveUserId)
         .is("deleted_at", null)
         .order("nome", { ascending: true });
       if (error) throw error;
-      return (data || []).map((m: any) => ({
-        ...m,
-        eventos_count: (m.event_team_members || []).filter(
+      const now = Date.now();
+      return (data || []).map((m: any) => {
+        const valid = (m.event_team_members || []).filter(
           (etm: any) => etm.events && etm.events.deleted_at === null,
-        ).length,
-      })) as TeamMember[];
+        );
+        const futuros = valid.filter((etm: any) => new Date(etm.events.data_evento).getTime() >= now).length;
+        const realizados = valid.filter((etm: any) => new Date(etm.events.data_evento).getTime() < now).length;
+        return { ...m, eventos_count: valid.length, eventos_futuros: futuros, eventos_realizados: realizados };
+      }) as TeamMember[];
     },
     enabled: !!effectiveUserId,
   });
