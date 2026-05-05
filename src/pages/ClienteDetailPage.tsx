@@ -202,6 +202,7 @@ const ClienteDetailPage = () => {
           <TabsTrigger value="despesas" className="gap-1.5"><TrendingDown className="w-4 h-4" />Despesas</TabsTrigger>
           <TabsTrigger value="servicos" className="gap-1.5"><Wrench className="w-4 h-4" />Serviços</TabsTrigger>
           <TabsTrigger value="agenda" className="gap-1.5"><Calendar className="w-4 h-4" />Agenda</TabsTrigger>
+          <TabsTrigger value="tarefas" className="gap-1.5"><CheckSquare className="w-4 h-4" />Tarefas</TabsTrigger>
           <TabsTrigger value="relatorio" className="gap-1.5"><BarChart3 className="w-4 h-4" />Relatório</TabsTrigger>
         </TabsList>
 
