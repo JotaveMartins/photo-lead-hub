@@ -116,11 +116,10 @@ const RelatoriosPage = () => {
   };
 
   // === Revenue daily ===
-  const { revenueDailyData } = useMemo(() => {
+  const bucketHelpers = useMemo(() => {
     const spanDays = (dateRange.end.getTime() - dateRange.start.getTime()) / 86400000;
     const granularity: "day" | "month" | "year" =
       spanDays <= 60 ? "day" : spanDays <= 730 ? "month" : "year";
-    const fmt = granularity === "day" ? "dd/MM" : granularity === "month" ? "MM/yy" : "yyyy";
     const bucketKey = (d: Date) => {
       if (granularity === "day") return format(d, "dd/MM");
       if (granularity === "month") return format(new Date(d.getFullYear(), d.getMonth(), 1), "MM/yy");
@@ -133,29 +132,35 @@ const RelatoriosPage = () => {
       else r.setFullYear(r.getFullYear() + 1);
       return r;
     };
+    const orderedBuckets = (): string[] => {
+      const out: string[] = [];
+      const seen = new Set<string>();
+      let current = granularity === "day"
+        ? new Date(dateRange.start)
+        : granularity === "month"
+        ? new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1)
+        : new Date(dateRange.start.getFullYear(), 0, 1);
+      while (current < dateRange.end) {
+        const k = bucketKey(current);
+        if (!seen.has(k)) { seen.add(k); out.push(k); }
+        current = stepDate(current);
+      }
+      return out;
+    };
+    return { bucketKey, orderedBuckets };
+  }, [dateRange]);
 
+  const { revenueDailyData } = useMemo(() => {
     const map: Record<string, number> = {};
     leads.forEach((l) => {
       if (inRange(l.data_entrada_fechado_ganho) && l.valor) {
-        const key = bucketKey(new Date(l.data_entrada_fechado_ganho!));
+        const key = bucketHelpers.bucketKey(new Date(l.data_entrada_fechado_ganho!));
         map[key] = (map[key] || 0) + l.valor;
       }
     });
-    const buckets: string[] = [];
-    let current = granularity === "day"
-      ? new Date(dateRange.start)
-      : granularity === "month"
-      ? new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1)
-      : new Date(dateRange.start.getFullYear(), 0, 1);
-    while (current < dateRange.end) {
-      buckets.push(bucketKey(current));
-      current = stepDate(current);
-    }
-    // Deduplicate while preserving order
-    const seen = new Set<string>();
-    const ordered = buckets.filter((b) => (seen.has(b) ? false : (seen.add(b), true)));
+    const ordered = bucketHelpers.orderedBuckets();
     return { revenueDailyData: ordered.filter((d) => map[d]).map((d) => ({ date: d, receita: map[d] })) };
-  }, [leads, dateRange]);
+  }, [leads, dateRange, bucketHelpers]);
 
   // === Conversion time ===
   const conversionTimes = useMemo(() => {
@@ -163,7 +168,14 @@ const RelatoriosPage = () => {
     const proposalToWon: number[] = [];
     const leadToWon: number[] = [];
     leads.forEach((l) => {
-      const startTs = l.data_entrada_novo_lead ?? l.created_at;
+      // Use the earliest of created_at and data_entrada_novo_lead as the lead's
+      // arrival in the pipeline. The trigger sometimes sets data_entrada_novo_lead
+      // when status is moved BACK to "Novo Lead", which would otherwise mask the
+      // real start date.
+      const candidates = [l.created_at, l.data_entrada_novo_lead].filter(Boolean) as string[];
+      const startTs = candidates.length
+        ? candidates.reduce((a, b) => (new Date(a).getTime() < new Date(b).getTime() ? a : b))
+        : null;
       if (startTs && l.data_entrada_proposta_enviada && inRange(l.data_entrada_proposta_enviada)) {
         const diff = (new Date(l.data_entrada_proposta_enviada).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
         if (diff >= 0) leadToProposal.push(diff);
@@ -229,20 +241,14 @@ const RelatoriosPage = () => {
     const map: Record<string, number> = {};
     periodTasks.forEach((t) => {
       if (t.completed && t.completed_at) {
-        const d = format(new Date(t.completed_at), "dd/MM");
-        map[d] = (map[d] || 0) + 1;
+        const k = bucketHelpers.bucketKey(new Date(t.completed_at));
+        map[k] = (map[k] || 0) + 1;
       }
     });
-    const days: string[] = [];
-    const current = new Date(dateRange.start);
-    while (current < dateRange.end) {
-      days.push(format(current, "dd/MM"));
-      current.setDate(current.getDate() + 1);
-    }
-    const dailyCompleted = days.filter((d) => map[d]).map((d) => ({ date: d, count: map[d] }));
+    const dailyCompleted = bucketHelpers.orderedBuckets().filter((d) => map[d]).map((d) => ({ date: d, count: map[d] }));
 
     return { total, completed, pending, overdue, cadenceCompleted, followUpCompleted, dailyCompleted };
-  }, [tasks, dateRange]);
+  }, [tasks, dateRange, bucketHelpers]);
 
   const fmtCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
