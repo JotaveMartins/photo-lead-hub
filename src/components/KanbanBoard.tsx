@@ -343,6 +343,28 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
             ))}
           </select>
         </div>
+
+        {/* Status filter — pinned to the right */}
+        <div className="sm:ml-auto flex bg-muted rounded-lg p-1 h-9">
+          {([
+            { key: "open", label: "Em aberto" },
+            { key: "won", label: "Ganhos" },
+            { key: "lost", label: "Perdidos" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setStatusFilter(opt.key)}
+              className={`px-3 rounded-md text-xs font-medium transition-colors ${
+                statusFilter === opt.key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Kanban columns */}
@@ -350,7 +372,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         ref={boardRef}
         className="flex gap-3 overflow-x-auto overflow-y-visible pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
-        {ACTIVE_COLUMNS.map((col) => {
+        {(statusFilter === "open"
+          ? ACTIVE_COLUMNS
+          : statusFilter === "won"
+          ? CLOSED_COLUMNS.filter((c) => c.status === "Fechado Ganho")
+          : CLOSED_COLUMNS.filter((c) => c.status === "Fechado Perdido")
+        ).map((col) => {
           const columnLeads = filteredLeads.filter((l) => l.status === col.status);
           const isDragOver = dragOverColumn === col.status;
           const totalValue = getColumnValue(col.status);
