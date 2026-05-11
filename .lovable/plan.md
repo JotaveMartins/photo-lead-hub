@@ -1,26 +1,17 @@
-## Melhorias no filtro de período + filtro de Interesse (Relatórios)
+## Correções no relatório com período "Máximo"
 
-### 1. Adicionar opção "Máximo" no Período
-`src/components/reports/ReportFilters.tsx`:
-- Adicionar `"all"` ao tipo `PeriodOption` e em `periodLabels` como **"Máximo"**.
-- Em `getDateRange`, retornar `start = new Date(2000, 0, 1)` e `end = tomorrow`, cobrindo todo o histórico.
+### 1. Gráfico de Receita "bugado" no Máximo
+O eixo X formata datas como `"dd/MM"` sem ano. No "Máximo" (anos de histórico), os mesmos `dd/MM` se repetem e o gráfico vira centenas de barras com rótulos duplicados.
 
-### 2. Texto bugado no intervalo personalizado
-Os botões de Início/Fim usam `w-[150px]`, e "Selecione a data" + ícone não cabem.
-- Aumentar para `w-[170px]` (ou `min-w-[170px]`).
+**Correção em `src/pages/RelatoriosPage.tsx` (`revenueDailyData`):** escolher granularidade conforme o tamanho do intervalo:
+- ≤ 60 dias → por **dia**, label `dd/MM`
+- ≤ 730 dias → por **mês**, label `MM/yy`
+- > 730 dias → por **ano**, label `yyyy`
 
-### 3. Calendário abre sempre no mês atual
-`src/components/DatePickerField.tsx`:
-- Passar `defaultMonth={selected}` para `<Calendar>`, fazendo o calendário abrir no mês da data já selecionada.
+### 2. Tempo "Lead → Venda"
+A fórmula já é a que você descreveu — `data_entrada_fechado_ganho − data_entrada_novo_lead`, tirando a média sobre os leads ganhos no período. Não há bug; os 7 dias refletem a base demo (leads ganham logo após serem criados).
 
-### 4. Adicionar filtro "Interesse" em Relatórios
-- Em `RelatoriosPage.tsx`, derivar a lista `interesses` de forma análoga a `origens` (a partir dos leads carregados — que já respeitam o `clienteUserId` selecionado quando admin).
-- Adicionar estado `interesse` e passá-lo a `useReportData` (acrescentar `interesse` aos params do hook e aplicar `.eq("interesse", interesse)` na query de leads).
-- Em `ReportFilters.tsx`, adicionar um `<select>` nativo "Interesse" no mesmo padrão visual de "Origem", com opção "Todos" e a lista recebida via props.
-- O filtro reflete automaticamente os interesses da conta selecionada porque `leads` já vêm filtrados por `clienteUserId`.
+**Pequena melhoria de robustez:** quando `data_entrada_novo_lead` for `null` (leads antigos, anteriores ao trigger), usar `created_at` como fallback. Isso evita ignorar leads válidos e deixa a média mais representativa em períodos longos.
 
 ### Arquivos alterados
-- `src/components/reports/ReportFilters.tsx`
-- `src/components/DatePickerField.tsx`
 - `src/pages/RelatoriosPage.tsx`
-- `src/hooks/useReportData.ts`
