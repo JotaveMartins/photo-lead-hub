@@ -14,6 +14,8 @@ import LossReasonModal from "@/components/LossReasonModal";
 import type { Database } from "@/integrations/supabase/types";
 import { isBefore, isToday, startOfDay } from "date-fns";
 import { parseLocalDate, normalizeText } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
@@ -67,12 +69,14 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
+  const queryClient = useQueryClient();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | "DELETE" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [interesseFilter, setInteresseFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"open" | "won" | "lost">("open");
   const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
   const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
   // Follow-up modal state
@@ -240,11 +244,24 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null }) => {
     if (lossReasonLead) {
+      const leadId = lossReasonLead.id;
+      const shouldDelete = (data as any).deleteFutureTasks !== false;
       updateLead.mutate({
-        id: lossReasonLead.id,
+        id: leadId,
         status: "Fechado Perdido" as LeadStatus,
         motivo_perda: data.motivo_perda,
         observacao_perda: data.observacao_perda,
+      }, {
+        onSuccess: async () => {
+          if (shouldDelete) {
+            await supabase
+              .from("lead_tasks")
+              .delete()
+              .eq("lead_id", leadId)
+              .eq("completed", false);
+            queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+          }
+        },
       });
       setLossReasonLead(null);
       setLossReasonOpen(false);
