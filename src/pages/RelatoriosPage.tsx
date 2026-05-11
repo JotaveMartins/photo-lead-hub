@@ -117,20 +117,44 @@ const RelatoriosPage = () => {
 
   // === Revenue daily ===
   const { revenueDailyData } = useMemo(() => {
+    const spanDays = (dateRange.end.getTime() - dateRange.start.getTime()) / 86400000;
+    const granularity: "day" | "month" | "year" =
+      spanDays <= 60 ? "day" : spanDays <= 730 ? "month" : "year";
+    const fmt = granularity === "day" ? "dd/MM" : granularity === "month" ? "MM/yy" : "yyyy";
+    const bucketKey = (d: Date) => {
+      if (granularity === "day") return format(d, "dd/MM");
+      if (granularity === "month") return format(new Date(d.getFullYear(), d.getMonth(), 1), "MM/yy");
+      return format(new Date(d.getFullYear(), 0, 1), "yyyy");
+    };
+    const stepDate = (d: Date) => {
+      const r = new Date(d);
+      if (granularity === "day") r.setDate(r.getDate() + 1);
+      else if (granularity === "month") r.setMonth(r.getMonth() + 1);
+      else r.setFullYear(r.getFullYear() + 1);
+      return r;
+    };
+
     const map: Record<string, number> = {};
     leads.forEach((l) => {
       if (inRange(l.data_entrada_fechado_ganho) && l.valor) {
-        const d = format(new Date(l.data_entrada_fechado_ganho!), "dd/MM");
-        map[d] = (map[d] || 0) + l.valor;
+        const key = bucketKey(new Date(l.data_entrada_fechado_ganho!));
+        map[key] = (map[key] || 0) + l.valor;
       }
     });
-    const days: string[] = [];
-    const current = new Date(dateRange.start);
+    const buckets: string[] = [];
+    let current = granularity === "day"
+      ? new Date(dateRange.start)
+      : granularity === "month"
+      ? new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1)
+      : new Date(dateRange.start.getFullYear(), 0, 1);
     while (current < dateRange.end) {
-      days.push(format(current, "dd/MM"));
-      current.setDate(current.getDate() + 1);
+      buckets.push(bucketKey(current));
+      current = stepDate(current);
     }
-    return { revenueDailyData: days.filter((d) => map[d]).map((d) => ({ date: d, receita: map[d] })) };
+    // Deduplicate while preserving order
+    const seen = new Set<string>();
+    const ordered = buckets.filter((b) => (seen.has(b) ? false : (seen.add(b), true)));
+    return { revenueDailyData: ordered.filter((d) => map[d]).map((d) => ({ date: d, receita: map[d] })) };
   }, [leads, dateRange]);
 
   // === Conversion time ===
@@ -139,16 +163,17 @@ const RelatoriosPage = () => {
     const proposalToWon: number[] = [];
     const leadToWon: number[] = [];
     leads.forEach((l) => {
-      if (l.data_entrada_novo_lead && l.data_entrada_proposta_enviada && inRange(l.data_entrada_proposta_enviada)) {
-        const diff = (new Date(l.data_entrada_proposta_enviada).getTime() - new Date(l.data_entrada_novo_lead).getTime()) / (1000 * 60 * 60 * 24);
+      const startTs = l.data_entrada_novo_lead ?? l.created_at;
+      if (startTs && l.data_entrada_proposta_enviada && inRange(l.data_entrada_proposta_enviada)) {
+        const diff = (new Date(l.data_entrada_proposta_enviada).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
         if (diff >= 0) leadToProposal.push(diff);
       }
       if (l.data_entrada_proposta_enviada && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
         const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(l.data_entrada_proposta_enviada).getTime()) / (1000 * 60 * 60 * 24);
         if (diff >= 0) proposalToWon.push(diff);
       }
-      if (l.data_entrada_novo_lead && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
-        const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(l.data_entrada_novo_lead).getTime()) / (1000 * 60 * 60 * 24);
+      if (startTs && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
+        const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
         if (diff >= 0) leadToWon.push(diff);
       }
     });
