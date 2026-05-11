@@ -242,10 +242,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     setIsDragging(false);
   };
 
-  const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null }) => {
+  const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => {
     if (lossReasonLead) {
       const leadId = lossReasonLead.id;
-      const shouldDelete = (data as any).deleteFutureTasks !== false;
+      const shouldDelete = data.deleteFutureTasks;
       updateLead.mutate({
         id: leadId,
         status: "Fechado Perdido" as LeadStatus,
