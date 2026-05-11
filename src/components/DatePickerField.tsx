@@ -52,6 +52,7 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
         <Calendar
           mode="single"
           selected={selected}
+          defaultMonth={selected}
           onSelect={handleSelect}
           initialFocus
           className="p-3 pointer-events-auto"
