@@ -18,7 +18,7 @@ interface FollowUpModalProps {
 const FollowUpModal = ({
   open, onOpenChange, mode, nextNumber, leadName, onConfirm, onDecline,
 }: FollowUpModalProps) => {
-  const defaultDays = mode === "activate" ? 2 : 3;
+  const defaultDays = 3;
   const defaultDate = new Date();
   defaultDate.setDate(defaultDate.getDate() + defaultDays);
   const defaultDateStr = `${defaultDate.getFullYear()}-${String(defaultDate.getMonth() + 1).padStart(2, "0")}-${String(defaultDate.getDate()).padStart(2, "0")}`;
