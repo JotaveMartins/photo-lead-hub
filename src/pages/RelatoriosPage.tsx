@@ -129,6 +129,7 @@ const RelatoriosPage = () => {
   const conversionTimes = useMemo(() => {
     const leadToProposal: number[] = [];
     const proposalToWon: number[] = [];
+    const leadToWon: number[] = [];
     leads.forEach((l) => {
       if (l.data_entrada_novo_lead && l.data_entrada_proposta_enviada && inRange(l.data_entrada_proposta_enviada)) {
         const diff = (new Date(l.data_entrada_proposta_enviada).getTime() - new Date(l.data_entrada_novo_lead).getTime()) / (1000 * 60 * 60 * 24);
@@ -138,10 +139,15 @@ const RelatoriosPage = () => {
         const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(l.data_entrada_proposta_enviada).getTime()) / (1000 * 60 * 60 * 24);
         if (diff >= 0) proposalToWon.push(diff);
       }
+      if (l.data_entrada_novo_lead && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
+        const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(l.data_entrada_novo_lead).getTime()) / (1000 * 60 * 60 * 24);
+        if (diff >= 0) leadToWon.push(diff);
+      }
     });
     return {
       leadToProposal: leadToProposal.length > 0 ? leadToProposal.reduce((a, b) => a + b, 0) / leadToProposal.length : null,
       proposalToWon: proposalToWon.length > 0 ? proposalToWon.reduce((a, b) => a + b, 0) / proposalToWon.length : null,
+      leadToWon: leadToWon.length > 0 ? leadToWon.reduce((a, b) => a + b, 0) / leadToWon.length : null,
     };
   }, [leads, dateRange]);
 
@@ -294,7 +300,7 @@ const RelatoriosPage = () => {
 
       {/* Conversion time */}
       <div className="mb-6">
-        <ConversionTimeSection leadToProposal={conversionTimes.leadToProposal} proposalToWon={conversionTimes.proposalToWon} />
+        <ConversionTimeSection leadToProposal={conversionTimes.leadToProposal} proposalToWon={conversionTimes.proposalToWon} leadToWon={conversionTimes.leadToWon} />
       </div>
 
       {/* Losses */}
