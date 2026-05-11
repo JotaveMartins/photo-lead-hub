@@ -24,10 +24,11 @@ const RelatoriosPage = () => {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [origem, setOrigem] = useState("");
+  const [interesse, setInteresse] = useState("");
   const [clienteUserId, setClienteUserId] = useState("");
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
 
-  const { leads, tasks, profiles, isLoading, isAdmin } = useReportData({ origem, clienteUserId });
+  const { leads, tasks, profiles, isLoading, isAdmin } = useReportData({ origem, interesse, clienteUserId });
 
   const dateRange = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
 
@@ -35,6 +36,13 @@ const RelatoriosPage = () => {
   const origens = useMemo(() => {
     const set = new Set<string>();
     leads.forEach((l) => { if (l.origem) set.add(l.origem); });
+    return Array.from(set).sort();
+  }, [leads]);
+
+  // Unique interesses (from currently loaded leads — already scoped to client when admin)
+  const interesses = useMemo(() => {
+    const set = new Set<string>();
+    leads.forEach((l) => { if (l.interesse) set.add(l.interesse); });
     return Array.from(set).sort();
   }, [leads]);
 
@@ -252,6 +260,7 @@ const RelatoriosPage = () => {
         customStart={customStart} customEnd={customEnd}
         onCustomStartChange={setCustomStart} onCustomEndChange={setCustomEnd}
         origem={origem} onOrigemChange={setOrigem} origens={origens}
+        interesse={interesse} onInteresseChange={setInteresse} interesses={interesses}
         isAdmin={isAdmin} clienteUserId={clienteUserId} onClienteChange={setClienteUserId}
         profiles={profiles}
       />

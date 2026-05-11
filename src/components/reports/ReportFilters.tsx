@@ -10,6 +10,7 @@ export type PeriodOption =
   | "this_month"
   | "last_month"
   | "this_year"
+  | "all"
   | "custom";
 
 interface ReportFiltersProps {
@@ -22,6 +23,9 @@ interface ReportFiltersProps {
   origem: string;
   onOrigemChange: (v: string) => void;
   origens: string[];
+  interesse: string;
+  onInteresseChange: (v: string) => void;
+  interesses: string[];
   // admin only
   isAdmin: boolean;
   clienteUserId: string;
@@ -37,6 +41,7 @@ const periodLabels: Record<PeriodOption, string> = {
   this_month: "Este mês",
   last_month: "Mês anterior",
   this_year: "Este ano",
+  all: "Máximo",
   custom: "Intervalo personalizado",
 };
 
@@ -73,6 +78,8 @@ export function getDateRange(period: PeriodOption, customStart: string, customEn
     }
     case "this_year":
       return { start: new Date(now.getFullYear(), 0, 1), end: tomorrow };
+    case "all":
+      return { start: new Date(2000, 0, 1), end: tomorrow };
     case "custom": {
       if (customStart && customEnd) {
         const [sy, sm, sd] = customStart.split("-").map(Number);
@@ -108,11 +115,11 @@ const ReportFilters = (props: ReportFiltersProps) => {
         <>
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Início</Label>
-            <DatePickerField value={props.customStart} onChange={props.onCustomStartChange} className="h-9 w-[150px]" />
+            <DatePickerField value={props.customStart} onChange={props.onCustomStartChange} className="h-9 w-[170px]" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Fim</Label>
-            <DatePickerField value={props.customEnd} onChange={props.onCustomEndChange} className="h-9 w-[150px]" />
+            <DatePickerField value={props.customEnd} onChange={props.onCustomEndChange} className="h-9 w-[170px]" />
           </div>
         </>
       )}
@@ -128,6 +135,22 @@ const ReportFilters = (props: ReportFiltersProps) => {
           {props.origens.map((o) => (
             <option key={o} value={o}>
               {o}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-1.5 min-w-[160px]">
+        <Label className="text-xs text-muted-foreground">Interesse</Label>
+        <select
+          value={props.interesse || "__all__"}
+          onChange={(e) => props.onInteresseChange(e.target.value === "__all__" ? "" : e.target.value)}
+          className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          <option value="__all__">Todos</option>
+          {props.interesses.map((i) => (
+            <option key={i} value={i}>
+              {i}
             </option>
           ))}
         </select>
