@@ -593,6 +593,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         onOpenChange={(v) => { setLossReasonOpen(v); if (!v) setLossReasonLead(null); }}
         leadName={lossReasonLead?.nome || ""}
         onConfirm={handleLossReasonConfirm}
+        hasFutureTasks={!!lossReasonLead && pendingTasks.some((t) => t.lead_id === lossReasonLead.id)}
       />
 
       {/* Lead to Cliente Flow */}
