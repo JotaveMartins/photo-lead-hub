@@ -7,6 +7,7 @@ import ReportDrillDown from "@/components/reports/ReportDrillDown";
 
 import RevenueSection from "@/components/reports/RevenueSection";
 import ConversionTimeSection from "@/components/reports/ConversionTimeSection";
+import ConversionDrillDown, { type ConversionItem } from "@/components/reports/ConversionDrillDown";
 import LossSection from "@/components/reports/LossSection";
 import TasksSection from "@/components/reports/TasksSection";
 import { parseLocalDate } from "@/lib/utils";
@@ -27,6 +28,13 @@ const RelatoriosPage = () => {
   const [interesse, setInteresse] = useState("");
   const [clienteUserId, setClienteUserId] = useState("");
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
+  const [conversionDrill, setConversionDrill] = useState<{
+    title: string;
+    startLabel: string;
+    endLabel: string;
+    items: ConversionItem[];
+    averageDays: number | null;
+  } | null>(null);
 
   const { leads, tasks, profiles, isLoading, isAdmin } = useReportData({ origem, interesse, clienteUserId });
 
@@ -164,9 +172,9 @@ const RelatoriosPage = () => {
 
   // === Conversion time ===
   const conversionTimes = useMemo(() => {
-    const leadToProposal: number[] = [];
-    const proposalToWon: number[] = [];
-    const leadToWon: number[] = [];
+    const leadToProposal: ConversionItem[] = [];
+    const proposalToWon: ConversionItem[] = [];
+    const leadToWon: ConversionItem[] = [];
     leads.forEach((l) => {
       // Use the earliest of created_at and data_entrada_novo_lead as the lead's
       // arrival in the pipeline. The trigger sometimes sets data_entrada_novo_lead
@@ -178,23 +186,35 @@ const RelatoriosPage = () => {
         : null;
       if (startTs && l.data_entrada_proposta_enviada && inRange(l.data_entrada_proposta_enviada)) {
         const diff = (new Date(l.data_entrada_proposta_enviada).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) leadToProposal.push(diff);
+        if (diff >= 0) leadToProposal.push({ lead: l, startTs, endTs: l.data_entrada_proposta_enviada, days: diff });
       }
       if (l.data_entrada_proposta_enviada && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
         const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(l.data_entrada_proposta_enviada).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) proposalToWon.push(diff);
+        if (diff >= 0) proposalToWon.push({ lead: l, startTs: l.data_entrada_proposta_enviada, endTs: l.data_entrada_fechado_ganho, days: diff });
       }
       if (startTs && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
         const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) leadToWon.push(diff);
+        if (diff >= 0) leadToWon.push({ lead: l, startTs, endTs: l.data_entrada_fechado_ganho, days: diff });
       }
     });
+    const avg = (xs: ConversionItem[]) => (xs.length ? xs.reduce((s, x) => s + x.days, 0) / xs.length : null);
     return {
-      leadToProposal: leadToProposal.length > 0 ? leadToProposal.reduce((a, b) => a + b, 0) / leadToProposal.length : null,
-      proposalToWon: proposalToWon.length > 0 ? proposalToWon.reduce((a, b) => a + b, 0) / proposalToWon.length : null,
-      leadToWon: leadToWon.length > 0 ? leadToWon.reduce((a, b) => a + b, 0) / leadToWon.length : null,
+      leadToProposal: avg(leadToProposal),
+      proposalToWon: avg(proposalToWon),
+      leadToWon: avg(leadToWon),
+      items: { leadToProposal, proposalToWon, leadToWon },
     };
   }, [leads, dateRange]);
+
+  const handleConversionClick = (key: "leadToProposal" | "proposalToWon" | "leadToWon") => {
+    const map = {
+      leadToProposal: { title: "Lead → Proposta", startLabel: "Criado em", endLabel: "Proposta em", avg: conversionTimes.leadToProposal, items: conversionTimes.items.leadToProposal },
+      proposalToWon: { title: "Proposta → Ganho", startLabel: "Proposta em", endLabel: "Ganho em", avg: conversionTimes.proposalToWon, items: conversionTimes.items.proposalToWon },
+      leadToWon: { title: "Lead → Venda", startLabel: "Criado em", endLabel: "Ganho em", avg: conversionTimes.leadToWon, items: conversionTimes.items.leadToWon },
+    }[key];
+    const sorted = [...map.items].sort((a, b) => b.days - a.days);
+    setConversionDrill({ title: map.title, startLabel: map.startLabel, endLabel: map.endLabel, items: sorted, averageDays: map.avg });
+  };
 
   // === Losses ===
   const lossData = useMemo(() => {
@@ -340,7 +360,12 @@ const RelatoriosPage = () => {
 
       {/* Conversion time */}
       <div className="mb-6">
-        <ConversionTimeSection leadToProposal={conversionTimes.leadToProposal} proposalToWon={conversionTimes.proposalToWon} leadToWon={conversionTimes.leadToWon} />
+        <ConversionTimeSection
+          leadToProposal={conversionTimes.leadToProposal}
+          proposalToWon={conversionTimes.proposalToWon}
+          leadToWon={conversionTimes.leadToWon}
+          onMetricClick={handleConversionClick}
+        />
       </div>
 
       {/* Losses */}
@@ -361,6 +386,16 @@ const RelatoriosPage = () => {
         leads={drillDown?.leads || []}
         dateField={drillDown?.dateField || "created_at"}
         dateLabel={drillDown?.dateLabel || "Data"}
+      />
+
+      <ConversionDrillDown
+        open={!!conversionDrill}
+        onOpenChange={(v) => { if (!v) setConversionDrill(null); }}
+        title={conversionDrill?.title || ""}
+        startLabel={conversionDrill?.startLabel || ""}
+        endLabel={conversionDrill?.endLabel || ""}
+        items={conversionDrill?.items || []}
+        averageDays={conversionDrill?.averageDays ?? null}
       />
     </>
   );
