@@ -24,27 +24,32 @@ interface LossReasonModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leadName: string;
-  onConfirm: (data: { motivo_perda: string; observacao_perda: string | null }) => void;
+  onConfirm: (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => void;
+  hasFutureTasks?: boolean;
 }
 
-const LossReasonModal = ({ open, onOpenChange, leadName, onConfirm }: LossReasonModalProps) => {
+const LossReasonModal = ({ open, onOpenChange, leadName, onConfirm, hasFutureTasks = false }: LossReasonModalProps) => {
   const [motivo, setMotivo] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [deleteFutureTasks, setDeleteFutureTasks] = useState(true);
 
   const handleConfirm = () => {
     if (!motivo) return;
     onConfirm({
       motivo_perda: motivo,
       observacao_perda: observacao.trim() || null,
+      deleteFutureTasks,
     });
     setMotivo("");
     setObservacao("");
+    setDeleteFutureTasks(true);
   };
 
   const handleOpenChange = (v: boolean) => {
     if (!v) {
       setMotivo("");
       setObservacao("");
+      setDeleteFutureTasks(true);
     }
     onOpenChange(v);
   };
@@ -84,6 +89,34 @@ const LossReasonModal = ({ open, onOpenChange, leadName, onConfirm }: LossReason
               className="bg-muted border-border min-h-[80px]"
             />
           </div>
+
+          {hasFutureTasks && (
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">Tarefas futuras pendentes</Label>
+              <div className="space-y-2">
+                <label className="flex items-start gap-2 cursor-pointer text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="future-tasks"
+                    checked={deleteFutureTasks}
+                    onChange={() => setDeleteFutureTasks(true)}
+                    className="mt-0.5"
+                  />
+                  <span>Excluir tarefas futuras deste lead</span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="future-tasks"
+                    checked={!deleteFutureTasks}
+                    onChange={() => setDeleteFutureTasks(false)}
+                    className="mt-0.5"
+                  />
+                  <span>Manter tarefas futuras</span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

@@ -14,6 +14,8 @@ import LossReasonModal from "@/components/LossReasonModal";
 import type { Database } from "@/integrations/supabase/types";
 import { isBefore, isToday, startOfDay } from "date-fns";
 import { parseLocalDate, normalizeText } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
@@ -67,12 +69,14 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
+  const queryClient = useQueryClient();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | "DELETE" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [interesseFilter, setInteresseFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"open" | "won" | "lost">("open");
   const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
   const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
   // Follow-up modal state
@@ -238,13 +242,26 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     setIsDragging(false);
   };
 
-  const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null }) => {
+  const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => {
     if (lossReasonLead) {
+      const leadId = lossReasonLead.id;
+      const shouldDelete = data.deleteFutureTasks;
       updateLead.mutate({
-        id: lossReasonLead.id,
+        id: leadId,
         status: "Fechado Perdido" as LeadStatus,
         motivo_perda: data.motivo_perda,
         observacao_perda: data.observacao_perda,
+      }, {
+        onSuccess: async () => {
+          if (shouldDelete) {
+            await supabase
+              .from("lead_tasks")
+              .delete()
+              .eq("lead_id", leadId)
+              .eq("completed", false);
+            queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+          }
+        },
       });
       setLossReasonLead(null);
       setLossReasonOpen(false);
@@ -326,6 +343,28 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
             ))}
           </select>
         </div>
+
+        {/* Status filter — pinned to the right */}
+        <div className="sm:ml-auto flex bg-muted rounded-lg p-1 h-9">
+          {([
+            { key: "open", label: "Em aberto" },
+            { key: "won", label: "Ganhos" },
+            { key: "lost", label: "Perdidos" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setStatusFilter(opt.key)}
+              className={`px-3 rounded-md text-xs font-medium transition-colors ${
+                statusFilter === opt.key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Kanban columns */}
@@ -333,7 +372,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         ref={boardRef}
         className="flex gap-3 overflow-x-auto overflow-y-visible pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
-        {ACTIVE_COLUMNS.map((col) => {
+        {(statusFilter === "open"
+          ? ACTIVE_COLUMNS
+          : statusFilter === "won"
+          ? CLOSED_COLUMNS.filter((c) => c.status === "Fechado Ganho")
+          : CLOSED_COLUMNS.filter((c) => c.status === "Fechado Perdido")
+        ).map((col) => {
           const columnLeads = filteredLeads.filter((l) => l.status === col.status);
           const isDragOver = dragOverColumn === col.status;
           const totalValue = getColumnValue(col.status);
@@ -549,6 +593,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         onOpenChange={(v) => { setLossReasonOpen(v); if (!v) setLossReasonLead(null); }}
         leadName={lossReasonLead?.nome || ""}
         onConfirm={handleLossReasonConfirm}
+        hasFutureTasks={!!lossReasonLead && pendingTasks.some((t) => t.lead_id === lossReasonLead.id)}
       />
 
       {/* Lead to Cliente Flow */}

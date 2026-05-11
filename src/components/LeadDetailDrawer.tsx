@@ -412,7 +412,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     await updateLead.mutateAsync({ id: lead.id, status });
   };
 
-  const handleLossReasonConfirm = async (data: { motivo_perda: string; observacao_perda: string | null }) => {
+  const handleLossReasonConfirm = async (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => {
     if (!lead) return;
     await updateLead.mutateAsync({
       id: lead.id,
@@ -420,6 +420,14 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       motivo_perda: data.motivo_perda,
       observacao_perda: data.observacao_perda,
     });
+    if (data.deleteFutureTasks) {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase
+        .from("lead_tasks")
+        .delete()
+        .eq("lead_id", lead.id)
+        .eq("completed", false);
+    }
     setLossReasonOpen(false);
   };
 
@@ -914,6 +922,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       onOpenChange={setLossReasonOpen}
       leadName={lead?.nome || ""}
       onConfirm={handleLossReasonConfirm}
+      hasFutureTasks={pendingTasks.length > 0}
     />
     <LeadToClienteFlow
       lead={lead}
