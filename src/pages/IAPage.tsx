@@ -94,6 +94,9 @@
      const fileName = `${Math.random()}.${fileExt}`;
      const filePath = `${fileName}`;
  
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
      const { data, error: uploadError } = await supabase.storage
        .from('ai-files')
        .upload(filePath, file);
@@ -109,7 +112,8 @@
        name: file.name,
        file_url: publicUrl,
        file_type: fileExt || 'unknown',
-       file_size_bytes: file.size
+       file_size_bytes: file.size,
+       user_id: user.id
      });
  
      if (dbError) toast.error("Erro ao salvar no banco: " + dbError.message);
