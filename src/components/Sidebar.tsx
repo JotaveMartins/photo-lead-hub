@@ -15,7 +15,9 @@ import {
   FileText,
   X,
   HardHat,
-  Megaphone,
+   Megaphone,
+   Bot,
+   MessageSquare
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,10 +52,12 @@ const financeiroSubItems = [
   { id: 'financeiro/despesas', label: 'Despesas', icon: TrendingDown },
 ];
 
-const adminMenuItems = [
-  { id: 'anuncios', label: 'Anúncios', icon: Megaphone },
-  { id: 'admin', label: 'Clientes', icon: UserCog },
-];
+ const adminMenuItems = [
+   { id: 'anuncios', label: 'Anúncios', icon: Megaphone },
+   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+   { id: 'ia', label: 'IA', icon: Bot },
+   { id: 'admin', label: 'Clientes', icon: UserCog },
+ ];
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
