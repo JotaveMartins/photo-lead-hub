@@ -26,7 +26,13 @@
    const fetchInstance = async () => {
      setLoading(true);
      try {
-       const { data } = await supabase.from("whatsapp_instances").select("*").maybeSingle();
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) return;
+
+       const { data } = await supabase.from("whatsapp_instances")
+         .select("*")
+         .eq('user_id', user.id)
+         .maybeSingle();
        if (data) setInstance(data);
      } catch (err) {
        console.error(err);
@@ -92,7 +98,7 @@
      }
    };
  
-   const webhookUrl = `${window.location.origin.replace('lovable.app', 'supabase.co')}/functions/v1/evolution-webhook`;
+   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-webhook`;
  
    return (
      <div className="space-y-6 max-w-4xl">

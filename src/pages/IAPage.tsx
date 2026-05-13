@@ -44,11 +44,19 @@
    const fetchData = async () => {
      setLoading(true);
      try {
-       const { data: cfg } = await supabase.from("ai_config").select("*").maybeSingle();
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) return;
+
+       const { data: cfg } = await supabase.from("ai_config")
+         .select("*")
+         .eq('user_id', user.id)
+         .maybeSingle();
        if (cfg) setConfig(cfg);
  
-       const { data: fls } = await supabase.from("ai_files").select("*");
-       if (fls) setFiles(fls);
+       const { data: fls } = await supabase.from("ai_files")
+         .select("*")
+         .eq('user_id', user.id);
+       if (fls) setFiles(fls || []);
      } catch (err) {
        console.error(err);
      } finally {
