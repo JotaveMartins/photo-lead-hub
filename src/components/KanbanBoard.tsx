@@ -3,7 +3,7 @@ import { useInteresseOptions } from "@/hooks/useInteresseOptions";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
-import { Phone, Calendar, GripVertical, Filter, DollarSign, ChevronRight, Trash2 } from "lucide-react";
+ import { Phone, Calendar, GripVertical, Filter, DollarSign, ChevronRight, Trash2, Bot } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SearchInput } from "@/components/ui/search-input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -22,7 +22,8 @@ type LeadStatus = Database["public"]["Enums"]["lead_status"];
 
 const ACTIVE_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
   { status: "Novo Lead", label: "Novo Lead", color: "bg-[hsl(var(--status-info))]" },
-  { status: "Contato Iniciado", label: "Contato Iniciado", color: "bg-[hsl(var(--status-warning))]" },
+   { status: "Contato Iniciado", label: "Contato Iniciado", color: "bg-[hsl(var(--status-warning))]" },
+   { status: "Triagem Feita", label: "Triagem Feita", color: "bg-emerald-500" },
   { status: "Proposta Enviada", label: "Proposta Enviada", color: "bg-primary" },
   { status: "Follow-up", label: "Follow-up", color: "bg-[hsl(var(--status-warning))]" },
   { status: "Contrato Enviado", label: "Contrato Enviado", color: "bg-accent" },
@@ -415,17 +416,23 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                   const taskStatus = getLeadTaskStatus(lead.id, pendingTasks);
                   const taskConfig = TASK_STATUS_CONFIG[taskStatus];
 
-                  return (
-                    <div
-                      key={lead.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, lead.id)}
-                      onDragEnd={handleDragEnd}
-                      onClick={() => onLeadClick(lead)}
-                      className={`bg-muted border border-border/50 rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-all group ${
-                        draggedLeadId === lead.id ? "opacity-50" : ""
-                      }`}
-                    >
+                   const isTriagem = lead.status === "Triagem Feita";
+                   return (
+                     <div
+                       key={lead.id}
+                       draggable
+                       onDragStart={(e) => handleDragStart(e, lead.id)}
+                       onDragEnd={handleDragEnd}
+                       onClick={() => onLeadClick(lead)}
+                       className={`bg-muted border border-border/50 rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-all group relative ${
+                         draggedLeadId === lead.id ? "opacity-50" : ""
+                       } ${isTriagem ? "border-l-4 border-l-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : ""}`}
+                     >
+                       {isTriagem && (
+                         <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/20">
+                           ✅ Triagem Feita
+                         </div>
+                       )}
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
                         <div className="flex items-center gap-1 flex-shrink-0">
