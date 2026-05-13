@@ -108,9 +108,22 @@
         throw new Error("API Key inválida (401). Verifique se é a Global API Key da Evolution.");
       }
 
-      let stateData;
+      let stateData = null;
+      if (stateResp.status !== 404) {
+        stateData = await parseResponse(stateResp, "instance/connectionState");
+      }
+
+      // Se a instância já existir e estiver conectada, finaliza
+      if (stateData?.instance?.state === "open") {
+        toast.success("Instância já está conectada!");
+        setQrCode(null);
+        setInstance((prev: any) => ({ ...prev, status: "connected" }));
+        await persistStatus("connected");
+        return;
+      }
+
+      // Se a instância não existe, vamos criar
       if (stateResp.status === 404) {
-        // Instância não existe, vamos criar
         console.log("Instância não encontrada, criando...");
         const createResp = await fetch(`${baseUrl}/instance/create`, {
           method: "POST",
@@ -125,7 +138,9 @@
           }),
         });
         const createData = await parseResponse(createResp, "instance/create");
-        
+        console.log("Create response:", createData);
+
+        // A Evolution pode retornar o QR direto no create se qrcode: true
         const qrFromCreate = createData?.qrcode?.base64 || createData?.base64;
         if (qrFromCreate) {
           setQrCode(qrFromCreate.startsWith("data:") ? qrFromCreate : `data:image/png;base64,${qrFromCreate}`);
@@ -134,20 +149,10 @@
           toast.success("Instância criada! Escaneie o QR Code.");
           return;
         }
-        stateData = createData;
-      } else {
-        stateData = await parseResponse(stateResp, "instance/connectionState");
-      }
-      
-      if (stateData?.instance?.state === "open") {
-        toast.success("Instância já está conectada!");
-        setQrCode(null);
-        setInstance((prev: any) => ({ ...prev, status: "connected" }));
-        await persistStatus("connected");
-        return;
       }
 
-      // 3. Caso não esteja conectada, chama /instance/connect
+      // Caso não esteja conectada (ou acabou de ser criada sem QR imediato), chama /instance/connect
+      console.log("Solicitando conexão para gerar QR Code...");
       const connectResp = await fetch(`${baseUrl}/instance/connect/${instance.name}`, {
         method: "GET",
         headers: { apikey: instance.api_key },
@@ -155,7 +160,7 @@
       const result = await parseResponse(connectResp, "instance/connect");
       console.log("Evolution connect response:", result);
 
-      const base64 = result?.base64 || result?.qrcode?.base64;
+      const base64 = result?.base64 || result?.qrcode?.base64 || result?.code;
       if (base64) {
         setQrCode(base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`);
         setInstance((prev: any) => ({ ...prev, status: "connecting" }));
@@ -167,8 +172,6 @@
           : result?.message || "Não foi possível gerar o QR Code.";
         toast.error(`Evolution: ${msg}`);
       }
-
-      // Tenta configurar o webhook automaticamente
       const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-webhook`;
       await fetch(`${baseUrl}/webhook/set/${instance.name}`, {
         method: "POST",
