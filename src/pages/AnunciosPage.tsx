@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCampaignMetrics } from "@/hooks/useCampaignMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { RefreshCw, DollarSign, Target, TrendingUp, MousePointerClick, Eye, BadgeDollarSign } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { DateRangePicker } from "@/components/DateRangePicker";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -182,7 +182,7 @@ export default function AnunciosPage() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Conta (cliente do CRM)</label>
             <select
@@ -197,12 +197,8 @@ export default function AnunciosPage() {
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">De</label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Até</label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Período</label>
+            <DateRangePicker from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t); }} />
           </div>
         </CardContent>
       </Card>
