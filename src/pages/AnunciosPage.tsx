@@ -130,8 +130,6 @@ export default function AnunciosPage() {
     setSyncing(true);
     try {
       const body: any = { since: from, until: to };
-      const adAccount = adAccountForFilter;
-      if (adAccount) body.ad_account_id = adAccount;
       const { data, error } = await supabase.functions.invoke("sync-meta-ads", { body });
       if (error) throw error;
       const result = data as any;
