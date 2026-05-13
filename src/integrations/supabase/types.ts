@@ -1114,6 +1114,7 @@ export type Database = {
         | "Novo Lead"
         | "Contato Iniciado"
         | "Fechado Perdido"
+        | "Triagem Feita"
         | "Proposta Enviada"
         | "Follow-up"
         | "Fechado Ganho"
@@ -1254,6 +1255,7 @@ export const Constants = {
         "Novo Lead",
         "Contato Iniciado",
         "Fechado Perdido",
+        "Triagem Feita",
         "Proposta Enviada",
         "Follow-up",
         "Fechado Ganho",
