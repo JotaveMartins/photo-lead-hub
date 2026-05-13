@@ -140,7 +140,22 @@
         return;
       }
 
-      // 2. Caso contrário, chama /instance/connect
+      // 2. Verifica se a instância já está aberta antes de tentar conectar
+      const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instance.name}`, {
+        method: "GET",
+        headers: { apikey: instance.api_key },
+      });
+      const stateData = await parseResponse(stateResp, "instance/connectionState");
+      
+      if (stateData?.instance?.state === "open") {
+        toast.success("Instância já está conectada!");
+        setQrCode(null);
+        setInstance((prev: any) => ({ ...prev, status: "connected" }));
+        await persistStatus("connected");
+        return;
+      }
+
+      // 3. Caso não esteja conectada, chama /instance/connect
       const connectResp = await fetch(`${baseUrl}/instance/connect/${instance.name}`, {
         method: "GET",
         headers: { apikey: instance.api_key },
@@ -154,11 +169,6 @@
         setInstance((prev: any) => ({ ...prev, status: "connecting" }));
         await persistStatus("connecting");
         toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
-      } else if (result?.instance?.state === "open") {
-        toast.success("Instância já está conectada!");
-        setQrCode(null);
-        setInstance((prev: any) => ({ ...prev, status: "connected" }));
-        await persistStatus("connected");
       } else {
         const msg = Array.isArray(result?.response?.message)
           ? result.response.message.join(", ")
