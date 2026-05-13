@@ -10,6 +10,7 @@ import ConversionTimeSection from "@/components/reports/ConversionTimeSection";
 import ConversionDrillDown, { type ConversionItem } from "@/components/reports/ConversionDrillDown";
 import LossSection from "@/components/reports/LossSection";
 import TasksSection from "@/components/reports/TasksSection";
+import MetaAdsSection from "@/components/reports/MetaAdsSection";
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -351,6 +352,17 @@ const RelatoriosPage = () => {
       {/* Funnel */}
       <div className="mb-6">
         <FunnelChart steps={funnelSteps} onStepClick={handleFunnelClick} />
+      </div>
+
+      {/* Meta Ads */}
+      <div className="mb-6">
+        <MetaAdsSection
+          from={dateRange.start}
+          to={dateRange.end}
+          clienteUserId={clienteUserId}
+          leadsCriados={kpis.created}
+          ganhos={kpis.ganhos}
+        />
       </div>
 
       {/* Revenue */}
