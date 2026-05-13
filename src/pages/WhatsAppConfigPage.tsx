@@ -69,35 +69,77 @@
      }
      setConnecting(true);
      try {
-       // 1. Create instance if not exists
-       const createResp = await fetch(`${instance.base_url}/instance/create`, {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-           "apikey": instance.api_key
-         },
-         body: JSON.stringify({ instanceName: instance.name })
-       });
-       
-       // 2. Get QR Code
-       const connectResp = await fetch(`${instance.base_url}/instance/connect/${instance.name}`, {
-         method: "GET",
-         headers: { "apikey": instance.api_key }
-       });
-        const result = await connectResp.json();
-        console.log("Evolution API Response:", result);
-        
-        if (result.base64) {
-          setQrCode(result.base64);
-          toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
-        } else {
-          console.error("Erro Evolution:", result);
-          toast.error(`Erro da API: ${result.message || "Erro ao gerar QR Code"}`);
+      // Normaliza URL (remove barra final)
+      const baseUrl = instance.base_url.replace(/\/+$/, "");
+
+      const parseResponse = async (resp: Response, label: string) => {
+        const text = await resp.text();
+        const ct = resp.headers.get("content-type") || "";
+        if (!ct.includes("application/json") || text.trim().startsWith("<")) {
+          console.error(`[${label}] Resposta não-JSON (status ${resp.status}):`, text.slice(0, 300));
+          throw new Error(
+            `A URL informada não respondeu como Evolution API (recebido HTML, status ${resp.status}). Verifique se a URL Base está correta — deve ser a raiz da API, sem /manager.`
+          );
         }
-      } catch (err) {
-        console.error("Erro de conexão detalhado:", err);
-        toast.error("Erro ao conectar: " + err.message);
-      } finally {
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(`Resposta inválida da API em ${label}.`);
+        }
+      };
+
+      // 1. Tenta criar a instância (se já existir, só ignora)
+      const createResp = await fetch(`${baseUrl}/instance/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": instance.api_key,
+        },
+        body: JSON.stringify({
+          instanceName: instance.name,
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS",
+        }),
+      });
+      if (createResp.status === 401 || createResp.status === 403) {
+        throw new Error("API Key inválida (401/403). Verifique a chave global da Evolution API.");
+      }
+      const createData = await parseResponse(createResp, "instance/create");
+      console.log("Evolution create response:", createData);
+
+      // Se já veio QR no create, usa direto
+      const qrFromCreate = createData?.qrcode?.base64 || createData?.base64;
+      if (qrFromCreate) {
+        setQrCode(qrFromCreate.startsWith("data:") ? qrFromCreate : `data:image/png;base64,${qrFromCreate}`);
+        toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
+        return;
+      }
+
+      // 2. Caso contrário, chama /instance/connect
+      const connectResp = await fetch(`${baseUrl}/instance/connect/${instance.name}`, {
+        method: "GET",
+        headers: { apikey: instance.api_key },
+      });
+      const result = await parseResponse(connectResp, "instance/connect");
+      console.log("Evolution connect response:", result);
+
+      const base64 = result?.base64 || result?.qrcode?.base64;
+      if (base64) {
+        setQrCode(base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`);
+        toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
+      } else if (result?.instance?.state === "open") {
+        toast.success("Instância já está conectada!");
+        setInstance({ ...instance, status: "connected" });
+      } else {
+        const msg = Array.isArray(result?.response?.message)
+          ? result.response.message.join(", ")
+          : result?.message || "Não foi possível gerar o QR Code.";
+        toast.error(`Evolution: ${msg}`);
+      }
+    } catch (err: any) {
+      console.error("Erro de conexão detalhado:", err);
+      toast.error(err.message || "Erro ao conectar");
+    } finally {
        setConnecting(false);
      }
    };
