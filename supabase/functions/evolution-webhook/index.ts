@@ -16,14 +16,27 @@
      );
  
      const payload = await req.json();
-     const { event, data, instance } = payload;
+       const { event, data, instance: instanceName } = payload;
+
+       // Find the user_id associated with this instance
+       const { data: instanceData } = await supabase
+         .from("whatsapp_instances")
+         .select("user_id")
+         .eq("name", instanceName)
+         .maybeSingle();
+
+       const userId = instanceData?.user_id;
+       if (!userId) {
+         console.error(`No user found for instance: ${instanceName}`);
+       }
  
      // Log the webhook
-     await supabase.from("webhook_logs").insert({
-       instance_key: instance,
-       event,
-       payload
-     });
+       await supabase.from("webhook_logs").insert({
+         instance_key: instanceName,
+         event,
+         payload,
+         user_id: userId
+       });
  
      if (event === "messages.upsert") {
        const message = data.message;
@@ -49,7 +62,7 @@
                status: "Novo Lead",
                origem: "WhatsApp",
                data_contato: new Date().toISOString().split('T')[0],
-               user_id: (await supabase.from("profiles").select("user_id").limit(1).single()).data?.user_id // Simple assignment for now
+               user_id: userId
              })
              .select()
              .single();
@@ -117,7 +130,7 @@
        await supabase
          .from("whatsapp_instances")
          .update({ status: state === "open" ? "connected" : "disconnected" })
-         .eq("instance_key", instance);
+         .eq("name", instanceName);
      }
  
      return new Response(JSON.stringify({ success: true }), {
