@@ -712,13 +712,31 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
             </div>
           </div>
 
-          {/* Right: Unified Timeline */}
-          <div className="flex-1 p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <History className="w-4 h-4 text-muted-foreground" />
-                Histórico
-              </h3>
+           {/* Right: Tabs and Content */}
+           <div className="flex-1 flex flex-col min-h-0">
+             <div className="flex items-center gap-4 px-4 border-b border-border">
+               <button
+                 onClick={() => setActiveTab("historico")}
+                 className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "historico" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+               >
+                 Histórico
+               </button>
+               <button
+                 onClick={() => setActiveTab("conversa")}
+                 className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "conversa" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+               >
+                 Conversa
+               </button>
+             </div>
+ 
+             <div className="flex-1 overflow-y-auto p-4">
+               {activeTab === "historico" ? (
+                 <>
+             <div className="flex items-center justify-between mb-3">
+               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                 <History className="w-4 h-4 text-muted-foreground" />
+                 Atividades
+               </h3>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => setShowNewTask(!showNewTask)}>
                   <Plus className="w-3 h-3" /> Tarefa
