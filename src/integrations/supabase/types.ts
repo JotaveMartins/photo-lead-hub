@@ -21,6 +21,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           id: string
+          meta_ad_account_id: string | null
           nome: string
           observacoes: string | null
           origem: string | null
@@ -34,6 +35,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          meta_ad_account_id?: string | null
           nome: string
           observacoes?: string | null
           origem?: string | null
@@ -47,6 +49,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          meta_ad_account_id?: string | null
           nome?: string
           observacoes?: string | null
           origem?: string | null
@@ -634,6 +637,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      meta_daily_ads: {
+        Row: {
+          ad_account_id: string
+          ad_id: string | null
+          ad_name: string
+          adset_id: string | null
+          adset_name: string
+          campaign_id: string | null
+          campaign_name: string
+          campaign_objective: string | null
+          clicks: number
+          client_id: string | null
+          cost_per_messaging_conversation: number | null
+          cost_per_result: number | null
+          cpm: number | null
+          created_at: string
+          ctr: number | null
+          date: string
+          id: string
+          impressions: number
+          messaging_conversations_started: number
+          reach: number
+          result_type: string | null
+          results: number
+          spend: number
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id: string
+          ad_id?: string | null
+          ad_name: string
+          adset_id?: string | null
+          adset_name: string
+          campaign_id?: string | null
+          campaign_name: string
+          campaign_objective?: string | null
+          clicks?: number
+          client_id?: string | null
+          cost_per_messaging_conversation?: number | null
+          cost_per_result?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          date: string
+          id?: string
+          impressions?: number
+          messaging_conversations_started?: number
+          reach?: number
+          result_type?: string | null
+          results?: number
+          spend?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string
+          ad_id?: string | null
+          ad_name?: string
+          adset_id?: string | null
+          adset_name?: string
+          campaign_id?: string | null
+          campaign_name?: string
+          campaign_objective?: string | null
+          clicks?: number
+          client_id?: string | null
+          cost_per_messaging_conversation?: number | null
+          cost_per_result?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          date?: string
+          id?: string
+          impressions?: number
+          messaging_conversations_started?: number
+          reach?: number
+          result_type?: string | null
+          results?: number
+          spend?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       package_services: {
         Row: {
