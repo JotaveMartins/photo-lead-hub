@@ -98,54 +98,46 @@
       };
 
       // 1. Tenta criar a instância (se já existir, segue para o connect)
-      const createResp = await fetch(`${baseUrl}/instance/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": instance.api_key,
-        },
-        body: JSON.stringify({
-          instanceName: instance.name,
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS",
-        }),
-      });
-
-      if (createResp.status === 401) {
-        throw new Error("API Key inválida (401). Verifique a chave global da Evolution API.");
-      }
-
-      const createData = await parseResponse(createResp, "instance/create");
-      console.log("Evolution create response:", createData);
-
-      const createMessage = Array.isArray(createData?.response?.message)
-        ? createData.response.message.join(", ")
-        : createData?.message || createData?.response?.message || "";
-
-      const instanceAlreadyExists =
-        createResp.status === 403 &&
-        /already in use|já.*uso|já.*existe/i.test(createMessage);
-
-      if (!createResp.ok && !instanceAlreadyExists) {
-        throw new Error(`Evolution: ${createMessage || "Não foi possível criar a instância."}`);
-      }
-
-      // Se já veio QR no create, usa direto
-      const qrFromCreate = createData?.qrcode?.base64 || createData?.base64;
-      if (qrFromCreate) {
-        setQrCode(qrFromCreate.startsWith("data:") ? qrFromCreate : `data:image/png;base64,${qrFromCreate}`);
-        setInstance((prev: any) => ({ ...prev, status: "connecting" }));
-        await persistStatus("connecting");
-        toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
-        return;
-      }
-
-      // 2. Verifica se a instância já está aberta antes de tentar conectar
+      // 1. Verifica se a instância já existe e qual o estado dela
       const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instance.name}`, {
         method: "GET",
         headers: { apikey: instance.api_key },
       });
-      const stateData = await parseResponse(stateResp, "instance/connectionState");
+
+      if (stateResp.status === 401) {
+        throw new Error("API Key inválida (401). Verifique se é a Global API Key da Evolution.");
+      }
+
+      let stateData;
+      if (stateResp.status === 404) {
+        // Instância não existe, vamos criar
+        console.log("Instância não encontrada, criando...");
+        const createResp = await fetch(`${baseUrl}/instance/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": instance.api_key,
+          },
+          body: JSON.stringify({
+            instanceName: instance.name,
+            qrcode: true,
+            integration: "WHATSAPP-BAILEYS",
+          }),
+        });
+        const createData = await parseResponse(createResp, "instance/create");
+        
+        const qrFromCreate = createData?.qrcode?.base64 || createData?.base64;
+        if (qrFromCreate) {
+          setQrCode(qrFromCreate.startsWith("data:") ? qrFromCreate : `data:image/png;base64,${qrFromCreate}`);
+          setInstance((prev: any) => ({ ...prev, status: "connecting" }));
+          await persistStatus("connecting");
+          toast.success("Instância criada! Escaneie o QR Code.");
+          return;
+        }
+        stateData = createData;
+      } else {
+        stateData = await parseResponse(stateResp, "instance/connectionState");
+      }
       
       if (stateData?.instance?.state === "open") {
         toast.success("Instância já está conectada!");
@@ -175,6 +167,15 @@
           : result?.message || "Não foi possível gerar o QR Code.";
         toast.error(`Evolution: ${msg}`);
       }
+
+      // Tenta configurar o webhook automaticamente
+      const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-webhook`;
+      await fetch(`${baseUrl}/webhook/set/${instance.name}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": instance.api_key },
+        body: JSON.stringify({ url: webhookUrl, enabled: true, events: ["MESSAGES_UPSERT"] })
+      }).catch(e => console.error("Erro ao setar webhook:", e));
+
     } catch (err: any) {
       console.error("Erro de conexão detalhado:", err);
       toast.error(err.message || "Erro ao conectar");
