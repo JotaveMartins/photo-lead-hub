@@ -43,6 +43,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/financeiro/despesas") return "financeiro/despesas";
     if (path === "/financeiro") return "financeiro";
     if (path === "/admin") return "admin";
+    if (path === "/ia") return "ia";
+    if (path === "/whatsapp") return "whatsapp";
     return "leads";
   };
 
@@ -87,6 +89,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       "financeiro/cobrancas": "/financeiro/cobrancas",
       "financeiro/despesas": "/financeiro/despesas",
       admin: "/admin",
+      ia: "/ia",
+      whatsapp: "/whatsapp",
     };
     navigate(routes[item] || "/leads");
   };
