@@ -25,6 +25,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
   const [endereco, setEndereco] = useState("");
   const [origem, setOrigem] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [metaAdAccount, setMetaAdAccount] = useState("");
 
   useEffect(() => {
     if (cliente) {
@@ -35,6 +36,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
       setEndereco(cliente.endereco || "");
       setOrigem(cliente.origem || "");
       setObservacoes(cliente.observacoes || "");
+      setMetaAdAccount((cliente as any).meta_ad_account_id || "");
     }
   }, [cliente]);
 
@@ -51,6 +53,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
       endereco: endereco.trim() || null,
       origem: origem || null,
       observacoes: observacoes.trim() || null,
+      meta_ad_account_id: metaAdAccount.trim() || null,
     });
 
     onClose();
@@ -103,6 +106,14 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
           <div>
             <Label>Observações</Label>
             <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} />
+          </div>
+          <div>
+            <Label>Conta Meta Ads (ad_account_id)</Label>
+            <Input
+              value={metaAdAccount}
+              onChange={(e) => setMetaAdAccount(e.target.value)}
+              placeholder="act_123456789 ou apenas 123456789"
+            />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

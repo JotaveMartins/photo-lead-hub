@@ -15,6 +15,7 @@ import {
   FileText,
   X,
   HardHat,
+  Megaphone,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +51,7 @@ const financeiroSubItems = [
 ];
 
 const adminMenuItems = [
+  { id: 'anuncios', label: 'Anúncios', icon: Megaphone },
   { id: 'admin', label: 'Clientes', icon: UserCog },
 ];
 
