@@ -192,15 +192,15 @@ export default function AnunciosPage() {
       <Card>
         <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Cliente</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Conta (cliente do CRM)</label>
             <select
-              value={clienteId}
-              onChange={(e) => { setClienteId(e.target.value); setAdAccountFilter(""); }}
+              value={profileId}
+              onChange={(e) => { setProfileId(e.target.value); setAdAccountFilter(""); }}
               className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
-              <option value="">Todos os clientes</option>
-              {clientes.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+              <option value="">Todas as contas</option>
+              {profiles.map((p: any) => (
+                <option key={p.user_id} value={p.user_id}>{p.nome}</option>
               ))}
             </select>
           </div>
@@ -211,7 +211,7 @@ export default function AnunciosPage() {
               onChange={(e) => setAdAccountFilter(e.target.value)}
               className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
-              <option value="">{selectedCliente?.meta_ad_account_id ? `(do cliente) ${selectedCliente.meta_ad_account_id}` : "Todas as contas"}</option>
+              <option value="">{(selectedProfile as any)?.meta_ad_account_id ? `(da conta) ${(selectedProfile as any).meta_ad_account_id}` : "Todas as contas"}</option>
               {accountOptions.map((a) => (
                 <option key={a} value={a}>{a}</option>
               ))}
