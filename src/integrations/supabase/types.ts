@@ -17,13 +17,10 @@ export type Database = {
       clientes: {
         Row: {
           cpf_cnpj: string | null
-          cpl_limite_alerta: number | null
-          cpl_limite_bom: number | null
           created_at: string | null
           email: string | null
           endereco: string | null
           id: string
-          meta_ad_account_id: string | null
           nome: string
           observacoes: string | null
           origem: string | null
@@ -33,13 +30,10 @@ export type Database = {
         }
         Insert: {
           cpf_cnpj?: string | null
-          cpl_limite_alerta?: number | null
-          cpl_limite_bom?: number | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
-          meta_ad_account_id?: string | null
           nome: string
           observacoes?: string | null
           origem?: string | null
@@ -49,13 +43,10 @@ export type Database = {
         }
         Update: {
           cpf_cnpj?: string | null
-          cpl_limite_alerta?: number | null
-          cpl_limite_bom?: number | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
-          meta_ad_account_id?: string | null
           nome?: string
           observacoes?: string | null
           origem?: string | null
@@ -803,9 +794,12 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          cpl_limite_alerta: number | null
+          cpl_limite_bom: number | null
           created_at: string
           email: string | null
           id: string
+          meta_ad_account_id: string | null
           nome: string
           senha: string | null
           ultimo_acesso: string | null
@@ -814,9 +808,12 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          cpl_limite_alerta?: number | null
+          cpl_limite_bom?: number | null
           created_at?: string
           email?: string | null
           id?: string
+          meta_ad_account_id?: string | null
           nome: string
           senha?: string | null
           ultimo_acesso?: string | null
@@ -825,9 +822,12 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          cpl_limite_alerta?: number | null
+          cpl_limite_bom?: number | null
           created_at?: string
           email?: string | null
           id?: string
+          meta_ad_account_id?: string | null
           nome?: string
           senha?: string | null
           ultimo_acesso?: string | null
