@@ -20,16 +20,16 @@ export default function AnunciosPage() {
 
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);
-  const [clienteId, setClienteId] = useState<string>("");
+  const [profileId, setProfileId] = useState<string>("");
   const [adAccountFilter, setAdAccountFilter] = useState<string>("");
   const [syncing, setSyncing] = useState(false);
 
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-meta"],
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles-meta"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome, meta_ad_account_id, cpl_limite_bom, cpl_limite_alerta")
+        .from("profiles")
+        .select("user_id, nome, meta_ad_account_id, cpl_limite_bom, cpl_limite_alerta")
         .not("meta_ad_account_id", "is", null)
         .order("nome");
       if (error) throw error;
@@ -37,17 +37,17 @@ export default function AnunciosPage() {
     },
   });
 
-  const selectedCliente = clientes.find((c: any) => c.id === clienteId);
+  const selectedProfile = profiles.find((p: any) => p.user_id === profileId);
   const adAccountForFilter =
-    adAccountFilter || (selectedCliente?.meta_ad_account_id ?? null);
+    adAccountFilter || ((selectedProfile as any)?.meta_ad_account_id ?? null);
 
   const { data: rows = [], isLoading } = useCampaignMetrics(from, to, adAccountForFilter);
 
   const accountOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const c of clientes) if (c.meta_ad_account_id) set.add(c.meta_ad_account_id);
+    for (const p of profiles as any[]) if (p.meta_ad_account_id) set.add(p.meta_ad_account_id);
     return Array.from(set);
-  }, [clientes]);
+  }, [profiles]);
 
   const totals = useMemo(() => {
     const t = {
@@ -77,8 +77,8 @@ export default function AnunciosPage() {
   const cpm = totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : null;
   const cpr = totals.results > 0 ? totals.spend / totals.results : null;
 
-  const cplBom = (selectedCliente as any)?.cpl_limite_bom ?? null;
-  const cplAlerta = (selectedCliente as any)?.cpl_limite_alerta ?? null;
+  const cplBom = (selectedProfile as any)?.cpl_limite_bom ?? null;
+  const cplAlerta = (selectedProfile as any)?.cpl_limite_alerta ?? null;
   const cprStatus: "good" | "warn" | "bad" | null =
     cpr == null || cplBom == null || cplAlerta == null
       ? null
