@@ -151,7 +151,7 @@
         }
       }
 
-      // 3. Caso não esteja conectada (ou acabou de ser criada sem QR imediato), chama /instance/connect
+      // Caso não esteja conectada (ou acabou de ser criada sem QR imediato), chama /instance/connect
       console.log("Solicitando conexão para gerar QR Code...");
       const connectResp = await fetch(`${baseUrl}/instance/connect/${instance.name}`, {
         method: "GET",
@@ -172,36 +172,6 @@
           : result?.message || "Não foi possível gerar o QR Code.";
         toast.error(`Evolution: ${msg}`);
       }
-      if (stateData?.instance?.state === "open") {
-        toast.success("Instância já está conectada!");
-        setQrCode(null);
-        setInstance((prev: any) => ({ ...prev, status: "connected" }));
-        await persistStatus("connected");
-        return;
-      }
-
-      // 3. Caso não esteja conectada, chama /instance/connect
-      const connectResp = await fetch(`${baseUrl}/instance/connect/${instance.name}`, {
-        method: "GET",
-        headers: { apikey: instance.api_key },
-      });
-      const result = await parseResponse(connectResp, "instance/connect");
-      console.log("Evolution connect response:", result);
-
-      const base64 = result?.base64 || result?.qrcode?.base64;
-      if (base64) {
-        setQrCode(base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`);
-        setInstance((prev: any) => ({ ...prev, status: "connecting" }));
-        await persistStatus("connecting");
-        toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
-      } else {
-        const msg = Array.isArray(result?.response?.message)
-          ? result.response.message.join(", ")
-          : result?.message || "Não foi possível gerar o QR Code.";
-        toast.error(`Evolution: ${msg}`);
-      }
-
-      // Tenta configurar o webhook automaticamente
       const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-webhook`;
       await fetch(`${baseUrl}/webhook/set/${instance.name}`, {
         method: "POST",
