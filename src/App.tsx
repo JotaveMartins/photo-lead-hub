@@ -1,3 +1,7 @@
+ import IAPage from "./pages/IAPage";
+ import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
+       <Route path="/ia" element={<ProtectedRoute><IAPage /></ProtectedRoute>} />
+       <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppConfigPage /></ProtectedRoute>} />
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
