@@ -446,7 +446,10 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                               <p className="text-xs">{taskConfig.label}</p>
                             </TooltipContent>
                           </Tooltip>
-                          <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                           {(lead as any).ai_paused && (
+                             <Bot className="w-3.5 h-3.5 text-destructive" title="IA Pausada" />
+                           )}
+                           <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
                         </div>
                       </div>
                       <div className="mt-2 space-y-1">
