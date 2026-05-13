@@ -84,16 +84,20 @@
          method: "GET",
          headers: { "apikey": instance.api_key }
        });
-       const result = await connectResp.json();
-       if (result.base64) {
-         setQrCode(result.base64);
-         toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
-       } else {
-         toast.error("Erro ao gerar QR Code");
-       }
-     } catch (err) {
-       toast.error("Erro ao conectar: " + err.message);
-     } finally {
+        const result = await connectResp.json();
+        console.log("Evolution API Response:", result);
+        
+        if (result.base64) {
+          setQrCode(result.base64);
+          toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
+        } else {
+          console.error("Erro Evolution:", result);
+          toast.error(`Erro da API: ${result.message || "Erro ao gerar QR Code"}`);
+        }
+      } catch (err) {
+        console.error("Erro de conexão detalhado:", err);
+        toast.error("Erro ao conectar: " + err.message);
+      } finally {
        setConnecting(false);
      }
    };
