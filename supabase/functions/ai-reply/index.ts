@@ -27,13 +27,13 @@
      if (leadError || !lead) throw new Error("Lead not found");
      if (lead.ai_paused) return new Response(JSON.stringify({ message: "AI paused for this lead" }), { headers: corsHeaders });
  
-     // Get active config
-     const { data: aiConfig, error: configError } = await supabase
-       .from("ai_config")
-       .select("*")
-       .eq("is_active", true)
-       .limit(1)
-       .single();
+      // Get active config for this specific lead's user
+      const { data: aiConfig, error: configError } = await supabase
+        .from("ai_config")
+        .select("*")
+        .eq("user_id", lead.user_id)
+        .eq("is_active", true)
+        .maybeSingle();
  
      if (configError || !aiConfig) throw new Error("Active AI config not found");
  
@@ -101,7 +101,15 @@
      }
  
      // 5. Send message via WhatsApp
-     const instanceId = lead.whatsapp_instance_id || (await supabase.from("whatsapp_instances").select("id").limit(1).single()).data?.id;
+      // Find an active instance for this user
+      const { data: instanceData } = await supabase
+        .from("whatsapp_instances")
+        .select("id")
+        .eq("user_id", lead.user_id)
+        .eq("status", "connected")
+        .maybeSingle();
+
+      const instanceId = lead.whatsapp_instance_id || instanceData?.id;
  
      if (!instanceId) throw new Error("No WhatsApp instance available");
  
