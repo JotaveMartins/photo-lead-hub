@@ -1,4 +1,6 @@
-import { Toaster } from "@/components/ui/toaster";
+ import { Toaster } from "@/components/ui/toaster";
+ import IAPage from "./pages/IAPage";
+ import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -63,7 +65,9 @@ const AppRoutes = () => {
       <Route path="/pacotes" element={<ProtectedRoute><PacotesPage /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
       <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
-      <Route path="/equipe" element={<ProtectedRoute><EquipePage /></ProtectedRoute>} />
+       <Route path="/equipe" element={<ProtectedRoute><EquipePage /></ProtectedRoute>} />
+       <Route path="/ia" element={<ProtectedRoute><IAPage /></ProtectedRoute>} />
+       <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppConfigPage /></ProtectedRoute>} />
       <Route path="/anuncios" element={<ProtectedRoute adminOnly><AnunciosPage /></ProtectedRoute>} />
       <Route path="/contratos" element={<ProtectedRoute><ComingSoon title="Contratos" icon={<FileText className="w-10 h-10" />} /></ProtectedRoute>} />
       <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDetailPage /></ProtectedRoute>} />

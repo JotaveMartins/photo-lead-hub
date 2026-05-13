@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { parseLocalDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History } from "lucide-react";
+ import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History, Bot, Pause, Play, MapPin, BadgeDollarSign } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask, useDeleteLeadTask } from "@/hooks/useLeadTasks";
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
@@ -33,7 +33,8 @@ const ORIGEM_OPTIONS = [
 
 const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "Novo Lead", label: "Novo Lead" },
-  { value: "Contato Iniciado", label: "Contato Iniciado" },
+   { value: "Contato Iniciado", label: "Contato Iniciado" },
+   { value: "Triagem Feita", label: "Triagem Feita" },
   { value: "Proposta Enviada", label: "Proposta Enviada" },
   { value: "Follow-up", label: "Follow-up" },
   { value: "Contrato Enviado", label: "Contrato Enviado" },
@@ -320,7 +321,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   // Loss reason modal state
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
   // Lead to cliente flow state
-  const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
+   const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
+   const [activeTab, setActiveTab] = useState<"historico" | "conversa">("historico");
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -593,11 +595,28 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                 <CheckCircle2 className="w-3 h-3" /> Iniciar Atendimento
               </Button>
             )}
-            {lead.iniciar_atendimento && (
-              <span className="text-xs text-green-500 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Atendimento iniciado
-              </span>
-            )}
+             {lead.iniciar_atendimento && (
+               <span className="text-xs text-green-500 flex items-center gap-1">
+                 <CheckCircle2 className="w-3 h-3" /> Atendimento iniciado
+               </span>
+             )}
+ 
+             <div className="flex items-center gap-2 ml-auto">
+               {(lead as any).ai_paused ? (
+                 <>
+                   <div className="flex items-center gap-1 bg-destructive/10 text-destructive text-[10px] font-bold px-2 py-0.5 rounded-full border border-destructive/20">
+                     <Pause className="w-3 h-3" /> IA Pausada
+                   </div>
+                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleFieldSave("ai_paused", false)}>
+                     <Play className="w-3 h-3" /> Retomar IA
+                   </Button>
+                 </>
+               ) : (
+                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-primary border-primary/30" onClick={() => handleFieldSave("ai_paused", true)}>
+                   <Pause className="w-3 h-3" /> Pausar IA
+                 </Button>
+               )}
+             </div>
             {lead.status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
               <Button size="sm" variant="outline" className="gap-1 h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => {
@@ -693,13 +712,31 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
             </div>
           </div>
 
-          {/* Right: Unified Timeline */}
-          <div className="flex-1 p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <History className="w-4 h-4 text-muted-foreground" />
-                Histórico
-              </h3>
+           {/* Right: Tabs and Content */}
+           <div className="flex-1 flex flex-col min-h-0">
+             <div className="flex items-center gap-4 px-4 border-b border-border">
+               <button
+                 onClick={() => setActiveTab("historico")}
+                 className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "historico" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+               >
+                 Histórico
+               </button>
+               <button
+                 onClick={() => setActiveTab("conversa")}
+                 className={`py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "conversa" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+               >
+                 Conversa
+               </button>
+             </div>
+ 
+             <div className="flex-1 overflow-y-auto p-4">
+               {activeTab === "historico" ? (
+                 <>
+             <div className="flex items-center justify-between mb-3">
+               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                 <History className="w-4 h-4 text-muted-foreground" />
+                 Atividades
+               </h3>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => setShowNewTask(!showNewTask)}>
                   <Plus className="w-3 h-3" /> Tarefa
@@ -864,10 +901,38 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                       </div>
                     </div>
                   ));
-                })()}
-              </div>
-            </div>
-          </div>
+                 })()}
+               </div>
+             </div>
+                 </>
+               ) : (
+                 <div className="flex flex-col h-full bg-muted/20 rounded-lg overflow-hidden border border-border">
+                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                     {/* Messages placeholder */}
+                     <div className="flex justify-start">
+                       <div className="bg-muted px-3 py-2 rounded-2xl rounded-tl-none max-w-[80%] text-sm">
+                         Olá! Em que posso ajudar hoje?
+                       </div>
+                     </div>
+                     <div className="flex justify-end">
+                       <div className="bg-primary px-3 py-2 rounded-2xl rounded-tr-none max-w-[80%] text-sm text-primary-foreground">
+                         Quero saber mais sobre os ensaios de casamento.
+                       </div>
+                     </div>
+                     <p className="text-center text-[10px] text-muted-foreground">O chat em tempo real está sendo configurado...</p>
+                   </div>
+                   <div className="p-3 border-t border-border bg-card">
+                     <div className="flex gap-2">
+                       <Input placeholder="Digite uma mensagem..." className="flex-1" />
+                       <Button size="icon" className="bg-gradient-primary">
+                         <Send className="w-4 h-4" />
+                       </Button>
+                     </div>
+                   </div>
+                 </div>
+               )}
+             </div>
+           </div>
         </div>
       </SheetContent>
     </Sheet>
