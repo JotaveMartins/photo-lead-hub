@@ -44,11 +44,19 @@
    const fetchData = async () => {
      setLoading(true);
      try {
-       const { data: cfg } = await supabase.from("ai_config").select("*").maybeSingle();
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) return;
+
+       const { data: cfg } = await supabase.from("ai_config")
+         .select("*")
+         .eq('user_id', user.id)
+         .maybeSingle();
        if (cfg) setConfig(cfg);
  
-       const { data: fls } = await supabase.from("ai_files").select("*");
-       if (fls) setFiles(fls);
+       const { data: fls } = await supabase.from("ai_files")
+         .select("*")
+         .eq('user_id', user.id);
+       if (fls) setFiles(fls || []);
      } catch (err) {
        console.error(err);
      } finally {
@@ -57,9 +65,25 @@
    };
  
    const handleSaveConfig = async () => {
-     const { error } = await supabase.from("ai_config").upsert(config);
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
+     const configToSave = {
+       ...config,
+       user_id: user.id
+     };
+
+     // Remove id if it's not a valid UUID or if we want to ensure it's handled correctly
+     if (configToSave.id && !configToSave.id.includes('-')) {
+       delete configToSave.id;
+     }
+
+     const { error } = await supabase.from("ai_config").upsert(configToSave);
      if (error) toast.error("Erro ao salvar: " + error.message);
-     else toast.success("Configuração salva com sucesso!");
+     else {
+       toast.success("Configuração salva com sucesso!");
+       fetchData();
+     }
    };
  
    const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,6 +94,9 @@
      const fileName = `${Math.random()}.${fileExt}`;
      const filePath = `${fileName}`;
  
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
      const { data, error: uploadError } = await supabase.storage
        .from('ai-files')
        .upload(filePath, file);
@@ -85,7 +112,8 @@
        name: file.name,
        file_url: publicUrl,
        file_type: fileExt || 'unknown',
-       file_size_bytes: file.size
+       file_size_bytes: file.size,
+       user_id: user.id
      });
  
      if (dbError) toast.error("Erro ao salvar no banco: " + dbError.message);

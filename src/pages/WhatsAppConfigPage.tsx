@@ -26,7 +26,13 @@
    const fetchInstance = async () => {
      setLoading(true);
      try {
-       const { data } = await supabase.from("whatsapp_instances").select("*").maybeSingle();
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) return;
+
+       const { data } = await supabase.from("whatsapp_instances")
+         .select("*")
+         .eq('user_id', user.id)
+         .maybeSingle();
        if (data) setInstance(data);
      } catch (err) {
        console.error(err);
@@ -36,7 +42,19 @@
    };
  
    const handleSave = async () => {
-     const { error } = await supabase.from("whatsapp_instances").upsert(instance);
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
+     const instanceToSave = {
+       ...instance,
+       user_id: user.id
+     };
+
+     if (instanceToSave.id && !instanceToSave.id.includes('-')) {
+       delete instanceToSave.id;
+     }
+
+     const { error } = await supabase.from("whatsapp_instances").upsert(instanceToSave);
      if (error) toast.error("Erro ao salvar: " + error.message);
      else {
        toast.success("Configurações salvas!");
@@ -80,7 +98,7 @@
      }
    };
  
-   const webhookUrl = `${window.location.origin.replace('lovable.app', 'supabase.co')}/functions/v1/evolution-webhook`;
+   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/evolution-webhook`;
  
    return (
      <div className="space-y-6 max-w-4xl">
