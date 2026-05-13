@@ -26,6 +26,7 @@ export type Database = {
           system_prompt: string | null
           temperature: number | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           api_key: string
@@ -38,6 +39,7 @@ export type Database = {
           system_prompt?: string | null
           temperature?: number | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           api_key?: string
@@ -50,6 +52,7 @@ export type Database = {
           system_prompt?: string | null
           temperature?: number | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -63,6 +66,7 @@ export type Database = {
           id: string
           name: string
           send_condition: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -73,6 +77,7 @@ export type Database = {
           id?: string
           name: string
           send_condition?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -83,6 +88,7 @@ export type Database = {
           id?: string
           name?: string
           send_condition?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1069,6 +1075,7 @@ export type Database = {
           name: string
           phone_number: string | null
           status: string | null
+          user_id: string | null
         }
         Insert: {
           api_key: string
@@ -1079,6 +1086,7 @@ export type Database = {
           name: string
           phone_number?: string | null
           status?: string | null
+          user_id?: string | null
         }
         Update: {
           api_key?: string
@@ -1089,6 +1097,7 @@ export type Database = {
           name?: string
           phone_number?: string | null
           status?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
