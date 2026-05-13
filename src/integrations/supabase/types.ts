@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_config: {
+        Row: {
+          api_key: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          max_tokens: number | null
+          model: string
+          provider: string
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model: string
+          provider: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model?: string
+          provider?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_files: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          file_size_bytes: number | null
+          file_type: string
+          file_url: string
+          id: string
+          name: string
+          send_condition: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          file_size_bytes?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          name: string
+          send_condition?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          file_size_bytes?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          name?: string
+          send_condition?: string | null
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cpf_cnpj: string | null
@@ -474,11 +546,14 @@ export type Database = {
       }
       leads: {
         Row: {
+          ai_paused: boolean | null
+          budget: string | null
           cadencia_1: string | null
           cadencia_2: string | null
           cadencia_3: string | null
           cadencia_4: string | null
           cadencia_5: string | null
+          city: string | null
           created_at: string
           data_contato: string | null
           data_entrada_contato_iniciado: string | null
@@ -501,23 +576,30 @@ export type Database = {
           id: string
           iniciar_atendimento: boolean
           interesse: string | null
+          last_message_at: string | null
           motivo_perda: string | null
           nome: string
           observacao_perda: string | null
           origem: string | null
           package_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
+          triagem_at: string | null
+          unread_count: number | null
           updated_at: string
           user_id: string
           valor: number | null
           whatsapp: string
+          whatsapp_instance_id: string | null
         }
         Insert: {
+          ai_paused?: boolean | null
+          budget?: string | null
           cadencia_1?: string | null
           cadencia_2?: string | null
           cadencia_3?: string | null
           cadencia_4?: string | null
           cadencia_5?: string | null
+          city?: string | null
           created_at?: string
           data_contato?: string | null
           data_entrada_contato_iniciado?: string | null
@@ -540,23 +622,30 @@ export type Database = {
           id?: string
           iniciar_atendimento?: boolean
           interesse?: string | null
+          last_message_at?: string | null
           motivo_perda?: string | null
           nome: string
           observacao_perda?: string | null
           origem?: string | null
           package_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          triagem_at?: string | null
+          unread_count?: number | null
           updated_at?: string
           user_id: string
           valor?: number | null
           whatsapp: string
+          whatsapp_instance_id?: string | null
         }
         Update: {
+          ai_paused?: boolean | null
+          budget?: string | null
           cadencia_1?: string | null
           cadencia_2?: string | null
           cadencia_3?: string | null
           cadencia_4?: string | null
           cadencia_5?: string | null
+          city?: string | null
           created_at?: string
           data_contato?: string | null
           data_entrada_contato_iniciado?: string | null
@@ -579,16 +668,20 @@ export type Database = {
           id?: string
           iniciar_atendimento?: boolean
           interesse?: string | null
+          last_message_at?: string | null
           motivo_perda?: string | null
           nome?: string
           observacao_perda?: string | null
           origem?: string | null
           package_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          triagem_at?: string | null
+          unread_count?: number | null
           updated_at?: string
           user_id?: string
           valor?: number | null
           whatsapp?: string
+          whatsapp_instance_id?: string | null
         }
         Relationships: [
           {
@@ -596,6 +689,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -929,6 +1029,66 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_logs: {
+        Row: {
+          created_at: string | null
+          event: string | null
+          id: string
+          instance_key: string | null
+          payload: Json | null
+          processed: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          event?: string | null
+          id?: string
+          instance_key?: string | null
+          payload?: Json | null
+          processed?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          event?: string | null
+          id?: string
+          instance_key?: string | null
+          payload?: Json | null
+          processed?: boolean | null
+        }
+        Relationships: []
+      }
+      whatsapp_instances: {
+        Row: {
+          api_key: string
+          base_url: string
+          created_at: string | null
+          id: string
+          instance_key: string
+          name: string
+          phone_number: string | null
+          status: string | null
+        }
+        Insert: {
+          api_key: string
+          base_url: string
+          created_at?: string | null
+          id?: string
+          instance_key: string
+          name: string
+          phone_number?: string | null
+          status?: string | null
+        }
+        Update: {
+          api_key?: string
+          base_url?: string
+          created_at?: string | null
+          id?: string
+          instance_key?: string
+          name?: string
+          phone_number?: string | null
+          status?: string | null
         }
         Relationships: []
       }
