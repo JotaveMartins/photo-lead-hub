@@ -447,7 +447,14 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                             </TooltipContent>
                           </Tooltip>
                            {(lead as any).ai_paused && (
-                             <Bot className="w-3.5 h-3.5 text-destructive" title="IA Pausada" />
+                             <Tooltip>
+                               <TooltipTrigger asChild>
+                                 <Bot className="w-3.5 h-3.5 text-destructive cursor-help" />
+                               </TooltipTrigger>
+                               <TooltipContent side="top">
+                                 <p className="text-xs font-bold">IA Pausada</p>
+                               </TooltipContent>
+                             </Tooltip>
                            )}
                            <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
                         </div>
