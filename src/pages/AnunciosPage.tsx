@@ -21,7 +21,6 @@ export default function AnunciosPage() {
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);
   const [profileId, setProfileId] = useState<string>("");
-  const [adAccountFilter, setAdAccountFilter] = useState<string>("");
   const [syncing, setSyncing] = useState(false);
 
   const { data: profiles = [] } = useQuery({
@@ -38,16 +37,9 @@ export default function AnunciosPage() {
   });
 
   const selectedProfile = profiles.find((p: any) => p.user_id === profileId);
-  const adAccountForFilter =
-    adAccountFilter || ((selectedProfile as any)?.meta_ad_account_id ?? null);
+  const adAccountForFilter = (selectedProfile as any)?.meta_ad_account_id ?? null;
 
   const { data: rows = [], isLoading } = useCampaignMetrics(from, to, adAccountForFilter);
-
-  const accountOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of profiles as any[]) if (p.meta_ad_account_id) set.add(p.meta_ad_account_id);
-    return Array.from(set);
-  }, [profiles]);
 
   const totals = useMemo(() => {
     const t = {
@@ -190,30 +182,17 @@ export default function AnunciosPage() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Conta (cliente do CRM)</label>
             <select
               value={profileId}
-              onChange={(e) => { setProfileId(e.target.value); setAdAccountFilter(""); }}
+              onChange={(e) => setProfileId(e.target.value)}
               className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
             >
               <option value="">Todas as contas</option>
               {profiles.map((p: any) => (
                 <option key={p.user_id} value={p.user_id}>{p.nome}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Conta Meta</label>
-            <select
-              value={adAccountFilter}
-              onChange={(e) => setAdAccountFilter(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-            >
-              <option value="">{(selectedProfile as any)?.meta_ad_account_id ? `(da conta) ${(selectedProfile as any).meta_ad_account_id}` : "Todas as contas"}</option>
-              {accountOptions.map((a) => (
-                <option key={a} value={a}>{a}</option>
               ))}
             </select>
           </div>
