@@ -36,7 +36,19 @@
    };
  
    const handleSave = async () => {
-     const { error } = await supabase.from("whatsapp_instances").upsert(instance);
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
+     const instanceToSave = {
+       ...instance,
+       user_id: user.id
+     };
+
+     if (instanceToSave.id && !instanceToSave.id.includes('-')) {
+       delete instanceToSave.id;
+     }
+
+     const { error } = await supabase.from("whatsapp_instances").upsert(instanceToSave);
      if (error) toast.error("Erro ao salvar: " + error.message);
      else {
        toast.success("Configurações salvas!");

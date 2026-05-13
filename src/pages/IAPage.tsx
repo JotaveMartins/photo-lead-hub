@@ -57,9 +57,25 @@
    };
  
    const handleSaveConfig = async () => {
-     const { error } = await supabase.from("ai_config").upsert(config);
+     const { data: { user } } = await supabase.auth.getUser();
+     if (!user) return;
+
+     const configToSave = {
+       ...config,
+       user_id: user.id
+     };
+
+     // Remove id if it's not a valid UUID or if we want to ensure it's handled correctly
+     if (configToSave.id && !configToSave.id.includes('-')) {
+       delete configToSave.id;
+     }
+
+     const { error } = await supabase.from("ai_config").upsert(configToSave);
      if (error) toast.error("Erro ao salvar: " + error.message);
-     else toast.success("Configuração salva com sucesso!");
+     else {
+       toast.success("Configuração salva com sucesso!");
+       fetchData();
+     }
    };
  
    const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
