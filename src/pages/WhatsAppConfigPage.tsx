@@ -88,7 +88,16 @@
         }
       };
 
-      // 1. Tenta criar a instância (se já existir, só ignora)
+      const persistStatus = async (status: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        await supabase
+          .from("whatsapp_instances")
+          .upsert({ ...instance, user_id: user.id, status });
+      };
+
+      // 1. Tenta criar a instância (se já existir, segue para o connect)
       const createResp = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: {
@@ -101,16 +110,32 @@
           integration: "WHATSAPP-BAILEYS",
         }),
       });
-      if (createResp.status === 401 || createResp.status === 403) {
-        throw new Error("API Key inválida (401/403). Verifique a chave global da Evolution API.");
+
+      if (createResp.status === 401) {
+        throw new Error("API Key inválida (401). Verifique a chave global da Evolution API.");
       }
+
       const createData = await parseResponse(createResp, "instance/create");
       console.log("Evolution create response:", createData);
+
+      const createMessage = Array.isArray(createData?.response?.message)
+        ? createData.response.message.join(", ")
+        : createData?.message || createData?.response?.message || "";
+
+      const instanceAlreadyExists =
+        createResp.status === 403 &&
+        /already in use|já.*uso|já.*existe/i.test(createMessage);
+
+      if (!createResp.ok && !instanceAlreadyExists) {
+        throw new Error(`Evolution: ${createMessage || "Não foi possível criar a instância."}`);
+      }
 
       // Se já veio QR no create, usa direto
       const qrFromCreate = createData?.qrcode?.base64 || createData?.base64;
       if (qrFromCreate) {
         setQrCode(qrFromCreate.startsWith("data:") ? qrFromCreate : `data:image/png;base64,${qrFromCreate}`);
+        setInstance((prev: any) => ({ ...prev, status: "connecting" }));
+        await persistStatus("connecting");
         toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
         return;
       }
@@ -126,10 +151,14 @@
       const base64 = result?.base64 || result?.qrcode?.base64;
       if (base64) {
         setQrCode(base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`);
+        setInstance((prev: any) => ({ ...prev, status: "connecting" }));
+        await persistStatus("connecting");
         toast.success("QR Code gerado! Escaneie no seu WhatsApp.");
       } else if (result?.instance?.state === "open") {
         toast.success("Instância já está conectada!");
-        setInstance({ ...instance, status: "connected" });
+        setQrCode(null);
+        setInstance((prev: any) => ({ ...prev, status: "connected" }));
+        await persistStatus("connected");
       } else {
         const msg = Array.isArray(result?.response?.message)
           ? result.response.message.join(", ")
