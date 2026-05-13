@@ -54,9 +54,12 @@ const financeiroSubItems = [
 
  const adminMenuItems = [
    { id: 'anuncios', label: 'Anúncios', icon: Megaphone },
+   { id: 'admin', label: 'Clientes', icon: UserCog },
+ ];
+
+ const configMenuItems = [
    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
    { id: 'ia', label: 'IA', icon: Bot },
-   { id: 'admin', label: 'Clientes', icon: UserCog },
  ];
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
@@ -77,7 +80,8 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
 
   const menuItems = baseMenuItems;
   const showFinanceiro = true;
-  const showAdmin = isAdmin;
+   const showAdmin = isAdmin;
+   const showConfig = true; // All photographers should see config
 
   const handleItemClick = (id: string) => {
     onItemClick(id);
@@ -119,8 +123,8 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
           </div>
         </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
+       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
           let badgeCount = 0;
@@ -146,8 +150,25 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
           );
         })}
 
-        {/* Financeiro expandable group */}
-        {showFinanceiro && (
+         {/* Configurações group */}
+         {showConfig && configMenuItems.map((item) => {
+           const Icon = item.icon;
+           const isActive = activeItem === item.id;
+           return (
+             <button
+               key={item.id}
+               onClick={() => handleItemClick(item.id)}
+               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
+                 ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+             >
+               <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
+               {item.label}
+             </button>
+           );
+         })}
+
+         {/* Financeiro expandable group */}
+         {showFinanceiro && (
           <div>
             <div className="flex items-center">
               <button
