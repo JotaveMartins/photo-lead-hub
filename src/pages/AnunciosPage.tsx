@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCampaignMetrics } from "@/hooks/useCampaignMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, DollarSign, Target, TrendingUp, MousePointerClick, Eye, BadgeDollarSign } from "lucide-react";
+import { RefreshCw, DollarSign, Target, TrendingUp, MousePointerClick, Eye, BadgeDollarSign, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { DateRangePicker } from "@/components/DateRangePicker";
 
@@ -96,35 +96,51 @@ export default function AnunciosPage() {
           ? "bg-red-500/10 text-red-500 border-red-500/30"
           : "";
 
-  // Aggregated by ad row
-  const aggregated = useMemo(() => {
-    const map = new Map<string, any>();
+  // Build hierarchical tree: Campaign -> AdSet -> Ad
+  type Agg = { spend: number; impressions: number; reach: number; clicks: number; results: number };
+  const emptyAgg = (): Agg => ({ spend: 0, impressions: 0, reach: 0, clicks: 0, results: 0 });
+  const addAgg = (a: Agg, r: any) => {
+    a.spend += Number(r.spend || 0);
+    a.impressions += r.impressions || 0;
+    a.reach += r.reach || 0;
+    a.clicks += r.clicks || 0;
+    a.results += r.results || 0;
+  };
+  const tree = useMemo(() => {
+    const camps = new Map<string, { name: string; totals: Agg; adsets: Map<string, { name: string; totals: Agg; ads: Map<string, { name: string; totals: Agg }> }> }>();
     for (const r of rows) {
-      const key = `${r.campaign_name}__${r.adset_name}__${r.ad_name}`;
-      const cur = map.get(key) || {
-        campaign_name: r.campaign_name,
-        adset_name: r.adset_name,
-        ad_name: r.ad_name,
-        result_type: r.result_type,
-        spend: 0,
-        impressions: 0,
-        clicks: 0,
-        results: 0,
-      };
-      cur.spend += Number(r.spend || 0);
-      cur.impressions += r.impressions || 0;
-      cur.clicks += r.clicks || 0;
-      cur.results += r.results || 0;
-      map.set(key, cur);
+      const cKey = r.campaign_name || "—";
+      let c = camps.get(cKey);
+      if (!c) { c = { name: cKey, totals: emptyAgg(), adsets: new Map() }; camps.set(cKey, c); }
+      addAgg(c.totals, r);
+      const sKey = r.adset_name || "—";
+      let s = c.adsets.get(sKey);
+      if (!s) { s = { name: sKey, totals: emptyAgg(), ads: new Map() }; c.adsets.set(sKey, s); }
+      addAgg(s.totals, r);
+      const aKey = r.ad_name || "—";
+      let a = s.ads.get(aKey);
+      if (!a) { a = { name: aKey, totals: emptyAgg() }; s.ads.set(aKey, a); }
+      addAgg(a.totals, r);
     }
-    return Array.from(map.values())
-      .map((row) => ({
-        ...row,
-        ctr: row.impressions > 0 ? (row.clicks / row.impressions) * 100 : null,
-        cost_per_result: row.results > 0 ? row.spend / row.results : null,
-      }))
-      .sort((a, b) => b.spend - a.spend);
+    const sortBySpend = <T extends { totals: Agg }>(arr: T[]) => arr.sort((x, y) => y.totals.spend - x.totals.spend);
+    return sortBySpend(Array.from(camps.values()).map((c) => ({
+      ...c,
+      adsets: sortBySpend(Array.from(c.adsets.values()).map((s) => ({
+        ...s,
+        ads: sortBySpend(Array.from(s.ads.values())),
+      }))),
+    })));
   }, [rows]);
+
+  const [expandedCamps, setExpandedCamps] = useState<Record<string, boolean>>({});
+  const [expandedSets, setExpandedSets] = useState<Record<string, boolean>>({});
+  const toggle = (m: Record<string, boolean>, set: (v: Record<string, boolean>) => void, k: string) =>
+    set({ ...m, [k]: !m[k] });
+
+  const totalAds = tree.reduce((acc, c) => acc + c.adsets.reduce((a, s) => a + s.ads.length, 0), 0);
+  const rowCtr = (a: Agg) => (a.impressions > 0 ? (a.clicks / a.impressions) * 100 : null);
+  const rowCpm = (a: Agg) => (a.impressions > 0 ? (a.spend / a.impressions) * 1000 : null);
+  const rowCpr = (a: Agg) => (a.results > 0 ? a.spend / a.results : null);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -227,12 +243,12 @@ export default function AnunciosPage() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Anúncios ({aggregated.length})</CardTitle>
+          <CardTitle className="text-lg">Estrutura da campanha ({tree.length} campanha{tree.length !== 1 ? "s" : ""}, {totalAds} anúncio{totalAds !== 1 ? "s" : ""})</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-muted-foreground text-sm py-8 text-center">Carregando...</div>
-          ) : aggregated.length === 0 ? (
+          ) : tree.length === 0 ? (
             <div className="text-muted-foreground text-sm py-8 text-center">
               Nenhum dado para o período. Vincule um cliente a uma conta Meta (campo <code>meta_ad_account_id</code>) e clique em "Sincronizar dados Meta".
             </div>
@@ -241,27 +257,85 @@ export default function AnunciosPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-3">Campanha</th>
-                    <th className="py-2 pr-3">Conjunto</th>
-                    <th className="py-2 pr-3">Anúncio</th>
+                    <th className="py-2 pr-3">Nome</th>
+                    <th className="py-2 pr-3 text-right">Gasto</th>
                     <th className="py-2 pr-3 text-right">Resultado</th>
-                    <th className="py-2 pr-3 text-right">Custo / resultado</th>
+                    <th className="py-2 pr-3 text-right">Custo/result.</th>
+                    <th className="py-2 pr-3 text-right">Alcance</th>
+                    <th className="py-2 pr-3 text-right">Impressões</th>
                     <th className="py-2 pr-3 text-right">CTR</th>
-                    <th className="py-2 pr-3 text-right">Spend</th>
+                    <th className="py-2 pr-3 text-right">CPM</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {aggregated.map((r, i) => (
-                    <tr key={i} className="border-b border-border/50 hover:bg-muted/40">
-                      <td className="py-2 pr-3 text-foreground max-w-[260px] truncate" title={r.campaign_name}>{r.campaign_name}</td>
-                      <td className="py-2 pr-3 text-foreground max-w-[220px] truncate" title={r.adset_name}>{r.adset_name}</td>
-                      <td className="py-2 pr-3 text-foreground max-w-[220px] truncate" title={r.ad_name}>{r.ad_name}</td>
-                      <td className="py-2 pr-3 text-right text-foreground">{fmtNum(r.results)}</td>
-                      <td className="py-2 pr-3 text-right text-foreground">{r.cost_per_result == null ? "—" : fmtBRL(r.cost_per_result)}</td>
-                      <td className="py-2 pr-3 text-right text-foreground">{fmtPct(r.ctr)}</td>
-                      <td className="py-2 pr-3 text-right text-foreground">{fmtBRL(r.spend)}</td>
-                    </tr>
-                  ))}
+                  {tree.map((c, ci) => {
+                    const cKey = `c-${ci}`;
+                    const cOpen = !!expandedCamps[cKey];
+                    return (
+                      <FragmentRows key={cKey}>
+                        <tr className="border-b border-border/50 hover:bg-muted/40 bg-muted/20">
+                          <td className="py-2 pr-3">
+                            <button
+                              type="button"
+                              onClick={() => toggle(expandedCamps, setExpandedCamps, cKey)}
+                              className="inline-flex items-center gap-2 text-foreground font-semibold text-left max-w-[360px]"
+                              title={c.name}
+                            >
+                              {cOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                              <span className="truncate">{c.name}</span>
+                            </button>
+                          </td>
+                          <td className="py-2 pr-3 text-right text-foreground font-semibold">{fmtBRL(c.totals.spend)}</td>
+                          <td className="py-2 pr-3 text-right text-foreground font-semibold">{fmtNum(c.totals.results)}</td>
+                          <td className="py-2 pr-3 text-right text-foreground font-semibold">{rowCpr(c.totals) == null ? "—" : fmtBRL(rowCpr(c.totals)!)}</td>
+                          <td className="py-2 pr-3 text-right text-foreground font-semibold">{fmtNum(c.totals.reach)}</td>
+                          <td className="py-2 pr-3 text-right text-foreground font-semibold">{fmtNum(c.totals.impressions)}</td>
+                          <td className="py-2 pr-3 text-right text-foreground font-semibold">{fmtPct(rowCtr(c.totals))}</td>
+                          <td className="py-2 pr-3 text-right text-foreground font-semibold">{rowCpm(c.totals) == null ? "—" : fmtBRL(rowCpm(c.totals)!)}</td>
+                        </tr>
+                        {cOpen && c.adsets.map((s, si) => {
+                          const sKey = `${cKey}-s-${si}`;
+                          const sOpen = !!expandedSets[sKey];
+                          return (
+                            <FragmentRows key={sKey}>
+                              <tr className="border-b border-border/50 hover:bg-muted/40">
+                                <td className="py-2 pr-3 pl-6">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggle(expandedSets, setExpandedSets, sKey)}
+                                    className="inline-flex items-center gap-2 text-foreground text-left max-w-[340px]"
+                                    title={s.name}
+                                  >
+                                    {sOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                                    <span className="truncate">{s.name}</span>
+                                  </button>
+                                </td>
+                                <td className="py-2 pr-3 text-right text-foreground">{fmtBRL(s.totals.spend)}</td>
+                                <td className="py-2 pr-3 text-right text-foreground">{fmtNum(s.totals.results)}</td>
+                                <td className="py-2 pr-3 text-right text-foreground">{rowCpr(s.totals) == null ? "—" : fmtBRL(rowCpr(s.totals)!)}</td>
+                                <td className="py-2 pr-3 text-right text-foreground">{fmtNum(s.totals.reach)}</td>
+                                <td className="py-2 pr-3 text-right text-foreground">{fmtNum(s.totals.impressions)}</td>
+                                <td className="py-2 pr-3 text-right text-foreground">{fmtPct(rowCtr(s.totals))}</td>
+                                <td className="py-2 pr-3 text-right text-foreground">{rowCpm(s.totals) == null ? "—" : fmtBRL(rowCpm(s.totals)!)}</td>
+                              </tr>
+                              {sOpen && s.ads.map((a, ai) => (
+                                <tr key={`${sKey}-a-${ai}`} className="border-b border-border/50 hover:bg-muted/40">
+                                  <td className="py-2 pr-3 pl-12 text-muted-foreground max-w-[360px] truncate" title={a.name}>{a.name}</td>
+                                  <td className="py-2 pr-3 text-right text-muted-foreground">{fmtBRL(a.totals.spend)}</td>
+                                  <td className="py-2 pr-3 text-right text-muted-foreground">{fmtNum(a.totals.results)}</td>
+                                  <td className="py-2 pr-3 text-right text-muted-foreground">{rowCpr(a.totals) == null ? "—" : fmtBRL(rowCpr(a.totals)!)}</td>
+                                  <td className="py-2 pr-3 text-right text-muted-foreground">{fmtNum(a.totals.reach)}</td>
+                                  <td className="py-2 pr-3 text-right text-muted-foreground">{fmtNum(a.totals.impressions)}</td>
+                                  <td className="py-2 pr-3 text-right text-muted-foreground">{fmtPct(rowCtr(a.totals))}</td>
+                                  <td className="py-2 pr-3 text-right text-muted-foreground">{rowCpm(a.totals) == null ? "—" : fmtBRL(rowCpm(a.totals)!)}</td>
+                                </tr>
+                              ))}
+                            </FragmentRows>
+                          );
+                        })}
+                      </FragmentRows>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -270,4 +344,9 @@ export default function AnunciosPage() {
       </Card>
     </div>
   );
+}
+
+// Helper to group multiple <tr> without extra DOM nodes
+function FragmentRows({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
