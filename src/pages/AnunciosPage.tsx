@@ -347,6 +347,6 @@ export default function AnunciosPage() {
 }
 
 // Helper to group multiple <tr> without extra DOM nodes
-function FragmentRows({ children }: { children: React.ReactNode }) {
+function FragmentRows({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
