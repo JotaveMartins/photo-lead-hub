@@ -17,6 +17,8 @@ export type Database = {
       clientes: {
         Row: {
           cpf_cnpj: string | null
+          cpl_limite_alerta: number | null
+          cpl_limite_bom: number | null
           created_at: string | null
           email: string | null
           endereco: string | null
@@ -31,6 +33,8 @@ export type Database = {
         }
         Insert: {
           cpf_cnpj?: string | null
+          cpl_limite_alerta?: number | null
+          cpl_limite_bom?: number | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
@@ -45,6 +49,8 @@ export type Database = {
         }
         Update: {
           cpf_cnpj?: string | null
+          cpl_limite_alerta?: number | null
+          cpl_limite_bom?: number | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
