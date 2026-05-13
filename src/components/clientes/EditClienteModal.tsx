@@ -26,6 +26,8 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
   const [origem, setOrigem] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [metaAdAccount, setMetaAdAccount] = useState("");
+  const [cplBom, setCplBom] = useState<string>("");
+  const [cplAlerta, setCplAlerta] = useState<string>("");
 
   useEffect(() => {
     if (cliente) {
@@ -37,6 +39,8 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
       setOrigem(cliente.origem || "");
       setObservacoes(cliente.observacoes || "");
       setMetaAdAccount((cliente as any).meta_ad_account_id || "");
+      setCplBom((cliente as any).cpl_limite_bom != null ? String((cliente as any).cpl_limite_bom) : "");
+      setCplAlerta((cliente as any).cpl_limite_alerta != null ? String((cliente as any).cpl_limite_alerta) : "");
     }
   }, [cliente]);
 
@@ -54,6 +58,8 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
       origem: origem || null,
       observacoes: observacoes.trim() || null,
       meta_ad_account_id: metaAdAccount.trim() || null,
+      cpl_limite_bom: cplBom.trim() ? Number(cplBom.replace(",", ".")) : null,
+      cpl_limite_alerta: cplAlerta.trim() ? Number(cplAlerta.replace(",", ".")) : null,
     });
 
     onClose();
@@ -114,6 +120,22 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
               onChange={(e) => setMetaAdAccount(e.target.value)}
               placeholder="act_123456789 ou apenas 123456789"
             />
+          </div>
+          <div className="rounded-lg border border-border p-3 space-y-2">
+            <div>
+              <p className="text-sm font-medium text-foreground">CPL — Custo por Lead</p>
+              <p className="text-xs text-muted-foreground">Defina dois números. Até o Limite Bom = verde. Entre Bom e Alerta = amarelo. Acima do Alerta = vermelho.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Limite Bom (R$)</Label>
+                <Input type="number" step="0.01" min="0" value={cplBom} onChange={(e) => setCplBom(e.target.value)} placeholder="3,50" />
+              </div>
+              <div>
+                <Label className="text-xs">Limite Alerta (R$)</Label>
+                <Input type="number" step="0.01" min="0" value={cplAlerta} onChange={(e) => setCplAlerta(e.target.value)} placeholder="4,00" />
+              </div>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

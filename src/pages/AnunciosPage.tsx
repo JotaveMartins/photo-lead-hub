@@ -29,7 +29,7 @@ export default function AnunciosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, meta_ad_account_id")
+        .select("id, nome, meta_ad_account_id, cpl_limite_bom, cpl_limite_alerta")
         .not("meta_ad_account_id", "is", null)
         .order("nome");
       if (error) throw error;
@@ -76,6 +76,33 @@ export default function AnunciosPage() {
   const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : null;
   const cpm = totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : null;
   const cpr = totals.results > 0 ? totals.spend / totals.results : null;
+
+  const cplBom = (selectedCliente as any)?.cpl_limite_bom ?? null;
+  const cplAlerta = (selectedCliente as any)?.cpl_limite_alerta ?? null;
+  const cprStatus: "good" | "warn" | "bad" | null =
+    cpr == null || cplBom == null || cplAlerta == null
+      ? null
+      : cpr <= Number(cplBom)
+        ? "good"
+        : cpr <= Number(cplAlerta)
+          ? "warn"
+          : "bad";
+  const cprStatusLabel =
+    cprStatus === "good"
+      ? `Saudável (≤ ${fmtBRL(Number(cplBom))})`
+      : cprStatus === "warn"
+        ? `Atenção (${fmtBRL(Number(cplBom))} – ${fmtBRL(Number(cplAlerta))})`
+        : cprStatus === "bad"
+          ? `Crítico (> ${fmtBRL(Number(cplAlerta))})`
+          : null;
+  const cprStatusClasses =
+    cprStatus === "good"
+      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+      : cprStatus === "warn"
+        ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+        : cprStatus === "bad"
+          ? "bg-red-500/10 text-red-500 border-red-500/30"
+          : "";
 
   // Aggregated by ad row
   const aggregated = useMemo(() => {
@@ -136,11 +163,17 @@ export default function AnunciosPage() {
   const kpis = [
     { label: "Investimento", value: fmtBRL(totals.spend), icon: DollarSign },
     { label: totals.result_label, value: fmtNum(totals.results), icon: Target },
-    { label: "Custo / resultado", value: cpr == null ? "—" : fmtBRL(cpr), icon: BadgeDollarSign },
+    {
+      label: "Custo / resultado",
+      value: cpr == null ? "—" : fmtBRL(cpr),
+      icon: BadgeDollarSign,
+      statusLabel: cprStatusLabel,
+      statusClasses: cprStatusClasses,
+    },
     { label: "CTR", value: fmtPct(ctr), icon: TrendingUp },
     { label: "CPM", value: cpm == null ? "—" : fmtBRL(cpm), icon: Eye },
     { label: "Cliques", value: fmtNum(totals.clicks), icon: MousePointerClick },
-  ];
+  ] as Array<{ label: string; value: string; icon: any; statusLabel?: string | null; statusClasses?: string }>;
 
   return (
     <div className="space-y-6">
@@ -207,6 +240,11 @@ export default function AnunciosPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-xl font-bold text-foreground">{k.value}</div>
+                {k.statusLabel && (
+                  <div className={`mt-2 inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border ${k.statusClasses}`}>
+                    {k.statusLabel}
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

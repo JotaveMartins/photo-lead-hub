@@ -15,6 +15,8 @@ export interface Cliente {
   origem: string | null;
   observacoes: string | null;
   meta_ad_account_id?: string | null;
+  cpl_limite_bom?: number | null;
+  cpl_limite_alerta?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +31,8 @@ export interface ClienteInsert {
   origem?: string | null;
   observacoes?: string | null;
   meta_ad_account_id?: string | null;
+  cpl_limite_bom?: number | null;
+  cpl_limite_alerta?: number | null;
 }
 
 export const useClientes = (search?: string) => {
