@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateCliente } from "@/hooks/useClientes";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
-import { useUserRole } from "@/hooks/useUserRole";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +40,6 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
   const effectiveUserId = useEffectiveUserId();
   const createCliente = useCreateCliente();
   const navigate = useNavigate();
-  const { isAdmin } = useUserRole();
 
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -50,9 +48,6 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
   const [endereco, setEndereco] = useState("");
   const [origem, setOrigem] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  const [metaAdAccount, setMetaAdAccount] = useState("");
-  const [cplBom, setCplBom] = useState("");
-  const [cplAlerta, setCplAlerta] = useState("");
   const [showCobrancaPrompt, setShowCobrancaPrompt] = useState(false);
 
   // Pre-fill when initialData changes
@@ -72,9 +67,6 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
     setEndereco("");
     setOrigem("");
     setObservacoes("");
-    setMetaAdAccount("");
-    setCplBom("");
-    setCplAlerta("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,9 +82,6 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
       endereco: endereco.trim() || null,
       origem: origem || null,
       observacoes: observacoes.trim() || null,
-      meta_ad_account_id: metaAdAccount.trim() || null,
-      cpl_limite_bom: cplBom.trim() ? Number(cplBom.replace(",", ".")) : null,
-      cpl_limite_alerta: cplAlerta.trim() ? Number(cplAlerta.replace(",", ".")) : null,
     });
 
     reset();
@@ -159,30 +148,6 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
               <Label>Observações</Label>
               <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Notas sobre o cliente..." rows={3} />
             </div>
-            {isAdmin && (
-              <>
-                <div>
-                  <Label>Conta Meta Ads (ad_account_id)</Label>
-                  <Input value={metaAdAccount} onChange={(e) => setMetaAdAccount(e.target.value)} placeholder="act_123456789 ou apenas 123456789" />
-                </div>
-                <div className="rounded-lg border border-border p-3 space-y-2">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">CPL — Custo por Lead</p>
-                    <p className="text-xs text-muted-foreground">Até o Limite Bom = verde. Entre Bom e Alerta = amarelo. Acima = vermelho.</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs">Limite Bom (R$)</Label>
-                      <Input type="number" step="0.01" min="0" value={cplBom} onChange={(e) => setCplBom(e.target.value)} placeholder="3,50" />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Limite Alerta (R$)</Label>
-                      <Input type="number" step="0.01" min="0" value={cplAlerta} onChange={(e) => setCplAlerta(e.target.value)} placeholder="4,00" />
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
             <div className="flex justify-end gap-2 pt-2">
               {footerExtra}
               <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
