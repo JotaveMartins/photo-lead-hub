@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { UserPlus, Trash2, Copy, Check, LogIn } from "lucide-react";
+import { UserPlus, Trash2, Copy, Check, LogIn, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -11,11 +11,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useToast } from "@/hooks/use-toast";
 import CreateUserModal from "@/components/CreateUserModal";
+import EditAdminUserModal from "@/components/admin/EditAdminUserModal";
 
 const AdminPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ user_id: string; nome: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const { users, isLoading, deleteUser } = useAdminUsers();
   const { user: currentUser } = useAuth();
   const { startImpersonation } = useImpersonation();
@@ -65,6 +67,7 @@ const AdminPage = () => {
               <TableHead>Email</TableHead>
               <TableHead>Senha</TableHead>
               <TableHead>Acessar</TableHead>
+              <TableHead>Meta / CPL</TableHead>
               <TableHead>Último acesso</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="w-16"></TableHead>
@@ -73,11 +76,11 @@ const AdminPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={8} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : users?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
+                <TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
               </TableRow>
             ) : (
               users?.map((user) => (
@@ -116,6 +119,17 @@ const AdminPage = () => {
                       Entrar
                     </Button>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditTarget(user)}
+                      className="gap-1.5 text-xs"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      {(user as any).meta_ad_account_id ? "Configurado" : "Configurar"}
+                    </Button>
+                  </TableCell>
                    <TableCell>
                      {(user as any).ultimo_acesso ? (
                        <span className="text-sm">{format(new Date((user as any).ultimo_acesso), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
@@ -144,6 +158,7 @@ const AdminPage = () => {
       </div>
 
       <CreateUserModal open={showModal} onOpenChange={setShowModal} />
+      <EditAdminUserModal open={!!editTarget} onClose={() => setEditTarget(null)} user={editTarget} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>

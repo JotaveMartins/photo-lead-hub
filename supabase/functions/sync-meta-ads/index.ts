@@ -82,14 +82,14 @@ Deno.serve(async (req) => {
       const acc = String(body.ad_account_id);
       accounts = [{ ad_account_id: acc.startsWith("act_") ? acc : `act_${acc}`, client_id: null }];
     } else {
-      const { data: clientes, error } = await supabase
-        .from("clientes")
-        .select("id, meta_ad_account_id")
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select("user_id, meta_ad_account_id")
         .not("meta_ad_account_id", "is", null);
       if (error) throw error;
-      accounts = (clientes || []).map((c: any) => ({
-        ad_account_id: c.meta_ad_account_id.startsWith("act_") ? c.meta_ad_account_id : `act_${c.meta_ad_account_id}`,
-        client_id: c.id,
+      accounts = (profiles || []).map((p: any) => ({
+        ad_account_id: p.meta_ad_account_id.startsWith("act_") ? p.meta_ad_account_id : `act_${p.meta_ad_account_id}`,
+        client_id: p.user_id,
       }));
     }
 
