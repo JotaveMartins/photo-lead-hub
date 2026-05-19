@@ -152,8 +152,7 @@ const AgendaPage = () => {
     }
 
     if (savedId) {
-      const memberIds = responsavelProprio ? [] : selectedTeamIds;
-      await replaceTeam.mutateAsync({ eventId: savedId, memberIds });
+      await replaceTeam.mutateAsync({ eventId: savedId, memberIds: selectedTeamIds });
     }
 
     setIsModalOpen(false);
@@ -667,9 +666,8 @@ const AgendaPage = () => {
                 </div>
                 <Switch checked={responsavelProprio} onCheckedChange={setResponsavelProprio} />
               </div>
-              {!responsavelProprio && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Profissionais escalados</Label>
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">Equipe escalada (além de você, se marcado acima)</Label>
                   {teamMembers.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Nenhum profissional cadastrado.</p>
                   ) : (
@@ -697,8 +695,7 @@ const AgendaPage = () => {
                     <UserPlus className="w-3.5 h-3.5" />
                     Cadastrar novo profissional
                   </Button>
-                </div>
-              )}
+              </div>
             </div>
 
             <div className="flex gap-3 justify-end pt-4">
