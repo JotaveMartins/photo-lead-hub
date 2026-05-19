@@ -1,13 +1,14 @@
- import { useState, useEffect } from "react";
- import { MessageSquare, RefreshCw, Unplug, CheckCircle, AlertCircle, Copy, Save } from "lucide-react";
- import { Button } from "@/components/ui/button";
+  import { useState, useEffect } from "react";
+  import { MessageSquare, RefreshCw, Unplug, CheckCircle, AlertCircle, Copy, Save, Settings } from "lucide-react";
+  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Label } from "@/components/ui/label";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { supabase } from "@/integrations/supabase/client";
- import { toast } from "sonner";
- 
- const WhatsAppConfigPage = () => {
+import { toast } from "sonner";
+import InboxTriggersConfig from "@/components/InboxTriggersConfig";
+
+const WhatsAppConfigPage = () => {
    const [instance, setInstance] = useState<any>({
      name: "",
      instance_key: "",
@@ -273,10 +274,14 @@
                </Button>
              </div>
            </CardContent>
-         </Card>
-       </div>
-     </div>
-   );
+          </Card>
+        </div>
+
+        <div className="mt-8">
+           <InboxTriggersConfig />
+        </div>
+      </div>
+    );
  };
  
  export default WhatsAppConfigPage;
