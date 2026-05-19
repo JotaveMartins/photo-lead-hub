@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, List, ArrowUpDown, HardHat, UserPlus } from "lucide-react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
+import SearchSelect from "@/components/SearchSelect";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -603,16 +604,14 @@ const AgendaPage = () => {
 
             <div className="space-y-2">
               <Label>Serviço</Label>
-              <select
+              <SearchSelect
+                options={services.filter(s => s.ativo).map((s) => ({ value: s.id, label: s.nome }))}
                 value={selectedServiceId}
-                onChange={(e) => handleServiceChange(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">Selecione um serviço</option>
-                {services.filter(s => s.ativo).map((s) => (
-                  <option key={s.id} value={s.id}>{s.nome}</option>
-                ))}
-              </select>
+                onChange={handleServiceChange}
+                placeholder="Selecione um serviço"
+                searchPlaceholder="Buscar serviço..."
+                emptyLabel="Sem serviço"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
