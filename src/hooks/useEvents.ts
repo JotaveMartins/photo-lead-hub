@@ -13,7 +13,7 @@ export const useEvents = () => {
       
       const { data, error } = await supabase
         .from("events")
-        .select("*, clientes(nome), services(nome)")
+        .select("*, clientes(nome, whatsapp), services(nome)")
         .eq("user_id", effectiveUserId)
         .is("deleted_at", null)
         .order("data_evento", { ascending: true });
@@ -35,7 +35,7 @@ export const useDeletedEvents = () => {
       
       const { data, error } = await supabase
         .from("events")
-        .select("*, clientes(nome), services(nome)")
+        .select("*, clientes(nome, whatsapp), services(nome)")
         .eq("user_id", effectiveUserId)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false });
