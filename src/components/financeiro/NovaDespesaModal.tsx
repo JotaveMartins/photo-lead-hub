@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import DatePickerField from "@/components/DatePickerField";
+import SearchSelect from "@/components/SearchSelect";
 import { useCreateDespesa, useCreateDespesasBatch, useUpdateDespesa, type DespesaInsert, type PaymentMethod, type DespesaStatus, type Despesa } from "@/hooks/useDespesas";
 import { useEvents } from "@/hooks/useEvents";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
@@ -182,16 +183,24 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
             <Label className="flex items-center gap-2 text-sm">
               📅 Evento (opcional)
             </Label>
-            <select
+            <SearchSelect
               value={eventoId}
-              onChange={(e) => setEventoId(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              <option value="">Nenhum evento</option>
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>{ev.titulo}</option>
-              ))}
-            </select>
+              onChange={setEventoId}
+              placeholder="Nenhum evento"
+              searchPlaceholder="Buscar evento..."
+              emptyLabel="Nenhum evento"
+              options={events.map((ev: any) => {
+                const clienteNome: string | undefined = ev.clientes?.nome;
+                const primeiroNome = clienteNome ? clienteNome.split(" ")[0] : "";
+                const whatsapp: string | undefined = ev.clientes?.whatsapp;
+                const parts = [primeiroNome, whatsapp].filter(Boolean);
+                return {
+                  value: ev.id,
+                  label: ev.titulo,
+                  hint: parts.length ? `(${parts.join(" · ")})` : null,
+                };
+              })}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3 rounded-lg border border-border p-3">
@@ -216,28 +225,29 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
 
           <div className="space-y-2 rounded-lg border border-border p-3">
             <Label>Categoria *</Label>
-            <select
+            <SearchSelect
               value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              {CATEGORIAS.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+              onChange={(v) => setCategoria(v || "Outros")}
+              placeholder="Selecione"
+              searchPlaceholder="Buscar categoria..."
+              allowEmpty={false}
+              options={CATEGORIAS.map((cat) => ({ value: cat, label: cat }))}
+            />
             {categoria === "Freelancer" && (
               <div className="space-y-1 pt-2">
                 <Label className="text-xs text-muted-foreground">Profissional</Label>
-                <select
+                <SearchSelect
                   value={teamMemberId}
-                  onChange={(e) => setTeamMemberId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  <option value="">Selecione um profissional</option>
-                  {teamMembers.map((m) => (
-                    <option key={m.id} value={m.id}>{m.nome}{m.funcao ? ` — ${m.funcao}` : ""}</option>
-                  ))}
-                </select>
+                  onChange={setTeamMemberId}
+                  placeholder="Selecione um profissional"
+                  searchPlaceholder="Buscar profissional..."
+                  emptyLabel="Nenhum"
+                  options={teamMembers.map((m) => ({
+                    value: m.id,
+                    label: m.nome,
+                    hint: m.funcao || null,
+                  }))}
+                />
                 {teamMembers.length === 0 && (
                   <p className="text-xs text-muted-foreground">Cadastre profissionais na seção Equipe.</p>
                 )}
@@ -247,27 +257,28 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
 
           <div className="space-y-2 rounded-lg border border-border p-3">
             <Label>Forma de Pagamento *</Label>
-            <select
+            <SearchSelect
               value={formaPagamento}
-              onChange={(e) => setFormaPagamento(e.target.value as PaymentMethod)}
-              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              {PAYMENT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+              onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
+              placeholder="Selecione"
+              searchPlaceholder="Buscar..."
+              allowEmpty={false}
+              options={PAYMENT_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+            />
           </div>
 
           <div className="space-y-2 rounded-lg border border-border p-3">
             <Label>Status</Label>
-            <select
+            <SearchSelect
               value={status}
-              onChange={(e) => setStatus(e.target.value as DespesaStatus)}
-              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              <option value="paga">Paga</option>
-              <option value="prevista">Prevista</option>
-            </select>
+              onChange={(v) => setStatus((v || "paga") as DespesaStatus)}
+              placeholder="Selecione"
+              allowEmpty={false}
+              options={[
+                { value: "paga", label: "Paga" },
+                { value: "prevista", label: "Prevista" },
+              ]}
+            />
           </div>
 
           <div className="space-y-2 rounded-lg border border-border p-3">
