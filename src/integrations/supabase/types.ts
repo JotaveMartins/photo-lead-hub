@@ -393,6 +393,127 @@ export type Database = {
           },
         ]
       }
+      inbox_conversations: {
+        Row: {
+          assigned_to: string | null
+          contact_name: string | null
+          contact_number: string
+          created_at: string
+          id: string
+          is_group: boolean | null
+          last_message: string | null
+          lead_id: string | null
+          status: Database["public"]["Enums"]["inbox_status"]
+          unread_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          contact_name?: string | null
+          contact_number: string
+          created_at?: string
+          id?: string
+          is_group?: boolean | null
+          last_message?: string | null
+          lead_id?: string | null
+          status?: Database["public"]["Enums"]["inbox_status"]
+          unread_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          contact_name?: string | null
+          contact_number?: string
+          created_at?: string
+          id?: string
+          is_group?: boolean | null
+          last_message?: string | null
+          lead_id?: string | null
+          status?: Database["public"]["Enums"]["inbox_status"]
+          unread_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbox_messages: {
+        Row: {
+          body: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          id: string
+          read: boolean | null
+          timestamp: string | null
+          user_id: string
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: string
+          id?: string
+          read?: boolean | null
+          timestamp?: string | null
+          user_id: string
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          read?: boolean | null
+          timestamp?: string | null
+          user_id?: string
+          whatsapp_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "inbox_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbox_triggers: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          keyword: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          keyword: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          keyword?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       interesse_options: {
         Row: {
           created_at: string
@@ -1119,6 +1240,7 @@ export type Database = {
       cobranca_status: "aguardando" | "paga" | "vencida"
       cobranca_tipo: "unica" | "parcela" | "recorrente"
       despesa_status: "paga" | "prevista"
+      inbox_status: "pending_ai" | "open" | "closed"
       lead_status:
         | "Novo Lead"
         | "Contato Iniciado"
@@ -1260,6 +1382,7 @@ export const Constants = {
       cobranca_status: ["aguardando", "paga", "vencida"],
       cobranca_tipo: ["unica", "parcela", "recorrente"],
       despesa_status: ["paga", "prevista"],
+      inbox_status: ["pending_ai", "open", "closed"],
       lead_status: [
         "Novo Lead",
         "Contato Iniciado",
