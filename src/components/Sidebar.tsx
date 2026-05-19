@@ -17,7 +17,8 @@ import {
   HardHat,
    Megaphone,
    Bot,
-   MessageSquare
+  MessageSquare,
+  Inbox
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +59,7 @@ const financeiroSubItems = [
  ];
 
  const configMenuItems = [
+   { id: 'inbox', label: 'Inbox', icon: Inbox },
    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
    { id: 'ia', label: 'IA', icon: Bot },
  ];

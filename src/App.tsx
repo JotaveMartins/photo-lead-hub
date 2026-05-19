@@ -26,7 +26,8 @@ import PacotesPage from "./pages/PacotesPage";
 import AgendaPage from "./pages/AgendaPage";
 import EquipePage from "./pages/EquipePage";
 import AnunciosPage from "./pages/AnunciosPage";
-import { BarChart3, Wrench, Package, Calendar, DollarSign, FileText } from "lucide-react";
+import InboxPage from "./pages/InboxPage";
+import { BarChart3, Wrench, Package, Calendar, DollarSign, FileText, Inbox } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const AppRoutes = () => {
       <Route path="/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
       <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
        <Route path="/equipe" element={<ProtectedRoute><EquipePage /></ProtectedRoute>} />
+       <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
        <Route path="/ia" element={<ProtectedRoute><IAPage /></ProtectedRoute>} />
        <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppConfigPage /></ProtectedRoute>} />
       <Route path="/anuncios" element={<ProtectedRoute adminOnly><AnunciosPage /></ProtectedRoute>} />
