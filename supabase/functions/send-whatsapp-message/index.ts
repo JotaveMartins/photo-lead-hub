@@ -53,15 +53,22 @@
        if (content) body.caption = content;
      }
  
-     // 3. Send to Evolution API
-     const response = await fetch(`${instance.base_url}${endpoint}`, {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-         "apikey": instance.api_key
-       },
-       body: JSON.stringify(body)
-     });
+    // 3. Send to Evolution API
+    const finalBaseUrl = (instance.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+    const finalApiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY");
+
+    if (!finalBaseUrl || !finalApiKey) {
+      throw new Error("Evolution API not configured (Base URL or API Key missing)");
+    }
+
+    const response = await fetch(`${finalBaseUrl}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": finalApiKey
+      },
+      body: JSON.stringify(body)
+    });
  
      const result = await response.json();
      if (!response.ok) throw new Error(`Evolution API error: ${JSON.stringify(result)}`);
