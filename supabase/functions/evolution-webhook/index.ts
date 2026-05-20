@@ -109,8 +109,8 @@ Deno.serve(async (req) => {
       if (msgError) throw msgError;
 
       // 4. Trigger logic for new inbound messages
-      if (!key.fromMe) {
-        // A. Check for triggers (Auto-create lead)
+      if (!key.fromMe && !isGroup) {
+        // A. Check for triggers → auto-create lead (Novo Lead)
         const { data: triggers } = await supabase
           .from("inbox_triggers")
           .select("keyword")
@@ -118,44 +118,35 @@ Deno.serve(async (req) => {
           .eq("active", true);
 
         const hasTrigger = triggers?.some(t => content.toLowerCase().includes(t.keyword.toLowerCase()));
-        
+
         if (hasTrigger && !conversation.lead_id) {
-          // Create Lead
           const { data: lead } = await supabase
             .from("leads")
             .insert({
               nome: conversation.contact_name || `Lead ${whatsapp}`,
               whatsapp: whatsapp,
-              status: "Contato Iniciado",
+              status: "Novo Lead",
               origem: "WhatsApp Inbox",
               user_id: userId
             })
             .select()
             .single();
-          
           if (lead) {
-            await supabase
-              .from("inbox_conversations")
-              .update({ lead_id: lead.id })
-              .eq("id", conversation.id);
+            await supabase.from("inbox_conversations").update({ lead_id: lead.id }).eq("id", conversation.id);
+            conversation.lead_id = lead.id;
           }
         }
 
-        // B. Trigger AI if status is pending_ai
+        // B. Trigger AI if conversation still pending_ai
         if (conversation.status === 'pending_ai') {
-          // Trigger ai-reply (we'll need to adapt ai-reply or create a new one for inbox)
-          // For now, let's keep it simple and just log or use existing if compatible
-          // Existing ai-reply uses lead_id, so we need a lead_id if possible
-          if (conversation.lead_id) {
-            fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ lead_id: conversation.lead_id, message_id: savedMsg.id })
-            }).catch(err => console.error("Error triggering AI reply:", err));
-          }
+          fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ conversation_id: conversation.id })
+          }).catch(err => console.error("Error triggering AI reply:", err));
         }
       }
     } else if (event === "connection.update") {
