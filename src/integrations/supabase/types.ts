@@ -424,6 +424,7 @@ export type Database = {
           contact_number: string
           created_at: string
           id: string
+          instance_id: string | null
           is_group: boolean | null
           last_message: string | null
           lead_id: string | null
@@ -438,6 +439,7 @@ export type Database = {
           contact_number: string
           created_at?: string
           id?: string
+          instance_id?: string | null
           is_group?: boolean | null
           last_message?: string | null
           lead_id?: string | null
@@ -452,6 +454,7 @@ export type Database = {
           contact_number?: string
           created_at?: string
           id?: string
+          instance_id?: string | null
           is_group?: boolean | null
           last_message?: string | null
           lead_id?: string | null
