@@ -80,11 +80,13 @@ export const useSendInboxMessage = () => {
     onMutate: async (newMessage) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["inbox_messages", newMessage.conversationId] });
+      await queryClient.cancelQueries({ queryKey: ["inbox_conversations"] });
 
-      // Snapshot the previous value
+      // Snapshot the previous values
       const previousMessages = queryClient.getQueryData<any[]>(["inbox_messages", newMessage.conversationId]);
+      const previousConversations = queryClient.getQueryData<any[]>(["inbox_conversations"]);
 
-      // Optimistically update to the new value
+      // Optimistically update messages
       queryClient.setQueryData<any[]>(["inbox_messages", newMessage.conversationId], (old = []) => [
         ...old,
         {
@@ -97,10 +99,19 @@ export const useSendInboxMessage = () => {
         }
       ]);
 
-      return { previousMessages };
+      // Optimistically update conversation last message and status
+      queryClient.setQueryData<any[]>(["inbox_conversations"], (old = []) => 
+        old.map(conv => conv.id === newMessage.conversationId 
+          ? { ...conv, last_message: newMessage.text, status: 'open', updated_at: new Date().toISOString() } 
+          : conv
+        )
+      );
+
+      return { previousMessages, previousConversations };
     },
     onError: (err, newMessage, context) => {
       queryClient.setQueryData(["inbox_messages", newMessage.conversationId], context?.previousMessages);
+      queryClient.setQueryData(["inbox_conversations"], context?.previousConversations);
       toast.error("Erro ao enviar mensagem.");
     },
     mutationFn: async ({ conversationId, number, text, instanceId }: { conversationId: string; number: string; text: string; instanceId: string }) => {
