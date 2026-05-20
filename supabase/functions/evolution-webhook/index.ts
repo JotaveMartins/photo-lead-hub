@@ -21,11 +21,12 @@ Deno.serve(async (req) => {
     // Find the user_id associated with this instance
     const { data: instanceData } = await supabase
       .from("whatsapp_instances")
-      .select("user_id")
+      .select("id, user_id")
       .eq("name", instanceName)
       .maybeSingle();
 
     const userId = instanceData?.user_id;
+    const instanceId = instanceData?.id;
     if (!userId) {
       console.error(`No user found for instance: ${instanceName}`);
       return new Response(JSON.stringify({ error: "Instance user not found" }), { status: 404 });
@@ -63,6 +64,7 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("user_id", userId)
         .eq("contact_number", whatsapp)
+        .eq("instance_id", instanceId)
         .maybeSingle();
 
       if (!conversation) {
@@ -75,7 +77,8 @@ Deno.serve(async (req) => {
             is_group: isGroup,
             status: 'pending_ai',
             last_message: content,
-            unread_count: key.fromMe ? 0 : 1
+            unread_count: key.fromMe ? 0 : 1,
+            instance_id: instanceId
           })
           .select()
           .single();
