@@ -82,17 +82,6 @@ Deno.serve(async (req) => {
 
         const createData = await createResp.json();
         qrcode = createData?.qrcode?.base64 || createData?.base64;
-
-        const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-webhook`;
-        await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "apikey": apiKey },
-          body: JSON.stringify({
-            url: webhookUrl,
-            enabled: true,
-            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"]
-          })
-        });
       } else {
         const stateData = await stateResp.json();
         if (stateData?.instance?.state === "open") {
@@ -106,6 +95,33 @@ Deno.serve(async (req) => {
         const connectData = await connectResp.json();
         qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code;
       }
+
+      // Always (re)configure webhook — covers instances created before webhook code existed
+      const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-webhook`;
+      const events = ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"];
+      // Evolution API v2 expects payload wrapped in { webhook: {...} }
+      const whResp = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": apiKey },
+        body: JSON.stringify({
+          webhook: {
+            enabled: true,
+            url: webhookUrl,
+            webhookByEvents: false,
+            webhookBase64: false,
+            events,
+          }
+        })
+      });
+      if (!whResp.ok) {
+        // Fallback to flat payload (older Evolution versions)
+        await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": apiKey },
+          body: JSON.stringify({ url: webhookUrl, enabled: true, events })
+        });
+      }
+      console.log("Webhook configured for", instanceName, "→", webhookUrl, "status:", whResp.status);
 
       const updateQuery = supabase.from("whatsapp_instances")
         .update({ instance_key: instanceName, status: "connecting" });
