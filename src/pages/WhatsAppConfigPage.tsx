@@ -270,6 +270,11 @@ const WhatsAppConfigPage = () => {
                         <Power className="w-4 h-4" /> Desconectar
                       </Button>
                     )}
+                    {connected && (
+                      <Button variant="outline" onClick={() => handleReconfigureWebhook(inst)} disabled={busy[inst.id]} className="gap-2 col-span-2">
+                        <RefreshCw className="w-4 h-4" /> Reconfigurar webhook
+                      </Button>
+                    )}
                     {instances.length > 1 && (
                       <Button variant="outline" className="gap-2"
                         onClick={() => { setTransferFrom(inst); setTransferTarget(""); }}>
