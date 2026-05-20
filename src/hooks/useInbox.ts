@@ -77,8 +77,44 @@ export const useSendInboxMessage = () => {
   const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
+    onMutate: async (newMessage) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["inbox_messages", newMessage.conversationId] });
+      await queryClient.cancelQueries({ queryKey: ["inbox_conversations"] });
+
+      // Snapshot the previous values
+      const previousMessages = queryClient.getQueryData<any[]>(["inbox_messages", newMessage.conversationId]);
+      const previousConversations = queryClient.getQueryData<any[]>(["inbox_conversations"]);
+
+      // Optimistically update messages
+      queryClient.setQueryData<any[]>(["inbox_messages", newMessage.conversationId], (old = []) => [
+        ...old,
+        {
+          id: Math.random().toString(36).substring(7),
+          conversation_id: newMessage.conversationId,
+          body: newMessage.text,
+          direction: 'outbound',
+          timestamp: new Date().toISOString(),
+          read: true
+        }
+      ]);
+
+      // Optimistically update conversation last message and status
+      queryClient.setQueryData<any[]>(["inbox_conversations"], (old = []) => 
+        old.map(conv => conv.id === newMessage.conversationId 
+          ? { ...conv, last_message: newMessage.text, status: 'open', updated_at: new Date().toISOString() } 
+          : conv
+        )
+      );
+
+      return { previousMessages, previousConversations };
+    },
+    onError: (err, newMessage, context) => {
+      queryClient.setQueryData(["inbox_messages", newMessage.conversationId], context?.previousMessages);
+      queryClient.setQueryData(["inbox_conversations"], context?.previousConversations);
+      toast.error("Erro ao enviar mensagem.");
+    },
     mutationFn: async ({ conversationId, number, text, instanceId }: { conversationId: string; number: string; text: string; instanceId: string }) => {
-      // 1. Send via Edge Function
       const { data, error: functionError } = await supabase.functions.invoke('send-whatsapp-message', {
         body: {
           instance_id: instanceId,
@@ -92,9 +128,6 @@ export const useSendInboxMessage = () => {
 
       if (functionError) throw functionError;
 
-      // 2. Save locally in inbox_messages (the edge function might save to 'messages' table, but we need 'inbox_messages')
-      // Note: In a real sync, the webhook would bring this back, but for UI responsiveness we can insert or let webhook handle it.
-      // Based on specs, we insert manually here.
       const { error: insertError } = await supabase
         .from("inbox_messages")
         .insert({

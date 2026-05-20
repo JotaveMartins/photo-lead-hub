@@ -51,6 +51,14 @@ Deno.serve(async (req) => {
       const remoteJid = key.remoteJid;
       const whatsapp = remoteJid.split("@")[0];
       const isGroup = remoteJid.endsWith("@g.us");
+      
+      if (isGroup) {
+        console.log("Skipping group message:", remoteJid);
+        return new Response(JSON.stringify({ success: true, message: "Group message ignored" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      
       const pushName = data.pushName || "";
 
       // 1. Determine message content
