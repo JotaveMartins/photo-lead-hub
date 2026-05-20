@@ -73,27 +73,37 @@ const InboxPage = () => {
       return;
     }
 
+    const currentText = messageText;
+    setMessageText("");
+
     try {
       await sendMessage.mutateAsync({
         conversationId: selectedConv.id,
         number: selectedConv.contact_number,
-        text: messageText,
+        text: currentText,
         instanceId: activeInstance.id
       });
-      setMessageText("");
     } catch (error) {
       console.error(error);
       toast.error("Erro ao enviar mensagem.");
+      setMessageText(currentText); // Restore if failed
     }
   };
 
-  // Auto-pause AI when human opens a pending_ai conversation
+  const handleOpenAtendimento = async () => {
+    if (!selectedConv) return;
+    await updateConv.mutateAsync({ id: selectedConv.id, status: 'open' });
+    toast.success("Atendimento aberto.");
+  };
+
+  // Removed auto-pause AI on click
+  /*
   useEffect(() => {
     if (selectedConv && selectedConv.status === 'pending_ai') {
       updateConv.mutate({ id: selectedConv.id, status: 'open' });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversationId]);
+  */
 
   const handleReturnToAI = async () => {
     if (!selectedConv) return;
@@ -294,7 +304,13 @@ const InboxPage = () => {
                     </>
                   )}
                   {selectedConv.status === 'pending_ai' && (
-                    <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50"><Bot className="w-3 h-3 mr-1" /> IA respondendo</Badge>
+                    <Button 
+                      onClick={handleOpenAtendimento}
+                      size="sm"
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <Play className="w-4 h-4 mr-1" /> Abrir Atendimento
+                    </Button>
                   )}
                 </div>
               </div>

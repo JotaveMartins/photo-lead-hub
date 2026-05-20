@@ -73,23 +73,30 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     const number = (conv?.contact_number || leadWhatsapp || "").replace(/\D/g, "");
     if (!number) { toast.error("Sem número de WhatsApp."); return; }
     if (!activeInstance) { toast.error("Nenhuma instância de WhatsApp conectada."); return; }
-    if (!conv?.id) {
-      // create conversation on the fly
-      const { data: user } = await supabase.auth.getUser();
-      const { data: newConv } = await supabase.from("inbox_conversations").insert({
-        user_id: user.user!.id,
-        contact_number: number,
-        lead_id: leadId,
-        status: "open",
-        last_message: text,
-      }).select().single();
-      if (!newConv) { toast.error("Erro ao criar conversa"); return; }
-      await sendMessage.mutateAsync({ conversationId: newConv.id, number, text, instanceId: activeInstance.id });
-      queryClient.invalidateQueries({ queryKey: ["lead-conversation", leadId] });
-    } else {
-      await sendMessage.mutateAsync({ conversationId: conv.id, number, text, instanceId: activeInstance.id });
-    }
+    
+    const currentText = text;
     setText("");
+
+    try {
+      if (!conv?.id) {
+        const { data: user } = await supabase.auth.getUser();
+        const { data: newConv } = await supabase.from("inbox_conversations").insert({
+          user_id: user.user!.id,
+          contact_number: number,
+          lead_id: leadId,
+          status: "open",
+          last_message: currentText,
+        }).select().single();
+        if (!newConv) { toast.error("Erro ao criar conversa"); return; }
+        await sendMessage.mutateAsync({ conversationId: newConv.id, number, text: currentText, instanceId: activeInstance.id });
+        queryClient.invalidateQueries({ queryKey: ["lead-conversation", leadId] });
+      } else {
+        await sendMessage.mutateAsync({ conversationId: conv.id, number, text: currentText, instanceId: activeInstance.id });
+      }
+    } catch (error) {
+      console.error(error);
+      setText(currentText);
+    }
   };
 
   const toggleAI = async () => {
