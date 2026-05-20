@@ -56,7 +56,66 @@ Deno.serve(async (req) => {
     if (action === "create-or-get-qr") {
       console.log(`Action: create-or-get-qr for ${instanceName}`);
 
-    } else if (false) { /* placeholder */ }
+      // 1. Check if instance exists
+      const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+        headers: { apikey: apiKey },
+      });
+
+      let qrcode = null;
+
+      if (stateResp.status === 404) {
+        console.log("Instance not found, creating...");
+        const createResp = await fetch(`${baseUrl}/instance/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": apiKey },
+          body: JSON.stringify({
+            instanceName,
+            qrcode: true,
+            integration: "WHATSAPP-BAILEYS",
+          }),
+        });
+
+        if (!createResp.ok) {
+          const errData = await createResp.json();
+          throw new Error(`Failed to create instance: ${JSON.stringify(errData)}`);
+        }
+
+        const createData = await createResp.json();
+        qrcode = createData?.qrcode?.base64 || createData?.base64;
+
+        const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-webhook`;
+        await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": apiKey },
+          body: JSON.stringify({
+            url: webhookUrl,
+            enabled: true,
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"]
+          })
+        });
+      } else {
+        const stateData = await stateResp.json();
+        if (stateData?.instance?.state === "open") {
+          return new Response(JSON.stringify({ status: "connected" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        const connectResp = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+          headers: { apikey: apiKey },
+        });
+        const connectData = await connectResp.json();
+        qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code;
+      }
+
+      await supabase.from("whatsapp_instances")
+        .update({ instance_key: instanceName, status: "connecting" })
+        .eq("user_id", user.id);
+
+      return new Response(JSON.stringify({ qrcode, status: "connecting" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     if (action === "check-status") {
       const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
         headers: { apikey: apiKey },
@@ -87,17 +146,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
-    if (action === "create-or-get-qr-DUPLICATE_NEVER") {
-      
-      // 1. Check if instance exists
-      const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
-        headers: { apikey: apiKey },
-      });
-
-      let qrcode = null;
-
-      if (stateResp.status === 404) {
-        console.log("Instance not found, creating...");
         // Create it
         const createResp = await fetch(`${baseUrl}/instance/create`, {
           method: "POST",
