@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { UserPlus, Trash2, Copy, Check, LogIn, Settings } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EvolutionSettingsCard from "@/components/admin/EvolutionSettingsCard";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -23,6 +25,9 @@ const AdminPage = () => {
   const { startImpersonation } = useImpersonation();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const SUPER_ADMIN_EMAIL = "avanzosolucoesdigitais@gmail.com";
+  const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -46,9 +51,9 @@ const AdminPage = () => {
     navigate("/leads");
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+  const clientesContent = (
+    <>
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Clientes</h1>
           <p className="text-muted-foreground">Gerencie as contas dos seus clientes</p>
@@ -156,6 +161,29 @@ const AdminPage = () => {
           </TableBody>
         </Table>
       </div>
+    </>
+  );
+
+  return (
+    <div className="space-y-6">
+      <Tabs defaultValue="clientes" className="w-full">
+        <TabsList>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          {isSuperAdmin && <TabsTrigger value="configuracoes">Configurações</TabsTrigger>}
+        </TabsList>
+        <TabsContent value="clientes" className="mt-6">
+          {clientesContent}
+        </TabsContent>
+        {isSuperAdmin && (
+          <TabsContent value="configuracoes" className="mt-6 space-y-6">
+            <div>
+              <h1 className="text-2xl font-display font-bold text-foreground">Configurações</h1>
+              <p className="text-muted-foreground">Configurações globais do sistema (super admin).</p>
+            </div>
+            <EvolutionSettingsCard />
+          </TabsContent>
+        )}
+      </Tabs>
 
       <CreateUserModal open={showModal} onOpenChange={setShowModal} />
       <EditAdminUserModal open={!!editTarget} onClose={() => setEditTarget(null)} user={editTarget} />
