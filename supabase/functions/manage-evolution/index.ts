@@ -229,6 +229,31 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "set-webhook") {
+      const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-webhook`;
+      const events = ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"];
+      const whResp = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": apiKey },
+        body: JSON.stringify({
+          webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: false, events }
+        })
+      });
+      let body = await whResp.text();
+      if (!whResp.ok) {
+        const fallback = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": apiKey },
+          body: JSON.stringify({ url: webhookUrl, enabled: true, events })
+        });
+        body = await fallback.text();
+        if (!fallback.ok) throw new Error(`Webhook set failed: ${body}`);
+      }
+      return new Response(JSON.stringify({ ok: true, webhookUrl, response: body }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400 });
 
   } catch (err) {
