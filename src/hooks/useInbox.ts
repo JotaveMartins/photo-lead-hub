@@ -82,9 +82,10 @@ export const useSendInboxMessage = () => {
       const { data, error: functionError } = await supabase.functions.invoke('send-whatsapp-message', {
         body: {
           instance_id: instanceId,
+          phone_number: number,
           type: 'text',
           content: text,
-          lead_id: null, // We'll handle internal linking or pass lead_id if exists
+          lead_id: null,
           sent_by: 'human'
         }
       });
