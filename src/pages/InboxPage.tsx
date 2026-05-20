@@ -77,6 +77,10 @@ const InboxPage = () => {
     setMessageText("");
 
     try {
+      if (selectedConv.status === 'pending_ai') {
+        await updateConv.mutateAsync({ id: selectedConv.id, status: 'open' });
+      }
+
       await sendMessage.mutateAsync({
         conversationId: selectedConv.id,
         number: selectedConv.contact_number,
