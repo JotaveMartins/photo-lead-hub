@@ -33,6 +33,26 @@ Deno.serve(async (req) => {
       throw new Error("Evolution API URL or Key not configured. Set them under Admin → Configurações.");
     }
 
+    if (action === "test-connection") {
+      const resp = await fetch(`${baseUrl}/instance/fetchInstances`, {
+        headers: { apikey: apiKey },
+      });
+      const text = await resp.text();
+      let parsed: any = null;
+      try { parsed = JSON.parse(text); } catch { /* ignore */ }
+      if (!resp.ok) {
+        return new Response(
+          JSON.stringify({ ok: false, status: resp.status, error: parsed?.message || text.slice(0, 300) }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const count = Array.isArray(parsed) ? parsed.length : 0;
+      return new Response(
+        JSON.stringify({ ok: true, status: resp.status, instances: count, baseUrl }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "create-or-get-qr") {
       console.log(`Action: create-or-get-qr for ${instanceName}`);
       
