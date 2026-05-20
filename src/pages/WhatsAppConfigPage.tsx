@@ -18,7 +18,27 @@ const WhatsAppConfigPage = () => {
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
-    fetchInstance();
+    const channel = supabase
+      .channel('whatsapp_instances_changes')
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'whatsapp_instances' }, 
+        (payload) => {
+          const { data: { user } } = supabase.auth.getUser().then(({ data }) => {
+            if (data.user && payload.new.user_id === data.user.id) {
+              setInstance(payload.new);
+              if (payload.new.status === 'connected') {
+                setQrCode(null);
+                toast.success("WhatsApp conectado com sucesso!");
+              }
+            }
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchInstance = async () => {
