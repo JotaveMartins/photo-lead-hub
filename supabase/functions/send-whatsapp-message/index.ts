@@ -62,8 +62,14 @@
      }
  
     // 3. Send to Evolution API
-    const finalBaseUrl = (instance.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
-    const finalApiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY");
+    const { data: settingsRow } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "evolution")
+      .maybeSingle();
+    const settings: any = settingsRow?.value || {};
+    const finalBaseUrl = (instance.base_url || settings.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+    const finalApiKey = instance.api_key || settings.api_key || Deno.env.get("EVOLUTION_API_KEY");
 
     if (!finalBaseUrl || !finalApiKey) {
       throw new Error("Evolution API not configured (Base URL or API Key missing)");
