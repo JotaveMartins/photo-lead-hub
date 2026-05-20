@@ -1,18 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { 
-  Inbox as InboxIcon, 
-  Search, 
-  Filter, 
-  Send, 
-  UserPlus, 
-  CheckCircle2, 
-  Pause, 
-  Play,
-  User,
-  ArrowLeft,
-  MessageSquare,
-  Bot
-} from "lucide-react";
+import { Inbox as InboxIcon, Search, Filter, Send, UserPlus, User, MessageSquare, Bot, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +19,8 @@ import { ptBR } from "date-fns/locale";
 import { useCreateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const InboxPage = () => {
   const [activeStatus, setActiveStatus] = useState<InboxStatus>('pending_ai');
@@ -40,6 +29,7 @@ const InboxPage = () => {
   const [messageText, setMessageText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: conversations = [], isLoading: loadingConvs } = useInboxConversations(activeStatus);
   const { data: messages = [], isLoading: loadingMsgs } = useInboxMessages(selectedConversationId || undefined);
@@ -56,6 +46,21 @@ const InboxPage = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Realtime subscription: new inbox messages and conversation updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('inbox-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_messages' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['inbox_messages'] });
+        queryClient.invalidateQueries({ queryKey: ['inbox_conversations'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_conversations' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['inbox_conversations'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const filteredConversations = conversations.filter(c => 
     (c.contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -82,13 +87,18 @@ const InboxPage = () => {
     }
   };
 
-  const handleAssume = async () => {
+  // Auto-pause AI when human opens a pending_ai conversation
+  useEffect(() => {
+    if (selectedConv && selectedConv.status === 'pending_ai') {
+      updateConv.mutate({ id: selectedConv.id, status: 'open' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConversationId]);
+
+  const handleReturnToAI = async () => {
     if (!selectedConv) return;
-    await updateConv.mutateAsync({
-      id: selectedConv.id,
-      status: 'open'
-    });
-    toast.success("Você assumiu este atendimento.");
+    await updateConv.mutateAsync({ id: selectedConv.id, status: 'pending_ai' });
+    toast.success("IA reativada para esta conversa.");
   };
 
   const handleClose = async () => {
@@ -270,24 +280,21 @@ const InboxPage = () => {
                     </Button>
                   )}
 
-                  {selectedConv.status === 'pending_ai' && (
-                    <Button 
-                      onClick={handleAssume}
-                      className="bg-green-500 hover:bg-green-600 text-white"
-                      size="sm"
-                    >
-                      Assumir
-                    </Button>
-                  )}
-                  
                   {selectedConv.status === 'open' && (
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={handleClose}
-                    >
-                      Encerrar
-                    </Button>
+                    <>
+                      <Button
+                        onClick={handleReturnToAI}
+                        size="sm"
+                        className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50"
+                        variant="outline"
+                      >
+                        <Play className="w-4 h-4 mr-1" /> Voltar para IA
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleClose}>Encerrar</Button>
+                    </>
+                  )}
+                  {selectedConv.status === 'pending_ai' && (
+                    <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50"><Bot className="w-3 h-3 mr-1" /> IA respondendo</Badge>
                   )}
                 </div>
               </div>
