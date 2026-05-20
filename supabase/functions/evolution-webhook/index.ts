@@ -16,7 +16,12 @@ Deno.serve(async (req) => {
     );
 
     const payload = await req.json();
-    const { event, data, instance: instanceName } = payload;
+    const rawEvent: string = payload.event || "";
+    // Normalize event: "MESSAGES_UPSERT" / "messages.upsert" → "messages.upsert"
+    const event = rawEvent.toLowerCase().replace(/_/g, ".");
+    const data = payload.data;
+    const instanceName = payload.instance || payload.instanceName;
+    console.log("Webhook received:", { event, instanceName });
 
     // Find the user_id associated with this instance
     const { data: instanceData } = await supabase
