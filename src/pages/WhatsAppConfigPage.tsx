@@ -42,6 +42,27 @@ const WhatsAppConfigPage = () => {
     };
   }, []);
 
+  // Poll Evolution while a QR code is being shown to detect connection
+  useEffect(() => {
+    if (!qrCode || !instance?.name) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase.functions.invoke('manage-evolution', {
+          body: { action: 'check-status', instanceName: instance.name }
+        });
+        if (cancelled) return;
+        if (data?.status === 'connected') {
+          setQrCode(null);
+          setInstance((prev: any) => ({ ...prev, status: 'connected', phone_number: data.phoneNumber || prev.phone_number }));
+          toast.success("WhatsApp conectado com sucesso!");
+          fetchInstance();
+        }
+      } catch (e) { /* ignore */ }
+    }, 3000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [qrCode, instance?.name]);
+
   const fetchInstance = async () => {
     setLoading(true);
     try {
@@ -178,25 +199,26 @@ const WhatsAppConfigPage = () => {
             </CardTitle>
             <CardDescription>
               {instance.status === 'connected' 
-                ? "Sua conta está conectada e pronta para uso." 
+                ? (instance.phone_number ? `Número conectado: +${instance.phone_number}` : "Sua conta está conectada e pronta para uso.")
                 : "Clique abaixo para gerar o QR Code e conectar."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center min-h-[250px] space-y-4">
-            {qrCode ? (
+            {instance.status === 'connected' ? (
+              <div className="w-48 h-48 bg-muted rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-green-500/40 text-center p-4 gap-2">
+                <CheckCircle className="w-12 h-12 text-green-500" />
+                <p className="text-xs text-muted-foreground">Aparelho conectado</p>
+                {instance.phone_number && (
+                  <p className="text-sm font-semibold text-foreground">+{instance.phone_number}</p>
+                )}
+              </div>
+            ) : qrCode ? (
               <div className="bg-white p-4 rounded-lg shadow-inner">
                 <img src={qrCode} alt="QR Code" className="w-48 h-48" />
               </div>
             ) : (
               <div className="w-48 h-48 bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-border text-muted-foreground text-center p-4">
-                {instance.status === 'connected' ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Smartphone className="w-12 h-12 text-primary/50" />
-                    <p className="text-xs">Aparelho conectado</p>
-                  </div>
-                ) : (
-                  <p className="text-xs">O QR Code aparecerá aqui após clicar em gerar.</p>
-                )}
+                <p className="text-xs">O QR Code aparecerá aqui após clicar em gerar.</p>
               </div>
             )}
             <Button 
@@ -206,13 +228,8 @@ const WhatsAppConfigPage = () => {
               variant={qrCode ? "outline" : "default"}
             >
               <RefreshCw className={`w-4 h-4 ${connecting ? 'animate-spin' : ''}`} /> 
-              {qrCode ? "Regerar QR Code" : "Gerar QR Code"}
+              {instance.status === 'connected' ? "Trocar número (novo QR)" : qrCode ? "Regerar QR Code" : "Gerar QR Code"}
             </Button>
-            {instance.status === 'connected' && !qrCode && (
-              <p className="text-[10px] text-muted-foreground text-center">
-                Para trocar de número, gere um novo QR Code.
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>

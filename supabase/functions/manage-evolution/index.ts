@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
     if (action === "create-or-get-qr") {
       console.log(`Action: create-or-get-qr for ${instanceName}`);
-      
+
       // 1. Check if instance exists
       const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
         headers: { apikey: apiKey },
@@ -65,7 +65,6 @@ Deno.serve(async (req) => {
 
       if (stateResp.status === 404) {
         console.log("Instance not found, creating...");
-        // Create it
         const createResp = await fetch(`${baseUrl}/instance/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "apikey": apiKey },
@@ -75,36 +74,32 @@ Deno.serve(async (req) => {
             integration: "WHATSAPP-BAILEYS",
           }),
         });
-        
+
         if (!createResp.ok) {
           const errData = await createResp.json();
           throw new Error(`Failed to create instance: ${JSON.stringify(errData)}`);
         }
-        
+
         const createData = await createResp.json();
         qrcode = createData?.qrcode?.base64 || createData?.base64;
 
-        // Set webhook
         const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-webhook`;
         await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "apikey": apiKey },
-          body: JSON.stringify({ 
-            url: webhookUrl, 
-            enabled: true, 
-            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"] 
+          body: JSON.stringify({
+            url: webhookUrl,
+            enabled: true,
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"]
           })
         });
       } else {
         const stateData = await stateResp.json();
         if (stateData?.instance?.state === "open") {
-          return new Response(JSON.stringify({ status: "connected" }), { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          return new Response(JSON.stringify({ status: "connected" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
         }
-
-        console.log("Instance exists but not connected, requesting QR...");
-        // If exists, get QR
         const connectResp = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
           headers: { apikey: apiKey },
         });
@@ -112,8 +107,43 @@ Deno.serve(async (req) => {
         qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code;
       }
 
-      return new Response(JSON.stringify({ qrcode, status: "connecting" }), { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      await supabase.from("whatsapp_instances")
+        .update({ instance_key: instanceName, status: "connecting" })
+        .eq("user_id", user.id);
+
+      return new Response(JSON.stringify({ qrcode, status: "connecting" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (action === "check-status") {
+      const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+        headers: { apikey: apiKey },
+      });
+      if (!stateResp.ok) {
+        return new Response(JSON.stringify({ status: "disconnected" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const stateData = await stateResp.json();
+      const state = stateData?.instance?.state || stateData?.state;
+      let phoneNumber: string | null = null;
+      if (state === "open") {
+        try {
+          const listResp = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`, {
+            headers: { apikey: apiKey },
+          });
+          const listData = await listResp.json();
+          const inst = Array.isArray(listData) ? listData[0] : listData;
+          const ownerJid = inst?.instance?.owner || inst?.ownerJid || inst?.owner || inst?.instance?.ownerJid;
+          if (ownerJid) phoneNumber = String(ownerJid).split("@")[0];
+        } catch (_) { /* ignore */ }
+        await supabase.from("whatsapp_instances")
+          .update({ status: "connected", phone_number: phoneNumber, instance_key: instanceName })
+          .eq("user_id", user.id);
+      }
+      return new Response(JSON.stringify({ status: state === "open" ? "connected" : "connecting", phoneNumber }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
