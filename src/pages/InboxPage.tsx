@@ -77,8 +77,9 @@ const InboxPage = () => {
     setMessageText("");
 
     try {
+      // When sending a message, if it was pending, it moves to open
       if (selectedConv.status === 'pending_ai') {
-        await updateConv.mutateAsync({ id: selectedConv.id, status: 'open' });
+        // Use optimistic update if possible, but the mutation handle that
       }
 
       await sendMessage.mutateAsync({
@@ -207,14 +208,14 @@ const InboxPage = () => {
               {loadingConvs ? (
                 <div className="p-8 text-center text-muted-foreground animate-pulse">Carregando...</div>
               ) : filteredConversations.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">Nenhuma conversa encontrada.</div>
+                <div className="p-8 text-center text-muted-foreground">Nenhuma conversa encontrada em {activeStatus === 'pending_ai' ? 'Pendentes' : activeStatus === 'open' ? 'Abertos' : 'Fechados'}.</div>
               ) : (
                 filteredConversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => setSelectedConversationId(conv.id)}
-                    className={`w-full p-4 flex gap-3 text-left transition-all hover:bg-muted/50 relative group ${selectedConversationId === conv.id ? 'bg-muted shadow-inner' : ''}`}
-                  >
+                    <button
+                      key={conv.id}
+                      onClick={() => setSelectedConversationId(conv.id)}
+                      className={`w-full p-4 flex gap-3 text-left transition-all hover:bg-muted/50 relative group ${selectedConversationId === conv.id ? 'bg-muted shadow-inner' : ''}`}
+                    >
                     {/* Status vertical indicator */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                       conv.status === 'pending_ai' ? 'bg-yellow-500' : 

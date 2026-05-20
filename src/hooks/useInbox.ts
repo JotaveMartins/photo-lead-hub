@@ -109,7 +109,7 @@ export const useSendInboxMessage = () => {
 
       return { previousMessages, previousConversations };
     },
-    onError: (err, newMessage, context) => {
+    onError: (err, newMessage, context: any) => {
       queryClient.setQueryData(["inbox_messages", newMessage.conversationId], context?.previousMessages);
       queryClient.setQueryData(["inbox_conversations"], context?.previousConversations);
       toast.error("Erro ao enviar mensagem.");
