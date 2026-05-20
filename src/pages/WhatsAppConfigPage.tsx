@@ -156,6 +156,22 @@ const WhatsAppConfigPage = () => {
     }
   };
 
+  const handleReconfigureWebhook = async (inst: Instance) => {
+    setBusy(b => ({ ...b, [inst.id]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-evolution", {
+        body: { action: "set-webhook", instanceName: inst.name, instanceId: inst.id }
+      });
+      if (error) throw error;
+      toast.success("Webhook reconfigurado! Envie uma mensagem para testar.");
+      console.log("Webhook resp:", data);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao reconfigurar webhook");
+    } finally {
+      setBusy(b => ({ ...b, [inst.id]: false }));
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-[400px]">Carregando...</div>;
   }
