@@ -48,15 +48,17 @@ const WhatsAppConfigPage = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const instanceToSave = {
+    const instanceToSave: any = {
       name: instance.name,
       user_id: user.id,
       status: instance.status || "disconnected"
     };
 
-    const { error } = await supabase.from("whatsapp_instances").upsert(instanceToSave, {
-      onConflict: 'user_id'
-    });
+    if (instance.id) {
+      instanceToSave.id = instance.id;
+    }
+
+    const { error } = await supabase.from("whatsapp_instances").upsert(instanceToSave);
 
     if (error) {
       toast.error("Erro ao salvar: " + error.message);
