@@ -20,11 +20,17 @@ Deno.serve(async (req) => {
     if (authError || !user) return new Response("Unauthorized", { status: 401 });
 
     const { action, instanceName } = await req.json();
-    const baseUrl = Deno.env.get("EVOLUTION_API_URL")?.replace(/\/+$/, "");
-    const apiKey = Deno.env.get("EVOLUTION_API_KEY");
+    const { data: settingsRow } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "evolution")
+      .maybeSingle();
+    const settings: any = settingsRow?.value || {};
+    const baseUrl = (settings.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+    const apiKey = settings.api_key || Deno.env.get("EVOLUTION_API_KEY");
 
     if (!baseUrl || !apiKey) {
-      throw new Error("Evolution API URL or Key not configured in environment variables.");
+      throw new Error("Evolution API URL or Key not configured. Set them under Admin → Configurações.");
     }
 
     if (action === "create-or-get-qr") {
