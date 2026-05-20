@@ -55,6 +55,39 @@ Deno.serve(async (req) => {
 
     if (action === "create-or-get-qr") {
       console.log(`Action: create-or-get-qr for ${instanceName}`);
+
+    } else if (false) { /* placeholder */ }
+    if (action === "check-status") {
+      const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+        headers: { apikey: apiKey },
+      });
+      if (!stateResp.ok) {
+        return new Response(JSON.stringify({ status: "disconnected" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const stateData = await stateResp.json();
+      const state = stateData?.instance?.state || stateData?.state;
+      let phoneNumber: string | null = null;
+      if (state === "open") {
+        try {
+          const listResp = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`, {
+            headers: { apikey: apiKey },
+          });
+          const listData = await listResp.json();
+          const inst = Array.isArray(listData) ? listData[0] : listData;
+          const ownerJid = inst?.instance?.owner || inst?.ownerJid || inst?.owner || inst?.instance?.ownerJid;
+          if (ownerJid) phoneNumber = String(ownerJid).split("@")[0];
+        } catch (_) { /* ignore */ }
+        await supabase.from("whatsapp_instances")
+          .update({ status: "connected", phone_number: phoneNumber, instance_key: instanceName })
+          .eq("user_id", user.id);
+      }
+      return new Response(JSON.stringify({ status: state === "open" ? "connected" : "connecting", phoneNumber }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    if (action === "create-or-get-qr-DUPLICATE_NEVER") {
       
       // 1. Check if instance exists
       const stateResp = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
