@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) return new Response("Unauthorized", { status: 401 });
 
-    const { action, instanceName } = await req.json();
+    const { action, instanceName, instanceId, targetInstanceId } = await req.json();
     const { data: settingsRow } = await supabase
       .from("app_settings")
       .select("value")
@@ -107,9 +107,11 @@ Deno.serve(async (req) => {
         qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code;
       }
 
-      await supabase.from("whatsapp_instances")
-        .update({ instance_key: instanceName, status: "connecting" })
-        .eq("user_id", user.id);
+      const updateQuery = supabase.from("whatsapp_instances")
+        .update({ instance_key: instanceName, status: "connecting" });
+      if (instanceId) updateQuery.eq("id", instanceId);
+      else updateQuery.eq("user_id", user.id).eq("name", instanceName);
+      await updateQuery;
 
       return new Response(JSON.stringify({ qrcode, status: "connecting" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -138,11 +140,75 @@ Deno.serve(async (req) => {
           const ownerJid = inst?.instance?.owner || inst?.ownerJid || inst?.owner || inst?.instance?.ownerJid;
           if (ownerJid) phoneNumber = String(ownerJid).split("@")[0];
         } catch (_) { /* ignore */ }
-        await supabase.from("whatsapp_instances")
-          .update({ status: "connected", phone_number: phoneNumber, instance_key: instanceName })
-          .eq("user_id", user.id);
+        const upd = supabase.from("whatsapp_instances")
+          .update({ status: "connected", phone_number: phoneNumber, instance_key: instanceName });
+        if (instanceId) upd.eq("id", instanceId);
+        else upd.eq("user_id", user.id).eq("name", instanceName);
+        await upd;
       }
       return new Response(JSON.stringify({ status: state === "open" ? "connected" : "connecting", phoneNumber }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (action === "disconnect") {
+      try {
+        await fetch(`${baseUrl}/instance/logout/${instanceName}`, {
+          method: "DELETE",
+          headers: { apikey: apiKey },
+        });
+      } catch (_) { /* ignore */ }
+      const upd = supabase.from("whatsapp_instances")
+        .update({ status: "disconnected", phone_number: null });
+      if (instanceId) upd.eq("id", instanceId);
+      else upd.eq("user_id", user.id).eq("name", instanceName);
+      await upd;
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (action === "delete") {
+      // Try logout then delete on Evolution
+      try {
+        await fetch(`${baseUrl}/instance/logout/${instanceName}`, {
+          method: "DELETE", headers: { apikey: apiKey },
+        });
+      } catch (_) { /* ignore */ }
+      try {
+        await fetch(`${baseUrl}/instance/delete/${instanceName}`, {
+          method: "DELETE", headers: { apikey: apiKey },
+        });
+      } catch (_) { /* ignore */ }
+
+      // Delete linked inbox conversations + messages
+      if (instanceId) {
+        const { data: convs } = await supabase
+          .from("inbox_conversations").select("id").eq("instance_id", instanceId);
+        const convIds = (convs || []).map((c: any) => c.id);
+        if (convIds.length) {
+          await supabase.from("inbox_messages").delete().in("conversation_id", convIds);
+          await supabase.from("inbox_conversations").delete().in("id", convIds);
+        }
+        await supabase.from("whatsapp_instances").delete().eq("id", instanceId);
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (action === "transfer") {
+      // Move all conversations (and messages via FK) from instanceId -> targetInstanceId
+      if (!instanceId || !targetInstanceId) {
+        throw new Error("instanceId and targetInstanceId are required");
+      }
+      const { error: tErr } = await supabase
+        .from("inbox_conversations")
+        .update({ instance_id: targetInstanceId })
+        .eq("instance_id", instanceId)
+        .eq("user_id", user.id);
+      if (tErr) throw tErr;
+      return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
