@@ -19,6 +19,8 @@ import { ptBR } from "date-fns/locale";
 import { useCreateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const InboxPage = () => {
   const [activeStatus, setActiveStatus] = useState<InboxStatus>('pending_ai');
@@ -27,6 +29,7 @@ const InboxPage = () => {
   const [messageText, setMessageText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: conversations = [], isLoading: loadingConvs } = useInboxConversations(activeStatus);
   const { data: messages = [], isLoading: loadingMsgs } = useInboxMessages(selectedConversationId || undefined);
@@ -43,6 +46,21 @@ const InboxPage = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Realtime subscription: new inbox messages and conversation updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('inbox-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_messages' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['inbox_messages'] });
+        queryClient.invalidateQueries({ queryKey: ['inbox_conversations'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_conversations' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['inbox_conversations'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const filteredConversations = conversations.filter(c => 
     (c.contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
