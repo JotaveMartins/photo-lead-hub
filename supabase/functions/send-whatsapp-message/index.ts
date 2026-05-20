@@ -15,29 +15,37 @@
        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
      );
  
-     const { lead_id, instance_id, type, content, media_base64, media_filename, media_mime_type, sent_by = 'ai' } = await req.json();
- 
-     // 1. Get instance details
-     const { data: instance, error: instError } = await supabase
-       .from("whatsapp_instances")
-       .select("*")
-       .eq("id", instance_id)
-       .single();
- 
-     if (instError || !instance) throw new Error("Instance not found");
- 
-     // 2. Get lead details
-     const { data: lead, error: leadError } = await supabase
-       .from("leads")
-       .select("*")
-       .eq("id", lead_id)
-       .single();
- 
-     if (leadError || !lead) throw new Error("Lead not found");
- 
-     const remoteJid = lead.whatsapp.includes('@') ? lead.whatsapp : `${lead.whatsapp}@s.whatsapp.net`;
-     let endpoint = "";
-     let body: any = { number: remoteJid };
+    const { lead_id, phone_number, instance_id, type, content, media_base64, media_filename, media_mime_type, sent_by = 'ai' } = await req.json();
+
+    // 1. Get instance details
+    const { data: instance, error: instError } = await supabase
+      .from("whatsapp_instances")
+      .select("*")
+      .eq("id", instance_id)
+      .single();
+
+    if (instError || !instance) throw new Error("Instance not found");
+
+    let remoteJid = "";
+    
+    // 2. Get target identifier
+    if (lead_id) {
+      const { data: lead, error: leadError } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", lead_id)
+        .single();
+
+      if (leadError || !lead) throw new Error("Lead not found");
+      remoteJid = lead.whatsapp.includes('@') ? lead.whatsapp : `${lead.whatsapp}@s.whatsapp.net`;
+    } else if (phone_number) {
+      remoteJid = phone_number.includes('@') ? phone_number : `${phone_number}@s.whatsapp.net`;
+    } else {
+      throw new Error("Either lead_id or phone_number must be provided");
+    }
+
+    let endpoint = "";
+    let body: any = { number: remoteJid };
  
      if (type === "text") {
        endpoint = `/message/sendText/${instance.name}`;
