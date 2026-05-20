@@ -15,29 +15,37 @@
        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
      );
  
-     const { lead_id, instance_id, type, content, media_base64, media_filename, media_mime_type, sent_by = 'ai' } = await req.json();
- 
-     // 1. Get instance details
-     const { data: instance, error: instError } = await supabase
-       .from("whatsapp_instances")
-       .select("*")
-       .eq("id", instance_id)
-       .single();
- 
-     if (instError || !instance) throw new Error("Instance not found");
- 
-     // 2. Get lead details
-     const { data: lead, error: leadError } = await supabase
-       .from("leads")
-       .select("*")
-       .eq("id", lead_id)
-       .single();
- 
-     if (leadError || !lead) throw new Error("Lead not found");
- 
-     const remoteJid = lead.whatsapp.includes('@') ? lead.whatsapp : `${lead.whatsapp}@s.whatsapp.net`;
-     let endpoint = "";
-     let body: any = { number: remoteJid };
+    const { lead_id, phone_number, instance_id, type, content, media_base64, media_filename, media_mime_type, sent_by = 'ai' } = await req.json();
+
+    // 1. Get instance details
+    const { data: instance, error: instError } = await supabase
+      .from("whatsapp_instances")
+      .select("*")
+      .eq("id", instance_id)
+      .single();
+
+    if (instError || !instance) throw new Error("Instance not found");
+
+    let remoteJid = "";
+    
+    // 2. Get target identifier
+    if (lead_id) {
+      const { data: lead, error: leadError } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", lead_id)
+        .single();
+
+      if (leadError || !lead) throw new Error("Lead not found");
+      remoteJid = lead.whatsapp.includes('@') ? lead.whatsapp : `${lead.whatsapp}@s.whatsapp.net`;
+    } else if (phone_number) {
+      remoteJid = phone_number.includes('@') ? phone_number : `${phone_number}@s.whatsapp.net`;
+    } else {
+      throw new Error("Either lead_id or phone_number must be provided");
+    }
+
+    let endpoint = "";
+    let body: any = { number: remoteJid };
  
      if (type === "text") {
        endpoint = `/message/sendText/${instance.name}`;
@@ -53,15 +61,22 @@
        if (content) body.caption = content;
      }
  
-     // 3. Send to Evolution API
-     const response = await fetch(`${instance.base_url}${endpoint}`, {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-         "apikey": instance.api_key
-       },
-       body: JSON.stringify(body)
-     });
+    // 3. Send to Evolution API
+    const finalBaseUrl = (instance.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+    const finalApiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY");
+
+    if (!finalBaseUrl || !finalApiKey) {
+      throw new Error("Evolution API not configured (Base URL or API Key missing)");
+    }
+
+    const response = await fetch(`${finalBaseUrl}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": finalApiKey
+      },
+      body: JSON.stringify(body)
+    });
  
      const result = await response.json();
      if (!response.ok) throw new Error(`Evolution API error: ${JSON.stringify(result)}`);
