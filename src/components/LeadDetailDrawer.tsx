@@ -430,6 +430,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
         .delete()
         .eq("lead_id", lead.id)
         .eq("completed", false);
+      queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
     }
     setLossReasonOpen(false);
   };
