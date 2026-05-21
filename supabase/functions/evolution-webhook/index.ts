@@ -142,21 +142,35 @@ Deno.serve(async (req) => {
 
         const hasTrigger = triggers?.some(t => content.toLowerCase().includes(t.keyword.toLowerCase()));
 
-        if (hasTrigger && !conversation.lead_id) {
-          const { data: lead } = await supabase
+        if (hasTrigger) {
+          // Check if a lead with this number already exists for this user
+          const { data: existingLead } = await supabase
             .from("leads")
-            .insert({
-              nome: conversation.contact_name || `Lead ${whatsapp}`,
-              whatsapp: whatsapp,
-              status: "Novo Lead",
-              origem: "WhatsApp Inbox",
-              user_id: userId
-            })
-            .select()
-            .single();
-          if (lead) {
-            await supabase.from("inbox_conversations").update({ lead_id: lead.id }).eq("id", conversation.id);
-            conversation.lead_id = lead.id;
+            .select("id")
+            .eq("user_id", userId)
+            .eq("whatsapp", whatsapp)
+            .maybeSingle();
+
+          if (!existingLead) {
+            const { data: lead } = await supabase
+              .from("leads")
+              .insert({
+                nome: conversation.contact_name || `Lead ${whatsapp}`,
+                whatsapp: whatsapp,
+                status: "Novo Lead",
+                origem: "WhatsApp Inbox",
+                user_id: userId
+              })
+              .select()
+              .single();
+            if (lead) {
+              await supabase.from("inbox_conversations").update({ lead_id: lead.id }).eq("id", conversation.id);
+              conversation.lead_id = lead.id;
+            }
+          } else if (!conversation.lead_id) {
+            // If lead exists but conversation is not linked, link it
+            await supabase.from("inbox_conversations").update({ lead_id: existingLead.id }).eq("id", conversation.id);
+            conversation.lead_id = existingLead.id;
           }
         }
 
