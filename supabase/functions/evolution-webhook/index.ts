@@ -1,6 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+const normalizeWhatsApp = (value: string | null | undefined) => String(value || "").replace(/\D/g, "");
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -49,7 +51,7 @@ Deno.serve(async (req) => {
       const message = data.message;
       const key = data.key;
       const remoteJid = key.remoteJid;
-      const whatsapp = remoteJid.split("@")[0];
+      const whatsapp = normalizeWhatsApp(remoteJid.split("@")[0]);
       const isGroup = remoteJid.endsWith("@g.us");
       
       if (isGroup) {
@@ -144,12 +146,16 @@ Deno.serve(async (req) => {
 
         if (hasTrigger) {
           // Check if a lead with this number already exists for this user
-          const { data: existingLead } = await supabase
+          const { data: existingLeads } = await supabase
             .from("leads")
-            .select("id")
+            .select("id, whatsapp")
             .eq("user_id", userId)
-            .eq("whatsapp", whatsapp)
-            .maybeSingle();
+            .is("deleted_at", null);
+
+          const existingLead = existingLeads?.find((lead) => {
+            const current = normalizeWhatsApp(lead.whatsapp);
+            return current === whatsapp || current.endsWith(whatsapp) || whatsapp.endsWith(current);
+          });
 
           if (!existingLead) {
             const { data: lead } = await supabase
