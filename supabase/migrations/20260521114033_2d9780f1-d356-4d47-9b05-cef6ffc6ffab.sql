@@ -1,0 +1,1 @@
+ALTER TABLE public.inbox_conversations DROP CONSTRAINT IF EXISTS inbox_conversations_user_id_contact_number_key;
