@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Bot, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
