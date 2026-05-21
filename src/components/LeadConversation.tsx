@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Bot, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
@@ -14,6 +13,8 @@ interface Props {
   leadId: string;
   leadWhatsapp: string | null;
 }
+
+const normalizeWhatsApp = (value: string | null | undefined) => (value || "").replace(/\D/g, "");
 
 const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
   const [text, setText] = useState("");
@@ -30,8 +31,32 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         .from("inbox_conversations")
         .select("*")
         .eq("lead_id", leadId)
-        .maybeSingle();
-      return data;
+        .order("updated_at", { ascending: false });
+
+      if (data?.length) {
+        const activeConversation = data.find((item) => item.status !== "closed");
+        return activeConversation || data[0];
+      }
+
+      const normalizedLeadWhatsapp = normalizeWhatsApp(leadWhatsapp);
+
+      if (!normalizedLeadWhatsapp) return null;
+
+      const { data: numberMatches } = await supabase
+        .from("inbox_conversations")
+        .select("*")
+        .order("updated_at", { ascending: false });
+
+      const matchedConversation = (numberMatches || []).find((item) => {
+        const current = normalizeWhatsApp(item.contact_number);
+        return current === normalizedLeadWhatsapp || current.endsWith(normalizedLeadWhatsapp) || normalizedLeadWhatsapp.endsWith(current);
+      });
+
+      if (matchedConversation && matchedConversation.lead_id !== leadId) {
+        await supabase.from("inbox_conversations").update({ lead_id: leadId }).eq("id", matchedConversation.id);
+      }
+
+      return matchedConversation || null;
     },
     enabled: !!leadId,
   });
