@@ -78,7 +78,14 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .eq("contact_number", whatsapp)
         .eq("instance_id", instanceId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
+
+      // If conversation is closed and a new inbound message arrives, create a new ticket
+      if (conversation && conversation.status === 'closed' && !key.fromMe) {
+        conversation = null;
+      }
 
       if (!conversation) {
         const { data: newConv, error: convError } = await supabase
