@@ -117,11 +117,11 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         {conv?.id && (
           conv.status === "pending_ai" ? (
             <Button size="sm" className="h-7 text-xs bg-green-500 hover:bg-green-600" onClick={toggleAI}>
-              <Play className="w-3 h-3 mr-1" /> Abrir
+              <Play className="w-3 h-3 mr-1" /> Abrir Atendimento
             </Button>
           ) : (
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={toggleAI}>
-              <Play className="w-3 h-3 mr-1" /> Voltar para IA
+              <Bot className="w-3 h-3 mr-1" /> Voltar para IA
             </Button>
           )
         )}

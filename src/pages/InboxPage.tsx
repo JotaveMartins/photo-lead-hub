@@ -43,9 +43,12 @@ const InboxPage = () => {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const scrollArea = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollArea) {
+        scrollArea.scrollTop = scrollArea.scrollHeight;
+      }
     }
-  }, [messages]);
+  }, [messages, selectedConversationId]);
 
   // Realtime subscription: new inbox messages and conversation updates
   useEffect(() => {
