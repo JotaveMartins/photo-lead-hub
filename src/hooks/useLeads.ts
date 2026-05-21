@@ -8,6 +8,8 @@ type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
 
+const normalizeWhatsApp = (value: string | null | undefined) => (value || "").replace(/\D/g, "");
+
 export const useLeads = () => {
   const effectiveUserId = useEffectiveUserId();
 
@@ -38,9 +40,30 @@ export const useCreateLead = () => {
     mutationFn: async (lead: Omit<LeadInsert, "user_id">) => {
       if (!effectiveUserId) throw new Error("Usuário não autenticado");
 
+       const normalizedWhatsapp = normalizeWhatsApp(String(lead.whatsapp || ""));
+
+       if (normalizedWhatsapp) {
+         const { data: existingLeads, error: searchError } = await supabase
+           .from("leads")
+           .select("*")
+           .eq("user_id", effectiveUserId)
+           .is("deleted_at", null);
+
+         if (searchError) throw searchError;
+
+         const existingLead = (existingLeads as Lead[]).find((item) => {
+           const current = normalizeWhatsApp(item.whatsapp);
+           return current === normalizedWhatsapp || current.endsWith(normalizedWhatsapp) || normalizedWhatsapp.endsWith(current);
+         });
+
+         if (existingLead) {
+           return existingLead;
+         }
+       }
+
       const { data, error } = await supabase
         .from("leads")
-        .insert({ ...lead, user_id: effectiveUserId })
+        .insert({ ...lead, whatsapp: normalizedWhatsapp || String(lead.whatsapp || ""), user_id: effectiveUserId })
         .select()
         .single();
 
