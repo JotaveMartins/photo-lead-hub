@@ -11,6 +11,8 @@ import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import LeadToClienteFlow from "@/components/LeadToClienteFlow";
 import FollowUpModal from "@/components/FollowUpModal";
 import LossReasonModal from "@/components/LossReasonModal";
+import ContratoInfoModal, { type ContratoFormData } from "@/components/ContratoInfoModal";
+import { useCreateContrato } from "@/hooks/useContratos";
 import type { Database } from "@/integrations/supabase/types";
 import { isBefore, isToday, startOfDay } from "date-fns";
 import { parseLocalDate, normalizeText } from "@/lib/utils";
@@ -90,6 +92,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
   // Lead to cliente flow state
   const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
+  // Contrato info modal state
+  const [contratoInfoLead, setContratoInfoLead] = useState<Lead | null>(null);
+  const [contratoInfoExtraFields, setContratoInfoExtraFields] = useState<Record<string, any>>({});
+  const [contratoDataForFlow, setContratoDataForFlow] = useState<ContratoFormData | null>(null);
+  const createContrato = useCreateContrato();
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
@@ -206,14 +213,51 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         }
       });
     } else if (newStatus === "Fechado Ganho") {
-      updateLead.mutate({ id: lead.id, status: newStatus, ...extraFields }, {
-        onSuccess: () => {
-          setLeadToClienteLead(lead);
-        }
-      });
+      setContratoInfoLead(lead);
+      setContratoInfoExtraFields(extraFields || {});
     } else {
       updateLead.mutate({ id: lead.id, status: newStatus, ...extraFields });
     }
+  };
+
+  const brDateToISO = (br: string): string | null => {
+    if (!br) return null;
+    const parts = br.split("/");
+    if (parts.length !== 3) return null;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  };
+
+  const handleContratoConfirm = async (data: ContratoFormData) => {
+    const lead = contratoInfoLead;
+    const extraFields = contratoInfoExtraFields;
+    setContratoInfoLead(null);
+    setContratoInfoExtraFields({});
+    if (!lead) return;
+
+    await createContrato.mutateAsync({
+      lead_id: lead.id,
+      nome_cliente: data.nome_cliente,
+      cpf_cnpj: data.cpf_cnpj || null,
+      email: data.email || null,
+      whatsapp: data.whatsapp || null,
+      endereco_cliente: data.endereco_cliente || null,
+      data_evento: data.data_evento ? brDateToISO(data.data_evento) : null,
+      horario_inicio: data.horario_inicio || null,
+      horario_fim: data.horario_fim || null,
+      local_evento: data.local_evento || null,
+      tipo_servico: data.tipo_servico || null,
+      pacote: data.pacote || null,
+      valor: data.valor ? parseFloat(data.valor) : null,
+      forma_pagamento: data.forma_pagamento || null,
+      observacoes: data.observacoes || null,
+    });
+
+    setContratoDataForFlow(data);
+    updateLead.mutate({ id: lead.id, status: "Fechado Ganho" as LeadStatus, ...extraFields }, {
+      onSuccess: () => {
+        setLeadToClienteLead(lead);
+      }
+    });
   };
 
   const handleDrop = (e: React.DragEvent, newStatus: LeadStatus) => {
@@ -617,7 +661,16 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       <LeadToClienteFlow
         lead={leadToClienteLead}
         open={!!leadToClienteLead}
-        onClose={() => setLeadToClienteLead(null)}
+        contratoData={contratoDataForFlow}
+        onClose={() => { setLeadToClienteLead(null); setContratoDataForFlow(null); }}
+      />
+
+      {/* Contrato Info Modal */}
+      <ContratoInfoModal
+        open={!!contratoInfoLead}
+        lead={contratoInfoLead}
+        onConfirm={handleContratoConfirm}
+        onCancel={() => { setContratoInfoLead(null); setContratoInfoExtraFields({}); }}
       />
     </div>
   );

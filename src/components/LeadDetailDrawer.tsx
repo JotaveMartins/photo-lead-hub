@@ -361,6 +361,25 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     follow_up_4: "Follow-up 4", follow_up_5: "Follow-up 5",
   };
 
+  const handlePauseAI = async () => {
+    if (!lead) return;
+    handleFieldSave("ai_paused", true);
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: conversations } = await supabase
+      .from("inbox_conversations")
+      .select("id")
+      .eq("lead_id", lead.id)
+      .eq("status", "pending_ai");
+    if (conversations && conversations.length > 0) {
+      await Promise.all(
+        conversations.map(conv =>
+          supabase.from("inbox_conversations").update({ status: "open" }).eq("id", conv.id)
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+    }
+  };
+
   const handleFieldSave = (field: string, value: any) => {
     if (!lead) return;
     const oldValue = (lead as any)[field];
@@ -614,7 +633,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                    </Button>
                  </>
                ) : (
-                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-primary border-primary/30" onClick={() => handleFieldSave("ai_paused", true)}>
+                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-primary border-primary/30" onClick={handlePauseAI}>
                    <Pause className="w-3 h-3" /> Pausar IA
                  </Button>
                )}

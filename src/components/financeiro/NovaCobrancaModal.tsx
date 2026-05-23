@@ -11,10 +11,11 @@ import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
 import { usePackages } from "@/hooks/usePackages";
 import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
+import { useIntegrationSettings, useAsaasCreateCharge } from "@/hooks/useIntegrationSettings";
 import { toast } from "sonner";
 import ServiceModal from "@/components/ServiceModal";
 import PackageModal from "@/components/PackageModal";
-import { Plus } from "lucide-react";
+import { Plus, Zap, Copy, ExternalLink } from "lucide-react";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
@@ -42,6 +43,9 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const effectiveUserId = useEffectiveUserId();
   const createCobranca = useCreateCobranca();
   const createBatch = useCreateCobrancasBatch();
+  const asaasCreateCharge = useAsaasCreateCharge();
+  const { data: integrations } = useIntegrationSettings();
+  const hasAsaas = !!integrations?.asaas_api_key;
   const { data: clientes = [] } = useClientes();
 
   const [clienteId, setClienteId] = useState(initialClienteId || "");
@@ -56,6 +60,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const [formaPagamentoEntrada, setFormaPagamentoEntrada] = useState<PaymentMethod>("pix");
   const [vencimentoEntrada, setVencimentoEntrada] = useState("");
   const [selectedItemName, setSelectedItemName] = useState("");
+  const [enviarAsaas, setEnviarAsaas] = useState(false);
 
   // Sync props
   useEffect(() => {
@@ -66,7 +71,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     if (initialValor) setValor(String(initialValor));
   }, [initialValor]);
 
-  const isPending = createCobranca.isPending || createBatch.isPending;
+  const isPending = createCobranca.isPending || createBatch.isPending || asaasCreateCharge.isPending;
 
   const resetForm = () => {
     setClienteId("");
@@ -79,6 +84,57 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     setFormaPagamentoEntrada("pix");
     setVencimentoEntrada("");
     setSelectedItemName("");
+    setEnviarAsaas(false);
+  };
+
+  const syncAsaas = async (ids: string[]) => {
+    if (!enviarAsaas || !ids.length) return;
+    const results = await Promise.allSettled(ids.map((id) => asaasCreateCharge.mutateAsync(id)));
+    const successes = results.filter((r) => r.status === "fulfilled") as PromiseFulfilledResult<any>[];
+    const failures = results.filter((r) => r.status === "rejected").length;
+
+    if (successes.length > 0) {
+      const link = successes[0].value?.invoice_url;
+      const pixCode = successes[0].value?.pix_code;
+      if (link) {
+        toast.success(
+          <div className="space-y-1">
+            <p className="font-medium">Cobrança enviada ao Asaas!</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.open(link, "_blank")}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" /> Abrir link
+              </button>
+              <button
+                onClick={() => { navigator.clipboard.writeText(link); toast.success("Link copiado!"); }}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <Copy className="w-3 h-3" /> Copiar link
+              </button>
+            </div>
+          </div>,
+          { duration: 8000 }
+        );
+      } else if (pixCode) {
+        toast.success(
+          <div className="space-y-1">
+            <p className="font-medium">PIX criado no Asaas!</p>
+            <button
+              onClick={() => { navigator.clipboard.writeText(pixCode); toast.success("Código PIX copiado!"); }}
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3" /> Copiar código PIX
+            </button>
+          </div>,
+          { duration: 8000 }
+        );
+      } else {
+        toast.success(`${successes.length} cobrança(s) enviada(s) ao Asaas!`);
+      }
+    }
+    if (failures > 0) toast.error(`${failures} cobrança(s) falharam ao enviar ao Asaas.`);
   };
 
   // Computed values for entrada+parcelas preview
@@ -101,7 +157,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     try {
       if (type === "unica") {
         if (!vencimento) { toast.error("Informe a data de vencimento"); return; }
-        await createCobranca.mutateAsync({
+        const result = await createCobranca.mutateAsync({
           user_id: effectiveUserId,
           tipo: "unica",
           descricao: descricao || null,
@@ -111,6 +167,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           cliente_id: clienteId || null,
         } as any);
         toast.success("Cobrança criada com sucesso!");
+        if (result?.id) await syncAsaas([result.id]);
       } else if (type === "parcelas") {
         if (!vencimento) { toast.error("Informe a data de vencimento"); return; }
         const n = parseInt(numParcelas);
@@ -134,7 +191,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             cliente_id: clienteId || null,
           } as any);
         }
-        await createBatch.mutateAsync(items);
+        const batchResult = await createBatch.mutateAsync(items);
+        if (batchResult?.length) await syncAsaas(batchResult.map((c: any) => c.id));
       } else if (type === "entrada_parcelas") {
         if (!vencimentoEntrada) { toast.error("Informe a data da entrada"); return; }
         if (!vencimento) { toast.error("Informe a data do 1º vencimento das parcelas"); return; }
@@ -176,7 +234,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             cliente_id: clienteId || null,
           } as any);
         }
-        await createBatch.mutateAsync(items);
+        const batchResult2 = await createBatch.mutateAsync(items);
+        if (batchResult2?.length) await syncAsaas(batchResult2.map((c: any) => c.id));
       }
       onOpenChange(false);
       resetForm();
@@ -402,6 +461,29 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+              </div>
+            </div>
+          )}
+
+          {hasAsaas && (
+            <div
+              onClick={() => setEnviarAsaas((v) => !v)}
+              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${enviarAsaas ? "border-blue-500/40 bg-blue-500/5" : "border-border bg-muted/30 hover:bg-muted/60"}`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${enviarAsaas ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                A$
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-blue-500" />
+                  Gerar cobrança no Asaas
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {enviarAsaas ? "Será enviada ao Asaas e você receberá o link de pagamento" : "Clique para ativar"}
+                </p>
+              </div>
+              <div className={`w-10 h-5 rounded-full transition-colors relative ${enviarAsaas ? "bg-blue-500" : "bg-muted"}`}>
+                <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${enviarAsaas ? "left-5" : "left-0.5"}`} />
               </div>
             </div>
           )}

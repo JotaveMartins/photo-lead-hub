@@ -187,3 +187,77 @@ export const useCreateInboxTrigger = () => {
     },
   });
 };
+
+export const useMarkConversationRead = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("inbox_conversations")
+        .update({ unread_count: 0 })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+    },
+  });
+};
+
+export const useInboxTotalUnread = () => {
+  const effectiveUserId = useEffectiveUserId();
+  return useQuery({
+    queryKey: ["inbox_total_unread", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return 0;
+      const { data } = await supabase
+        .from("inbox_conversations")
+        .select("unread_count")
+        .eq("user_id", effectiveUserId)
+        .neq("status", "closed");
+      return (data || []).reduce((sum, c) => sum + (c.unread_count || 0), 0);
+    },
+    enabled: !!effectiveUserId,
+    refetchInterval: 30_000,
+  });
+};
+
+export const useConversationNotes = (conversationId?: string) => {
+  return useQuery({
+    queryKey: ["inbox_notes", conversationId],
+    queryFn: async () => {
+      if (!conversationId) return [];
+      const { data, error } = await supabase
+        .from("inbox_messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .eq("is_note" as any, true)
+        .order("timestamp", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!conversationId,
+  });
+};
+
+export const useAddConversationNote = () => {
+  const queryClient = useQueryClient();
+  const effectiveUserId = useEffectiveUserId();
+  return useMutation({
+    mutationFn: async ({ conversationId, body }: { conversationId: string; body: string }) => {
+      const { error } = await supabase.from("inbox_messages").insert({
+        conversation_id: conversationId,
+        user_id: effectiveUserId!,
+        body,
+        direction: "outbound",
+        read: true,
+        is_note: true,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: (_, { conversationId }) => {
+      queryClient.invalidateQueries({ queryKey: ["inbox_notes", conversationId] });
+      toast.success("Nota interna salva.");
+    },
+  });
+};

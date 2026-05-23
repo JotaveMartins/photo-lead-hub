@@ -1,6 +1,7 @@
  import { Toaster } from "@/components/ui/toaster";
  import IAPage from "./pages/IAPage";
  import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
+import IntegracoesPage from "./pages/IntegracoesPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ import AgendaPage from "./pages/AgendaPage";
 import EquipePage from "./pages/EquipePage";
 import AnunciosPage from "./pages/AnunciosPage";
 import InboxPage from "./pages/InboxPage";
+import ContratosPage from "./pages/ContratosPage";
 import { BarChart3, Wrench, Package, Calendar, DollarSign, FileText, Inbox } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -70,8 +72,9 @@ const AppRoutes = () => {
        <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
        <Route path="/ia" element={<ProtectedRoute><IAPage /></ProtectedRoute>} />
        <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppConfigPage /></ProtectedRoute>} />
+       <Route path="/integracoes" element={<ProtectedRoute><IntegracoesPage /></ProtectedRoute>} />
       <Route path="/anuncios" element={<ProtectedRoute adminOnly><AnunciosPage /></ProtectedRoute>} />
-      <Route path="/contratos" element={<ProtectedRoute><ComingSoon title="Contratos" icon={<FileText className="w-10 h-10" />} /></ProtectedRoute>} />
+      <Route path="/contratos" element={<ProtectedRoute><ContratosPage /></ProtectedRoute>} />
       <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDetailPage /></ProtectedRoute>} />
       <Route path="/financeiro/cobrancas" element={<ProtectedRoute><FinanceiroPage /></ProtectedRoute>} />
       <Route path="/financeiro/despesas" element={<ProtectedRoute><DespesasPage /></ProtectedRoute>} />

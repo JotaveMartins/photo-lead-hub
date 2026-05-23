@@ -116,6 +116,89 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos: {
+        Row: {
+          id: string
+          lead_id: string | null
+          user_id: string
+          status: string
+          nome_cliente: string
+          cpf_cnpj: string | null
+          email: string | null
+          whatsapp: string | null
+          endereco_cliente: string | null
+          data_evento: string | null
+          horario_inicio: string | null
+          horario_fim: string | null
+          local_evento: string | null
+          tipo_servico: string | null
+          pacote: string | null
+          valor: number | null
+          forma_pagamento: string | null
+          observacoes: string | null
+          arquivo_contrato_url: string | null
+          autentique_document_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id?: string | null
+          user_id: string
+          status?: string
+          nome_cliente: string
+          cpf_cnpj?: string | null
+          email?: string | null
+          whatsapp?: string | null
+          endereco_cliente?: string | null
+          data_evento?: string | null
+          horario_inicio?: string | null
+          horario_fim?: string | null
+          local_evento?: string | null
+          tipo_servico?: string | null
+          pacote?: string | null
+          valor?: number | null
+          forma_pagamento?: string | null
+          observacoes?: string | null
+          arquivo_contrato_url?: string | null
+          autentique_document_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string | null
+          user_id?: string
+          status?: string
+          nome_cliente?: string
+          cpf_cnpj?: string | null
+          email?: string | null
+          whatsapp?: string | null
+          endereco_cliente?: string | null
+          data_evento?: string | null
+          horario_inicio?: string | null
+          horario_fim?: string | null
+          local_evento?: string | null
+          tipo_servico?: string | null
+          pacote?: string | null
+          valor?: number | null
+          forma_pagamento?: string | null
+          observacoes?: string | null
+          arquivo_contrato_url?: string | null
+          autentique_document_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       clientes: {
         Row: {
           cpf_cnpj: string | null
@@ -160,6 +243,10 @@ export type Database = {
       }
       cobrancas: {
         Row: {
+          asaas_billet_url: string | null
+          asaas_id: string | null
+          asaas_invoice_url: string | null
+          asaas_pix_code: string | null
           cliente_id: string | null
           created_at: string
           data_pagamento: string | null
@@ -179,6 +266,10 @@ export type Database = {
           vencimento: string
         }
         Insert: {
+          asaas_billet_url?: string | null
+          asaas_id?: string | null
+          asaas_invoice_url?: string | null
+          asaas_pix_code?: string | null
           cliente_id?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -198,6 +289,10 @@ export type Database = {
           vencimento: string
         }
         Update: {
+          asaas_billet_url?: string | null
+          asaas_id?: string | null
+          asaas_invoice_url?: string | null
+          asaas_pix_code?: string | null
           cliente_id?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -1047,6 +1142,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          asaas_api_key: string | null
+          autentique_token: string | null
           avatar_url: string | null
           cpl_limite_alerta: number | null
           cpl_limite_bom: number | null
@@ -1061,6 +1158,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          asaas_api_key?: string | null
+          autentique_token?: string | null
           avatar_url?: string | null
           cpl_limite_alerta?: number | null
           cpl_limite_bom?: number | null
@@ -1075,6 +1174,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          asaas_api_key?: string | null
+          autentique_token?: string | null
           avatar_url?: string | null
           cpl_limite_alerta?: number | null
           cpl_limite_bom?: number | null

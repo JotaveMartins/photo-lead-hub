@@ -1,5 +1,5 @@
-import { 
-  Users, 
+import {
+  Users,
   CheckSquare,
   LogOut,
   UserCog,
@@ -18,7 +18,8 @@ import {
    Megaphone,
    Bot,
   MessageSquare,
-  Inbox
+  Inbox,
+  Plug,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +29,7 @@ import { useEvents } from "@/hooks/useEvents";
 import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { useState } from "react";
+import { useInboxTotalUnread } from "@/hooks/useInbox";
 
 interface SidebarProps {
   activeItem: string;
@@ -62,6 +64,7 @@ const financeiroSubItems = [
    { id: 'inbox', label: 'Inbox', icon: Inbox },
    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
    { id: 'ia', label: 'IA', icon: Bot },
+   { id: 'integracoes', label: 'Integrações', icon: Plug },
  ];
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
@@ -70,6 +73,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
   const { data: clienteTasksToday = [] } = useTodayClienteTasks();
   const { data: allPending = [] } = useAllPendingTasks();
   const { data: events = [] } = useEvents();
+  const { data: inboxUnread = 0 } = useInboxTotalUnread();
   const clienteBadge = clienteTasksToday.length;
   const today = startOfDay(new Date());
   const tarefasBadge = allPending.filter((t) => {
@@ -156,6 +160,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
          {showConfig && configMenuItems.map((item) => {
            const Icon = item.icon;
            const isActive = activeItem === item.id;
+           const badgeCount = item.id === 'inbox' ? inboxUnread : 0;
            return (
              <button
                key={item.id}
@@ -164,7 +169,12 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
                  ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
              >
                <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
-               {item.label}
+               <span className="flex-1 text-left">{item.label}</span>
+               {badgeCount > 0 && (
+                 <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                   {badgeCount > 99 ? "99+" : badgeCount}
+                 </span>
+               )}
              </button>
            );
          })}

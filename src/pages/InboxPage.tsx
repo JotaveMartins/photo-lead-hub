@@ -1,130 +1,312 @@
-import { useState, useRef, useEffect } from "react";
-import { Inbox as InboxIcon, Search, Filter, Send, UserPlus, User, MessageSquare, Bot, Play } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  Inbox as InboxIcon, Search, Send, UserPlus, User, MessageSquare, Bot,
+  Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
+  MoreVertical, ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  useInboxConversations, 
-  useInboxMessages, 
-  useUpdateConversation, 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  useInboxConversations,
+  useInboxMessages,
+  useUpdateConversation,
   useSendInboxMessage,
-  InboxStatus 
+  useMarkConversationRead,
+  useAddConversationNote,
+  useConversationNotes,
+  InboxStatus,
 } from "@/hooks/useInbox";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useQuickReplies, useCreateQuickReply, useDeleteQuickReply } from "@/hooks/useQuickReplies";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+const formatMsgDate = (ts: string | null): string => {
+  if (!ts) return "";
+  const d = new Date(ts);
+  if (isToday(d)) return format(d, "HH:mm");
+  if (isYesterday(d)) return `Ontem ${format(d, "HH:mm")}`;
+  return format(d, "dd/MM HH:mm", { locale: ptBR });
+};
+
+const formatConvDate = (ts: string): string => {
+  const d = new Date(ts);
+  if (isToday(d)) return format(d, "HH:mm");
+  if (isYesterday(d)) return "Ontem";
+  return format(d, "dd/MM", { locale: ptBR });
+};
+
+// ─────────────────────────────────────────────
+// Quick Replies Modal
+// ─────────────────────────────────────────────
+
+interface QuickRepliesModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (body: string) => void;
+}
+
+const QuickRepliesModal = ({ open, onClose, onSelect }: QuickRepliesModalProps) => {
+  const { data: replies = [], isLoading } = useQuickReplies();
+  const createReply = useCreateQuickReply();
+  const deleteReply = useDeleteQuickReply();
+  const [showNew, setShowNew] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newBody, setNewBody] = useState("");
+
+  const handleCreate = async () => {
+    if (!newTitle.trim() || !newBody.trim()) return;
+    await createReply.mutateAsync({ title: newTitle.trim(), body: newBody.trim() });
+    setNewTitle(""); setNewBody(""); setShowNew(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" /> Respostas Rápidas
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-2 max-h-80 overflow-y-auto">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Carregando...</p>
+          ) : replies.length === 0 && !showNew ? (
+            <p className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg">
+              Nenhuma resposta cadastrada ainda.
+            </p>
+          ) : (
+            replies.map((r) => (
+              <div key={r.id} className="group flex items-start gap-3 p-3 bg-muted/30 border border-border rounded-lg hover:border-primary/40 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{r.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.body}</p>
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button size="sm" variant="default" className="h-7 px-3 text-xs" onClick={() => { onSelect(r.body); onClose(); }}>
+                    Usar
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteReply.mutate(r.id)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {showNew ? (
+          <div className="space-y-3 border border-border rounded-lg p-3 bg-muted/20">
+            <div className="space-y-1">
+              <Label>Título (atalho)</Label>
+              <Input placeholder="Ex: Preços, Disponibilidade..." value={newTitle} onChange={(e) => setNewTitle(e.target.value)} autoFocus />
+            </div>
+            <div className="space-y-1">
+              <Label>Mensagem</Label>
+              <Textarea placeholder="Digite a mensagem completa..." value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={3} />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleCreate} disabled={!newTitle.trim() || !newBody.trim()}>Salvar</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
+            </div>
+          </div>
+        ) : (
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setShowNew(true)} className="gap-1">
+              <Plus className="w-3.5 h-3.5" /> Nova resposta
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>Fechar</Button>
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Notes Panel
+// ─────────────────────────────────────────────
+
+interface NotesPanelProps {
+  conversationId: string;
+}
+
+const NotesPanel = ({ conversationId }: NotesPanelProps) => {
+  const { data: notes = [] } = useConversationNotes(conversationId);
+  const addNote = useAddConversationNote();
+  const [noteText, setNoteText] = useState("");
+
+  const handleAdd = async () => {
+    if (!noteText.trim()) return;
+    await addNote.mutateAsync({ conversationId, body: noteText.trim() });
+    setNoteText("");
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {notes.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-3 border border-dashed border-border/60 rounded-md">
+            Sem notas internas.
+          </p>
+        ) : (
+          notes.map((n: any) => (
+            <div key={n.id} className="bg-yellow-500/5 border border-yellow-500/20 rounded-md p-2.5">
+              <p className="text-xs text-foreground whitespace-pre-wrap">{n.body}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{formatMsgDate(n.timestamp || n.created_at)}</p>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          placeholder="Nota interna..."
+          className="text-xs h-8"
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+        />
+        <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={handleAdd} disabled={!noteText.trim()}>
+          <Plus className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Main Page
+// ─────────────────────────────────────────────
 
 const InboxPage = () => {
-  const [activeStatus, setActiveStatus] = useState<InboxStatus>('pending_ai');
+  const [activeStatus, setActiveStatus] = useState<InboxStatus>("pending_ai");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [messageText, setMessageText] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: conversations = [], isLoading: loadingConvs } = useInboxConversations(activeStatus);
+  // Fetch all conversations (no status filter) so selectedConv stays valid after status change
+  const { data: allConversations = [], isLoading: loadingConvs } = useInboxConversations();
   const { data: messages = [], isLoading: loadingMsgs } = useInboxMessages(selectedConversationId || undefined);
   const { data: instances = [] } = useWhatsAppInstances();
   const updateConv = useUpdateConversation();
   const sendMessage = useSendInboxMessage();
+  const markRead = useMarkConversationRead();
   const createLead = useCreateLead();
 
-  const selectedConv = conversations.find(c => c.id === selectedConversationId);
-  const activeInstance = instances.find(i => i.status === 'connected');
+  const selectedConv = allConversations.find((c) => c.id === selectedConversationId) ?? null;
+  const activeInstance = instances.find((i) => i.status === "connected");
 
+  const filteredConversations = allConversations.filter((c) => {
+    if (c.status !== activeStatus) return false;
+    if (!searchTerm) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      (c.contact_name?.toLowerCase().includes(q) || false) ||
+      c.contact_number.includes(q)
+    );
+  });
+
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      const scrollArea = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollArea) {
-        scrollArea.scrollTop = scrollArea.scrollHeight;
-      }
-    }
-  }, [messages, selectedConversationId]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  // Realtime subscription: new inbox messages and conversation updates
+  // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel('inbox-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_messages' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['inbox_messages'] });
-        queryClient.invalidateQueries({ queryKey: ['inbox_conversations'] });
+      .channel("inbox-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["inbox_messages"] });
+        queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_conversations' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['inbox_conversations'] });
+      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_conversations" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  const filteredConversations = conversations.filter(c => 
-    (c.contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     c.contact_number.includes(searchTerm))
-  );
+  const handleSelectConversation = useCallback((id: string) => {
+    setSelectedConversationId(id);
+    setMobileShowChat(true);
+    // Mark as read
+    const conv = allConversations.find((c) => c.id === id);
+    if (conv && (conv.unread_count ?? 0) > 0) {
+      markRead.mutate(id);
+    }
+  }, [allConversations, markRead]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedConv || !activeInstance) {
       if (!activeInstance) toast.error("Nenhuma instância de WhatsApp conectada.");
       return;
     }
-
     const currentText = messageText;
     setMessageText("");
-
     try {
-      // When sending a message, if it was pending, it moves to open
-      if (selectedConv.status === 'pending_ai') {
-        // Use optimistic update if possible, but the mutation handle that
-      }
-
       await sendMessage.mutateAsync({
         conversationId: selectedConv.id,
         number: selectedConv.contact_number,
         text: currentText,
-        instanceId: activeInstance.id
+        instanceId: activeInstance.id,
       });
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error("Erro ao enviar mensagem.");
-      setMessageText(currentText); // Restore if failed
+      setMessageText(currentText);
     }
   };
 
   const handleOpenAtendimento = async () => {
     if (!selectedConv) return;
-    await updateConv.mutateAsync({ id: selectedConv.id, status: 'open' });
+    await updateConv.mutateAsync({ id: selectedConv.id, status: "open" });
     toast.success("Atendimento aberto.");
   };
 
-  // Removed auto-pause AI on click
-  /*
-  useEffect(() => {
-    if (selectedConv && selectedConv.status === 'pending_ai') {
-      updateConv.mutate({ id: selectedConv.id, status: 'open' });
-    }
-  }, [selectedConversationId]);
-  */
-
   const handleReturnToAI = async () => {
     if (!selectedConv) return;
-    await updateConv.mutateAsync({ id: selectedConv.id, status: 'pending_ai' });
+    await updateConv.mutateAsync({ id: selectedConv.id, status: "pending_ai" });
     toast.success("IA reativada para esta conversa.");
   };
 
   const handleClose = async () => {
     if (!selectedConv) return;
-    await updateConv.mutateAsync({
-      id: selectedConv.id,
-      status: 'closed'
-    });
+    await updateConv.mutateAsync({ id: selectedConv.id, status: "closed" });
     toast.success("Atendimento encerrado.");
   };
 
@@ -133,256 +315,417 @@ const InboxPage = () => {
     try {
       const lead = await createLead.mutateAsync({
         nome: selectedConv.contact_name || `Contato ${selectedConv.contact_number}`,
-        whatsapp: selectedConv.contact_number.replace(/\D/g, ''),
-        status: 'Novo Lead',
-        origem: 'WhatsApp Inbox'
+        whatsapp: selectedConv.contact_number.replace(/\D/g, ""),
+        status: "Novo Lead",
+        origem: "WhatsApp Inbox",
       });
-      
-      await updateConv.mutateAsync({
-        id: selectedConv.id,
-        lead_id: lead.id
-      });
-      
+      await updateConv.mutateAsync({ id: selectedConv.id, lead_id: lead.id });
       toast.success("Lead criado e vinculado!");
-    } catch (error) {
-      console.error(error);
+    } catch {
+      toast.error("Erro ao criar lead.");
     }
   };
 
   const getStatusBadge = (status: InboxStatus) => {
     switch (status) {
-      case 'pending_ai': return <Badge className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border-yellow-500/50 flex gap-1 items-center"><Bot className="w-3 h-3"/> IA Ativa</Badge>;
-      case 'open': return <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/50">Em Atendimento</Badge>;
-      case 'closed': return <Badge className="bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 border-gray-500/50">Fechado</Badge>;
+      case "pending_ai": return (
+        <Badge className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border-yellow-500/50 flex gap-1 items-center text-[10px] px-1.5 py-0.5">
+          <Bot className="w-2.5 h-2.5" /> IA Ativa
+        </Badge>
+      );
+      case "open": return (
+        <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/50 text-[10px] px-1.5 py-0.5">
+          Em Atendimento
+        </Badge>
+      );
+      case "closed": return (
+        <Badge className="bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 border-gray-500/50 text-[10px] px-1.5 py-0.5">
+          Fechado
+        </Badge>
+      );
     }
   };
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
-      <header className="flex items-center justify-between mb-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <InboxIcon className="w-6 h-6 text-primary" />
-          </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Inbox</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Buscar conversas..." 
-              className="pl-9 bg-muted/50 border-border"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Button variant="outline" size="icon">
-            <Filter className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
+  const pendingCount = allConversations.filter((c) => c.status === "pending_ai").length;
+  const openCount = allConversations.filter((c) => c.status === "open").length;
+  const closedCount = allConversations.filter((c) => c.status === "closed").length;
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        {/* Conversations List */}
-        <div className="w-full lg:w-[35%] flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-          <div className="flex border-b border-border">
-            <button 
-              onClick={() => setActiveStatus('pending_ai')}
-              className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${activeStatus === 'pending_ai' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            >
-              PENDENTES
-            </button>
-            <button 
-              onClick={() => setActiveStatus('open')}
-              className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${activeStatus === 'open' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            >
-              ABERTOS
-            </button>
-            <button 
-              onClick={() => setActiveStatus('closed')}
-              className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${activeStatus === 'closed' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            >
-              FECHADOS
-            </button>
-          </div>
-
-          <ScrollArea className="flex-1">
-            <div className="divide-y divide-border/50">
-              {loadingConvs ? (
-                <div className="p-8 text-center text-muted-foreground animate-pulse">Carregando...</div>
-              ) : filteredConversations.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">Nenhuma conversa encontrada em {activeStatus === 'pending_ai' ? 'Pendentes' : activeStatus === 'open' ? 'Abertos' : 'Fechados'}.</div>
-              ) : (
-                filteredConversations.map((conv) => (
-                    <button
-                      key={conv.id}
-                      onClick={() => setSelectedConversationId(conv.id)}
-                      className={`w-full p-4 flex gap-3 text-left transition-all hover:bg-muted/50 relative group ${selectedConversationId === conv.id ? 'bg-muted shadow-inner' : ''}`}
-                    >
-                    {/* Status vertical indicator */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                      conv.status === 'pending_ai' ? 'bg-yellow-500' : 
-                      conv.status === 'open' ? 'bg-green-500' : 'bg-gray-500'
-                    }`} />
-                    
-                    <Avatar className="w-12 h-12 border-2 border-border/50">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="bg-muted text-foreground">
-                        <User className="w-6 h-6 opacity-40" />
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-semibold text-foreground truncate max-w-[140px]">
-                          {conv.contact_name || conv.contact_number}
-                        </h3>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                          {conv.updated_at ? format(new Date(conv.updated_at), 'HH:mm', { locale: ptBR }) : ''}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate mb-2">
-                        {conv.last_message || 'Nenhuma mensagem'}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        {getStatusBadge(conv.status)}
-                        {conv.unread_count > 0 && (
-                          <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-[10px] font-bold shadow-glow">
-                            {conv.unread_count}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-
-        {/* Chat Area */}
-        <div className="hidden lg:flex flex-1 flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm relative">
-          {selectedConv ? (
-            <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 backdrop-blur-sm z-10">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-10 h-10 ring-2 ring-primary/20">
-                    <AvatarFallback><User className="w-5 h-5 text-primary" /></AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h2 className="font-bold text-foreground leading-tight">{selectedConv.contact_name || selectedConv.contact_number}</h2>
-                    <p className="text-xs text-muted-foreground">{selectedConv.contact_number}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {selectedConv.lead_id ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-cyan-400 border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10"
-                      onClick={() => navigate(`/leads?id=${selectedConv.lead_id}`)}
-                    >
-                      Ver Lead
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="border-dashed"
-                      onClick={handleCreateLead}
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Criar Lead
-                    </Button>
-                  )}
-
-                  {selectedConv.status === 'open' && (
-                    <>
-                      <Button
-                        onClick={handleReturnToAI}
-                        size="sm"
-                        className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50"
-                        variant="outline"
-                      >
-                        <Play className="w-4 h-4 mr-1" /> Voltar para IA
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleClose}>Encerrar</Button>
-                    </>
-                  )}
-                  {selectedConv.status === 'pending_ai' && (
-                    <Button 
-                      onClick={handleOpenAtendimento}
-                      size="sm"
-                      className="bg-green-500 hover:bg-green-600 text-white"
-                    >
-                      <Play className="w-4 h-4 mr-1" /> Abrir Atendimento
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Messages Area */}
-              <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-                <div className="space-y-4">
-                  {loadingMsgs ? (
-                    <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div></div>
-                  ) : messages.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-10">Inicie uma conversa.</div>
-                  ) : (
-                    messages.map((msg) => (
-                      <div 
-                        key={msg.id} 
-                        className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm text-sm relative ${
-                          msg.direction === 'outbound' 
-                          ? 'bg-primary text-primary-foreground rounded-tr-none' 
-                          : 'bg-muted text-foreground rounded-tl-none border border-border/50'
-                        }`}>
-                          <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                          <span className={`text-[9px] block mt-1 text-right opacity-60`}>
-                            {msg.timestamp ? format(new Date(msg.timestamp), 'HH:mm') : ''}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-
-              {/* Chat Input */}
-              <div className="p-4 border-t border-border bg-muted/20">
-                <div className="flex gap-2">
-                  <Input 
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    placeholder="Escreva sua mensagem..." 
-                    className="flex-1 bg-background border-border"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  />
-                  <Button 
-                    size="icon" 
-                    className="bg-primary hover:bg-primary/90 shadow-glow"
-                    onClick={handleSendMessage}
-                    disabled={!messageText.trim()}
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center opacity-40">
-              <MessageSquare className="w-16 h-16 mb-4 text-primary" />
-              <h3 className="text-xl font-bold mb-2">Selecione um chat</h3>
-              <p className="max-w-[280px]">Escolha uma conversa na lista lateral para visualizar as mensagens e interagir.</p>
-            </div>
-          )}
+  // ── Conversation list panel ──────────────────
+  const ConversationList = (
+    <div className="w-full lg:w-[30%] flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+      {/* Search */}
+      <div className="p-3 border-b border-border">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar..."
+            className="pl-9 bg-muted/50 border-border h-8 text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-border">
+        {([
+          { status: "pending_ai" as InboxStatus, label: "Pendentes", count: pendingCount },
+          { status: "open" as InboxStatus, label: "Abertos", count: openCount },
+          { status: "closed" as InboxStatus, label: "Fechados", count: closedCount },
+        ] as const).map(({ status, label, count }) => (
+          <button
+            key={status}
+            onClick={() => setActiveStatus(status)}
+            className={`flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 relative ${
+              activeStatus === status
+                ? "border-primary text-primary bg-primary/5"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+            {count > 0 && (
+              <span className={`ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
+                activeStatus === status ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
+                {count > 99 ? "99+" : count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <ScrollArea className="flex-1">
+        <div className="divide-y divide-border/50">
+          {loadingConvs ? (
+            <div className="p-8 text-center text-muted-foreground animate-pulse text-sm">Carregando...</div>
+          ) : filteredConversations.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              Nenhuma conversa em{" "}
+              {activeStatus === "pending_ai" ? "Pendentes" : activeStatus === "open" ? "Abertos" : "Fechados"}.
+            </div>
+          ) : (
+            filteredConversations.map((conv) => (
+              <button
+                key={conv.id}
+                onClick={() => handleSelectConversation(conv.id)}
+                className={`w-full p-3 flex gap-3 text-left transition-all hover:bg-muted/50 relative group ${
+                  selectedConversationId === conv.id ? "bg-muted shadow-inner" : ""
+                }`}
+              >
+                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-r-full ${
+                  conv.status === "pending_ai" ? "bg-yellow-500" :
+                  conv.status === "open" ? "bg-green-500" : "bg-gray-500"
+                }`} />
+                <Avatar className="w-10 h-10 border border-border/50 shrink-0">
+                  <AvatarFallback className="bg-muted text-foreground text-xs">
+                    {conv.contact_name ? conv.contact_name.slice(0, 2).toUpperCase() : <User className="w-4 h-4 opacity-40" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-0.5">
+                    <h3 className="font-semibold text-foreground truncate text-sm max-w-[140px]">
+                      {conv.contact_name || conv.contact_number}
+                    </h3>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-1">
+                      {formatConvDate(conv.updated_at)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate mb-1.5">
+                    {conv.last_message || "Nenhuma mensagem"}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    {getStatusBadge(conv.status)}
+                    {(conv.unread_count ?? 0) > 0 && (
+                      <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-[9px] font-bold shadow-glow">
+                        {conv.unread_count}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </ScrollArea>
     </div>
+  );
+
+  // ── Chat panel ───────────────────────────────
+  const ChatPanel = (
+    <div className="flex-1 flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm relative">
+      {selectedConv ? (
+        <>
+          {/* Chat Header */}
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-muted/20 backdrop-blur-sm z-10 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Mobile back */}
+              <button
+                className="lg:hidden p-1 -ml-1 rounded-md hover:bg-muted text-muted-foreground"
+                onClick={() => setMobileShowChat(false)}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <Avatar className="w-8 h-8 ring-2 ring-primary/20 shrink-0">
+                <AvatarFallback className="text-xs">
+                  {selectedConv.contact_name ? selectedConv.contact_name.slice(0, 2).toUpperCase() : <User className="w-3.5 h-3.5 text-primary" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <h2 className="font-bold text-foreground text-sm leading-tight truncate">
+                  {selectedConv.contact_name || selectedConv.contact_number}
+                </h2>
+                <p className="text-[11px] text-muted-foreground">{selectedConv.contact_number}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {selectedConv.lead_id ? (
+                <Button
+                  variant="outline" size="sm" className="text-cyan-400 border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10 h-7 text-xs"
+                  onClick={() => navigate(`/leads?id=${selectedConv.lead_id}`)}
+                >
+                  Ver Lead
+                </Button>
+              ) : (
+                <Button
+                  variant="outline" size="sm" className="border-dashed h-7 text-xs"
+                  onClick={handleCreateLead}
+                >
+                  <UserPlus className="w-3.5 h-3.5 mr-1" />
+                  Criar Lead
+                </Button>
+              )}
+
+              {selectedConv.status === "open" && (
+                <>
+                  <Button
+                    onClick={handleReturnToAI} size="sm"
+                    className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50 h-7 text-xs hidden sm:flex"
+                    variant="outline"
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1" /> Para IA
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">Encerrar</Button>
+                </>
+              )}
+              {selectedConv.status === "pending_ai" && (
+                <Button
+                  onClick={handleOpenAtendimento} size="sm"
+                  className="bg-green-500 hover:bg-green-600 text-white h-7 text-xs"
+                >
+                  <Play className="w-3.5 h-3.5 mr-1" /> Assumir
+                </Button>
+              )}
+
+              {/* Notes toggle */}
+              <Button
+                variant={showNotes ? "default" : "outline"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => { setShowNotes((v) => !v); setShowInfoPanel(false); }}
+                title="Notas internas"
+              >
+                <StickyNote className="w-3.5 h-3.5" />
+              </Button>
+
+              {/* Info / lead panel toggle */}
+              <Button
+                variant={showInfoPanel ? "default" : "outline"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => { setShowInfoPanel((v) => !v); setShowNotes(false); }}
+                title="Informações do contato"
+              >
+                <User className="w-3.5 h-3.5" />
+              </Button>
+
+              {/* Mobile overflow actions */}
+              {selectedConv.status === "open" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-7 w-7 sm:hidden">
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleReturnToAI}>
+                      <Play className="w-4 h-4 mr-2 text-yellow-500" /> Voltar para IA
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleClose} className="text-destructive">
+                      Encerrar atendimento
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+
+          {/* Notes panel (below header, collapsible) */}
+          {showNotes && (
+            <div className="border-b border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
+              <p className="text-xs font-semibold text-yellow-600 mb-2 flex items-center gap-1">
+                <StickyNote className="w-3.5 h-3.5" /> Notas Internas
+              </p>
+              <NotesPanel conversationId={selectedConv.id} />
+            </div>
+          )}
+
+          {/* Info panel (below header, collapsible) */}
+          {showInfoPanel && (
+            <div className="border-b border-border bg-muted/10 px-4 py-3 space-y-2">
+              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
+                <User className="w-3.5 h-3.5" /> Informações do Contato
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Nome</p>
+                  <p className="font-medium text-foreground">{selectedConv.contact_name || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Número</p>
+                  <p className="font-medium text-foreground">{selectedConv.contact_number}</p>
+                </div>
+              </div>
+              {selectedConv.lead_id && (
+                <Button
+                  variant="outline" size="sm"
+                  className="w-full text-xs h-7 border-cyan-400/30 text-cyan-400 bg-cyan-400/5 hover:bg-cyan-400/10"
+                  onClick={() => navigate(`/leads?id=${selectedConv.lead_id}`)}
+                >
+                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Abrir lead no Kanban
+                </Button>
+              )}
+              {(selectedConv as any).leads && (
+                <div className="bg-muted/40 border border-border rounded-md p-2 text-xs space-y-1">
+                  <p className="text-muted-foreground">Status do lead</p>
+                  <p className="font-medium text-foreground">{(selectedConv as any).leads?.status || "—"}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-3">
+              {loadingMsgs ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-primary" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="text-center text-muted-foreground py-10 text-sm">Nenhuma mensagem ainda.</div>
+              ) : (
+                messages.map((msg) => {
+                  const isNote = (msg as any).is_note;
+                  if (isNote) return null; // notes shown in panel
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div className={`max-w-[75%] px-3.5 py-2 rounded-2xl text-sm relative shadow-sm ${
+                        msg.direction === "outbound"
+                          ? "bg-primary text-primary-foreground rounded-tr-none"
+                          : "bg-muted text-foreground rounded-tl-none border border-border/50"
+                      }`}>
+                        <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
+                        <div className={`flex items-center gap-1 mt-0.5 ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}>
+                          <span className="text-[9px] opacity-60">
+                            {formatMsgDate(msg.timestamp || msg.created_at)}
+                          </span>
+                          {/* Sent indicator for outbound */}
+                          {msg.direction === "outbound" && (
+                            <Check className="w-2.5 h-2.5 opacity-60" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Input */}
+          <div className="p-3 border-t border-border bg-muted/10">
+            <div className="flex gap-2 items-end">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => setShowQuickReplies(true)}
+                title="Respostas rápidas"
+              >
+                <Zap className="w-4 h-4 text-primary" />
+              </Button>
+              <Textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder="Escreva sua mensagem..."
+                className="flex-1 bg-background border-border resize-none text-sm min-h-[36px] max-h-28 py-2"
+                rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+              />
+              <Button
+                size="icon"
+                className="h-9 w-9 shrink-0 bg-primary hover:bg-primary/90 shadow-glow"
+                onClick={handleSendMessage}
+                disabled={!messageText.trim()}
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1 ml-1">Enter envia · Shift+Enter nova linha</p>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center opacity-40">
+          <MessageSquare className="w-14 h-14 mb-4 text-primary" />
+          <h3 className="text-lg font-bold mb-2">Selecione um chat</h3>
+          <p className="max-w-[240px] text-sm">Escolha uma conversa na lista lateral para começar.</p>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
+        <header className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <InboxIcon className="w-5 h-5 text-primary" />
+            </div>
+            <h1 className="text-2xl font-display font-bold text-foreground">Inbox</h1>
+          </div>
+        </header>
+
+        {/* Desktop: side by side | Mobile: one panel at a time */}
+        <div className="flex flex-1 gap-4 overflow-hidden">
+          {/* Conversation list — hidden on mobile when chat is open */}
+          <div className={`${mobileShowChat ? "hidden lg:flex" : "flex"} flex-col lg:w-[30%] w-full`}>
+            {ConversationList}
+          </div>
+
+          {/* Chat panel — hidden on mobile when list is shown */}
+          <div className={`${mobileShowChat ? "flex" : "hidden lg:flex"} flex-1 flex-col min-w-0`}>
+            {ChatPanel}
+          </div>
+        </div>
+      </div>
+
+      <QuickRepliesModal
+        open={showQuickReplies}
+        onClose={() => setShowQuickReplies(false)}
+        onSelect={(body) => setMessageText(body)}
+      />
+    </>
   );
 };
 

@@ -1,10 +1,11 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ExternalLink, Copy } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import type { Cobranca } from "@/hooks/useCobrancas";
 import { useUpdateCobranca, useDeleteCobranca } from "@/hooks/useCobrancas";
 import { useClientes } from "@/hooks/useClientes";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const PAYMENT_LABELS: Record<string, string> = {
   pix: "Pix",
@@ -160,7 +161,36 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
                     />
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1.5">
+                      {(c as any).asaas_invoice_url && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => window.open((c as any).asaas_invoice_url, "_blank")}
+                              className="p-1.5 rounded-md hover:bg-blue-500/10 text-blue-500 transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent><p className="text-xs">Abrir link Asaas</p></TooltipContent>
+                        </Tooltip>
+                      )}
+                      {(c as any).asaas_pix_code && !(c as any).asaas_invoice_url && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText((c as any).asaas_pix_code);
+                                toast.success("Código PIX copiado!");
+                              }}
+                              className="p-1.5 rounded-md hover:bg-blue-500/10 text-blue-500 transition-colors"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent><p className="text-xs">Copiar código PIX</p></TooltipContent>
+                        </Tooltip>
+                      )}
                       <button onClick={() => onEdit(c)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                         <Pencil className="w-4 h-4" />
                       </button>

@@ -28,6 +28,9 @@ interface NovoClienteModalProps {
     nome?: string;
     whatsapp?: string;
     origem?: string;
+    email?: string;
+    cpf_cnpj?: string;
+    endereco?: string;
   };
   onClienteCreated?: (clienteId: string) => void;
   lockOutsideClose?: boolean;
@@ -56,6 +59,9 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
       setNome(initialData.nome || "");
       setWhatsapp(initialData.whatsapp || "");
       setOrigem(initialData.origem || "");
+      setEmail(initialData.email || "");
+      setCpfCnpj(initialData.cpf_cnpj || "");
+      setEndereco(initialData.endereco || "");
     }
   }, [initialData, open]);
 

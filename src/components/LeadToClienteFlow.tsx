@@ -1,6 +1,7 @@
 import { useState } from "react";
 import NovoClienteModal from "@/components/clientes/NovoClienteModal";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
+import type { ContratoFormData } from "@/components/ContratoInfoModal";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -31,9 +32,19 @@ interface LeadToClienteFlowProps {
   lead: Lead | null;
   open: boolean;
   onClose: () => void;
+  contratoData?: ContratoFormData | null;
 }
 
-const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
+const brToDate = (br: string): Date | undefined => {
+  if (!br) return undefined;
+  const parts = br.split("/");
+  if (parts.length !== 3) return undefined;
+  const [d, m, y] = parts.map(Number);
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return undefined;
+  return new Date(y, m - 1, d);
+};
+
+const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteFlowProps) => {
   const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "evento">("cliente");
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [cobrancaType, setCobrancaType] = useState<CobrancaType>("unica");
@@ -59,8 +70,24 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
   };
 
   const goToEvento = () => {
-    if (lead?.data_evento) setEventoDate(parseLocalDate(lead.data_evento));
-    if (lead?.interesse) setEventoTitulo(lead.interesse);
+    if (contratoData) {
+      if (contratoData.data_evento) {
+        const d = brToDate(contratoData.data_evento);
+        if (d) setEventoDate(d);
+      }
+      if (contratoData.tipo_servico) {
+        setEventoTitulo(contratoData.tipo_servico);
+        const matched = services.find(
+          (s) => s.ativo && s.nome.toLowerCase().includes(contratoData.tipo_servico.toLowerCase())
+        );
+        if (matched) setEventoServiceId(matched.id);
+      }
+      if (contratoData.local_evento) setEventoLocal(contratoData.local_evento);
+      if (contratoData.horario_inicio) setEventoHora(contratoData.horario_inicio);
+    } else {
+      if (lead?.data_evento) setEventoDate(parseLocalDate(lead.data_evento));
+      if (lead?.interesse) setEventoTitulo(lead.interesse);
+    }
     setStep("evento");
   };
 
@@ -132,9 +159,12 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
           open={true}
           onClose={handleClose}
           initialData={{
-            nome: lead.nome,
-            whatsapp: lead.whatsapp,
+            nome: contratoData?.nome_cliente || lead.nome,
+            whatsapp: contratoData?.whatsapp || lead.whatsapp,
             origem: lead.origem || "",
+            email: contratoData?.email || "",
+            cpf_cnpj: contratoData?.cpf_cnpj || "",
+            endereco: contratoData?.endereco_cliente || "",
           }}
           onClienteCreated={handleClienteCreated}
           lockOutsideClose
@@ -200,7 +230,7 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
           onOpenChange={(v) => { if (!v) goToEvento(); }}
           type={cobrancaType}
           initialClienteId={createdClienteId || undefined}
-          initialValor={lead.valor || undefined}
+          initialValor={contratoData?.valor ? parseFloat(contratoData.valor) : lead.valor || undefined}
           lockOutsideClose
           headerExtra={StepIndicator}
           footerExtra={

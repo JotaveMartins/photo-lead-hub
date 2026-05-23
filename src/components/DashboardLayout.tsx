@@ -46,6 +46,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/ia") return "ia";
     if (path === "/whatsapp") return "whatsapp";
     if (path === "/inbox") return "inbox";
+    if (path === "/integracoes") return "integracoes";
     return "leads";
   };
 
@@ -93,6 +94,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       ia: "/ia",
       whatsapp: "/whatsapp",
       inbox: "/inbox",
+      integracoes: "/integracoes",
     };
     navigate(routes[item] || "/leads");
   };

@@ -13,6 +13,8 @@ interface AdminUser {
   meta_ad_account_id?: string | null;
   cpl_limite_bom?: number | null;
   cpl_limite_alerta?: number | null;
+  asaas_api_key?: string | null;
+  autentique_token?: string | null;
 }
 
 interface Props {
@@ -27,12 +29,16 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
   const [metaAdAccount, setMetaAdAccount] = useState("");
   const [cplBom, setCplBom] = useState("");
   const [cplAlerta, setCplAlerta] = useState("");
+  const [asaasKey, setAsaasKey] = useState("");
+  const [autentiqueToken, setAutentiqueToken] = useState("");
 
   useEffect(() => {
     if (user) {
       setMetaAdAccount(user.meta_ad_account_id || "");
       setCplBom(user.cpl_limite_bom != null ? String(user.cpl_limite_bom) : "");
       setCplAlerta(user.cpl_limite_alerta != null ? String(user.cpl_limite_alerta) : "");
+      setAsaasKey(user.asaas_api_key || "");
+      setAutentiqueToken(user.autentique_token || "");
     }
   }, [user]);
 
@@ -45,6 +51,8 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
           meta_ad_account_id: metaAdAccount.trim() || null,
           cpl_limite_bom: cplBom.trim() ? Number(cplBom.replace(",", ".")) : null,
           cpl_limite_alerta: cplAlerta.trim() ? Number(cplAlerta.replace(",", ".")) : null,
+          asaas_api_key: asaasKey.trim() || null,
+          autentique_token: autentiqueToken.trim() || null,
         } as any)
         .eq("user_id", user.user_id);
       if (error) throw error;
@@ -106,6 +114,30 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
                 <span className="px-2 py-0.5 rounded-full border bg-red-500/10 text-red-500 border-red-500/30">&gt; {fmt(alerta)}</span>
               </div>
             )}
+          </div>
+
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <p className="text-sm font-medium text-foreground">Integrações</p>
+            <div>
+              <Label className="text-xs">Asaas — API Key</Label>
+              <Input
+                type="password"
+                value={asaasKey}
+                onChange={(e) => setAsaasKey(e.target.value)}
+                placeholder="$aact_YourAsaasApiKey..."
+                className="font-mono text-sm mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Autentique — Token de API</Label>
+              <Input
+                type="password"
+                value={autentiqueToken}
+                onChange={(e) => setAutentiqueToken(e.target.value)}
+                placeholder="Token do Autentique..."
+                className="font-mono text-sm mt-1"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
