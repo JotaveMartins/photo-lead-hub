@@ -86,7 +86,18 @@ const LeadsPage = () => {
                 <p className="text-sm font-semibold text-foreground">Tarefas de Hoje</p>
                 <p className="text-xs text-muted-foreground">{todayTasks.length} pendentes</p>
               </div>
-              <div className="max-h-64 overflow-y-auto">
+              <div
+                className="max-h-64 overflow-y-auto overscroll-contain"
+                onWheel={(e) => {
+                  const el = e.currentTarget;
+                  const atTop = el.scrollTop === 0;
+                  const atBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight;
+                  if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+                    e.preventDefault();
+                  }
+                  e.stopPropagation();
+                }}
+              >
                 {todayTasks.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">Nenhuma tarefa para hoje 🎉</p>
                 ) : (
