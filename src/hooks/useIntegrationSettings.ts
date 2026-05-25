@@ -5,7 +5,6 @@ import { toast } from "sonner";
 
 export interface IntegrationSettings {
   asaas_api_key: string | null;
-  autentique_token: string | null;
 }
 
 export const useIntegrationSettings = () => {
@@ -14,16 +13,15 @@ export const useIntegrationSettings = () => {
   return useQuery({
     queryKey: ["integration-settings", effectiveUserId],
     queryFn: async (): Promise<IntegrationSettings> => {
-      if (!effectiveUserId) return { asaas_api_key: null, autentique_token: null };
+      if (!effectiveUserId) return { asaas_api_key: null };
       const { data, error } = await supabase
         .from("profiles")
-        .select("asaas_api_key, autentique_token")
+        .select("asaas_api_key")
         .eq("user_id", effectiveUserId)
         .single();
       if (error) throw error;
       return {
         asaas_api_key: (data as any)?.asaas_api_key ?? null,
-        autentique_token: (data as any)?.autentique_token ?? null,
       };
     },
     enabled: !!effectiveUserId,

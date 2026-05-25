@@ -50,13 +50,6 @@ const FORMAS_PAGAMENTO = [
   "Entrada + Parcelas",
 ];
 
-const isoToBR = (iso: string | null | undefined): string => {
-  if (!iso) return "";
-  const parts = iso.split("-");
-  if (parts.length !== 3) return iso;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
-};
-
 const ContratoInfoModal = ({ open, lead, onConfirm, onCancel }: ContratoInfoModalProps) => {
   const [form, setForm] = useState<ContratoFormData>({
     nome_cliente: "",
@@ -81,7 +74,7 @@ const ContratoInfoModal = ({ open, lead, onConfirm, onCancel }: ContratoInfoModa
         ...prev,
         nome_cliente: lead.nome || "",
         whatsapp: lead.whatsapp || "",
-        data_evento: isoToBR(lead.data_evento),
+        data_evento: lead.data_evento || "",
         tipo_servico: lead.interesse || "",
         valor: lead.valor ? String(lead.valor) : "",
       }));
@@ -177,10 +170,9 @@ const ContratoInfoModal = ({ open, lead, onConfirm, onCancel }: ContratoInfoModa
               <div className="space-y-1">
                 <Label className="text-xs">Data do evento</Label>
                 <Input
-                  type="text"
+                  type="date"
                   value={form.data_evento}
                   onChange={(e) => set("data_evento", e.target.value)}
-                  placeholder="DD/MM/AAAA"
                   className="bg-muted border-border h-8 text-sm"
                 />
               </div>
@@ -196,20 +188,18 @@ const ContratoInfoModal = ({ open, lead, onConfirm, onCancel }: ContratoInfoModa
               <div className="space-y-1">
                 <Label className="text-xs">Horário de início</Label>
                 <Input
-                  type="text"
+                  type="time"
                   value={form.horario_inicio}
                   onChange={(e) => set("horario_inicio", e.target.value)}
-                  placeholder="HH:MM"
                   className="bg-muted border-border h-8 text-sm"
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Horário de término</Label>
                 <Input
-                  type="text"
+                  type="time"
                   value={form.horario_fim}
                   onChange={(e) => set("horario_fim", e.target.value)}
-                  placeholder="HH:MM"
                   className="bg-muted border-border h-8 text-sm"
                 />
               </div>

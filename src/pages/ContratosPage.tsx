@@ -1,8 +1,6 @@
 import { useRef, useState } from "react";
 import { useContratos, useUpdateContrato, useUploadContratoFile, useDeleteContrato, type Contrato } from "@/hooks/useContratos";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +20,6 @@ import {
   DollarSign,
   Clock,
   Trash2,
-  Link,
   CheckCircle2,
   Send,
   Hourglass,
@@ -82,11 +79,11 @@ interface ContratoCardProps {
   contrato: Contrato;
   onUpload: (contrato: Contrato, file: File) => void;
   onDelete: (contrato: Contrato) => void;
-  onEditAutentique: (contrato: Contrato) => void;
+  onMarkSigned: (contrato: Contrato) => void;
   uploading: boolean;
 }
 
-const ContratoCard = ({ contrato, onUpload, onDelete, onEditAutentique, uploading }: ContratoCardProps) => {
+const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, uploading }: ContratoCardProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,15 +154,6 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onEditAutentique, uploadin
         )}
       </div>
 
-      {/* Autentique ID */}
-      {contrato.autentique_document_id && (
-        <div className="flex items-center gap-1.5 text-[11px] bg-muted/50 rounded px-2 py-1">
-          <Link className="w-3 h-3 text-primary" />
-          <span className="text-muted-foreground">Autentique:</span>
-          <span className="font-mono text-foreground truncate">{contrato.autentique_document_id}</span>
-        </div>
-      )}
-
       {/* Actions */}
       <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
         {contrato.status === "aguardando_contrato" && (
@@ -179,14 +167,6 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onEditAutentique, uploadin
             >
               <Upload className="w-3 h-3" />
               {uploading ? "Enviando..." : "Anexar Contrato"}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1"
-              onClick={() => onEditAutentique(contrato)}
-            >
-              <Link className="w-3 h-3" /> ID Autentique
             </Button>
           </>
         )}
@@ -204,11 +184,10 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onEditAutentique, uploadin
             )}
             <Button
               size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1"
-              onClick={() => onEditAutentique(contrato)}
+              className="h-7 text-xs gap-1 bg-emerald-500 hover:bg-emerald-600 text-white border-0"
+              onClick={() => onMarkSigned(contrato)}
             >
-              <Link className="w-3 h-3" /> ID Autentique
+              <CheckCircle2 className="w-3 h-3" /> Marcar como Assinado
             </Button>
           </>
         )}
@@ -250,8 +229,7 @@ const ContratosPage = () => {
 
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Contrato | null>(null);
-  const [autentiqueTarget, setAutentiqueTarget] = useState<Contrato | null>(null);
-  const [autentiqueId, setAutentiqueId] = useState("");
+  const [signTarget, setSignTarget] = useState<Contrato | null>(null);
 
   const handleUpload = async (contrato: Contrato, file: File) => {
     setUploadingId(contrato.id);
@@ -268,17 +246,11 @@ const ContratosPage = () => {
     setDeleteTarget(null);
   };
 
-  const handleSaveAutentique = async () => {
-    if (!autentiqueTarget) return;
-    await updateContrato.mutateAsync({ id: autentiqueTarget.id, autentique_document_id: autentiqueId.trim() || null });
-    toast.success("ID do Autentique salvo.");
-    setAutentiqueTarget(null);
-    setAutentiqueId("");
-  };
-
-  const openAutentiqueModal = (contrato: Contrato) => {
-    setAutentiqueTarget(contrato);
-    setAutentiqueId(contrato.autentique_document_id || "");
+  const handleMarkSigned = async () => {
+    if (!signTarget) return;
+    await updateContrato.mutateAsync({ id: signTarget.id, status: "contrato_assinado" });
+    toast.success("Contrato marcado como assinado!");
+    setSignTarget(null);
   };
 
   const totalPorStatus = (status: ContratoStatus) =>
@@ -326,7 +298,7 @@ const ContratosPage = () => {
                         contrato={contrato}
                         onUpload={handleUpload}
                         onDelete={setDeleteTarget}
-                        onEditAutentique={openAutentiqueModal}
+                        onMarkSigned={setSignTarget}
                         uploading={uploadingId === contrato.id}
                       />
                     ))
@@ -360,30 +332,25 @@ const ContratosPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Autentique ID modal */}
-      <AlertDialog open={!!autentiqueTarget} onOpenChange={(v) => !v && setAutentiqueTarget(null)}>
-        <AlertDialogContent className="bg-card border-border sm:max-w-md">
+      {/* Mark as signed confirmation */}
+      <AlertDialog open={!!signTarget} onOpenChange={(v) => !v && setSignTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground flex items-center gap-2">
-              <Link className="w-4 h-4 text-primary" /> ID do Documento Autentique
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Confirmar assinatura
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Cole o ID do documento gerado no Autentique para vincular ao webhook de assinatura.
+              Marcar o contrato de{" "}
+              <span className="font-semibold text-foreground">{signTarget?.nome_cliente}</span> como assinado?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2 space-y-2">
-            <Label className="text-xs">Document ID</Label>
-            <Input
-              value={autentiqueId}
-              onChange={(e) => setAutentiqueId(e.target.value)}
-              placeholder="Ex: doc_abc123..."
-              className="bg-muted border-border text-sm font-mono"
-            />
-          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveAutentique} className="bg-gradient-primary hover:opacity-90">
-              Salvar
+            <AlertDialogAction
+              className="bg-emerald-500 text-white hover:bg-emerald-600"
+              onClick={handleMarkSigned}
+            >
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

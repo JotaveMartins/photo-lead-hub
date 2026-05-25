@@ -93,6 +93,11 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     const successes = results.filter((r) => r.status === "fulfilled") as PromiseFulfilledResult<any>[];
     const failures = results.filter((r) => r.status === "rejected").length;
 
+    if (failures > 0) {
+      const firstError = (results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined)?.reason;
+      const msg = firstError?.message || "Erro desconhecido";
+      toast.error(`Erro ao enviar ao Asaas: ${msg}`, { duration: 8000 });
+    }
     if (successes.length > 0) {
       const link = successes[0].value?.invoice_url;
       const pixCode = successes[0].value?.pix_code;
@@ -134,7 +139,6 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
         toast.success(`${successes.length} cobrança(s) enviada(s) ao Asaas!`);
       }
     }
-    if (failures > 0) toast.error(`${failures} cobrança(s) falharam ao enviar ao Asaas.`);
   };
 
   // Computed values for entrada+parcelas preview

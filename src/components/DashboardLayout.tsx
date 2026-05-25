@@ -1,6 +1,5 @@
 import { ReactNode, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import Sidebar from "@/components/Sidebar";
 import { TutorialModal, HelpButton } from "@/components/TutorialModal";
@@ -21,7 +20,6 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, loading } = useAuth();
   const { isImpersonating, impersonatedUserName, stopImpersonation } = useImpersonation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,19 +59,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path.startsWith("/clientes/") && path !== "/clientes") return { pageTutorial: clienteDetailTutorial, pageKey: "cliente-detail" };
     return { pageTutorial: undefined, pageKey: undefined };
   }, [location.pathname]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Carregando...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
 
   const handleItemClick = (item: string) => {
     const routes: Record<string, string> = {
