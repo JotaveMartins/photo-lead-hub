@@ -10,8 +10,6 @@ export type ReportTask = Tables<"lead_tasks">;
 export type ReportProfile = Pick<Tables<"profiles">, "user_id" | "nome" | "email">;
 
 interface UseReportDataParams {
-  origem?: string;
-  interesse?: string;
   clienteUserId?: string;
 }
 
@@ -21,7 +19,7 @@ export const useReportData = (params: UseReportDataParams = {}) => {
   const { isAdmin } = useUserRole();
 
   const leadsQuery = useQuery({
-    queryKey: ["report-leads", effectiveUserId, isAdmin, params.origem, params.interesse, params.clienteUserId],
+    queryKey: ["report-leads", effectiveUserId, isAdmin, params.clienteUserId],
     queryFn: async () => {
       let query = supabase.from("leads").select("*");
 
@@ -31,13 +29,6 @@ export const useReportData = (params: UseReportDataParams = {}) => {
       } else {
         // Otherwise use effective user id (handles impersonation)
         query = query.eq("user_id", effectiveUserId!);
-      }
-
-      if (params.origem) {
-        query = query.eq("origem", params.origem);
-      }
-      if (params.interesse) {
-        query = query.eq("interesse", params.interesse);
       }
 
       const { data, error } = await query;
