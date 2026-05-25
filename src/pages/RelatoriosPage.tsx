@@ -37,23 +37,32 @@ const RelatoriosPage = () => {
     averageDays: number | null;
   } | null>(null);
 
-  const { leads, tasks, profiles, isLoading, isAdmin } = useReportData({ origem, interesse, clienteUserId });
+  const { leads: allLeads, tasks, profiles, isLoading, isAdmin } = useReportData({ clienteUserId });
 
   const dateRange = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
 
-  // Unique origens
+  // Unique origens (computed from the unfiltered set so the dropdown always shows all options)
   const origens = useMemo(() => {
     const set = new Set<string>();
-    leads.forEach((l) => { if (l.origem) set.add(l.origem); });
+    allLeads.forEach((l) => { if (l.origem) set.add(l.origem); });
     return Array.from(set).sort();
-  }, [leads]);
+  }, [allLeads]);
 
-  // Unique interesses (from currently loaded leads — already scoped to client when admin)
+  // Unique interesses (computed from the unfiltered set so the dropdown always shows all options)
   const interesses = useMemo(() => {
     const set = new Set<string>();
-    leads.forEach((l) => { if (l.interesse) set.add(l.interesse); });
+    allLeads.forEach((l) => { if (l.interesse) set.add(l.interesse); });
     return Array.from(set).sort();
-  }, [leads]);
+  }, [allLeads]);
+
+  // Apply origem/interesse filters client-side so changing them does not collapse the dropdown options
+  const leads = useMemo(() => {
+    return allLeads.filter((l) => {
+      if (origem && l.origem !== origem) return false;
+      if (interesse && l.interesse !== interesse) return false;
+      return true;
+    });
+  }, [allLeads, origem, interesse]);
 
   // Helper: check if a timestamp falls within the selected period
   const inRange = (ts: string | null) => {
