@@ -1,6 +1,7 @@
 import DatePickerField from "@/components/DatePickerField";
 import { Label } from "@/components/ui/label";
 import { ReportProfile } from "@/hooks/useReportData";
+import SearchSelect from "@/components/SearchSelect";
 
 export type PeriodOption =
   | "today"
@@ -124,53 +125,41 @@ const ReportFilters = (props: ReportFiltersProps) => {
         </>
       )}
 
-      <div className="flex flex-col gap-1.5 min-w-[160px]">
+      <div className="flex flex-col gap-1.5 min-w-[180px]">
         <Label className="text-xs text-muted-foreground">Origem</Label>
-        <select
-          value={props.origem || "__all__"}
-          onChange={(e) => props.onOrigemChange(e.target.value === "__all__" ? "" : e.target.value)}
-          className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <option value="__all__">Todas</option>
-          {props.origens.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
+        <SearchSelect
+          value={props.origem}
+          onChange={props.onOrigemChange}
+          options={props.origens.map((o) => ({ value: o, label: o }))}
+          placeholder="Todas"
+          emptyLabel="Todas"
+          allowEmpty
+        />
       </div>
 
-      <div className="flex flex-col gap-1.5 min-w-[160px]">
+      <div className="flex flex-col gap-1.5 min-w-[180px]">
         <Label className="text-xs text-muted-foreground">Interesse</Label>
-        <select
-          value={props.interesse || "__all__"}
-          onChange={(e) => props.onInteresseChange(e.target.value === "__all__" ? "" : e.target.value)}
-          className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <option value="__all__">Todos</option>
-          {props.interesses.map((i) => (
-            <option key={i} value={i}>
-              {i}
-            </option>
-          ))}
-        </select>
+        <SearchSelect
+          value={props.interesse}
+          onChange={props.onInteresseChange}
+          options={props.interesses.map((i) => ({ value: i, label: i }))}
+          placeholder="Todos"
+          emptyLabel="Todos"
+          allowEmpty
+        />
       </div>
 
       {props.isAdmin && (
-        <div className="flex flex-col gap-1.5 min-w-[200px]">
+        <div className="flex flex-col gap-1.5 min-w-[220px]">
           <Label className="text-xs text-muted-foreground">Cliente</Label>
-          <select
-            value={props.clienteUserId || "__all__"}
-            onChange={(e) => props.onClienteChange(e.target.value === "__all__" ? "" : e.target.value)}
-            className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <option value="__all__">Todos os clientes</option>
-            {props.profiles.map((p) => (
-              <option key={p.user_id} value={p.user_id}>
-                {p.nome}
-              </option>
-            ))}
-          </select>
+          <SearchSelect
+            value={props.clienteUserId}
+            onChange={props.onClienteChange}
+            options={props.profiles.map((p) => ({ value: p.user_id, label: p.nome || p.email || "Sem nome" }))}
+            placeholder="Todos os clientes"
+            emptyLabel="Todos os clientes"
+            allowEmpty
+          />
         </div>
       )}
     </div>
