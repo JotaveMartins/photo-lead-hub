@@ -352,7 +352,7 @@ const InboxPage = () => {
 
   // ── Conversation list panel ──────────────────
   const ConversationList = (
-    <div className="w-full lg:w-[30%] flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+    <div className="w-full flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
       {/* Search */}
       <div className="p-3 border-b border-border">
         <div className="relative">
@@ -709,7 +709,7 @@ const InboxPage = () => {
         {/* Desktop: side by side | Mobile: one panel at a time */}
         <div className="flex flex-1 gap-4 overflow-hidden">
           {/* Conversation list — hidden on mobile when chat is open */}
-          <div className={`${mobileShowChat ? "hidden lg:flex" : "flex"} flex-col lg:w-[30%] w-full`}>
+          <div className={`${mobileShowChat ? "hidden lg:flex" : "flex"} flex-col lg:w-[38%] w-full`}>
             {ConversationList}
           </div>
 
