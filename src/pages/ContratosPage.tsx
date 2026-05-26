@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import {
   useContratos, useUpdateContrato, useUploadContratoFile,
   useDeleteContrato, useDeletedContratos, useRestoreContrato,
   usePermanentDeleteContrato, type Contrato,
 } from "@/hooks/useContratos";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -12,10 +13,11 @@ import {
 import {
   FileText, Upload, Calendar, MapPin, DollarSign, Clock, Trash2,
   CheckCircle2, Send, Hourglass, Eye, Archive, RotateCcw, Trash,
+  Search, X, SlidersHorizontal,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDate, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ContratoDrawer from "@/components/contratos/ContratoDrawer";
 
@@ -215,6 +217,50 @@ const ContratosPage = () => {
   const [viewContrato, setViewContrato] = useState<Contrato | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
+  // Filters
+  const [search, setSearch] = useState("");
+  const [filterServico, setFilterServico] = useState("");
+  const [filterData, setFilterData] = useState<"todos" | "este_mes" | "proximos_30" | "atrasados">("todos");
+
+  const servicoOptions = useMemo(() => {
+    const unique = [...new Set(contratos.map((c) => c.tipo_servico).filter(Boolean))] as string[];
+    return unique.sort();
+  }, [contratos]);
+
+  const contratosFiltrados = useMemo(() => {
+    return contratos.filter((c) => {
+      if (search.trim()) {
+        const s = search.toLowerCase();
+        const match = [c.nome_cliente, c.tipo_servico, c.local_evento, c.whatsapp, c.email, c.pacote]
+          .some((v) => v?.toLowerCase().includes(s));
+        if (!match) return false;
+      }
+      if (filterServico && c.tipo_servico !== filterServico) return false;
+      if (filterData !== "todos") {
+        if (!c.data_evento) return false;
+        const eventDate = parseLocalDate(c.data_evento);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (filterData === "este_mes") {
+          if (eventDate < startOfMonth(today) || eventDate > endOfMonth(today)) return false;
+        } else if (filterData === "proximos_30") {
+          if (eventDate < today || eventDate > addDays(today, 30)) return false;
+        } else if (filterData === "atrasados") {
+          if (eventDate >= today || c.status === "contrato_assinado") return false;
+        }
+      }
+      return true;
+    });
+  }, [contratos, search, filterServico, filterData]);
+
+  const hasActiveFilters = search.trim() !== "" || filterServico !== "" || filterData !== "todos";
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilterServico("");
+    setFilterData("todos");
+  };
+
   const handleUpload = async (contrato: Contrato, file: File) => {
     setUploadingId(contrato.id);
     try {
@@ -244,7 +290,14 @@ const ContratosPage = () => {
   };
 
   const totalPorStatus = (status: ContratoStatus) =>
-    contratos.filter((c) => c.status === status).length;
+    contratosFiltrados.filter((c) => c.status === status).length;
+
+  const DATE_FILTERS: { value: typeof filterData; label: string }[] = [
+    { value: "todos", label: "Todos" },
+    { value: "este_mes", label: "Este mês" },
+    { value: "proximos_30", label: "Próximos 30 dias" },
+    { value: "atrasados", label: "Atrasados" },
+  ];
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -255,7 +308,7 @@ const ContratosPage = () => {
             <FileText className="w-6 h-6 text-primary" /> Contratos
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {contratos.length} contrato{contratos.length !== 1 ? "s" : ""} no total
+            {contratosFiltrados.length} de {contratos.length} contrato{contratos.length !== 1 ? "s" : ""}
           </p>
         </div>
         <Button
@@ -274,12 +327,82 @@ const ContratosPage = () => {
         </Button>
       </div>
 
+      {/* Search + Filters */}
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome, serviço, local..."
+              className="pl-9 bg-muted border-border"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs gap-1 text-muted-foreground">
+              <X className="w-3.5 h-3.5" /> Limpar
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+
+          {/* Date filter chips */}
+          <div className="flex flex-wrap gap-1.5">
+            {DATE_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilterData(f.value)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                  filterData === f.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Service filter */}
+          {servicoOptions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 border-l border-border pl-2 ml-1">
+              {servicoOptions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setFilterServico(filterServico === s ? "" : s)}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                    filterServico === s
+                      ? "bg-primary/10 text-primary border-primary/40"
+                      : "bg-muted text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="text-center text-muted-foreground py-12">Carregando...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {STATUS_COLUMNS.map((col) => {
-            const colContratos = contratos.filter((c) => c.status === col.status);
+            const colContratos = contratosFiltrados.filter((c) => c.status === col.status);
             return (
               <div key={col.status} className="flex flex-col gap-3">
                 {/* Column header */}
