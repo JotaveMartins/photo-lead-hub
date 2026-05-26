@@ -72,37 +72,52 @@ export const useUpdateConversation = () => {
   });
 };
 
+export interface SendInboxMessageParams {
+  conversationId: string;
+  number: string;
+  instanceId: string;
+  text?: string;
+  type?: 'text' | 'image' | 'video' | 'audio' | 'document';
+  mediaBase64?: string;
+  mediaFilename?: string;
+  mediaMimeType?: string;
+  mediaUrl?: string;
+}
+
 export const useSendInboxMessage = () => {
   const queryClient = useQueryClient();
   const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
-    onMutate: async (newMessage) => {
-      // Cancel any outgoing refetches
+    onMutate: async (newMessage: SendInboxMessageParams) => {
       await queryClient.cancelQueries({ queryKey: ["inbox_messages", newMessage.conversationId] });
       await queryClient.cancelQueries({ queryKey: ["inbox_conversations"] });
 
-      // Snapshot the previous values
       const previousMessages = queryClient.getQueryData<any[]>(["inbox_messages", newMessage.conversationId]);
       const previousConversations = queryClient.getQueryData<any[]>(["inbox_conversations"]);
 
-      // Optimistically update messages
+      const msgType = newMessage.type || 'text';
+      const displayBody = newMessage.text || (msgType !== 'text' ? `[${msgType}]` : '');
+
       queryClient.setQueryData<any[]>(["inbox_messages", newMessage.conversationId], (old = []) => [
         ...old,
         {
           id: Math.random().toString(36).substring(7),
           conversation_id: newMessage.conversationId,
-          body: newMessage.text,
+          body: displayBody,
           direction: 'outbound',
           timestamp: new Date().toISOString(),
-          read: true
+          read: true,
+          type: msgType,
+          media_url: newMessage.mediaUrl || null,
+          media_filename: newMessage.mediaFilename || null,
+          media_mime_type: newMessage.mediaMimeType || null,
         }
       ]);
 
-      // Optimistically update conversation last message and status
-      queryClient.setQueryData<any[]>(["inbox_conversations"], (old = []) => 
-        old.map(conv => conv.id === newMessage.conversationId 
-          ? { ...conv, last_message: newMessage.text, status: 'open', updated_at: new Date().toISOString() } 
+      queryClient.setQueryData<any[]>(["inbox_conversations"], (old = []) =>
+        old.map(conv => conv.id === newMessage.conversationId
+          ? { ...conv, last_message: displayBody, status: 'open', updated_at: new Date().toISOString() }
           : conv
         )
       );
@@ -114,15 +129,19 @@ export const useSendInboxMessage = () => {
       queryClient.setQueryData(["inbox_conversations"], context?.previousConversations);
       toast.error("Erro ao enviar mensagem.");
     },
-    mutationFn: async ({ conversationId, number, text, instanceId }: { conversationId: string; number: string; text: string; instanceId: string }) => {
+    mutationFn: async (params: SendInboxMessageParams) => {
+      const msgType = params.type || 'text';
       const { data, error: functionError } = await supabase.functions.invoke('send-whatsapp-message', {
         body: {
-          instance_id: instanceId,
-          phone_number: number,
-          type: 'text',
-          content: text,
+          instance_id: params.instanceId,
+          phone_number: params.number,
+          type: msgType,
+          content: params.text || '',
+          media_base64: params.mediaBase64 || undefined,
+          media_filename: params.mediaFilename || undefined,
+          media_mime_type: params.mediaMimeType || undefined,
           lead_id: null,
-          sent_by: 'human'
+          sent_by: 'human',
         }
       });
 
@@ -131,11 +150,15 @@ export const useSendInboxMessage = () => {
       const { error: insertError } = await supabase
         .from("inbox_messages")
         .insert({
-          conversation_id: conversationId,
+          conversation_id: params.conversationId,
           user_id: effectiveUserId!,
-          body: text,
+          body: params.text || null,
           direction: 'outbound',
-          read: true
+          read: true,
+          type: msgType,
+          media_url: params.mediaUrl || null,
+          media_filename: params.mediaFilename || null,
+          media_mime_type: params.mediaMimeType || null,
         });
 
       if (insertError) throw insertError;

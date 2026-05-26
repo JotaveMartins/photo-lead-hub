@@ -24,6 +24,7 @@ export const useContratos = (status?: ContratoStatus) => {
         .from("contratos")
         .select("*")
         .eq("user_id", effectiveUserId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (status) {
@@ -31,6 +32,51 @@ export const useContratos = (status?: ContratoStatus) => {
       }
 
       const { data, error } = await query;
+      if (error) throw error;
+      return data as Contrato[];
+    },
+    enabled: !!effectiveUserId,
+  });
+};
+
+export const useContratosByClienteId = (clienteId?: string) => {
+  const effectiveUserId = useEffectiveUserId();
+
+  return useQuery({
+    queryKey: ["contratos-cliente", clienteId, effectiveUserId],
+    queryFn: async () => {
+      if (!clienteId || !effectiveUserId) return [];
+
+      const { data, error } = await supabase
+        .from("contratos")
+        .select("*")
+        .eq("user_id", effectiveUserId)
+        .eq("cliente_id", clienteId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Contrato[];
+    },
+    enabled: !!clienteId && !!effectiveUserId,
+  });
+};
+
+export const useDeletedContratos = () => {
+  const effectiveUserId = useEffectiveUserId();
+
+  return useQuery({
+    queryKey: ["contratos-deleted", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return [];
+
+      const { data, error } = await supabase
+        .from("contratos")
+        .select("*")
+        .eq("user_id", effectiveUserId)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+
       if (error) throw error;
       return data as Contrato[];
     },
@@ -81,6 +127,7 @@ export const useUpdateContrato = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contratos"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-cliente"] });
     },
     onError: () => {
       toast.error("Erro ao atualizar contrato.");
@@ -95,14 +142,55 @@ export const useDeleteContrato = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("contratos")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contratos"] });
-      toast.success("Contrato removido.");
+      queryClient.invalidateQueries({ queryKey: ["contratos-cliente"] });
+      toast.success("Contrato arquivado.");
+    },
+  });
+};
+
+export const useRestoreContrato = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("contratos")
+        .update({ deleted_at: null })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contratos"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-deleted"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-cliente"] });
+      toast.success("Contrato restaurado.");
+    },
+  });
+};
+
+export const usePermanentDeleteContrato = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("contratos")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contratos-deleted"] });
+      toast.success("Contrato excluído permanentemente.");
     },
   });
 };
@@ -143,6 +231,7 @@ export const useUploadContratoFile = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contratos"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-cliente"] });
       toast.success("Contrato anexado! Card movido para Contrato Enviado.");
     },
     onError: () => {

@@ -1,33 +1,23 @@
 import { useRef, useState } from "react";
-import { useContratos, useUpdateContrato, useUploadContratoFile, useDeleteContrato, type Contrato } from "@/hooks/useContratos";
+import {
+  useContratos, useUpdateContrato, useUploadContratoFile,
+  useDeleteContrato, useDeletedContratos, useRestoreContrato,
+  usePermanentDeleteContrato, type Contrato,
+} from "@/hooks/useContratos";
 import { Button } from "@/components/ui/button";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  FileText,
-  Upload,
-  ExternalLink,
-  Calendar,
-  MapPin,
-  DollarSign,
-  Clock,
-  Trash2,
-  CheckCircle2,
-  Send,
-  Hourglass,
+  FileText, Upload, Calendar, MapPin, DollarSign, Clock, Trash2,
+  CheckCircle2, Send, Hourglass, Eye, Archive, RotateCcw, Trash,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
+import ContratoDrawer from "@/components/contratos/ContratoDrawer";
 
 type ContratoStatus = "aguardando_contrato" | "contrato_enviado" | "contrato_assinado";
 
@@ -80,10 +70,11 @@ interface ContratoCardProps {
   onUpload: (contrato: Contrato, file: File) => void;
   onDelete: (contrato: Contrato) => void;
   onMarkSigned: (contrato: Contrato) => void;
+  onView: (contrato: Contrato) => void;
   uploading: boolean;
 }
 
-const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, uploading }: ContratoCardProps) => {
+const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, onView, uploading }: ContratoCardProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,6 +147,16 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, uploading }:
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
+        {/* Ver sempre disponível */}
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1"
+          onClick={() => onView(contrato)}
+        >
+          <Eye className="w-3 h-3" /> Ver
+        </Button>
+
         {contrato.status === "aguardando_contrato" && (
           <>
             <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={handleFileChange} />
@@ -171,50 +172,27 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, uploading }:
           </>
         )}
         {contrato.status === "contrato_enviado" && (
-          <>
-            {contrato.arquivo_contrato_url && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1"
-                onClick={() => window.open(contrato.arquivo_contrato_url!, "_blank")}
-              >
-                <ExternalLink className="w-3 h-3" /> Ver Contrato
-              </Button>
-            )}
-            <Button
-              size="sm"
-              className="h-7 text-xs gap-1 bg-emerald-500 hover:bg-emerald-600 text-white border-0"
-              onClick={() => onMarkSigned(contrato)}
-            >
-              <CheckCircle2 className="w-3 h-3" /> Marcar como Assinado
-            </Button>
-          </>
+          <Button
+            size="sm"
+            className="h-7 text-xs gap-1 bg-emerald-500 hover:bg-emerald-600 text-white border-0"
+            onClick={() => onMarkSigned(contrato)}
+          >
+            <CheckCircle2 className="w-3 h-3" /> Marcar como Assinado
+          </Button>
         )}
         {contrato.status === "contrato_assinado" && (
-          <>
-            {contrato.arquivo_contrato_url && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1"
-                onClick={() => window.open(contrato.arquivo_contrato_url!, "_blank")}
-              >
-                <ExternalLink className="w-3 h-3" /> Ver Contrato
-              </Button>
-            )}
-            <span className="flex items-center gap-1 text-[11px] text-emerald-500 font-semibold">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Assinado
-            </span>
-          </>
+          <span className="flex items-center gap-1 text-[11px] text-emerald-500 font-semibold">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Assinado
+          </span>
         )}
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 ml-auto text-muted-foreground hover:text-destructive"
+          className="h-7 w-7 p-0 ml-auto text-muted-foreground hover:text-amber-500"
+          title="Arquivar"
           onClick={() => onDelete(contrato)}
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Archive className="w-3.5 h-3.5" />
         </Button>
       </div>
     </div>
@@ -223,13 +201,19 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, uploading }:
 
 const ContratosPage = () => {
   const { data: contratos = [], isLoading } = useContratos();
+  const { data: deletedContratos = [] } = useDeletedContratos();
   const updateContrato = useUpdateContrato();
   const uploadFile = useUploadContratoFile();
   const deleteContrato = useDeleteContrato();
+  const restoreContrato = useRestoreContrato();
+  const permanentDelete = usePermanentDeleteContrato();
 
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Contrato | null>(null);
+  const [permDeleteTarget, setPermDeleteTarget] = useState<Contrato | null>(null);
   const [signTarget, setSignTarget] = useState<Contrato | null>(null);
+  const [viewContrato, setViewContrato] = useState<Contrato | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const handleUpload = async (contrato: Contrato, file: File) => {
     setUploadingId(contrato.id);
@@ -246,6 +230,12 @@ const ContratosPage = () => {
     setDeleteTarget(null);
   };
 
+  const handlePermDelete = async () => {
+    if (!permDeleteTarget) return;
+    await permanentDelete.mutateAsync(permDeleteTarget.id);
+    setPermDeleteTarget(null);
+  };
+
   const handleMarkSigned = async () => {
     if (!signTarget) return;
     await updateContrato.mutateAsync({ id: signTarget.id, status: "contrato_assinado" });
@@ -259,13 +249,29 @@ const ContratosPage = () => {
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <FileText className="w-6 h-6 text-primary" /> Contratos
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {contratos.length} contrato{contratos.length !== 1 ? "s" : ""} no total
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <FileText className="w-6 h-6 text-primary" /> Contratos
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {contratos.length} contrato{contratos.length !== 1 ? "s" : ""} no total
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => setShowArchived((v) => !v)}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Arquivados
+          {deletedContratos.length > 0 && (
+            <span className="ml-0.5 bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px]">
+              {deletedContratos.length}
+            </span>
+          )}
+        </Button>
       </div>
 
       {isLoading ? (
@@ -299,6 +305,7 @@ const ContratosPage = () => {
                         onUpload={handleUpload}
                         onDelete={setDeleteTarget}
                         onMarkSigned={setSignTarget}
+                        onView={setViewContrato}
                         uploading={uploadingId === contrato.id}
                       />
                     ))
@@ -310,21 +317,86 @@ const ContratosPage = () => {
         </div>
       )}
 
-      {/* Delete confirmation */}
+      {/* Archived panel */}
+      {showArchived && (
+        <div className="border border-border rounded-xl p-4">
+          <h2 className="flex items-center gap-2 font-semibold text-sm text-foreground mb-3">
+            <Archive className="w-4 h-4 text-muted-foreground" /> Contratos Arquivados
+            <span className="text-xs text-muted-foreground ml-1">({deletedContratos.length})</span>
+          </h2>
+          {deletedContratos.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Nenhum contrato arquivado.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {deletedContratos.map((c) => (
+                <div key={c.id} className="flex items-center justify-between rounded-lg border border-border p-3 opacity-70">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{c.nome_cliente}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {c.tipo_servico || "—"}{c.data_evento ? ` · ${formatDate(c.data_evento)}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => restoreContrato.mutate(c.id)}>
+                      <RotateCcw className="w-3 h-3" /> Restaurar
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" title="Excluir permanentemente" onClick={() => setPermDeleteTarget(c)}>
+                      <Trash className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ContratoDrawer */}
+      <ContratoDrawer
+        contrato={viewContrato}
+        open={!!viewContrato}
+        onClose={() => setViewContrato(null)}
+      />
+
+      {/* Archive (soft delete) confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Excluir contrato</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">Arquivar contrato</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o contrato de{" "}
-              <span className="font-semibold text-foreground">{deleteTarget?.nome_cliente}</span>? Esta ação não pode ser desfeita.
+              O contrato de{" "}
+              <span className="font-semibold text-foreground">{deleteTarget?.nome_cliente}</span>{" "}
+              será arquivado e poderá ser restaurado depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-500 text-white hover:bg-amber-600"
+              onClick={handleDelete}
+            >
+              Arquivar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Permanent delete confirmation */}
+      <AlertDialog open={!!permDeleteTarget} onOpenChange={(v) => !v && setPermDeleteTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Excluir permanentemente</AlertDialogTitle>
+            <AlertDialogDescription>
+              O contrato de{" "}
+              <span className="font-semibold text-foreground">{permDeleteTarget?.nome_cliente}</span>{" "}
+              será excluído permanentemente. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleDelete}
+              onClick={handlePermDelete}
             >
               Excluir
             </AlertDialogAction>

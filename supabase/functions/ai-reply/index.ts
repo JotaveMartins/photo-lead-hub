@@ -78,7 +78,7 @@
        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
        body: JSON.stringify({
          model,
-         messages: [{ role: "system", content: aiConfig.system_prompt || "" }, ...chatHistory],
+         messages: [{ role: "system", content: [aiConfig.system_prompt || "", aiConfig.knowledge_base ? `\n\n---\nInformações sobre o fotógrafo/estúdio:\n${aiConfig.knowledge_base}` : ""].join("") }, ...chatHistory],
          temperature: aiConfig.temperature,
          max_tokens: aiConfig.max_tokens
        })

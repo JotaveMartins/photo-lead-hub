@@ -1,29 +1,71 @@
-import { useEffect, useRef, useState } from "react";
-import { Send, Bot, Play } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  Send, Bot, Play, Paperclip, X,
+  Image as ImageIcon, Film, Mic, Loader2, FileText,
+} from "lucide-react";
+import { MediaBubble } from "@/components/chat/MediaBubble";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { useSendInboxMessage } from "@/hooks/useInbox";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
   leadId: string;
   leadWhatsapp: string | null;
 }
 
-const normalizeWhatsApp = (value: string | null | undefined) => (value || "").replace(/\D/g, "");
+const normalizeWhatsApp = (value: string | null | undefined) =>
+  (value || "").replace(/\D/g, "");
 
+const toBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+  });
+
+const MEDIA_ACCEPT = "image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt";
+const MAX_FILE_MB = 16;
+
+
+// ── File type icon (for the pending attachment chip) ────────────────────────
+const fileTypeIcon = (file: File) => {
+  if (file.type.startsWith("image/")) return <ImageIcon className="w-3.5 h-3.5" />;
+  if (file.type.startsWith("video/")) return <Film className="w-3.5 h-3.5" />;
+  if (file.type.startsWith("audio/")) return <Mic className="w-3.5 h-3.5" />;
+  return <FileText className="w-3.5 h-3.5" />;
+};
+
+const resolveMediaType = (file: File): "image" | "video" | "audio" | "document" => {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("audio/")) return "audio";
+  return "document";
+};
+
+// ── Main component ───────────────────────────────────────────────────────────
 const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
   const [text, setText] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const queryClient = useQueryClient();
   const { data: instances = [] } = useWhatsAppInstances();
   const sendMessage = useSendInboxMessage();
   const activeInstance = instances.find((i: any) => i.status === "connected");
 
+  // ── Find conversation ──────────────────────────────────────────────────────
   const { data: conv } = useQuery({
     queryKey: ["lead-conversation", leadId],
     queryFn: async () => {
@@ -34,33 +76,31 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         .order("updated_at", { ascending: false });
 
       if (data?.length) {
-        const activeConversation = data.find((item) => item.status !== "closed");
-        return activeConversation || data[0];
+        return data.find((c) => c.status !== "closed") ?? data[0];
       }
 
-      const normalizedLeadWhatsapp = normalizeWhatsApp(leadWhatsapp);
+      const normalizedPhone = normalizeWhatsApp(leadWhatsapp);
+      if (!normalizedPhone) return null;
 
-      if (!normalizedLeadWhatsapp) return null;
-
-      const { data: numberMatches } = await supabase
+      const { data: all } = await supabase
         .from("inbox_conversations")
         .select("*")
         .order("updated_at", { ascending: false });
 
-      const matchedConversation = (numberMatches || []).find((item) => {
-        const current = normalizeWhatsApp(item.contact_number);
-        return current === normalizedLeadWhatsapp || current.endsWith(normalizedLeadWhatsapp) || normalizedLeadWhatsapp.endsWith(current);
+      const matched = (all || []).find((c) => {
+        const n = normalizeWhatsApp(c.contact_number);
+        return n === normalizedPhone || n.endsWith(normalizedPhone) || normalizedPhone.endsWith(n);
       });
 
-      if (matchedConversation && matchedConversation.lead_id !== leadId) {
-        await supabase.from("inbox_conversations").update({ lead_id: leadId }).eq("id", matchedConversation.id);
+      if (matched && matched.lead_id !== leadId) {
+        await supabase.from("inbox_conversations").update({ lead_id: leadId }).eq("id", matched.id);
       }
-
-      return matchedConversation || null;
+      return matched ?? null;
     },
     enabled: !!leadId,
   });
 
+  // ── Fetch messages ─────────────────────────────────────────────────────────
   const { data: messages = [] } = useQuery({
     queryKey: ["inbox_messages", conv?.id],
     queryFn: async () => {
@@ -69,61 +109,158 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         .from("inbox_messages")
         .select("*")
         .eq("conversation_id", conv.id)
+        .eq("is_note", false)
         .order("timestamp", { ascending: true });
       return data || [];
     },
     enabled: !!conv?.id,
   });
 
+  // ── Scroll to bottom ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ── Realtime subscription ──────────────────────────────────────────────────
   useEffect(() => {
     if (!conv?.id) return;
     const channel = supabase
       .channel(`lead-conv-${conv.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages", filter: `conversation_id=eq.${conv.id}` }, () => {
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "inbox_messages",
+        filter: `conversation_id=eq.${conv.id}`,
+      }, () => {
         queryClient.invalidateQueries({ queryKey: ["inbox_messages", conv.id] });
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "inbox_conversations", filter: `id=eq.${conv.id}` }, () => {
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "inbox_conversations",
+        filter: `id=eq.${conv.id}`,
+      }, () => {
         queryClient.invalidateQueries({ queryKey: ["lead-conversation", leadId] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [conv?.id, leadId, queryClient]);
 
+  // ── File selection ─────────────────────────────────────────────────────────
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast.error(`Arquivo muito grande. Máximo ${MAX_FILE_MB} MB.`);
+      return;
+    }
+    setPendingFile(file);
+    // Local preview URL for images
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+      setPendingFileUrl(URL.createObjectURL(file));
+    } else {
+      setPendingFileUrl(null);
+    }
+    e.target.value = "";
+  };
+
+  const clearFile = useCallback(() => {
+    if (pendingFileUrl) URL.revokeObjectURL(pendingFileUrl);
+    setPendingFile(null);
+    setPendingFileUrl(null);
+  }, [pendingFileUrl]);
+
+  // ── Send ───────────────────────────────────────────────────────────────────
   const handleSend = async () => {
-    if (!text.trim()) return;
+    const hasText = text.trim().length > 0;
+    const hasFile = !!pendingFile;
+    if (!hasText && !hasFile) return;
+
     const number = (conv?.contact_number || leadWhatsapp || "").replace(/\D/g, "");
     if (!number) { toast.error("Sem número de WhatsApp."); return; }
     if (!activeInstance) { toast.error("Nenhuma instância de WhatsApp conectada."); return; }
-    
-    const currentText = text;
+
+    const currentText = text.trim();
     setText("");
 
+    setUploadingFile(hasFile);
+
     try {
-      if (!conv?.id) {
+      let conversationId = conv?.id ?? null;
+
+      // Create conversation if needed
+      if (!conversationId) {
         const { data: user } = await supabase.auth.getUser();
-        const { data: newConv } = await supabase.from("inbox_conversations").insert({
-          user_id: user.user!.id,
-          contact_number: number,
-          lead_id: leadId,
-          status: "open",
-          last_message: currentText,
-        }).select().single();
+        const { data: newConv } = await supabase
+          .from("inbox_conversations")
+          .insert({
+            user_id: user.user!.id,
+            contact_number: number,
+            lead_id: leadId,
+            status: "open",
+            last_message: currentText || (pendingFile?.name ?? ""),
+          })
+          .select()
+          .single();
         if (!newConv) { toast.error("Erro ao criar conversa"); return; }
-        await sendMessage.mutateAsync({ conversationId: newConv.id, number, text: currentText, instanceId: activeInstance.id });
+        conversationId = newConv.id;
         queryClient.invalidateQueries({ queryKey: ["lead-conversation", leadId] });
-      } else {
-        if (conv.status === 'pending_ai') {
-          await supabase.from("inbox_conversations").update({ status: 'open' }).eq("id", conv.id);
-        }
-        await sendMessage.mutateAsync({ conversationId: conv.id, number, text: currentText, instanceId: activeInstance.id });
+      } else if (conv?.status === "pending_ai") {
+        await supabase.from("inbox_conversations").update({ status: "open" }).eq("id", conversationId);
       }
-    } catch (error) {
-      console.error(error);
+
+      if (hasFile) {
+        const mediaType = resolveMediaType(pendingFile!);
+        const base64 = await toBase64(pendingFile!);
+
+        // Upload to Supabase storage so we can display it in the chat
+        const filePath = `chat/${crypto.randomUUID()}-${pendingFile!.name}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("ai-files")
+          .upload(filePath, pendingFile!);
+
+        let publicUrl: string | undefined;
+        if (!uploadErr) {
+          const { data: { publicUrl: url } } = supabase.storage
+            .from("ai-files")
+            .getPublicUrl(filePath);
+          publicUrl = url;
+        }
+
+        await sendMessage.mutateAsync({
+          conversationId,
+          number,
+          instanceId: activeInstance.id,
+          text: currentText || undefined,
+          type: mediaType,
+          mediaBase64: base64,
+          mediaFilename: pendingFile!.name,
+          mediaMimeType: pendingFile!.type,
+          mediaUrl: publicUrl,
+        });
+        clearFile();
+      } else {
+        await sendMessage.mutateAsync({
+          conversationId,
+          number,
+          instanceId: activeInstance.id,
+          text: currentText,
+          type: "text",
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
       setText(currentText);
+      toast.error("Erro ao enviar: " + (err?.message || "tente novamente"));
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -135,10 +272,17 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     toast.success(newStatus === "pending_ai" ? "IA reativada" : "IA pausada");
   };
 
+  const isSending = sendMessage.isPending || uploadingFile;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-muted/20 rounded-lg overflow-hidden border border-border">
-      <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-card">
-        <span className="text-xs text-muted-foreground">{conv?.contact_number || leadWhatsapp || "—"}</span>
+
+      {/* Header */}
+      <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-card shrink-0">
+        <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+          {conv?.contact_number || leadWhatsapp || "—"}
+        </span>
         {conv?.id && (
           conv.status === "pending_ai" ? (
             <Button size="sm" className="h-7 text-xs bg-green-500 hover:bg-green-600" onClick={toggleAI}>
@@ -151,35 +295,112 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
           )
         )}
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+
+      {/* Messages list */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
         {messages.length === 0 ? (
-          <p className="text-center text-xs text-muted-foreground py-8">Nenhuma mensagem ainda.</p>
+          <p className="text-center text-xs text-muted-foreground py-8">
+            Nenhuma mensagem ainda.
+          </p>
         ) : (
-          messages.map((m: any) => (
-            <div key={m.id} className={`flex ${m.direction === "outbound" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${m.direction === "outbound" ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted text-foreground rounded-tl-none border border-border/50"}`}>
-                <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
-                <span className="text-[9px] block mt-1 text-right opacity-60">
-                  {m.timestamp ? format(new Date(m.timestamp), "HH:mm") : ""}
-                </span>
+          messages.map((m: any) => {
+            const isOut = m.direction === "outbound";
+            return (
+              <div key={m.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[78%] px-3 py-2 rounded-2xl shadow-sm ${
+                    isOut
+                      ? "bg-primary text-primary-foreground rounded-tr-none"
+                      : "bg-muted text-foreground rounded-tl-none border border-border/50"
+                  }`}
+                >
+                  <MediaBubble m={m} />
+                  <span className="text-[9px] block mt-1 text-right opacity-50">
+                    {m.timestamp ? format(new Date(m.timestamp), "HH:mm", { locale: ptBR }) : ""}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
+        <div ref={messagesEndRef} />
       </div>
-      <div className="p-3 border-t border-border bg-card">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Digite uma mensagem..."
+
+      {/* Pending file preview */}
+      {pendingFile && (
+        <div className="px-3 py-2 border-t border-border bg-card shrink-0">
+          <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5 text-xs">
+            {pendingFileUrl && pendingFile.type.startsWith("image/") ? (
+              <img src={pendingFileUrl} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+            ) : (
+              <span className="text-primary shrink-0">{fileTypeIcon(pendingFile)}</span>
+            )}
+            <span className="truncate flex-1 text-foreground">{pendingFile.name}</span>
+            <span className="text-muted-foreground shrink-0">
+              {(pendingFile.size / 1024 / 1024).toFixed(1)} MB
+            </span>
+            <button
+              onClick={clearFile}
+              className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Input area */}
+      <div className="px-3 py-2 border-t border-border bg-card shrink-0">
+        <div className="flex items-end gap-2">
+          {/* Attach file */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={MEDIA_ACCEPT}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isSending}
+            title="Anexar arquivo"
+          >
+            <Paperclip className="w-4 h-4" />
+          </Button>
+
+          {/* Text input */}
+          <Textarea
+            ref={textareaRef}
+            placeholder={pendingFile ? "Adicionar legenda (opcional)..." : "Digite uma mensagem..."}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            className="flex-1"
+            onKeyDown={handleKeyDown}
+            rows={1}
+            className="flex-1 resize-none min-h-[36px] max-h-28 py-2 text-sm bg-muted border-border"
+            disabled={isSending}
           />
-          <Button size="icon" className="bg-gradient-primary" onClick={handleSend} disabled={!text.trim()}>
-            <Send className="w-4 h-4" />
+
+          {/* Send */}
+          <Button
+            size="icon"
+            className="h-9 w-9 shrink-0 bg-gradient-primary"
+            onClick={handleSend}
+            disabled={isSending || (!text.trim() && !pendingFile)}
+            title="Enviar"
+          >
+            {isSending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Send className="w-4 h-4" />
+            }
           </Button>
         </div>
+        <p className="text-[10px] text-muted-foreground mt-1 pl-1">
+          Enter para enviar · Shift+Enter nova linha · Máx {MAX_FILE_MB} MB
+        </p>
       </div>
     </div>
   );

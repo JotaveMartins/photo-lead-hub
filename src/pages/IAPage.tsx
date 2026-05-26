@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Bot, Save, FileUp, Copy, Trash2, Info, Loader2,
-  Eye, EyeOff, Zap, MessageSquare, Users, CheckCircle2, ChevronDown,
+  Eye, EyeOff, Zap, MessageSquare, CheckCircle2, ChevronDown, HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useAiStats } from "@/hooks/useAiStats";
+import InboxTriggersConfig from "@/components/InboxTriggersConfig";
 
 interface AiConfig {
   id?: string;
@@ -25,9 +27,23 @@ interface AiConfig {
   temperature: number;
   max_tokens: number;
   system_prompt: string;
+  knowledge_base: string;
   is_active: boolean;
+  ai_trigger_enabled: boolean;
+  ai_trigger_keyword: string;
   user_id?: string;
 }
+
+const HelpTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help inline-block ml-1 flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent className="max-w-[230px]">
+      <p className="text-xs leading-relaxed">{text}</p>
+    </TooltipContent>
+  </Tooltip>
+);
 
 interface AiFile {
   id: string;
@@ -94,7 +110,10 @@ const IAPage = () => {
     temperature: 0.7,
     max_tokens: 1000,
     system_prompt: DEFAULT_PROMPT,
+    knowledge_base: "",
     is_active: true,
+    ai_trigger_enabled: false,
+    ai_trigger_keyword: "",
   });
   const [files, setFiles] = useState<AiFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -236,6 +255,7 @@ const IAPage = () => {
   }
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="space-y-6 pb-10">
       <div>
         <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
@@ -272,7 +292,10 @@ const IAPage = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Provedor</Label>
+              <div className="flex items-center">
+                <Label>Provedor</Label>
+                <HelpTooltip text="Serviço de IA que processará as conversas. Cada provedor tem seus próprios modelos e preços. OpenAI (ChatGPT) e Gemini são ótimas opções para iniciar." />
+              </div>
               <div className="flex flex-wrap gap-2">
                 {["openai", "anthropic", "gemini", "groq"].map((p) => (
                   <Button
@@ -290,7 +313,10 @@ const IAPage = () => {
 
             {/* Model dropdown */}
             <div className="space-y-2">
-              <Label>Modelo</Label>
+              <div className="flex items-center">
+                <Label>Modelo</Label>
+                <HelpTooltip text="Versão específica do motor de IA. Modelos maiores são mais inteligentes mas custam mais. Para atendimento fotográfico, o modelo recomendado de cada provedor já é suficiente." />
+              </div>
               {modelOptions.length > 0 ? (
                 <div className="relative">
                   <button
@@ -341,7 +367,10 @@ const IAPage = () => {
 
             {/* API Key */}
             <div className="space-y-2">
-              <Label>API Key</Label>
+              <div className="flex items-center">
+                <Label>API Key</Label>
+                <HelpTooltip text="Chave secreta de acesso à API do provedor. Obtenha no site do provedor (ex: platform.openai.com). Nunca compartilhe essa chave com ninguém." />
+              </div>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Input
@@ -374,7 +403,10 @@ const IAPage = () => {
             {/* Temperature */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>Temperatura: <span className="text-primary font-mono">{config.temperature}</span></Label>
+                <div className="flex items-center">
+                  <Label>Temperatura: <span className="text-primary font-mono">{config.temperature}</span></Label>
+                  <HelpTooltip text="Controla a criatividade das respostas. Valores baixos (Preciso) geram respostas mais previsíveis e consistentes. Valores altos (Criativo) deixam a IA mais livre, mas pode inventar informações. Para atendimento, use entre 0.3 e 0.7." />
+                </div>
                 <span className="text-xs text-muted-foreground">
                   {config.temperature <= 0.3 ? "Preciso" : config.temperature <= 0.7 ? "Equilibrado" : "Criativo"}
                 </span>
@@ -388,7 +420,10 @@ const IAPage = () => {
 
             {/* Max tokens */}
             <div className="space-y-2">
-              <Label>Máximo de tokens por resposta</Label>
+              <div className="flex items-center">
+                <Label>Máximo de tokens por resposta</Label>
+                <HelpTooltip text="Limita o tamanho das respostas da IA. 1 token ≈ ¾ de uma palavra em português. 1000 tokens = ~750 palavras. Para atendimento via WhatsApp, 500–1500 é o ideal." />
+              </div>
               <Input
                 type="number"
                 value={config.max_tokens}
@@ -403,7 +438,38 @@ const IAPage = () => {
                 checked={config.is_active}
                 onCheckedChange={(v) => setConfig((c) => ({ ...c, is_active: v }))}
               />
-              <Label>IA Ativa</Label>
+              <div className="flex items-center">
+                <Label>IA Ativa</Label>
+                <HelpTooltip text="Quando ativado, a IA responde automaticamente às novas mensagens recebidas no inbox. Desative para pausar o atendimento automático sem perder as configurações." />
+              </div>
+            </div>
+
+            {/* AI keyword trigger */}
+            <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <Label className="font-medium">Palavra-chave de ativação</Label>
+                  <HelpTooltip text="Quando ativado, a IA só responderá se a mensagem recebida contiver a palavra-chave definida. Útil para filtrar contatos que realmente querem atendimento. Ex: 'orçamento', 'preço', 'casamento'." />
+                </div>
+                <Switch
+                  checked={config.ai_trigger_enabled}
+                  onCheckedChange={(v) => setConfig((c) => ({ ...c, ai_trigger_enabled: v }))}
+                />
+              </div>
+              {config.ai_trigger_enabled && (
+                <div className="space-y-1.5">
+                  <Input
+                    value={config.ai_trigger_keyword}
+                    onChange={(e) => setConfig((c) => ({ ...c, ai_trigger_keyword: e.target.value }))}
+                    placeholder="Ex: orçamento, casamento, preço..."
+                    className="bg-background"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    A IA só responderá na primeira mensagem que contiver esta palavra. Após iniciar, continua respondendo normalmente.
+                  </p>
+                </div>
+              )}
             </div>
 
             <Button onClick={handleSaveConfig} disabled={saving} className="w-full bg-gradient-primary gap-2">
@@ -413,62 +479,93 @@ const IAPage = () => {
           </CardContent>
         </Card>
 
-        {/* Files */}
+        {/* Knowledge Base */}
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-lg">Arquivos da IA</CardTitle>
-            <CardDescription>Arquivos que a IA pode enviar automaticamente. Máximo 10 MB por arquivo.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Input type="file" onChange={handleUploadFile} className="hidden" id="file-upload" />
-              <Label
-                htmlFor="file-upload"
-                className="flex items-center gap-2 px-4 py-2 bg-muted rounded-md cursor-pointer hover:bg-muted/80 transition-colors w-full justify-center border border-dashed border-primary/30"
-              >
-                <FileUp className="w-4 h-4 text-primary" /> Adicionar Arquivo
-              </Label>
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
+                <CardTitle className="text-lg">Banco de Informações</CardTitle>
+                <CardDescription>Informações sobre você e seu estúdio que a IA usará nas conversas.</CardDescription>
+              </div>
             </div>
-            <div className="space-y-2 max-h-[320px] overflow-y-auto">
-              {files.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
-                  Nenhum arquivo enviado ainda.
-                </p>
-              ) : (
-                files.map((f) => (
-                  <div key={f.id} className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg group">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{f.name}</p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <p className="text-[10px] text-muted-foreground font-mono">ID: {f.id.slice(0, 8)}…</p>
-                        <p className="text-[10px] text-muted-foreground">{formatFileSize(f.file_size_bytes)}</p>
-                        {f.created_at && (
-                          <p className="text-[10px] text-muted-foreground">
-                            {format(new Date(f.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                          </p>
-                        )}
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Photographer info textarea */}
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <Label>Sobre o fotógrafo / estúdio</Label>
+                <HelpTooltip text="Descreva aqui quem você é, seu estilo de fotografia, especialidades, localização, diferenciais e qualquer informação que a IA deve conhecer para representar melhor o seu negócio." />
+              </div>
+              <Textarea
+                value={config.knowledge_base}
+                onChange={(e) => setConfig((c) => ({ ...c, knowledge_base: e.target.value }))}
+                placeholder={`Ex: Sou o João Silva, fotógrafo de casamentos e ensaios em São Paulo há 10 anos. Meu estilo é fotojornalístico, capturando momentos naturais e emocionantes. Atendo na Grande São Paulo e litoral paulista. Meu diferencial é a entrega em até 30 dias com álbum digital incluso.`}
+                className="min-h-[140px] text-sm resize-none"
+              />
+              <p className="text-[11px] text-muted-foreground">{config.knowledge_base?.length || 0} caracteres</p>
+            </div>
+
+            <Button onClick={handleSaveConfig} disabled={saving} size="sm" className="bg-gradient-primary gap-2 w-full">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Salvar informações
+            </Button>
+
+            {/* Files section */}
+            <div className="border-t border-border pt-4 space-y-3">
+              <div className="flex items-center">
+                <p className="text-sm font-medium text-foreground">Arquivos para envio automático</p>
+                <HelpTooltip text="Arquivos que a IA pode enviar para leads durante a conversa (ex: tabela de preços, portfólio). Use o comando [ENVIAR_ARQUIVO: id] no prompt para acionar o envio. Máximo 10 MB por arquivo." />
+              </div>
+              <div className="flex items-center gap-2">
+                <Input type="file" onChange={handleUploadFile} className="hidden" id="file-upload" />
+                <Label
+                  htmlFor="file-upload"
+                  className="flex items-center gap-2 px-4 py-2 bg-muted rounded-md cursor-pointer hover:bg-muted/80 transition-colors w-full justify-center border border-dashed border-primary/30 text-sm"
+                >
+                  <FileUp className="w-4 h-4 text-primary" /> Adicionar Arquivo
+                </Label>
+              </div>
+              <div className="space-y-2 max-h-[260px] overflow-y-auto">
+                {files.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-5 border border-dashed border-border rounded-lg">
+                    Nenhum arquivo enviado ainda.
+                  </p>
+                ) : (
+                  files.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg group">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{f.name}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <p className="text-[10px] text-muted-foreground font-mono">ID: {f.id.slice(0, 8)}…</p>
+                          <p className="text-[10px] text-muted-foreground">{formatFileSize(f.file_size_bytes)}</p>
+                          {f.created_at && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {format(new Date(f.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="icon" variant="ghost" className="h-7 w-7"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`[ENVIAR_ARQUIVO: ${f.id}]`);
+                            toast.success("Comando copiado!");
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                          onClick={() => handleDeleteFile(f)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`[ENVIAR_ARQUIVO: ${f.id}]`);
-                          toast.success("Comando copiado!");
-                        }}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                        onClick={() => handleDeleteFile(f)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -506,7 +603,10 @@ const IAPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      <InboxTriggersConfig />
     </div>
+    </TooltipProvider>
   );
 };
 

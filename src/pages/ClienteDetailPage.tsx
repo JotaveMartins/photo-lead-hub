@@ -3,11 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpdateCliente, useDeleteCliente, type Cliente } from "@/hooks/useClientes";
+import { useContratosByClienteId, type Contrato } from "@/hooks/useContratos";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench, TrendingDown, BarChart3, CheckSquare, Plus, Circle } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench, TrendingDown, BarChart3, CheckSquare, Plus, Circle, Hourglass, Send, CheckCircle2, Eye } from "lucide-react";
+import ContratoDrawer from "@/components/contratos/ContratoDrawer";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditClienteModal from "@/components/clientes/EditClienteModal";
@@ -25,7 +27,9 @@ const ClienteDetailPage = () => {
   const effectiveUserId = useEffectiveUserId();
   const deleteCliente = useDeleteCliente();
   const [editOpen, setEditOpen] = useState(false);
+  const [viewContrato, setViewContrato] = useState<Contrato | null>(null);
   const { data: clienteTasks = [] } = useClienteTasks(id);
+  const { data: contratos = [] } = useContratosByClienteId(id);
   const createTask = useCreateLeadTask();
   const completeTask = useCompleteLeadTask();
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -128,7 +132,7 @@ const ClienteDetailPage = () => {
 
   const handleDelete = async () => {
     if (!id) return;
-    if (confirm("Tem certeza que deseja excluir este cliente?")) {
+    if (confirm("Arquivar este cliente? Ele poderá ser restaurado em Clientes > Arquivados.")) {
       await deleteCliente.mutateAsync(id);
       navigate("/clientes");
     }
@@ -198,6 +202,7 @@ const ClienteDetailPage = () => {
       <Tabs defaultValue="dados" className="w-full">
         <TabsList className="bg-muted/50 w-full justify-start flex-wrap">
           <TabsTrigger value="dados" className="gap-1.5"><FileText className="w-4 h-4" />Dados</TabsTrigger>
+          <TabsTrigger value="contratos" className="gap-1.5"><FileText className="w-4 h-4" />Contratos{contratos.length > 0 && <span className="ml-1 text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5">{contratos.length}</span>}</TabsTrigger>
           <TabsTrigger value="cobrancas" className="gap-1.5"><DollarSign className="w-4 h-4" />Cobranças</TabsTrigger>
           <TabsTrigger value="despesas" className="gap-1.5"><TrendingDown className="w-4 h-4" />Despesas</TabsTrigger>
           <TabsTrigger value="servicos" className="gap-1.5"><Wrench className="w-4 h-4" />Serviços</TabsTrigger>
@@ -226,6 +231,49 @@ const ClienteDetailPage = () => {
             <span>Criado em {format(new Date(cliente.created_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
             <span>Atualizado em {format(new Date(cliente.updated_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
           </div>
+        </TabsContent>
+
+        {/* Tab: Contratos */}
+        <TabsContent value="contratos" className="mt-4">
+          {contratos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <FileText className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-medium text-muted-foreground">Nenhum contrato vinculado</p>
+              <p className="text-sm text-muted-foreground/70">Contratos aparecem aqui quando vinculados a este cliente</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/contratos")}>Ir para Contratos</Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {contratos.map((c) => {
+                const statusInfo = {
+                  aguardando_contrato: { icon: <Hourglass className="w-3.5 h-3.5" />, label: "Aguardando", cls: "text-yellow-500" },
+                  contrato_enviado: { icon: <Send className="w-3.5 h-3.5" />, label: "Enviado", cls: "text-blue-500" },
+                  contrato_assinado: { icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Assinado", cls: "text-emerald-500" },
+                }[c.status as string] ?? { icon: null, label: c.status, cls: "text-muted-foreground" };
+                return (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/40 transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {c.tipo_servico || "Contrato"}{c.pacote ? ` · ${c.pacote}` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {c.data_evento ? format(new Date(c.data_evento + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                        {c.valor != null && ` · ${c.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <span className={`flex items-center gap-1 text-[11px] font-medium ${statusInfo.cls}`}>
+                        {statusInfo.icon} {statusInfo.label}
+                      </span>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setViewContrato(c)}>
+                        <Eye className="w-3 h-3" /> Ver
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         {/* Tab: Cobranças */}
@@ -509,6 +557,7 @@ const ClienteDetailPage = () => {
         </TabsContent>
       </Tabs>
 
+      <ContratoDrawer contrato={viewContrato} open={!!viewContrato} onClose={() => setViewContrato(null)} />
       <EditClienteModal open={editOpen} onClose={() => setEditOpen(false)} cliente={cliente} />
     </div>
   );

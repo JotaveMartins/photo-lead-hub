@@ -2,8 +2,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Inbox as InboxIcon, Search, Send, UserPlus, User, MessageSquare, Bot,
   Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
-  MoreVertical, ChevronDown,
+  MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon,
 } from "lucide-react";
+import { MediaBubble } from "@/components/chat/MediaBubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -216,7 +217,11 @@ const InboxPage = () => {
   const [showNotes, setShowNotes] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inboxFileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -272,23 +277,83 @@ const InboxPage = () => {
     }
   }, [allConversations, markRead]);
 
+  const clearInboxFile = useCallback(() => {
+    if (pendingFileUrl) URL.revokeObjectURL(pendingFileUrl);
+    setPendingFile(null);
+    setPendingFileUrl(null);
+  }, [pendingFileUrl]);
+
+  const handleInboxFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) { toast.error("Arquivo muito grande. Máximo 16 MB."); return; }
+    setPendingFile(file);
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+      setPendingFileUrl(URL.createObjectURL(file));
+    } else {
+      setPendingFileUrl(null);
+    }
+    e.target.value = "";
+  };
+
+  const resolveInboxMediaType = (file: File): "image" | "video" | "audio" | "document" => {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    if (file.type.startsWith("audio/")) return "audio";
+    return "document";
+  };
+
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !selectedConv || !activeInstance) {
+    const hasText = messageText.trim().length > 0;
+    const hasFile = !!pendingFile;
+    if ((!hasText && !hasFile) || !selectedConv || !activeInstance) {
       if (!activeInstance) toast.error("Nenhuma instância de WhatsApp conectada.");
       return;
     }
     const currentText = messageText;
     setMessageText("");
+    setUploadingFile(hasFile);
     try {
-      await sendMessage.mutateAsync({
-        conversationId: selectedConv.id,
-        number: selectedConv.contact_number,
-        text: currentText,
-        instanceId: activeInstance.id,
-      });
+      if (hasFile) {
+        const mediaType = resolveInboxMediaType(pendingFile!);
+        const toBase64 = (f: File): Promise<string> => new Promise((res, rej) => {
+          const r = new FileReader(); r.readAsDataURL(f);
+          r.onload = () => res((r.result as string).split(",")[1]); r.onerror = rej;
+        });
+        const base64 = await toBase64(pendingFile!);
+        const filePath = `chat/${crypto.randomUUID()}-${pendingFile!.name}`;
+        const { error: upErr } = await supabase.storage.from("ai-files").upload(filePath, pendingFile!);
+        let publicUrl: string | undefined;
+        if (!upErr) {
+          const { data: { publicUrl: u } } = supabase.storage.from("ai-files").getPublicUrl(filePath);
+          publicUrl = u;
+        }
+        await sendMessage.mutateAsync({
+          conversationId: selectedConv.id,
+          number: selectedConv.contact_number,
+          instanceId: activeInstance.id,
+          text: currentText || undefined,
+          type: mediaType,
+          mediaBase64: base64,
+          mediaFilename: pendingFile!.name,
+          mediaMimeType: pendingFile!.type,
+          mediaUrl: publicUrl,
+        });
+        clearInboxFile();
+      } else {
+        await sendMessage.mutateAsync({
+          conversationId: selectedConv.id,
+          number: selectedConv.contact_number,
+          text: currentText,
+          instanceId: activeInstance.id,
+          type: "text",
+        });
+      }
     } catch {
       toast.error("Erro ao enviar mensagem.");
       setMessageText(currentText);
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -308,6 +373,12 @@ const InboxPage = () => {
     if (!selectedConv) return;
     await updateConv.mutateAsync({ id: selectedConv.id, status: "closed" });
     toast.success("Atendimento encerrado.");
+  };
+
+  const handleReopen = async () => {
+    if (!selectedConv) return;
+    await updateConv.mutateAsync({ id: selectedConv.id, status: "open" });
+    toast.success("Atendimento reaberto.");
   };
 
   const handleCreateLead = async () => {
@@ -505,15 +576,30 @@ const InboxPage = () => {
                   >
                     <Play className="w-3.5 h-3.5 mr-1" /> Para IA
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">Encerrar</Button>
+                  <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">
+                    Encerrar
+                  </Button>
                 </>
               )}
               {selectedConv.status === "pending_ai" && (
+                <>
+                  <Button
+                    onClick={handleOpenAtendimento} size="sm"
+                    className="bg-green-500 hover:bg-green-600 text-white h-7 text-xs hidden sm:flex"
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1" /> Assumir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">
+                    Encerrar
+                  </Button>
+                </>
+              )}
+              {selectedConv.status === "closed" && (
                 <Button
-                  onClick={handleOpenAtendimento} size="sm"
-                  className="bg-green-500 hover:bg-green-600 text-white h-7 text-xs"
+                  onClick={handleReopen} size="sm"
+                  className="bg-blue-500 hover:bg-blue-600 text-white h-7 text-xs"
                 >
-                  <Play className="w-3.5 h-3.5 mr-1" /> Assumir
+                  <Play className="w-3.5 h-3.5 mr-1" /> Abrir
                 </Button>
               )}
 
@@ -540,7 +626,7 @@ const InboxPage = () => {
               </Button>
 
               {/* Mobile overflow actions */}
-              {selectedConv.status === "open" && (
+              {(selectedConv.status === "open" || selectedConv.status === "pending_ai" || selectedConv.status === "closed") && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="h-7 w-7 sm:hidden">
@@ -548,13 +634,33 @@ const InboxPage = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleReturnToAI}>
-                      <Play className="w-4 h-4 mr-2 text-yellow-500" /> Voltar para IA
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleClose} className="text-destructive">
-                      Encerrar atendimento
-                    </DropdownMenuItem>
+                    {selectedConv.status === "open" && (
+                      <>
+                        <DropdownMenuItem onClick={handleReturnToAI}>
+                          <Play className="w-4 h-4 mr-2 text-yellow-500" /> Voltar para IA
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleClose} className="text-destructive">
+                          Encerrar atendimento
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {selectedConv.status === "pending_ai" && (
+                      <>
+                        <DropdownMenuItem onClick={handleOpenAtendimento}>
+                          <Play className="w-4 h-4 mr-2 text-green-500" /> Assumir atendimento
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleClose} className="text-destructive">
+                          Encerrar atendimento
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {selectedConv.status === "closed" && (
+                      <DropdownMenuItem onClick={handleReopen}>
+                        <Play className="w-4 h-4 mr-2 text-blue-500" /> Reabrir atendimento
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -628,12 +734,11 @@ const InboxPage = () => {
                           ? "bg-primary text-primary-foreground rounded-tr-none"
                           : "bg-muted text-foreground rounded-tl-none border border-border/50"
                       }`}>
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
+                        <MediaBubble m={msg as any} />
                         <div className={`flex items-center gap-1 mt-0.5 ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}>
                           <span className="text-[9px] opacity-60">
                             {formatMsgDate(msg.timestamp || msg.created_at)}
                           </span>
-                          {/* Sent indicator for outbound */}
                           {msg.direction === "outbound" && (
                             <Check className="w-2.5 h-2.5 opacity-60" />
                           )}
@@ -649,7 +754,22 @@ const InboxPage = () => {
 
           {/* Input */}
           <div className="p-3 border-t border-border bg-muted/10">
+            {/* Pending file chip */}
+            {pendingFile && (
+              <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5 text-xs mb-2">
+                {pendingFileUrl && pendingFile.type.startsWith("image/") ? (
+                  <img src={pendingFileUrl} alt="" className="w-7 h-7 rounded object-cover shrink-0" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                )}
+                <span className="truncate flex-1 text-foreground">{pendingFile.name}</span>
+                <button onClick={clearInboxFile} className="text-muted-foreground hover:text-destructive">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
             <div className="flex gap-2 items-end">
+              {/* Quick replies */}
               <Button
                 variant="outline"
                 size="icon"
@@ -659,10 +779,28 @@ const InboxPage = () => {
               >
                 <Zap className="w-4 h-4 text-primary" />
               </Button>
+              {/* Attach file */}
+              <input
+                ref={inboxFileInputRef}
+                type="file"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
+                onChange={handleInboxFileChange}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
+                onClick={() => inboxFileInputRef.current?.click()}
+                disabled={uploadingFile || sendMessage.isPending}
+                title="Anexar arquivo"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
               <Textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Escreva sua mensagem..."
+                placeholder={pendingFile ? "Adicionar legenda (opcional)..." : "Escreva sua mensagem..."}
                 className="flex-1 bg-background border-border resize-none text-sm min-h-[36px] max-h-28 py-2"
                 rows={1}
                 onKeyDown={(e) => {
@@ -676,12 +814,15 @@ const InboxPage = () => {
                 size="icon"
                 className="h-9 w-9 shrink-0 bg-primary hover:bg-primary/90 shadow-glow"
                 onClick={handleSendMessage}
-                disabled={!messageText.trim()}
+                disabled={uploadingFile || sendMessage.isPending || (!messageText.trim() && !pendingFile)}
               >
-                <Send className="w-4 h-4" />
+                {(uploadingFile || sendMessage.isPending)
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <Send className="w-4 h-4" />
+                }
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 ml-1">Enter envia · Shift+Enter nova linha</p>
+            <p className="text-[10px] text-muted-foreground mt-1 ml-1">Enter envia · Shift+Enter nova linha · Máx 16 MB</p>
           </div>
         </>
       ) : (

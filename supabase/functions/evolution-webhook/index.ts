@@ -66,12 +66,40 @@ Deno.serve(async (req) => {
       // 1. Determine message content
       let type = "text";
       let content = "";
+      let mediaUrl: string | null = null;
+      let mediaMimeType: string | null = null;
+      let mediaFilename: string | null = null;
       if (message.conversation) content = message.conversation;
       else if (message.extendedTextMessage) content = message.extendedTextMessage.text;
-      else if (message.imageMessage) { type = "image"; content = message.imageMessage.caption || ""; }
-      else if (message.audioMessage) type = "audio";
-      else if (message.videoMessage) { type = "video"; content = message.videoMessage.caption || ""; }
-      else if (message.documentMessage) type = "document";
+      else if (message.imageMessage) {
+        type = "image";
+        content = message.imageMessage.caption || "";
+        mediaMimeType = message.imageMessage.mimetype || "image/jpeg";
+        mediaUrl = message.imageMessage.url || null;
+      }
+      else if (message.audioMessage) {
+        type = "audio";
+        mediaMimeType = message.audioMessage.mimetype || "audio/ogg";
+        mediaUrl = message.audioMessage.url || null;
+      }
+      else if (message.videoMessage) {
+        type = "video";
+        content = message.videoMessage.caption || "";
+        mediaMimeType = message.videoMessage.mimetype || "video/mp4";
+        mediaUrl = message.videoMessage.url || null;
+      }
+      else if (message.documentMessage) {
+        type = "document";
+        content = message.documentMessage.caption || message.documentMessage.fileName || "";
+        mediaMimeType = message.documentMessage.mimetype || null;
+        mediaFilename = message.documentMessage.fileName || null;
+        mediaUrl = message.documentMessage.url || null;
+      }
+      else if (message.stickerMessage) {
+        type = "image";
+        mediaUrl = message.stickerMessage.url || null;
+        mediaMimeType = message.stickerMessage.mimetype || "image/webp";
+      }
 
       // 2. Find or create inbox conversation
       let { data: conversation } = await supabase
@@ -124,10 +152,14 @@ Deno.serve(async (req) => {
         .insert({
           conversation_id: conversation.id,
           user_id: userId,
-          body: content,
+          body: content || null,
           direction: key.fromMe ? 'outbound' : 'inbound',
           whatsapp_message_id: key.id,
-          read: key.fromMe
+          read: key.fromMe,
+          type,
+          media_url: mediaUrl,
+          media_mime_type: mediaMimeType,
+          media_filename: mediaFilename,
         })
         .select()
         .single();
@@ -182,14 +214,39 @@ Deno.serve(async (req) => {
 
         // B. Trigger AI if conversation still pending_ai
         if (conversation.status === 'pending_ai') {
-          fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ conversation_id: conversation.id })
-          }).catch(err => console.error("Error triggering AI reply:", err));
+          // Check AI keyword trigger setting
+          let shouldTriggerAi = true;
+          const { data: aiCfg } = await supabase
+            .from("ai_config")
+            .select("ai_trigger_enabled, ai_trigger_keyword")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          if (aiCfg?.ai_trigger_enabled && aiCfg?.ai_trigger_keyword?.trim()) {
+            const keyword = aiCfg.ai_trigger_keyword.trim().toLowerCase();
+            const messageMatchesKeyword = content.toLowerCase().includes(keyword);
+
+            if (!messageMatchesKeyword) {
+              // Check if AI has already replied in this conversation (already engaged)
+              const { count: aiRepliesCount } = await supabase
+                .from("inbox_messages")
+                .select("id", { count: "exact", head: true })
+                .eq("conversation_id", conversation.id)
+                .eq("direction", "outbound");
+              shouldTriggerAi = (aiRepliesCount ?? 0) > 0;
+            }
+          }
+
+          if (shouldTriggerAi) {
+            fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ conversation_id: conversation.id })
+            }).catch(err => console.error("Error triggering AI reply:", err));
+          }
         }
       }
     } else if (event === "connection.update") {

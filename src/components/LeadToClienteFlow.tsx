@@ -1,7 +1,6 @@
 import { useState } from "react";
 import NovoClienteModal from "@/components/clientes/NovoClienteModal";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
-import type { ContratoFormData } from "@/components/ContratoInfoModal";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -9,7 +8,6 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import TimePickerField from "@/components/TimePickerField";
-import { Receipt, CreditCard, ArrowDownUp, Calendar as CalendarIcon, ArrowLeft, Check } from "lucide-react";
+import {
+  Receipt, CreditCard, ArrowDownUp, Calendar as CalendarIcon, ArrowLeft,
+  Check, CheckCircle2, User, DollarSign,
+} from "lucide-react";
+import SearchSelect from "@/components/SearchSelect";
 import { useCreateEvent } from "@/hooks/useEvents";
 import { useServices } from "@/hooks/useServices";
 import { format } from "date-fns";
@@ -32,22 +34,20 @@ interface LeadToClienteFlowProps {
   lead: Lead | null;
   open: boolean;
   onClose: () => void;
-  contratoData?: ContratoFormData | null;
 }
 
-const brToDate = (br: string): Date | undefined => {
-  if (!br) return undefined;
-  const parts = br.split("/");
-  if (parts.length !== 3) return undefined;
-  const [d, m, y] = parts.map(Number);
-  if (isNaN(d) || isNaN(m) || isNaN(y)) return undefined;
-  return new Date(y, m - 1, d);
+const COBRANCA_LABELS: Record<CobrancaType, string> = {
+  unica: "Cobrança Única",
+  parcelas: "Parcelada",
+  entrada_parcelas: "Entrada + Parcelas",
 };
 
-const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteFlowProps) => {
-  const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "evento">("cliente");
+const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
+  const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "evento" | "confirmacao">("cliente");
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
+  const [createdClienteNome, setCreatedClienteNome] = useState<string>("");
   const [cobrancaType, setCobrancaType] = useState<CobrancaType>("unica");
+  const [cobrancaWasCreated, setCobrancaWasCreated] = useState(false);
 
   // Event form state
   const [eventoTitulo, setEventoTitulo] = useState("");
@@ -55,12 +55,14 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
   const [eventoHora, setEventoHora] = useState("10:00");
   const [eventoDate, setEventoDate] = useState<Date | undefined>(undefined);
   const [eventoServiceId, setEventoServiceId] = useState("");
+  const [eventoWasCreated, setEventoWasCreated] = useState(false);
 
   const createEvent = useCreateEvent();
   const { data: services = [] } = useServices();
 
   const handleClienteCreated = (clienteId: string) => {
     setCreatedClienteId(clienteId);
+    setCreatedClienteNome(lead?.nome || "");
     setStep("tipo");
   };
 
@@ -70,30 +72,26 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
   };
 
   const goToEvento = () => {
-    if (contratoData) {
-      if (contratoData.data_evento) {
-        const d = brToDate(contratoData.data_evento);
-        if (d) setEventoDate(d);
-      }
-      if (contratoData.tipo_servico) {
-        setEventoTitulo(contratoData.tipo_servico);
-        const matched = services.find(
-          (s) => s.ativo && s.nome.toLowerCase().includes(contratoData.tipo_servico.toLowerCase())
-        );
-        if (matched) setEventoServiceId(matched.id);
-      }
-      if (contratoData.local_evento) setEventoLocal(contratoData.local_evento);
-      if (contratoData.horario_inicio) setEventoHora(contratoData.horario_inicio);
-    } else {
-      if (lead?.data_evento) setEventoDate(parseLocalDate(lead.data_evento));
-      if (lead?.interesse) setEventoTitulo(lead.interesse);
+    if (lead?.data_evento) setEventoDate(parseLocalDate(lead.data_evento));
+    if (lead?.interesse) {
+      setEventoTitulo(lead.interesse);
+      const matched = services.find(
+        (s) => s.ativo && s.nome.toLowerCase().includes((lead.interesse || "").toLowerCase())
+      );
+      if (matched) setEventoServiceId(matched.id);
     }
     setStep("evento");
   };
 
+  const goToConfirmacao = () => setStep("confirmacao");
+
+  const handleCobrancaClosed = () => {
+    setCobrancaWasCreated(true);
+    goToEvento();
+  };
+
   const handleCreateEvento = async () => {
     if (!eventoDate) return;
-
     const [hours, minutes] = eventoHora.split(":").map(Number);
     const eventDate = new Date(eventoDate);
     eventDate.setHours(hours, minutes, 0, 0);
@@ -106,17 +104,22 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
       service_id: eventoServiceId || null,
     });
 
-    handleClose();
+    setEventoWasCreated(true);
+    goToConfirmacao();
   };
 
   const handleClose = () => {
     setStep("cliente");
     setCreatedClienteId(null);
+    setCreatedClienteNome("");
+    setCobrancaType("unica");
+    setCobrancaWasCreated(false);
     setEventoTitulo("");
     setEventoLocal("");
     setEventoHora("10:00");
     setEventoDate(undefined);
     setEventoServiceId("");
+    setEventoWasCreated(false);
     onClose();
   };
 
@@ -126,8 +129,8 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
     { key: "cliente", label: "Cliente" },
     { key: "tipo", label: "Cobrança" },
     { key: "evento", label: "Evento" },
+    { key: "confirmacao", label: "Confirmação" },
   ];
-  // "cobranca" shares the same step as "tipo"
   const currentIdx = step === "cobranca" ? 1 : steps.findIndex((s) => s.key === step);
   const totalSteps = steps.length;
 
@@ -138,7 +141,7 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
           <div
             className={cn(
               "h-1.5 w-8 rounded-full transition-colors",
-              i < currentIdx ? "bg-primary" : i === currentIdx ? "bg-primary" : "bg-muted"
+              i <= currentIdx ? "bg-primary" : "bg-muted"
             )}
           />
           {i === currentIdx && (
@@ -159,12 +162,12 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
           open={true}
           onClose={handleClose}
           initialData={{
-            nome: contratoData?.nome_cliente || lead.nome,
-            whatsapp: contratoData?.whatsapp || lead.whatsapp,
+            nome: lead.nome,
+            whatsapp: lead.whatsapp || "",
             origem: lead.origem || "",
-            email: contratoData?.email || "",
-            cpf_cnpj: contratoData?.cpf_cnpj || "",
-            endereco: contratoData?.endereco_cliente || "",
+            email: "",
+            cpf_cnpj: "",
+            endereco: "",
           }}
           onClienteCreated={handleClienteCreated}
           lockOutsideClose
@@ -216,8 +219,8 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
               <Button variant="ghost" size="sm" onClick={goToEvento}>
                 Pular cobrança →
               </Button>
-              <Button variant="outline" size="sm" onClick={handleClose}>
-                Concluir
+              <Button variant="outline" size="sm" onClick={goToConfirmacao}>
+                Pular e finalizar
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -227,10 +230,10 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
       {step === "cobranca" && (
         <NovaCobrancaModal
           open={true}
-          onOpenChange={(v) => { if (!v) goToEvento(); }}
+          onOpenChange={(v) => { if (!v) handleCobrancaClosed(); }}
           type={cobrancaType}
           initialClienteId={createdClienteId || undefined}
-          initialValor={contratoData?.valor ? parseFloat(contratoData.valor) : lead.valor || undefined}
+          initialValor={lead.valor || undefined}
           lockOutsideClose
           headerExtra={StepIndicator}
           footerExtra={
@@ -268,22 +271,20 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
 
               <div className="space-y-2">
                 <Label>Serviço</Label>
-                <select
+                <SearchSelect
+                  options={services.filter(s => s.ativo).map(s => ({ value: s.id, label: s.nome }))}
                   value={eventoServiceId}
-                  onChange={(e) => {
-                    setEventoServiceId(e.target.value);
-                    if (e.target.value && !eventoTitulo.trim()) {
-                      const svc = services.find(s => s.id === e.target.value);
+                  onChange={(id) => {
+                    setEventoServiceId(id);
+                    if (id && !eventoTitulo.trim()) {
+                      const svc = services.find(s => s.id === id);
                       if (svc) setEventoTitulo(svc.nome);
                     }
                   }}
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  <option value="">Selecione um serviço</option>
-                  {services.filter(s => s.ativo).map((s) => (
-                    <option key={s.id} value={s.id}>{s.nome}</option>
-                  ))}
-                </select>
+                  placeholder="Selecione um serviço"
+                  searchPlaceholder="Buscar serviço..."
+                  emptyLabel="Sem serviço"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -336,13 +337,96 @@ const LeadToClienteFlow = ({ lead, open, onClose, contratoData }: LeadToClienteF
                 <ArrowLeft className="w-3.5 h-3.5" /> Voltar
               </Button>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleClose}>
-                  Pular e concluir
+                <Button variant="outline" size="sm" onClick={goToConfirmacao}>
+                  Pular evento
                 </Button>
-                <Button onClick={handleCreateEvento} className="bg-gradient-primary hover:opacity-90 gap-1">
+                <Button onClick={handleCreateEvento} disabled={!eventoDate || createEvent.isPending} className="bg-gradient-primary hover:opacity-90 gap-1">
                   <Check className="w-4 h-4" /> Criar evento
                 </Button>
               </div>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {step === "confirmacao" && (
+        <AlertDialog open={true}>
+          <AlertDialogContent className="bg-card border-border sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-foreground flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                Tudo certo! Lead convertido 🎉
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Confira os dados registrados:
+              </AlertDialogDescription>
+              {StepIndicator}
+            </AlertDialogHeader>
+
+            <div className="py-2 space-y-3">
+              {/* Cliente */}
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+                <div className="mt-0.5 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cliente</p>
+                  <p className="text-sm font-medium text-foreground">{createdClienteNome || lead.nome}</p>
+                  {lead.whatsapp && <p className="text-xs text-muted-foreground">{lead.whatsapp}</p>}
+                </div>
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-auto mt-0.5 shrink-0" />
+              </div>
+
+              {/* Cobrança */}
+              {cobrancaWasCreated && (
+                <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+                  <div className="mt-0.5 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cobrança</p>
+                    <p className="text-sm font-medium text-foreground">{COBRANCA_LABELS[cobrancaType]}</p>
+                    {lead.valor && (
+                      <p className="text-xs text-muted-foreground">
+                        {lead.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    )}
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-auto mt-0.5 shrink-0" />
+                </div>
+              )}
+
+              {/* Evento */}
+              {eventoWasCreated && (
+                <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+                  <div className="mt-0.5 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Evento</p>
+                    <p className="text-sm font-medium text-foreground">{eventoTitulo || "Evento"}</p>
+                    {eventoDate && (
+                      <p className="text-xs text-muted-foreground">
+                        {format(eventoDate, "dd/MM/yyyy", { locale: ptBR })} às {eventoHora}
+                        {eventoLocal ? ` · ${eventoLocal}` : ""}
+                      </p>
+                    )}
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-auto mt-0.5 shrink-0" />
+                </div>
+              )}
+
+              {!cobrancaWasCreated && !eventoWasCreated && (
+                <p className="text-xs text-muted-foreground text-center py-1">
+                  Cliente cadastrado. Você pode adicionar cobranças e eventos a qualquer momento.
+                </p>
+              )}
+            </div>
+
+            <AlertDialogFooter>
+              <Button className="w-full bg-gradient-primary hover:opacity-90 gap-2" onClick={handleClose}>
+                <Check className="w-4 h-4" /> Confirmar e Concluir
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

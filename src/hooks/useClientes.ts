@@ -16,6 +16,7 @@ export interface Cliente {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface ClienteInsert {
@@ -41,6 +42,7 @@ export const useClientes = (search?: string) => {
         .from("clientes")
         .select("*")
         .eq("user_id", effectiveUserId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -56,6 +58,28 @@ export const useClientes = (search?: string) => {
         normalizeText(c.whatsapp).includes(q)
       );
     },
+  });
+};
+
+export const useDeletedClientes = () => {
+  const effectiveUserId = useEffectiveUserId();
+
+  return useQuery({
+    queryKey: ["clientes-deleted", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return [];
+
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .eq("user_id", effectiveUserId)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as Cliente[];
+    },
+    enabled: !!effectiveUserId,
   });
 };
 
@@ -105,12 +129,49 @@ export const useDeleteCliente = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("clientes").delete().eq("id", id);
+      const { error } = await supabase
+        .from("clientes")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
-      toast.success("Cliente excluído!");
+      toast.success("Cliente arquivado!");
+    },
+  });
+};
+
+export const useRestoreCliente = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("clientes")
+        .update({ deleted_at: null } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      queryClient.invalidateQueries({ queryKey: ["clientes-deleted"] });
+      toast.success("Cliente restaurado!");
+    },
+  });
+};
+
+export const usePermanentDeleteCliente = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("clientes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientes-deleted"] });
+      toast.success("Cliente excluído permanentemente!");
     },
   });
 };

@@ -16,10 +16,13 @@ export type Database = {
     Tables: {
       ai_config: {
         Row: {
+          ai_trigger_enabled: boolean
+          ai_trigger_keyword: string | null
           api_key: string
           created_at: string | null
           id: string
           is_active: boolean | null
+          knowledge_base: string | null
           max_tokens: number | null
           model: string
           provider: string
@@ -29,10 +32,13 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_trigger_enabled?: boolean
+          ai_trigger_keyword?: string | null
           api_key: string
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          knowledge_base?: string | null
           max_tokens?: number | null
           model: string
           provider: string
@@ -42,10 +48,13 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_trigger_enabled?: boolean
+          ai_trigger_keyword?: string | null
           api_key?: string
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          knowledge_base?: string | null
           max_tokens?: number | null
           model?: string
           provider?: string
@@ -120,6 +129,7 @@ export type Database = {
         Row: {
           id: string
           lead_id: string | null
+          cliente_id: string | null
           user_id: string
           status: string
           nome_cliente: string
@@ -140,10 +150,12 @@ export type Database = {
           autentique_document_id: string | null
           created_at: string
           updated_at: string
+          deleted_at: string | null
         }
         Insert: {
           id?: string
           lead_id?: string | null
+          cliente_id?: string | null
           user_id: string
           status?: string
           nome_cliente: string
@@ -164,10 +176,12 @@ export type Database = {
           autentique_document_id?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
         }
         Update: {
           id?: string
           lead_id?: string | null
+          cliente_id?: string | null
           user_id?: string
           status?: string
           nome_cliente?: string
@@ -188,6 +202,7 @@ export type Database = {
           autentique_document_id?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
         }
         Relationships: [
           {
@@ -195,6 +210,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           }
         ]
@@ -212,6 +234,7 @@ export type Database = {
           updated_at: string | null
           user_id: string
           whatsapp: string | null
+          deleted_at: string | null
         }
         Insert: {
           cpf_cnpj?: string | null
@@ -225,6 +248,7 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           whatsapp?: string | null
+          deleted_at?: string | null
         }
         Update: {
           cpf_cnpj?: string | null
@@ -238,6 +262,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           whatsapp?: string | null
+          deleted_at?: string | null
         }
         Relationships: []
       }
@@ -575,8 +600,13 @@ export type Database = {
           created_at: string
           direction: string
           id: string
+          is_note: boolean | null
+          media_filename: string | null
+          media_mime_type: string | null
+          media_url: string | null
           read: boolean | null
           timestamp: string | null
+          type: string | null
           user_id: string
           whatsapp_message_id: string | null
         }
@@ -586,8 +616,13 @@ export type Database = {
           created_at?: string
           direction: string
           id?: string
+          is_note?: boolean | null
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
           read?: boolean | null
           timestamp?: string | null
+          type?: string | null
           user_id: string
           whatsapp_message_id?: string | null
         }
@@ -597,8 +632,13 @@ export type Database = {
           created_at?: string
           direction?: string
           id?: string
+          is_note?: boolean | null
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
           read?: boolean | null
           timestamp?: string | null
+          type?: string | null
           user_id?: string
           whatsapp_message_id?: string | null
         }

@@ -28,6 +28,7 @@ import EquipePage from "./pages/EquipePage";
 import AnunciosPage from "./pages/AnunciosPage";
 import InboxPage from "./pages/InboxPage";
 import ContratosPage from "./pages/ContratosPage";
+import { useWhatsAppDisconnectAlert } from "@/hooks/useWhatsAppDisconnectAlert";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,11 @@ const LoadingScreen = () => (
   </div>
 );
 
+const WhatsAppDisconnectWatcher = () => {
+  useWhatsAppDisconnectAlert();
+  return null;
+};
+
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
 
@@ -45,6 +51,7 @@ const ProtectedLayout = () => {
 
   return (
     <DashboardLayout>
+      <WhatsAppDisconnectWatcher />
       <Outlet />
     </DashboardLayout>
   );

@@ -1,0 +1,3 @@
+ALTER TABLE public.ai_config
+  ADD COLUMN IF NOT EXISTS ai_trigger_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS ai_trigger_keyword TEXT;
