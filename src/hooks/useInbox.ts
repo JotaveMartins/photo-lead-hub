@@ -250,11 +250,11 @@ export const useConversationNotes = (conversationId?: string) => {
     queryKey: ["inbox_notes", conversationId],
     queryFn: async () => {
       if (!conversationId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("inbox_messages")
         .select("*")
         .eq("conversation_id", conversationId)
-        .eq("is_note" as any, true)
+        .eq("is_note", true)
         .order("timestamp", { ascending: true });
       if (error) throw error;
       return data || [];
