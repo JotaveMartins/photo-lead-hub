@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       ai_config: {
         Row: {
+          ai_trigger_enabled: boolean
+          ai_trigger_keyword: string | null
           api_key: string
           created_at: string | null
           id: string
@@ -29,6 +31,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_trigger_enabled?: boolean
+          ai_trigger_keyword?: string | null
           api_key: string
           created_at?: string | null
           id?: string
@@ -42,6 +46,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_trigger_enabled?: boolean
+          ai_trigger_keyword?: string | null
           api_key?: string
           created_at?: string | null
           id?: string
@@ -120,6 +126,7 @@ export type Database = {
         Row: {
           cpf_cnpj: string | null
           created_at: string | null
+          deleted_at: string | null
           email: string | null
           endereco: string | null
           id: string
@@ -133,6 +140,7 @@ export type Database = {
         Insert: {
           cpf_cnpj?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -146,6 +154,7 @@ export type Database = {
         Update: {
           cpf_cnpj?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -249,9 +258,11 @@ export type Database = {
         Row: {
           arquivo_contrato_url: string | null
           autentique_document_id: string | null
+          cliente_id: string | null
           cpf_cnpj: string | null
           created_at: string
           data_evento: string | null
+          deleted_at: string | null
           email: string | null
           endereco_cliente: string | null
           forma_pagamento: string | null
@@ -273,9 +284,11 @@ export type Database = {
         Insert: {
           arquivo_contrato_url?: string | null
           autentique_document_id?: string | null
+          cliente_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           data_evento?: string | null
+          deleted_at?: string | null
           email?: string | null
           endereco_cliente?: string | null
           forma_pagamento?: string | null
@@ -297,9 +310,11 @@ export type Database = {
         Update: {
           arquivo_contrato_url?: string | null
           autentique_document_id?: string | null
+          cliente_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           data_evento?: string | null
+          deleted_at?: string | null
           email?: string | null
           endereco_cliente?: string | null
           forma_pagamento?: string | null
@@ -319,6 +334,13 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contratos_lead_id_fkey"
             columns: ["lead_id"]
