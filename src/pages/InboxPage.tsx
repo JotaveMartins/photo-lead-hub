@@ -397,10 +397,17 @@ const InboxPage = () => {
 
   const handleActivateAIForConv = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await supabase.from("inbox_conversations").update({ ai_enabled: true, status: "pending_ai" }).eq("id", convId);
-    await supabase.functions.invoke("ai-reply", { body: { conversation_id: convId } });
-    queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
-    toast.success("IA ativada para esta conversa.");
+    try {
+      await supabase.from("inbox_conversations").update({ ai_enabled: true, status: "pending_ai" }).eq("id", convId);
+      const { data, error } = await supabase.functions.invoke("ai-reply", { body: { conversation_id: convId } });
+      if (error) throw error;
+      if (data?.skipped) throw new Error(`IA não respondeu (${data.skipped}). Verifique se a função foi atualizada.`);
+      queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["inbox_messages", convId] });
+      toast.success("IA ativada para esta conversa.");
+    } catch (err: any) {
+      toast.error("Erro ao ativar IA: " + (err?.message || "tente novamente"));
+    }
   };
 
   // Quick actions directly from conversation list
