@@ -440,11 +440,7 @@ const InboxPage = () => {
 
   const getStatusBadge = (status: InboxStatus) => {
     switch (status) {
-      case "pending_ai": return (
-        <Badge className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border-yellow-500/50 flex gap-1 items-center text-[10px] px-1.5 py-0.5">
-          <Bot className="w-2.5 h-2.5" /> IA Ativa
-        </Badge>
-      );
+      case "pending_ai": return null;
       case "open": return (
         <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/50 text-[10px] px-1.5 py-0.5">
           Em Atendimento
