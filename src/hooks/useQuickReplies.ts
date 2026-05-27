@@ -22,7 +22,7 @@ export const useQuickReplies = () => {
         .eq("user_id", effectiveUserId)
         .order("title");
       if (error) throw error;
-      return (data || []) as QuickReply[];
+      return ((data as any) || []) as QuickReply[];
     },
     enabled: !!effectiveUserId,
   });

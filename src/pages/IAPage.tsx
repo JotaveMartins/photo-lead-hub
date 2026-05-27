@@ -329,7 +329,7 @@ const IAPage = () => {
         .select("*")
         .eq("user_id", effectiveUserId!)
         .maybeSingle();
-      if (cfg) setConfig(cfg as AiConfig);
+      if (cfg) setConfig(cfg as unknown as AiConfig);
 
       const { data: fls } = await supabase
         .from("ai_files")

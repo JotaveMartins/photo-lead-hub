@@ -22,7 +22,6 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
-          knowledge_base: string | null
           max_tokens: number | null
           model: string
           provider: string
@@ -38,7 +37,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
-          knowledge_base?: string | null
           max_tokens?: number | null
           model: string
           provider: string
@@ -54,7 +52,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
-          knowledge_base?: string | null
           max_tokens?: number | null
           model?: string
           provider?: string
@@ -125,106 +122,11 @@ export type Database = {
         }
         Relationships: []
       }
-      contratos: {
-        Row: {
-          id: string
-          lead_id: string | null
-          cliente_id: string | null
-          user_id: string
-          status: string
-          nome_cliente: string
-          cpf_cnpj: string | null
-          email: string | null
-          whatsapp: string | null
-          endereco_cliente: string | null
-          data_evento: string | null
-          horario_inicio: string | null
-          horario_fim: string | null
-          local_evento: string | null
-          tipo_servico: string | null
-          pacote: string | null
-          valor: number | null
-          forma_pagamento: string | null
-          observacoes: string | null
-          arquivo_contrato_url: string | null
-          autentique_document_id: string | null
-          created_at: string
-          updated_at: string
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          lead_id?: string | null
-          cliente_id?: string | null
-          user_id: string
-          status?: string
-          nome_cliente: string
-          cpf_cnpj?: string | null
-          email?: string | null
-          whatsapp?: string | null
-          endereco_cliente?: string | null
-          data_evento?: string | null
-          horario_inicio?: string | null
-          horario_fim?: string | null
-          local_evento?: string | null
-          tipo_servico?: string | null
-          pacote?: string | null
-          valor?: number | null
-          forma_pagamento?: string | null
-          observacoes?: string | null
-          arquivo_contrato_url?: string | null
-          autentique_document_id?: string | null
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          lead_id?: string | null
-          cliente_id?: string | null
-          user_id?: string
-          status?: string
-          nome_cliente?: string
-          cpf_cnpj?: string | null
-          email?: string | null
-          whatsapp?: string | null
-          endereco_cliente?: string | null
-          data_evento?: string | null
-          horario_inicio?: string | null
-          horario_fim?: string | null
-          local_evento?: string | null
-          tipo_servico?: string | null
-          pacote?: string | null
-          valor?: number | null
-          forma_pagamento?: string | null
-          observacoes?: string | null
-          arquivo_contrato_url?: string | null
-          autentique_document_id?: string | null
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contratos_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contratos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       clientes: {
         Row: {
           cpf_cnpj: string | null
           created_at: string | null
+          deleted_at: string | null
           email: string | null
           endereco: string | null
           id: string
@@ -234,11 +136,11 @@ export type Database = {
           updated_at: string | null
           user_id: string
           whatsapp: string | null
-          deleted_at: string | null
         }
         Insert: {
           cpf_cnpj?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -248,11 +150,11 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           whatsapp?: string | null
-          deleted_at?: string | null
         }
         Update: {
           cpf_cnpj?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -262,7 +164,6 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           whatsapp?: string | null
-          deleted_at?: string | null
         }
         Relationships: []
       }
@@ -346,6 +247,102 @@ export type Database = {
           },
           {
             foreignKeyName: "cobrancas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          arquivo_contrato_url: string | null
+          autentique_document_id: string | null
+          cliente_id: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          data_evento: string | null
+          deleted_at: string | null
+          email: string | null
+          endereco_cliente: string | null
+          forma_pagamento: string | null
+          horario_fim: string | null
+          horario_inicio: string | null
+          id: string
+          lead_id: string | null
+          local_evento: string | null
+          nome_cliente: string
+          observacoes: string | null
+          pacote: string | null
+          status: string
+          tipo_servico: string | null
+          updated_at: string
+          user_id: string
+          valor: number | null
+          whatsapp: string | null
+        }
+        Insert: {
+          arquivo_contrato_url?: string | null
+          autentique_document_id?: string | null
+          cliente_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_evento?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          endereco_cliente?: string | null
+          forma_pagamento?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          lead_id?: string | null
+          local_evento?: string | null
+          nome_cliente: string
+          observacoes?: string | null
+          pacote?: string | null
+          status?: string
+          tipo_servico?: string | null
+          updated_at?: string
+          user_id: string
+          valor?: number | null
+          whatsapp?: string | null
+        }
+        Update: {
+          arquivo_contrato_url?: string | null
+          autentique_document_id?: string | null
+          cliente_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_evento?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          endereco_cliente?: string | null
+          forma_pagamento?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          lead_id?: string | null
+          local_evento?: string | null
+          nome_cliente?: string
+          observacoes?: string | null
+          pacote?: string | null
+          status?: string
+          tipo_servico?: string | null
+          updated_at?: string
+          user_id?: string
+          valor?: number | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
@@ -601,12 +598,8 @@ export type Database = {
           direction: string
           id: string
           is_note: boolean | null
-          media_filename: string | null
-          media_mime_type: string | null
-          media_url: string | null
           read: boolean | null
           timestamp: string | null
-          type: string | null
           user_id: string
           whatsapp_message_id: string | null
         }
@@ -617,12 +610,8 @@ export type Database = {
           direction: string
           id?: string
           is_note?: boolean | null
-          media_filename?: string | null
-          media_mime_type?: string | null
-          media_url?: string | null
           read?: boolean | null
           timestamp?: string | null
-          type?: string | null
           user_id: string
           whatsapp_message_id?: string | null
         }
@@ -633,12 +622,8 @@ export type Database = {
           direction?: string
           id?: string
           is_note?: boolean | null
-          media_filename?: string | null
-          media_mime_type?: string | null
-          media_url?: string | null
           read?: boolean | null
           timestamp?: string | null
-          type?: string | null
           user_id?: string
           whatsapp_message_id?: string | null
         }
@@ -651,6 +636,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inbox_quick_replies: {
+        Row: {
+          body: string
+          created_at: string | null
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       inbox_triggers: {
         Row: {
@@ -1364,6 +1373,7 @@ export type Database = {
           name: string
           phone_number: string | null
           status: string | null
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -1375,6 +1385,7 @@ export type Database = {
           name: string
           phone_number?: string | null
           status?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -1386,6 +1397,7 @@ export type Database = {
           name?: string
           phone_number?: string | null
           status?: string | null
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
