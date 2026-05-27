@@ -214,39 +214,14 @@ Deno.serve(async (req) => {
 
         // B. Trigger AI if conversation still pending_ai
         if (conversation.status === 'pending_ai') {
-          // Check AI keyword trigger setting
-          let shouldTriggerAi = true;
-          const { data: aiCfg } = await supabase
-            .from("ai_config")
-            .select("ai_trigger_enabled, ai_trigger_keyword")
-            .eq("user_id", userId)
-            .maybeSingle();
-
-          if (aiCfg?.ai_trigger_enabled === true && aiCfg?.ai_trigger_keyword?.trim()) {
-            const keyword = aiCfg.ai_trigger_keyword.trim().toLowerCase();
-            const messageMatchesKeyword = content.toLowerCase().includes(keyword);
-
-            if (!messageMatchesKeyword) {
-              // Check if AI has already replied in this conversation (already engaged)
-              const { count: aiRepliesCount } = await supabase
-                .from("inbox_messages")
-                .select("*", { count: "exact", head: true })
-                .eq("conversation_id", conversation.id)
-                .eq("direction", "outbound");
-              shouldTriggerAi = (aiRepliesCount ?? 0) > 0;
-            }
-          }
-
-          if (shouldTriggerAi) {
-            fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ conversation_id: conversation.id })
-            }).catch(err => console.error("Error triggering AI reply:", err));
-          }
+          fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ conversation_id: conversation.id })
+          }).catch(err => console.error("Error triggering AI reply:", err));
         }
       }
     } else if (event === "connection.update") {

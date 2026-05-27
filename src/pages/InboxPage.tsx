@@ -28,7 +28,8 @@ import { useCreateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useQuickReplies, useCreateQuickReply, useDeleteQuickReply } from "@/hooks/useQuickReplies";
 import {
   DropdownMenu,
@@ -209,6 +210,7 @@ const NotesPanel = ({ conversationId }: NotesPanelProps) => {
 // ─────────────────────────────────────────────
 
 const InboxPage = () => {
+  const effectiveUserId = useEffectiveUserId();
   const [activeStatus, setActiveStatus] = useState<InboxStatus>("pending_ai");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -224,6 +226,18 @@ const InboxPage = () => {
   const inboxFileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Global AI active status
+  const { data: aiConfigData } = useQuery({
+    queryKey: ["ai_config_active", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return null;
+      const { data } = await supabase.from("ai_config").select("is_active").eq("user_id", effectiveUserId).maybeSingle();
+      return data;
+    },
+    enabled: !!effectiveUserId,
+  });
+  const isGlobalAIActive = aiConfigData?.is_active ?? true;
 
   // Fetch all conversations (no status filter) so selectedConv stays valid after status change
   const { data: allConversations = [], isLoading: loadingConvs } = useInboxConversations();
@@ -381,6 +395,14 @@ const InboxPage = () => {
     toast.success("Atendimento reaberto.");
   };
 
+  const handleActivateAIForConv = async (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await supabase.from("inbox_conversations").update({ ai_enabled: true, status: "pending_ai" }).eq("id", convId);
+    await supabase.functions.invoke("ai-reply", { body: { conversation_id: convId } });
+    queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+    toast.success("IA ativada para esta conversa.");
+  };
+
   // Quick actions directly from conversation list
   const handleQuickAssume = async (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -534,6 +556,14 @@ const InboxPage = () => {
 
                   {/* Quick action buttons — visible on hover */}
                   <div className="flex gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    {conv.status === "pending_ai" && !isGlobalAIActive && !conv.ai_enabled && (
+                      <button
+                        onClick={(e) => handleActivateAIForConv(conv.id, e)}
+                        className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors"
+                      >
+                        Ativar IA
+                      </button>
+                    )}
                     {conv.status === "pending_ai" && (
                       <>
                         <button

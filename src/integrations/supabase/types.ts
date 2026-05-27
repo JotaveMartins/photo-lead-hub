@@ -536,6 +536,7 @@ export type Database = {
       }
       inbox_conversations: {
         Row: {
+          ai_enabled: boolean | null
           assigned_to: string | null
           contact_name: string | null
           contact_number: string
@@ -551,6 +552,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_enabled?: boolean | null
           assigned_to?: string | null
           contact_name?: string | null
           contact_number: string
@@ -566,6 +568,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_enabled?: boolean | null
           assigned_to?: string | null
           contact_name?: string | null
           contact_number?: string

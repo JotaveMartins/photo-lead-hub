@@ -40,8 +40,12 @@
        throw new Error("lead_id or conversation_id required");
      }
 
-     const { data: aiConfig } = await supabase.from("ai_config").select("*").eq("user_id", userId).eq("is_active", true).maybeSingle();
-     if (!aiConfig) throw new Error("Active AI config not found");
+     const { data: aiConfig } = await supabase.from("ai_config").select("*").eq("user_id", userId).maybeSingle();
+     if (!aiConfig) throw new Error("AI config not found");
+     // Skip if AI is globally disabled and not manually enabled for this conversation
+     if (!aiConfig.is_active && !conv?.ai_enabled) {
+       return new Response(JSON.stringify({ skipped: "ai_not_active" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+     }
 
      // Build history
      let chatHistory: any[] = [];

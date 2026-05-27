@@ -29,8 +29,6 @@ interface AiConfig {
   system_prompt: string;
   knowledge_base: string;
   is_active: boolean;
-  ai_trigger_enabled: boolean;
-  ai_trigger_keyword: string;
   user_id?: string;
 }
 
@@ -307,8 +305,6 @@ const IAPage = () => {
     system_prompt: DEFAULT_PROMPT,
     knowledge_base: "",
     is_active: true,
-    ai_trigger_enabled: false,
-    ai_trigger_keyword: "",
   });
   const [files, setFiles] = useState<AiFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -357,7 +353,7 @@ const IAPage = () => {
       if (configToSave.id && !String(configToSave.id).includes("-")) {
         delete configToSave.id;
       }
-      const { error } = await supabase.from("ai_config").upsert(configToSave as any);
+      const { error } = await supabase.from("ai_config").upsert(configToSave as any, { onConflict: "user_id" });
       if (error) toast.error("Erro ao salvar: " + error.message);
       else {
         toast.success("Configuração salva com sucesso!");
@@ -637,34 +633,6 @@ const IAPage = () => {
                 <Label>IA Ativa</Label>
                 <HelpTooltip text="Quando ativado, a IA responde automaticamente às novas mensagens recebidas no inbox. Desative para pausar o atendimento automático sem perder as configurações." />
               </div>
-            </div>
-
-            {/* AI keyword trigger */}
-            <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-primary" />
-                  <Label className="font-medium">Palavra-chave de ativação</Label>
-                  <HelpTooltip text="Quando ativado, a IA só responderá se a mensagem recebida contiver a palavra-chave definida. Útil para filtrar contatos que realmente querem atendimento. Ex: 'orçamento', 'preço', 'casamento'." />
-                </div>
-                <Switch
-                  checked={config.ai_trigger_enabled}
-                  onCheckedChange={(v) => setConfig((c) => ({ ...c, ai_trigger_enabled: v }))}
-                />
-              </div>
-              {config.ai_trigger_enabled && (
-                <div className="space-y-1.5">
-                  <Input
-                    value={config.ai_trigger_keyword}
-                    onChange={(e) => setConfig((c) => ({ ...c, ai_trigger_keyword: e.target.value }))}
-                    placeholder="Ex: orçamento, casamento, preço..."
-                    className="bg-background"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    A IA só responderá na primeira mensagem que contiver esta palavra. Após iniciar, continua respondendo normalmente.
-                  </p>
-                </div>
-              )}
             </div>
 
             <Button onClick={handleSaveConfig} disabled={saving} className="w-full bg-gradient-primary gap-2">
