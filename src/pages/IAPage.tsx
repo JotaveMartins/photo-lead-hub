@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Bot, Save, FileUp, Copy, Trash2, Info, Loader2,
-  Eye, EyeOff, Zap, MessageSquare, CheckCircle2, ChevronDown, HelpCircle,
+  Eye, EyeOff, Zap, MessageSquare, CheckCircle2, ChevronDown, HelpCircle, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -773,9 +773,20 @@ const IAPage = () => {
                 <CardTitle className="text-lg">Prompt do Sistema</CardTitle>
                 <CardDescription>Defina a personalidade e as regras de atendimento.</CardDescription>
               </div>
-              <span className={`text-xs font-mono px-2 py-1 rounded-full border ${promptLength > 3000 ? "border-destructive/50 text-destructive bg-destructive/10" : "border-border text-muted-foreground"}`}>
-                {promptLength.toLocaleString()} chars
-              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
+                  onClick={() => setConfig((c) => ({ ...c, system_prompt: DEFAULT_PROMPT }))}
+                >
+                  <RotateCcw className="w-3 h-3" /> Restaurar padrão
+                </Button>
+                <span className={`text-xs font-mono px-2 py-1 rounded-full border ${promptLength > 3000 ? "border-destructive/50 text-destructive bg-destructive/10" : "border-border text-muted-foreground"}`}>
+                  {promptLength.toLocaleString()} chars
+                </span>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

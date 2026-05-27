@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
             .eq("user_id", userId)
             .maybeSingle();
 
-          if (aiCfg?.ai_trigger_enabled && aiCfg?.ai_trigger_keyword?.trim()) {
+          if (aiCfg?.ai_trigger_enabled === true && aiCfg?.ai_trigger_keyword?.trim()) {
             const keyword = aiCfg.ai_trigger_keyword.trim().toLowerCase();
             const messageMatchesKeyword = content.toLowerCase().includes(keyword);
 
@@ -230,7 +230,7 @@ Deno.serve(async (req) => {
               // Check if AI has already replied in this conversation (already engaged)
               const { count: aiRepliesCount } = await supabase
                 .from("inbox_messages")
-                .select("id", { count: "exact", head: true })
+                .select("*", { count: "exact", head: true })
                 .eq("conversation_id", conversation.id)
                 .eq("direction", "outbound");
               shouldTriggerAi = (aiRepliesCount ?? 0) > 0;
