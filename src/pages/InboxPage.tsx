@@ -381,6 +381,25 @@ const InboxPage = () => {
     toast.success("Atendimento reaberto.");
   };
 
+  // Quick actions directly from conversation list
+  const handleQuickAssume = async (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await updateConv.mutateAsync({ id: convId, status: "open" });
+    toast.success("Atendimento assumido.");
+  };
+
+  const handleQuickClose = async (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await updateConv.mutateAsync({ id: convId, status: "closed" });
+    toast.success("Atendimento encerrado.");
+  };
+
+  const handleQuickReopen = async (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await updateConv.mutateAsync({ id: convId, status: "open" });
+    toast.success("Atendimento reaberto.");
+  };
+
   const handleCreateLead = async () => {
     if (!selectedConv) return;
     try {
@@ -476,10 +495,10 @@ const InboxPage = () => {
             </div>
           ) : (
             filteredConversations.map((conv) => (
-              <button
+              <div
                 key={conv.id}
                 onClick={() => handleSelectConversation(conv.id)}
-                className={`w-full p-3 flex gap-3 text-left transition-all hover:bg-muted/50 relative group ${
+                className={`w-full p-3 flex gap-3 text-left transition-all hover:bg-muted/50 relative group cursor-pointer ${
                   selectedConversationId === conv.id ? "bg-muted shadow-inner" : ""
                 }`}
               >
@@ -512,8 +531,44 @@ const InboxPage = () => {
                       </span>
                     )}
                   </div>
+
+                  {/* Quick action buttons — visible on hover */}
+                  <div className="flex gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    {conv.status === "pending_ai" && (
+                      <>
+                        <button
+                          onClick={(e) => handleQuickAssume(conv.id, e)}
+                          className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-green-500/10 text-green-500 border border-green-500/30 hover:bg-green-500/20 transition-colors"
+                        >
+                          Assumir
+                        </button>
+                        <button
+                          onClick={(e) => handleQuickClose(conv.id, e)}
+                          className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
+                        >
+                          Encerrar
+                        </button>
+                      </>
+                    )}
+                    {conv.status === "open" && (
+                      <button
+                        onClick={(e) => handleQuickClose(conv.id, e)}
+                        className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
+                      >
+                        Encerrar
+                      </button>
+                    )}
+                    {conv.status === "closed" && (
+                      <button
+                        onClick={(e) => handleQuickReopen(conv.id, e)}
+                        className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/30 hover:bg-blue-500/20 transition-colors"
+                      >
+                        Reabrir
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>
