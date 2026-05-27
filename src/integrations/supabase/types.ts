@@ -598,8 +598,12 @@ export type Database = {
           direction: string
           id: string
           is_note: boolean | null
+          media_filename: string | null
+          media_mime_type: string | null
+          media_url: string | null
           read: boolean | null
           timestamp: string | null
+          type: string | null
           user_id: string
           whatsapp_message_id: string | null
         }
@@ -610,8 +614,12 @@ export type Database = {
           direction: string
           id?: string
           is_note?: boolean | null
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
           read?: boolean | null
           timestamp?: string | null
+          type?: string | null
           user_id: string
           whatsapp_message_id?: string | null
         }
@@ -622,8 +630,12 @@ export type Database = {
           direction?: string
           id?: string
           is_note?: boolean | null
+          media_filename?: string | null
+          media_mime_type?: string | null
+          media_url?: string | null
           read?: boolean | null
           timestamp?: string | null
+          type?: string | null
           user_id?: string
           whatsapp_message_id?: string | null
         }
