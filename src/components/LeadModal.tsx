@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import InteresseSelect from "@/components/InteresseSelect";
 import DatePickerField from "@/components/DatePickerField";
+import SearchSelect from "@/components/SearchSelect";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -185,18 +186,14 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Origem {!lead && <span className="text-destructive">*</span>}</Label>
-              <select
-                id="origem"
+              <SearchSelect
                 value={origem}
-                onChange={(e) => setOrigem(e.target.value)}
-                required={!lead}
-                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">Selecione a origem</option>
-                {ORIGEM_OPTIONS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
+                onChange={setOrigem}
+                options={ORIGEM_OPTIONS.map((o) => ({ value: o, label: o }))}
+                placeholder="Selecione a origem"
+                emptyLabel="Selecione a origem"
+                allowEmpty
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="valor">Valor (R$)</Label>
