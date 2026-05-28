@@ -99,17 +99,13 @@ const ReportFilters = (props: ReportFiltersProps) => {
     <div className="flex flex-wrap items-end gap-4 mb-6 bg-card border border-border rounded-xl p-4">
       <div className="flex flex-col gap-1.5 min-w-[180px]">
         <Label className="text-xs text-muted-foreground">Período</Label>
-        <select
+        <SearchSelect
           value={props.period}
-          onChange={(e) => props.onPeriodChange(e.target.value as PeriodOption)}
-          className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          {Object.entries(periodLabels).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => props.onPeriodChange((v || "this_month") as PeriodOption)}
+          options={Object.entries(periodLabels).map(([k, v]) => ({ value: k, label: v }))}
+          placeholder="Selecione"
+          allowEmpty={false}
+        />
       </div>
 
       {props.period === "custom" && (
