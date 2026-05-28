@@ -12,14 +12,14 @@ const MIME_TO_EXT: Record<string, string> = {
 
 function findBase64InPayload(payload: any): string | null {
   if (!payload) return null;
-  if (typeof payload === "string" && payload.length > 200 && /^[A-Za-z0-9+/=]+$/.test(payload.slice(0, 100))) {
+  if (typeof payload === "string" && payload.length > 200 && /^[A-Za-z0-9+/=\s]+$/.test(payload.slice(0, 200))) {
     return payload;
   }
   if (typeof payload !== "object") return null;
   // Common locations
   const candidates = [
     payload.base64,
-    payload.media?.base64,
+    typeof payload.media === "string" ? payload.media : payload.media?.base64,
     payload.data?.base64,
     payload.imageMessage?.base64,
     payload.videoMessage?.base64,
@@ -33,8 +33,35 @@ function findBase64InPayload(payload: any): string | null {
     payload.message?.documentMessage?.base64,
   ];
   for (const c of candidates) {
-    if (typeof c === "string" && c.length > 100) return c;
+    if (typeof c === "string" && c.length > 500) return c;
   }
+  return null;
+}
+
+// Detect actual file type from binary signature (magic bytes)
+function detectMimeFromBytes(bytes: Uint8Array): string | null {
+  if (bytes.length < 4) return null;
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return "image/jpeg";
+  // PNG: 89 50 4E 47
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return "image/png";
+  // GIF: 47 49 46 38
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return "image/gif";
+  // WEBP: 52 49 46 46 ... 57 45 42 50
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes.length > 11 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return "image/webp";
+  // PDF: 25 50 44 46
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+  // MP4 / quicktime: bytes 4-7 = "ftyp"
+  if (bytes.length > 7 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return "video/mp4";
+  // OGG: 4F 67 67 53
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) return "audio/ogg";
+  // MP3: ID3 tag or FF Fx frame sync
+  if ((bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
+      (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0)) return "audio/mpeg";
+  // RIFF (WAV)
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes.length > 11 && bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45) return "audio/wav";
   return null;
 }
 
@@ -47,19 +74,42 @@ async function uploadBase64ToStorage(
 ): Promise<string | null> {
   try {
     const matches = rawBase64.match(/^data:([^;]+);base64,(.+)$/s);
-    const mime = matches?.[1] || mimeType || "application/octet-stream";
-    const b64 = matches?.[2] || rawBase64;
+    const hintedMime = matches?.[1] || mimeType || "application/octet-stream";
+    // Strip whitespace/newlines that some APIs add
+    const b64 = (matches?.[2] || rawBase64).replace(/\s+/g, "");
 
-    const binary = atob(b64);
+    let binary: string;
+    try {
+      binary = atob(b64);
+    } catch (err) {
+      console.error("Invalid base64 (atob failed):", err);
+      return null;
+    }
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-    const ext = MIME_TO_EXT[mime] || "bin";
+    // Validate: detect actual file type from magic bytes
+    const detectedMime = detectMimeFromBytes(bytes);
+    if (!detectedMime) {
+      console.error(
+        `Base64 decoded ${bytes.length} bytes but no valid magic bytes detected. ` +
+        `First 16 bytes (hex): ${Array.from(bytes.slice(0, 16)).map(b => b.toString(16).padStart(2, "0")).join(" ")}. ` +
+        `Hinted MIME was: ${hintedMime}. ` +
+        `This usually means we got encrypted WhatsApp bytes — webhookBase64:true must be enabled on the Evolution webhook.`
+      );
+      return null;
+    }
+    if (hintedMime && hintedMime !== detectedMime && !hintedMime.startsWith("application/octet-stream")) {
+      console.log(`MIME hint "${hintedMime}" differs from detected "${detectedMime}" — using detected.`);
+    }
+
+    const finalMime = detectedMime;
+    const ext = MIME_TO_EXT[finalMime] || "bin";
     const path = `${userId}/${whatsappMsgId}.${ext}`;
 
     const { error: uploadErr } = await supabase.storage
       .from("inbox-media")
-      .upload(path, bytes, { contentType: mime, upsert: true });
+      .upload(path, bytes, { contentType: finalMime, upsert: true });
     if (uploadErr) {
       console.error("Storage upload error:", uploadErr);
       return null;
@@ -89,11 +139,16 @@ async function downloadAndStoreMedia(
     findBase64InPayload(fullPayload?.data) ||
     findBase64InPayload(fullPayload);
   if (directB64) {
+    console.log(`Found direct base64 in webhook payload (${directB64.length} chars)`);
     const url = await uploadBase64ToStorage(supabase, directB64, userId, whatsappMsgId, mimeType);
     if (url) {
       console.log("Stored media from direct base64:", url);
       return url;
     }
+  } else {
+    const dataKeys = Object.keys(fullPayload?.data || {}).join(",");
+    const msgKeys = Object.keys(msgContent || {}).join(",");
+    console.log(`No direct base64 in payload. data keys: [${dataKeys}], message keys: [${msgKeys}]. webhookBase64 may be disabled — falling back to API.`);
   }
 
   // 2) Fall back to Evolution API — try a few request shapes/endpoints
