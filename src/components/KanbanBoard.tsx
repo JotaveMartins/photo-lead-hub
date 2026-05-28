@@ -323,37 +323,25 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           onValueChange={setSearchQuery}
           className="bg-muted border-border h-9"
         />
-        <div className="relative w-[180px]">
-          <Filter className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            aria-label="Filtrar por origem"
-            value={origemFilter}
-            onChange={(e) => setOrigemFilter(e.target.value)}
-            className="h-9 w-full rounded-md border border-border bg-muted pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <option value="all">Todas origens</option>
-            {ORIGEM_OPTIONS.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
+        <div className="w-[180px]">
+          <SearchSelect
+            value={origemFilter === "all" ? "" : origemFilter}
+            onChange={(v) => setOrigemFilter(v || "all")}
+            options={ORIGEM_OPTIONS.map((o) => ({ value: o, label: o }))}
+            placeholder="Todas origens"
+            emptyLabel="Todas origens"
+            allowEmpty
+          />
         </div>
-        <div className="relative w-[180px]">
-          <Filter className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            aria-label="Filtrar por interesse"
-            value={interesseFilter}
-            onChange={(e) => setInteresseFilter(e.target.value)}
-            className="h-9 w-full rounded-md border border-border bg-muted pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <option value="all">Todos interesses</option>
-            {interesseOptions.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
+        <div className="w-[180px]">
+          <SearchSelect
+            value={interesseFilter === "all" ? "" : interesseFilter}
+            onChange={(v) => setInteresseFilter(v || "all")}
+            options={interesseOptions.map((o) => ({ value: o, label: o }))}
+            placeholder="Todos interesses"
+            emptyLabel="Todos interesses"
+            allowEmpty
+          />
         </div>
 
         {/* Status filter — pinned to the right */}
