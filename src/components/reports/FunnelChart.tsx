@@ -37,7 +37,8 @@ const FunnelChart = ({ steps, onStepClick }: FunnelChartProps) => {
     <div className="bg-card border border-border rounded-xl p-6">
       <h3 className="font-display font-semibold text-foreground mb-6">Funil de Vendas</h3>
 
-      <div className="flex flex-col items-center gap-0">
+      <div className="flex items-stretch gap-4">
+        <div className="flex flex-col items-center gap-0 flex-1 max-w-[70%]">
         {steps.map((step, i) => {
           const topWidth = steps.length > 1
             ? 100 - ((i / (steps.length - 1)) * 50)
@@ -82,6 +83,32 @@ const FunnelChart = ({ steps, onStepClick }: FunnelChartProps) => {
             </div>
           );
         })}
+        </div>
+        <div className="flex flex-col w-32 shrink-0">
+          {steps.map((step, i) => {
+            const isLast = i === steps.length - 1;
+            const prev = i > 0 ? steps[i - 1].value : null;
+            const rate = prev != null && prev > 0 ? ((step.value / prev) * 100).toFixed(1) : null;
+            return (
+              <div
+                key={step.label}
+                className="flex items-center justify-start"
+                style={{ minHeight: isLast ? "68px" : "58px" }}
+              >
+                {rate != null ? (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-tight">
+                      {steps[i - 1].label} →
+                    </p>
+                    <p className="text-base font-bold text-primary">{rate}%</p>
+                  </div>
+                ) : (
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Topo do funil</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {steps.length >= 2 && (
