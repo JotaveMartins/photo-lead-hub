@@ -447,11 +447,7 @@ const InboxPage = () => {
 
   const getStatusBadge = (status: InboxStatus) => {
     switch (status) {
-      case "pending_ai": return (
-        <Badge className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border-yellow-500/50 flex gap-1 items-center text-[10px] px-1.5 py-0.5">
-          <Bot className="w-2.5 h-2.5" /> IA Ativa
-        </Badge>
-      );
+      case "pending_ai": return null;
       case "open": return (
         <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/50 text-[10px] px-1.5 py-0.5">
           Em Atendimento
@@ -553,7 +549,18 @@ const InboxPage = () => {
                     {conv.last_message || "Nenhuma mensagem"}
                   </p>
                   <div className="flex items-center justify-between">
-                    {getStatusBadge(conv.status)}
+                    <div className="flex items-center gap-1.5">
+                      {getStatusBadge(conv.status)}
+                      {(isGlobalAIActive || conv.ai_enabled) ? (
+                        <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded-full bg-green-500/10 text-green-500 border border-green-500/30 flex items-center gap-1">
+                          <Bot className="w-2.5 h-2.5" /> IA ativa
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 flex items-center gap-1">
+                          <Bot className="w-2.5 h-2.5" /> IA desativada
+                        </span>
+                      )}
+                    </div>
                     {(conv.unread_count ?? 0) > 0 && (
                       <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-[9px] font-bold shadow-glow">
                         {conv.unread_count}

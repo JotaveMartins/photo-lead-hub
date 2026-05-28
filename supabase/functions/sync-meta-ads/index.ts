@@ -80,7 +80,16 @@ Deno.serve(async (req) => {
     let accounts: { ad_account_id: string; client_id: string | null }[] = [];
     if (body.ad_account_id) {
       const acc = String(body.ad_account_id);
-      accounts = [{ ad_account_id: acc.startsWith("act_") ? acc : `act_${acc}`, client_id: null }];
+      const normalized = acc.startsWith("act_") ? acc : `act_${acc}`;
+      const bare = normalized.replace(/^act_/, "");
+      // Resolve client_id from profiles so the row stays linked to the CRM client
+      const { data: matched } = await supabase
+        .from("profiles")
+        .select("user_id, meta_ad_account_id")
+        .or(`meta_ad_account_id.eq.${normalized},meta_ad_account_id.eq.${bare}`)
+        .limit(1);
+      const client_id = matched && matched.length > 0 ? matched[0].user_id : null;
+      accounts = [{ ad_account_id: normalized, client_id }];
     } else {
       const { data: profiles, error } = await supabase
         .from("profiles")
@@ -154,10 +163,29 @@ Deno.serve(async (req) => {
 
         totalFetched += rows.length;
 
+        // Dedupe by conflict key (date, ad_account_id, campaign_name, adset_name, ad_name)
+        // Meta may return multiple rows for the same ad in a day (different action breakdowns),
+        // and ads with the same display name but different IDs collide on the unique index.
+        const dedupMap = new Map<string, any>();
+        for (const r of rows) {
+          const key = `${r.date}|${r.ad_account_id}|${r.campaign_name}|${r.adset_name}|${r.ad_name}`;
+          const prev = dedupMap.get(key);
+          if (!prev) { dedupMap.set(key, r); continue; }
+          prev.spend += r.spend;
+          prev.impressions += r.impressions;
+          prev.reach += r.reach;
+          prev.clicks += r.clicks;
+          prev.messaging_conversations_started += r.messaging_conversations_started;
+          prev.results += r.results;
+          prev.cost_per_messaging_conversation = prev.messaging_conversations_started > 0 ? prev.spend / prev.messaging_conversations_started : null;
+          prev.cost_per_result = prev.results > 0 ? prev.spend / prev.results : null;
+        }
+        const dedupedRows = Array.from(dedupMap.values());
+
         // Upsert in batches of 50
         let upserted = 0;
-        for (let i = 0; i < rows.length; i += 50) {
-          const batch = rows.slice(i, i + 50);
+        for (let i = 0; i < dedupedRows.length; i += 50) {
+          const batch = dedupedRows.slice(i, i + 50);
           const { error } = await supabase
             .from("meta_daily_ads")
             .upsert(batch, { onConflict: "date,ad_account_id,campaign_name,adset_name,ad_name" });
@@ -165,7 +193,7 @@ Deno.serve(async (req) => {
           upserted += batch.length;
         }
         totalUpserted += upserted;
-        perAccount.push({ account: ad_account_id, fetched: rows.length, upserted });
+        perAccount.push({ account: ad_account_id, fetched: rows.length, deduped: dedupedRows.length, upserted });
       } catch (err: any) {
         perAccount.push({ account: ad_account_id, fetched: 0, upserted: 0, error: err.message });
       }
