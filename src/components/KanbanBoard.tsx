@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { useInteresseOptions } from "@/hooks/useInteresseOptions";
+import SearchSelect from "@/components/SearchSelect";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
