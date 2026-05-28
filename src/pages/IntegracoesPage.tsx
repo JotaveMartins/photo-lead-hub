@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIntegrationSettings, useSaveIntegrationSettings } from "@/hooks/useIntegrationSettings";
+import GoogleCalendarCard from "@/components/integracoes/GoogleCalendarCard";
 
 const MaskedInput = ({
   value,
@@ -135,6 +136,8 @@ const IntegracoesPage = () => {
           </Button>
         </div>
       </form>
+
+      <GoogleCalendarCard />
     </div>
   );
 };
