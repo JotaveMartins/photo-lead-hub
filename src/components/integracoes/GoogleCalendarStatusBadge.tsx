@@ -22,7 +22,7 @@ const GoogleCalendarStatusBadge = () => {
   if (isConnected) {
     return (
       <Link
-        to="/configuracoes/integracoes"
+        to="/integracoes"
         className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 px-2.5 py-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors"
         title={`Sincronizando com ${connection!.google_email}`}
       >
