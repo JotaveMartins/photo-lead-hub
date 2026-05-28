@@ -10,42 +10,45 @@ const MIME_TO_EXT: Record<string, string> = {
   "application/pdf": "pdf",
 };
 
-async function downloadAndStoreMedia(
+function findBase64InPayload(payload: any): string | null {
+  if (!payload) return null;
+  if (typeof payload === "string" && payload.length > 200 && /^[A-Za-z0-9+/=]+$/.test(payload.slice(0, 100))) {
+    return payload;
+  }
+  if (typeof payload !== "object") return null;
+  // Common locations
+  const candidates = [
+    payload.base64,
+    payload.media?.base64,
+    payload.data?.base64,
+    payload.imageMessage?.base64,
+    payload.videoMessage?.base64,
+    payload.audioMessage?.base64,
+    payload.documentMessage?.base64,
+    payload.stickerMessage?.base64,
+    payload.message?.base64,
+    payload.message?.imageMessage?.base64,
+    payload.message?.videoMessage?.base64,
+    payload.message?.audioMessage?.base64,
+    payload.message?.documentMessage?.base64,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.length > 100) return c;
+  }
+  return null;
+}
+
+async function uploadBase64ToStorage(
   supabase: ReturnType<typeof createClient>,
-  instanceName: string,
-  msgKey: any,
-  msgContent: any,
+  rawBase64: string,
   userId: string,
   whatsappMsgId: string,
   mimeType: string | null
 ): Promise<string | null> {
   try {
-    const { data: settingsRow } = await supabase
-      .from("app_settings").select("value").eq("key", "evolution").maybeSingle();
-    const settings: any = settingsRow?.value || {};
-    const baseUrl = (settings.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
-    const apiKey = settings.api_key || Deno.env.get("EVOLUTION_API_KEY");
-    if (!baseUrl || !apiKey) return null;
-
-    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${instanceName}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": apiKey },
-      body: JSON.stringify({ message: { key: msgKey, message: msgContent } })
-    });
-    if (!resp.ok) {
-      console.error("getBase64 failed:", resp.status, await resp.text());
-      return null;
-    }
-    const result = await resp.json();
-    const raw = result?.base64 || result?.data?.base64 || result?.mediaUrl;
-    if (!raw) return null;
-
-    // If Evolution returned a URL instead of base64, just return it
-    if (raw.startsWith("http")) return raw;
-
-    const matches = raw.match(/^data:([^;]+);base64,(.+)$/s);
+    const matches = rawBase64.match(/^data:([^;]+);base64,(.+)$/s);
     const mime = matches?.[1] || mimeType || "application/octet-stream";
-    const b64 = matches?.[2] || raw;
+    const b64 = matches?.[2] || rawBase64;
 
     const binary = atob(b64);
     const bytes = new Uint8Array(binary.length);
@@ -65,7 +68,82 @@ async function downloadAndStoreMedia(
     const { data: urlData } = supabase.storage.from("inbox-media").getPublicUrl(path);
     return urlData?.publicUrl || null;
   } catch (err) {
-    console.error("downloadAndStoreMedia error:", err);
+    console.error("uploadBase64ToStorage error:", err);
+    return null;
+  }
+}
+
+async function downloadAndStoreMedia(
+  supabase: ReturnType<typeof createClient>,
+  instanceName: string,
+  fullPayload: any,
+  msgKey: any,
+  msgContent: any,
+  userId: string,
+  whatsappMsgId: string,
+  mimeType: string | null
+): Promise<string | null> {
+  // 1) Try base64 directly from the webhook payload (when webhookBase64: true)
+  const directB64 =
+    findBase64InPayload(msgContent) ||
+    findBase64InPayload(fullPayload?.data) ||
+    findBase64InPayload(fullPayload);
+  if (directB64) {
+    const url = await uploadBase64ToStorage(supabase, directB64, userId, whatsappMsgId, mimeType);
+    if (url) {
+      console.log("Stored media from direct base64:", url);
+      return url;
+    }
+  }
+
+  // 2) Fall back to Evolution API — try a few request shapes/endpoints
+  try {
+    const { data: settingsRow } = await supabase
+      .from("app_settings").select("value").eq("key", "evolution").maybeSingle();
+    const settings: any = settingsRow?.value || {};
+    const baseUrl = (settings.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+    const apiKey = settings.api_key || Deno.env.get("EVOLUTION_API_KEY");
+    if (!baseUrl || !apiKey) {
+      console.error("Evolution API not configured for media download");
+      return null;
+    }
+
+    const attempts: { endpoint: string; body: any }[] = [
+      // Evolution v2 — official shape
+      { endpoint: `/chat/getBase64FromMediaMessage/${instanceName}`,
+        body: { message: { key: msgKey, message: msgContent }, convertToMp4: false } },
+      // Some versions accept the message flat
+      { endpoint: `/chat/getBase64FromMediaMessage/${instanceName}`,
+        body: { key: msgKey, message: msgContent } },
+    ];
+
+    for (const att of attempts) {
+      const resp = await fetch(`${baseUrl}${att.endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": apiKey },
+        body: JSON.stringify(att.body),
+      });
+      const text = await resp.text();
+      if (!resp.ok) {
+        console.error(`getBase64 attempt failed (${resp.status}):`, text.slice(0, 300));
+        continue;
+      }
+      let result: any;
+      try { result = JSON.parse(text); } catch { continue; }
+      const raw = findBase64InPayload(result);
+      if (!raw) {
+        console.error("getBase64 returned no base64. Response keys:", Object.keys(result || {}).join(","));
+        continue;
+      }
+      const url = await uploadBase64ToStorage(supabase, raw, userId, whatsappMsgId, mimeType);
+      if (url) {
+        console.log("Stored media from API base64:", url);
+        return url;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error("downloadAndStoreMedia API path error:", err);
     return null;
   }
 }
@@ -213,13 +291,20 @@ Deno.serve(async (req) => {
           .eq("id", conversation.id);
       }
 
-      // 3. Download inbound media and store permanently
-      let resolvedMediaUrl = mediaUrl;
-      if (type !== "text" && !key.fromMe && mediaUrl) {
+      // 3. Download inbound media and store permanently in Supabase Storage
+      // (the WhatsApp CDN URL is encrypted and short-lived — useless for display)
+      let resolvedMediaUrl: string | null = null;
+      if (type !== "text" && !key.fromMe) {
+        console.log(`Processing inbound ${type} media for msg ${key.id}, mime=${mediaMimeType}`);
         const stored = await downloadAndStoreMedia(
-          supabase, instanceName, key, message, userId, key.id || crypto.randomUUID(), mediaMimeType
+          supabase, instanceName, payload, key, message, userId, key.id || crypto.randomUUID(), mediaMimeType
         );
-        if (stored) resolvedMediaUrl = stored;
+        if (!stored) {
+          console.error(`Failed to store ${type} media for msg ${key.id} — saving with null URL`);
+        }
+        resolvedMediaUrl = stored; // null if download failed → MediaBubble shows "indisponível"
+      } else {
+        resolvedMediaUrl = mediaUrl;
       }
 
       // 4. Save message to inbox_messages

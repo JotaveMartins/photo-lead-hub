@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
             enabled: true,
             url: webhookUrl,
             webhookByEvents: false,
-            webhookBase64: false,
+            webhookBase64: true,
             events,
           }
         })
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": apiKey },
         body: JSON.stringify({
-          webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: false, events }
+          webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events }
         })
       });
       let body = await whResp.text();
