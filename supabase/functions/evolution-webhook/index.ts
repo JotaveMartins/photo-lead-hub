@@ -3,6 +3,73 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const normalizeWhatsApp = (value: string | null | undefined) => String(value || "").replace(/\D/g, "");
 
+const MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+  "video/mp4": "mp4", "video/ogg": "ogv", "video/webm": "webm",
+  "audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/webm": "weba",
+  "application/pdf": "pdf",
+};
+
+async function downloadAndStoreMedia(
+  supabase: ReturnType<typeof createClient>,
+  instanceName: string,
+  msgKey: any,
+  msgContent: any,
+  userId: string,
+  whatsappMsgId: string,
+  mimeType: string | null
+): Promise<string | null> {
+  try {
+    const { data: settingsRow } = await supabase
+      .from("app_settings").select("value").eq("key", "evolution").maybeSingle();
+    const settings: any = settingsRow?.value || {};
+    const baseUrl = (settings.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+    const apiKey = settings.api_key || Deno.env.get("EVOLUTION_API_KEY");
+    if (!baseUrl || !apiKey) return null;
+
+    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${instanceName}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": apiKey },
+      body: JSON.stringify({ message: { key: msgKey, message: msgContent } })
+    });
+    if (!resp.ok) {
+      console.error("getBase64 failed:", resp.status, await resp.text());
+      return null;
+    }
+    const result = await resp.json();
+    const raw = result?.base64 || result?.data?.base64 || result?.mediaUrl;
+    if (!raw) return null;
+
+    // If Evolution returned a URL instead of base64, just return it
+    if (raw.startsWith("http")) return raw;
+
+    const matches = raw.match(/^data:([^;]+);base64,(.+)$/s);
+    const mime = matches?.[1] || mimeType || "application/octet-stream";
+    const b64 = matches?.[2] || raw;
+
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const ext = MIME_TO_EXT[mime] || "bin";
+    const path = `${userId}/${whatsappMsgId}.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("inbox-media")
+      .upload(path, bytes, { contentType: mime, upsert: true });
+    if (uploadErr) {
+      console.error("Storage upload error:", uploadErr);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage.from("inbox-media").getPublicUrl(path);
+    return urlData?.publicUrl || null;
+  } catch (err) {
+    console.error("downloadAndStoreMedia error:", err);
+    return null;
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -146,7 +213,16 @@ Deno.serve(async (req) => {
           .eq("id", conversation.id);
       }
 
-      // 3. Save message to inbox_messages
+      // 3. Download inbound media and store permanently
+      let resolvedMediaUrl = mediaUrl;
+      if (type !== "text" && !key.fromMe && mediaUrl) {
+        const stored = await downloadAndStoreMedia(
+          supabase, instanceName, key, message, userId, key.id || crypto.randomUUID(), mediaMimeType
+        );
+        if (stored) resolvedMediaUrl = stored;
+      }
+
+      // 4. Save message to inbox_messages
       const { data: savedMsg, error: msgError } = await supabase
         .from("inbox_messages")
         .insert({
@@ -157,7 +233,7 @@ Deno.serve(async (req) => {
           whatsapp_message_id: key.id,
           read: key.fromMe,
           type,
-          media_url: mediaUrl,
+          media_url: resolvedMediaUrl,
           media_mime_type: mediaMimeType,
           media_filename: mediaFilename,
         })
@@ -165,7 +241,7 @@ Deno.serve(async (req) => {
         .single();
       if (msgError) throw msgError;
 
-      // 4. Trigger logic for new inbound messages
+      // 5. Trigger logic for new inbound messages
       if (!key.fromMe && !isGroup) {
         // A. Check for triggers → auto-create lead (Novo Lead)
         const { data: triggers } = await supabase
