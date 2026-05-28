@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
+import { syncEventToGoogleCalendar } from "@/hooks/useGoogleCalendar";
 
 export const useEvents = () => {
   const effectiveUserId = useEffectiveUserId();
@@ -83,9 +84,10 @@ export const useCreateEvent = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Evento criado com sucesso!");
+      if (data?.id) void syncEventToGoogleCalendar("create", data.id);
     },
     onError: (error: Error) => {
       toast.error("Erro ao criar evento: " + error.message);
@@ -117,9 +119,10 @@ export const useUpdateEvent = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Evento atualizado com sucesso!");
+      if (data?.id) void syncEventToGoogleCalendar("update", data.id);
     },
     onError: (error: Error) => {
       toast.error("Erro ao atualizar evento: " + error.message);
@@ -132,6 +135,8 @@ export const useDeleteEvent = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Sync delete BEFORE soft-deleting so the sync function can still read the event.
+      await syncEventToGoogleCalendar("delete", id);
       const { error } = await supabase
         .from("events")
         .update({ deleted_at: new Date().toISOString() } as any)
