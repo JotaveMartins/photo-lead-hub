@@ -80,7 +80,16 @@ Deno.serve(async (req) => {
     let accounts: { ad_account_id: string; client_id: string | null }[] = [];
     if (body.ad_account_id) {
       const acc = String(body.ad_account_id);
-      accounts = [{ ad_account_id: acc.startsWith("act_") ? acc : `act_${acc}`, client_id: null }];
+      const normalized = acc.startsWith("act_") ? acc : `act_${acc}`;
+      const bare = normalized.replace(/^act_/, "");
+      // Resolve client_id from profiles so the row stays linked to the CRM client
+      const { data: matched } = await supabase
+        .from("profiles")
+        .select("user_id, meta_ad_account_id")
+        .or(`meta_ad_account_id.eq.${normalized},meta_ad_account_id.eq.${bare}`)
+        .limit(1);
+      const client_id = matched && matched.length > 0 ? matched[0].user_id : null;
+      accounts = [{ ad_account_id: normalized, client_id }];
     } else {
       const { data: profiles, error } = await supabase
         .from("profiles")
