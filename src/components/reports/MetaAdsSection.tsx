@@ -14,6 +14,7 @@ interface MetaAdsSectionProps {
   clienteUserId?: string;
   leadsCriados: number;
   ganhos: number;
+  ganhosTrafegoPago?: number;
 }
 
 function Hint({ text }: { text: string }) {
@@ -33,7 +34,7 @@ function Hint({ text }: { text: string }) {
   );
 }
 
-export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, ganhos }: MetaAdsSectionProps) {
+export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, ganhos, ganhosTrafegoPago }: MetaAdsSectionProps) {
   // to is exclusive end — convert to inclusive for date column
   const fromStr = format(from, "yyyy-MM-dd");
   const toIncl = new Date(to.getTime() - 86400000);
@@ -56,7 +57,8 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
   const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : null;
   const aproveitamento = totals.conversas > 0 ? (leadsCriados / totals.conversas) * 100 : null;
   const custoPorLead = leadsCriados > 0 ? totals.spend / leadsCriados : null;
-  const custoPorVenda = ganhos > 0 ? totals.spend / ganhos : null;
+  const vendasParaCAC = ganhosTrafegoPago ?? ganhos;
+  const custoPorVenda = vendasParaCAC > 0 ? totals.spend / vendasParaCAC : null;
 
   const aproveitColor =
     aproveitamento == null
@@ -93,7 +95,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
 
   const integrCards = [
     { label: "Custo por lead", value: custoPorLead == null ? "—" : fmtBRL(custoPorLead), hint: "Investimento dividido pelo número de leads cadastrados no CRM." },
-    { label: "Custo por venda", value: custoPorVenda == null ? "—" : fmtBRL(custoPorVenda), hint: "Investimento dividido pelo número de vendas fechadas (ganhos)." },
+    { label: "Custo por venda", value: custoPorVenda == null ? "—" : fmtBRL(custoPorVenda), hint: "Investimento dividido pelo número de vendas fechadas com origem em Tráfego Pago." },
     { label: "Aproveitamento do CRM", value: fmtPct(aproveitamento), hint: "Percentual das conversas geradas pelos anúncios que viraram leads no CRM." },
   ];
 
