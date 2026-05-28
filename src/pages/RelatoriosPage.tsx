@@ -11,6 +11,7 @@ import ConversionDrillDown, { type ConversionItem } from "@/components/reports/C
 import LossSection from "@/components/reports/LossSection";
 import TasksSection from "@/components/reports/TasksSection";
 import MetaAdsSection from "@/components/reports/MetaAdsSection";
+import RevenueCompositionSection from "@/components/reports/RevenueCompositionSection";
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -375,6 +376,10 @@ const RelatoriosPage = () => {
       </div>
 
       {/* Revenue */}
+      <div className="mb-6">
+        <RevenueCompositionSection ganhos={leadSets.ganhos} />
+      </div>
+
       <div className="mb-6">
         <RevenueSection total={kpis.receita} ticketMedio={kpis.ticket} dailyData={revenueDailyData} />
       </div>
