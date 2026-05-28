@@ -12,6 +12,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import TimePickerField from "@/components/TimePickerField";
 import { Label } from "@/components/ui/label";
 import GenericTrashBin from "@/components/GenericTrashBin";
+import GoogleCalendarStatusBadge from "@/components/integracoes/GoogleCalendarStatusBadge";
 import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useDeletedEvents, useRestoreEvent, usePermanentDeleteEvent } from "@/hooks/useEvents";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
@@ -213,6 +214,7 @@ const AgendaPage = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <GoogleCalendarStatusBadge />
           <GenericTrashBin
             items={trashItems}
             onRestore={(id) => restoreEvent.mutate(id)}
