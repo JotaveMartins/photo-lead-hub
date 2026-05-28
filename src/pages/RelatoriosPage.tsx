@@ -372,6 +372,7 @@ const RelatoriosPage = () => {
           clienteUserId={clienteUserId}
           leadsCriados={kpis.created}
           ganhos={kpis.ganhos}
+          ganhosTrafegoPago={leadSets.ganhos.filter((l: any) => (l.origem || "").toLowerCase() === "tráfego pago" || (l.origem || "").toLowerCase() === "trafego pago").length}
         />
       </div>
 
