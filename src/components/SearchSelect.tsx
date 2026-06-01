@@ -41,7 +41,7 @@ const SearchSelect = ({
   // Find the nearest scroll-locking container (Radix Dialog/Sheet/Drawer content) so
   // react-remove-scroll allows wheel events on our dropdown. Falls back to body.
   const getPortalTarget = (): HTMLElement => {
-    if (typeof document === "undefined") return document.body;
+    if (typeof document === "undefined") return null as any;
     const el = triggerRef.current?.closest(
       '[role="dialog"], [data-radix-dialog-content], [data-radix-popper-content-wrapper], [data-vaul-drawer], [data-state][data-side]'
     ) as HTMLElement | null;
