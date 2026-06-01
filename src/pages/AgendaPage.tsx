@@ -28,6 +28,84 @@ import { cn, normalizeText } from "@/lib/utils";
 type FilterKey = "todos" | "proximos" | "passados";
 type SortDir = "asc" | "desc";
 
+// Inline service selector that matches the NovaCobrancaModal pattern
+const ServiceInlineSelect = ({
+  services,
+  selectedId,
+  onSelect,
+  onNewService,
+}: {
+  services: { id: string; nome: string; ativo: boolean }[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onNewService: () => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = services.find((s) => s.id === selectedId);
+  const filtered = services.filter((s) => s.ativo && (!search || s.nome.toLowerCase().includes(search.toLowerCase())));
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${selected ? "text-foreground" : "text-muted-foreground"}`}
+      >
+        {selected ? selected.nome : "Selecione um serviço"}
+        <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg">
+          <div className="p-2">
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar serviço..."
+              className="w-full rounded-md border border-input bg-muted px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length > 0 ? (
+              filtered.map((sv) => (
+                <button
+                  type="button"
+                  key={sv.id}
+                  onClick={() => { onSelect(sv.id); setOpen(false); setSearch(""); }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                >
+                  <span className="text-foreground">{sv.nome}</span>
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-sm text-muted-foreground text-center">Nenhum serviço encontrado</p>
+            )}
+          </div>
+          <div className="border-t border-border p-1.5">
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onNewService(); }}
+              className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded-md hover:bg-muted text-foreground transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo serviço
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AgendaPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
