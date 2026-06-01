@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DatePickerField from "@/components/DatePickerField";
+import SearchSelect from "@/components/SearchSelect";
+import { parseLocalDate } from "@/lib/utils";
 import { useCreateCobranca, useCreateCobrancasBatch } from "@/hooks/useCobrancas";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useClientes } from "@/hooks/useClientes";
@@ -19,6 +21,23 @@ import { Plus, Zap, Copy, ExternalLink } from "lucide-react";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
+
+const PagoToggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+  <div
+    onClick={() => onChange(!checked)}
+    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${checked ? "border-green-500/40 bg-green-500/5" : "border-border bg-muted/30 hover:bg-muted/60"}`}
+  >
+    <div className="flex-1">
+      <p className="text-sm font-medium text-foreground">Já foi pago</p>
+      <p className="text-xs text-muted-foreground">
+        {checked ? "Será criada como paga (data de pagamento = vencimento)" : "A data de vencimento já passou. Marque se já foi pago."}
+      </p>
+    </div>
+    <div className={`w-10 h-5 rounded-full transition-colors relative ${checked ? "bg-green-500" : "bg-muted"}`}>
+      <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${checked ? "left-5" : "left-0.5"}`} />
+    </div>
+  </div>
+);
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "pix", label: "Pix" },
@@ -61,6 +80,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const [vencimentoEntrada, setVencimentoEntrada] = useState("");
   const [selectedItemName, setSelectedItemName] = useState("");
   const [enviarAsaas, setEnviarAsaas] = useState(false);
+  const [jaPago, setJaPago] = useState(false);
+  const [jaPagoEntrada, setJaPagoEntrada] = useState(false);
 
   // Sync props
   useEffect(() => {
@@ -85,6 +106,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     setVencimentoEntrada("");
     setSelectedItemName("");
     setEnviarAsaas(false);
+    setJaPago(false);
+    setJaPagoEntrada(false);
   };
 
   const syncAsaas = async (ids: string[]) => {
@@ -148,6 +171,18 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const nParcelas = parseInt(numParcelas) || 2;
   const valorParcela = nParcelas > 0 ? Math.round((restante / nParcelas) * 100) / 100 : 0;
 
+  const isPastDate = (d: string) => {
+    if (!d) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return parseLocalDate(d) < today;
+  };
+  const vencimentoPast = isPastDate(vencimento);
+  const vencimentoEntradaPast = isPastDate(vencimentoEntrada);
+
+  useEffect(() => { if (!vencimentoPast) setJaPago(false); }, [vencimentoPast]);
+  useEffect(() => { if (!vencimentoEntradaPast) setJaPagoEntrada(false); }, [vencimentoEntradaPast]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!effectiveUserId) return;
@@ -169,6 +204,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           forma_pagamento: formaPagamento,
           vencimento,
           cliente_id: clienteId || null,
+          ...(jaPago && vencimentoPast ? { status: "paga" as const, data_pagamento: vencimento } : {}),
         } as any);
         toast.success("Cobrança criada com sucesso!");
         if (result?.id) await syncAsaas([result.id]);
@@ -218,6 +254,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           forma_pagamento: formaPagamentoEntrada,
           vencimento: vencimentoEntrada,
           cliente_id: clienteId || null,
+          ...(jaPagoEntrada && vencimentoEntradaPast ? { status: "paga" as const, data_pagamento: vencimentoEntrada } : {}),
         } as any);
 
         // Parcelas
@@ -346,17 +383,18 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Pagamento</Label>
-                    <select
+                    <SearchSelect
                       value={formaPagamentoEntrada}
-                      onChange={(e) => setFormaPagamentoEntrada(e.target.value as PaymentMethod)}
-                      className="flex h-9 w-full rounded-md border border-input bg-muted px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      {PAYMENT_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
+                      onChange={(v) => setFormaPagamentoEntrada((v || "pix") as PaymentMethod)}
+                      placeholder="Selecione"
+                      allowEmpty={false}
+                      options={PAYMENT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                    />
                   </div>
                 </div>
+                {vencimentoEntradaPast && (
+                  <PagoToggle checked={jaPagoEntrada} onChange={setJaPagoEntrada} />
+                )}
               </div>
 
               <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-4">
@@ -380,15 +418,13 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Pagamento</Label>
-                    <select
+                    <SearchSelect
                       value={formaPagamento}
-                      onChange={(e) => setFormaPagamento(e.target.value as PaymentMethod)}
-                      className="flex h-9 w-full rounded-md border border-input bg-muted px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      {PAYMENT_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
+                      onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
+                      placeholder="Selecione"
+                      allowEmpty={false}
+                      options={PAYMENT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                    />
                   </div>
                 </div>
               </div>
@@ -434,15 +470,13 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
               </div>
               <div className="space-y-2">
                 <Label>Pagamento</Label>
-                <select
+                <SearchSelect
                   value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value as PaymentMethod)}
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  {PAYMENT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
+                  placeholder="Selecione"
+                  allowEmpty={false}
+                  options={PAYMENT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                />
               </div>
             </div>
           )}
@@ -456,17 +490,19 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
               </div>
               <div className="space-y-2">
                 <Label>Pagamento</Label>
-                <select
+                <SearchSelect
                   value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value as PaymentMethod)}
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  {PAYMENT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
+                  placeholder="Selecione"
+                  allowEmpty={false}
+                  options={PAYMENT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                />
               </div>
             </div>
+          )}
+
+          {type === "unica" && vencimentoPast && (
+            <PagoToggle checked={jaPago} onChange={setJaPago} />
           )}
 
           {hasAsaas && (
