@@ -57,6 +57,7 @@ export const useCreateEvent = () => {
       titulo: string;
       tipo?: string;
       data_evento: string;
+      data_fim?: string | null;
       descricao?: string | null;
       local?: string | null;
       cliente_id?: string | null;
@@ -71,6 +72,7 @@ export const useCreateEvent = () => {
           titulo: event.titulo,
           tipo: event.tipo || "Evento",
           data_evento: event.data_evento,
+          data_fim: event.data_fim ?? null,
           descricao: event.descricao || null,
           local: event.local || null,
           cliente_id: event.cliente_id || null,
@@ -104,6 +106,7 @@ export const useUpdateEvent = () => {
       titulo?: string;
       tipo?: string;
       data_evento?: string;
+      data_fim?: string | null;
       descricao?: string | null;
       local?: string | null;
       cliente_id?: string | null;
