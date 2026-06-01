@@ -188,7 +188,7 @@ const SearchSelect = ({
               )}
             </div>
           </div>,
-          document.body
+          getPortalTarget()
         )}
       </div>
     </div>
