@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -33,10 +34,47 @@ const SearchSelect = ({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; width: number; openUp: boolean } | null>(null);
+
+  const updatePosition = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const dropdownHeight = 320; // approx max height (search + list)
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+    setPos({
+      left: rect.left,
+      top: openUp ? rect.top - 4 : rect.bottom + 4,
+      width: rect.width,
+      openUp,
+    });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const handler = () => updatePosition();
+    window.addEventListener("scroll", handler, true);
+    window.addEventListener("resize", handler);
+    return () => {
+      window.removeEventListener("scroll", handler, true);
+      window.removeEventListener("resize", handler);
+    };
+  }, [open]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        ref.current && !ref.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setOpen(false);
+        setSearch("");
+      } else if (ref.current && !ref.current.contains(target) && !dropdownRef.current) {
         setOpen(false);
         setSearch("");
       }
@@ -61,6 +99,7 @@ const SearchSelect = ({
       <div ref={ref} className="relative">
         {/* Trigger */}
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => { setOpen(!open); setSearch(""); }}
           className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -72,8 +111,19 @@ const SearchSelect = ({
         </button>
 
         {/* Dropdown */}
-        {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-card shadow-md">
+        {open && pos && createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: "fixed",
+              left: pos.left,
+              top: pos.openUp ? undefined : pos.top,
+              bottom: pos.openUp ? window.innerHeight - pos.top : undefined,
+              width: pos.width,
+              zIndex: 9999,
+            }}
+            className="rounded-md border border-border bg-card shadow-md"
+          >
             {/* Search input */}
             <div className="p-2 border-b border-border">
               <input
@@ -126,7 +176,8 @@ const SearchSelect = ({
                 <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum resultado</p>
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
