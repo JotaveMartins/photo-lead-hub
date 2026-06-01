@@ -680,7 +680,7 @@ const AgendaPage = () => {
 
       {/* Event Modal (Create/Edit) */}
       <Dialog open={isModalOpen} onOpenChange={(v) => { if (!v) resetForm(); setIsModalOpen(v); }}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingEvent ? "Editar Evento" : "Novo Evento"}</DialogTitle>
           </DialogHeader>
