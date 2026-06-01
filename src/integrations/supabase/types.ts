@@ -469,6 +469,7 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           data_evento: string
+          data_fim: string | null
           deleted_at: string | null
           descricao: string | null
           google_event_id: string | null
@@ -485,6 +486,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data_evento: string
+          data_fim?: string | null
           deleted_at?: string | null
           descricao?: string | null
           google_event_id?: string | null
@@ -501,6 +503,7 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           data_evento?: string
+          data_fim?: string | null
           deleted_at?: string | null
           descricao?: string | null
           google_event_id?: string | null
