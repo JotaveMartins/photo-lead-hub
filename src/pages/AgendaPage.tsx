@@ -114,6 +114,7 @@ const AgendaPage = () => {
   const [selectedClienteId, setSelectedClienteId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [hora, setHora] = useState("10:00");
+  const [horaFim, setHoraFim] = useState("11:00");
   const [modalDate, setModalDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const [filter, setFilter] = useState<FilterKey>("proximos");
@@ -182,6 +183,12 @@ const AgendaPage = () => {
       const eventDate = new Date(event.data_evento);
       setModalDate(eventDate);
       setHora(format(eventDate, "HH:mm"));
+      if ((event as any).data_fim) {
+        setHoraFim(format(new Date((event as any).data_fim), "HH:mm"));
+      } else {
+        const end = new Date(eventDate.getTime() + 60 * 60 * 1000);
+        setHoraFim(format(end, "HH:mm"));
+      }
       setResponsavelProprio(event.responsavel_proprio !== false);
     } else {
       setEditingEvent(null);
@@ -213,9 +220,20 @@ const AgendaPage = () => {
     const eventDate = new Date(eventDateBase);
     eventDate.setHours(hours, minutes, 0, 0);
 
+    const [endHours, endMinutes] = (horaFim || "").split(":").map(Number);
+    let endDate: Date | null = null;
+    if (!isNaN(endHours) && !isNaN(endMinutes)) {
+      endDate = new Date(eventDateBase);
+      endDate.setHours(endHours, endMinutes, 0, 0);
+      if (endDate.getTime() <= eventDate.getTime()) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+    }
+
     const payload = {
       titulo: titulo.trim(),
       data_evento: eventDate.toISOString(),
+      data_fim: endDate ? endDate.toISOString() : null,
       local: local.trim() || null,
       cliente_id: selectedClienteId || null,
       service_id: selectedServiceId || null,
@@ -247,6 +265,8 @@ const AgendaPage = () => {
     setEditingEvent(null);
     setResponsavelProprio(true);
     setSelectedTeamIds([]);
+    setHora("10:00");
+    setHoraFim("11:00");
   };
 
   const handleServiceChange = (serviceId: string) => {
@@ -692,7 +712,7 @@ const AgendaPage = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Data *</Label>
                 <Popover>
@@ -721,8 +741,12 @@ const AgendaPage = () => {
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label>Hora</Label>
+                <Label>Início</Label>
                 <TimePickerField value={hora} onChange={setHora} />
+              </div>
+              <div className="space-y-2">
+                <Label>Término</Label>
+                <TimePickerField value={horaFim} onChange={setHoraFim} />
               </div>
             </div>
 

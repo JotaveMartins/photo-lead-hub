@@ -41,7 +41,9 @@ async function refreshTokenIfNeeded(admin: ReturnType<typeof createClient>, conn
 
 function buildEventResource(event: any) {
   const start = new Date(event.data_evento);
-  const end = new Date(start.getTime() + 60 * 60 * 1000); // default 1h
+  const end = event.data_fim
+    ? new Date(event.data_fim)
+    : new Date(start.getTime() + 60 * 60 * 1000); // default 1h
   const summary = event.titulo || 'Evento';
   const description = [
     event.descricao || '',
