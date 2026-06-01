@@ -9,7 +9,6 @@ import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -48,8 +47,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [dataContato, setDataContato] = useState("");
   const [dataProposta, setDataProposta] = useState("");
   const [valor, setValor] = useState("");
-  const [showMore, setShowMore] = useState(false);
-  const [dataEntrada, setDataEntrada] = useState("");
 
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
@@ -69,7 +66,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setDataContato(toDateOnly((lead as any).data_contato));
       setDataProposta(toDateOnly(lead.data_proposta));
       setValor(lead.valor?.toString() || "");
-      setDataEntrada(toDateOnly(lead.data_entrada_novo_lead as any));
     } else {
       resetForm();
     }
@@ -81,7 +77,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     setDataEvento(""); setDataContato(todayStr); setDataProposta("");
-    setValor(""); setDataEntrada(todayStr);
+    setValor("");
   };
 
     const isPending = createLead.isPending || updateLead.isPending;
@@ -116,11 +112,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
         data_proposta: dataProposta || null,
         valor: valor ? parseFloat(valor) : null,
       };
-
-      // Only allow setting "Entrou em" on creation; never overwrite on edit
-      if (!lead && dataEntrada) {
-        leadData.data_entrada_novo_lead = new Date(`${dataEntrada}T12:00:00`).toISOString();
-      }
 
       if (lead) {
         await updateLead.mutateAsync({ id: lead.id, ...leadData });
