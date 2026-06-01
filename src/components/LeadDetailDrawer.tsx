@@ -352,12 +352,12 @@ const EditableSystemField = ({
       <div className="space-y-0.5">
         <p className="text-[11px] text-muted-foreground">{label}</p>
         {editing ? (
-          <div className={isTimestamp ? "grid grid-cols-[1fr_auto] gap-1" : ""}>
-            <DatePickerField value={draftDate} onChange={setDraftDate} className="h-8 text-xs" />
+          <div className={isTimestamp ? "flex flex-col gap-1" : ""}>
+            <DatePickerField value={draftDate} onChange={setDraftDate} className="h-8 text-xs w-full" />
             {isTimestamp && (
-              <TimePickerField value={draftTime} onChange={setDraftTime} className="h-8 text-xs w-24" />
+              <TimePickerField value={draftTime} onChange={setDraftTime} className="h-8 text-xs w-full" />
             )}
-            <div className={isTimestamp ? "col-span-2 flex gap-1 justify-end" : "flex gap-1 justify-end"}>
+            <div className="flex gap-1 justify-end">
               <button type="button" onClick={() => setEditing(false)} className="text-[10px] text-muted-foreground hover:text-foreground px-1.5">Cancelar</button>
               <button type="button" onClick={commit} className="text-[10px] text-primary hover:underline px-1.5">Salvar</button>
             </div>
@@ -734,7 +734,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
         <div className="flex flex-1 flex-col sm:flex-row min-h-0 overflow-hidden">
           {/* Left: Details - all inline editable */}
-          <div className="sm:w-[300px] flex-shrink-0 border-r border-border p-4 space-y-4 overflow-y-auto">
+          <div className="sm:w-[340px] flex-shrink-0 border-r border-border p-4 space-y-4 overflow-y-auto overflow-x-hidden">
             <h3 className="text-sm font-semibold text-foreground">Detalhes</h3>
 
             <InlineField label="WhatsApp" icon={<Phone className="w-3.5 h-3.5" />}
