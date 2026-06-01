@@ -36,12 +36,18 @@ const SearchSelect = ({
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number; width: number; openUp: boolean } | null>(null);
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    openUp: boolean;
+    strategy: "fixed" | "absolute";
+  } | null>(null);
 
   // Find the nearest scroll-locking container (Radix Dialog/Sheet/Drawer content) so
   // react-remove-scroll allows wheel events on our dropdown. Falls back to body.
-  const getPortalTarget = (): HTMLElement => {
-    if (typeof document === "undefined") return null as any;
+  const getPortalTarget = (): HTMLElement | null => {
+    if (typeof document === "undefined") return null;
     const el = triggerRef.current?.closest(
       '[role="dialog"], [data-radix-dialog-content], [data-radix-popper-content-wrapper], [data-vaul-drawer], [data-state][data-side]'
     ) as HTMLElement | null;
@@ -50,16 +56,28 @@ const SearchSelect = ({
 
   const updatePosition = () => {
     if (!triggerRef.current) return;
+
+    const portalTarget = getPortalTarget();
+    if (!portalTarget) return;
+
     const rect = triggerRef.current.getBoundingClientRect();
     const dropdownHeight = 320; // approx max height (search + list)
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
+    const isBodyTarget = portalTarget === document.body;
+    const targetRect = isBodyTarget
+      ? { top: 0, left: 0, bottom: window.innerHeight }
+      : portalTarget.getBoundingClientRect();
+    const spaceBelow = targetRect.bottom - rect.bottom;
+    const spaceAbove = rect.top - targetRect.top;
     const openUp = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
     setPos({
-      left: rect.left,
-      top: openUp ? rect.top - 4 : rect.bottom + 4,
+      left: isBodyTarget ? rect.left : rect.left - targetRect.left + portalTarget.scrollLeft,
+      top: openUp
+        ? rect.top - targetRect.top + portalTarget.scrollTop - 4
+        : rect.bottom - targetRect.top + portalTarget.scrollTop + 4,
       width: rect.width,
       openUp,
+      strategy: isBodyTarget ? "fixed" : "absolute",
     });
   };
 
@@ -125,13 +143,13 @@ const SearchSelect = ({
           <div
             ref={dropdownRef}
             style={{
-              position: "fixed",
+              position: pos.strategy,
               left: pos.left,
-              top: pos.openUp ? undefined : pos.top,
-              bottom: pos.openUp ? window.innerHeight - pos.top : undefined,
+              top: pos.top,
               width: pos.width,
               zIndex: 9999,
               pointerEvents: "auto",
+              transform: pos.openUp ? "translateY(calc(-100% - 4px))" : undefined,
             }}
             className="rounded-md border border-border bg-card shadow-md"
           >
@@ -188,7 +206,7 @@ const SearchSelect = ({
               )}
             </div>
           </div>,
-          getPortalTarget()
+          getPortalTarget() ?? document.body
         )}
       </div>
     </div>
