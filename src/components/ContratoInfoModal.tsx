@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import DatePickerField from "@/components/DatePickerField";
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, User, Calendar, MapPin, DollarSign } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
