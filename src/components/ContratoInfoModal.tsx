@@ -169,11 +169,10 @@ const ContratoInfoModal = ({ open, lead, onConfirm, onCancel }: ContratoInfoModa
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Data do evento</Label>
-                <Input
-                  type="date"
+                <DatePickerField
                   value={form.data_evento}
-                  onChange={(e) => set("data_evento", e.target.value)}
-                  className="bg-muted border-border h-8 text-sm"
+                  onChange={(v) => set("data_evento", v)}
+                  className="h-8 text-sm"
                 />
               </div>
               <div className="space-y-1">
