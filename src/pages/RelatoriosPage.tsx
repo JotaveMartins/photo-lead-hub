@@ -74,7 +74,7 @@ const RelatoriosPage = () => {
 
   // === Filtered lead sets (reusable for drill-down) ===
   const leadSets = useMemo(() => ({
-    created: leads.filter((l) => inRange(l.created_at)),
+    created: leads.filter((l) => inRange((l as any).data_contato ?? l.created_at)),
     contato: leads.filter((l) => inRange(l.data_entrada_contato_iniciado)),
     propostas: leads.filter((l) => inRange(l.data_entrada_proposta_enviada)),
     contratos: leads.filter((l) => inRange(l.data_entrada_contrato_enviado)),
@@ -111,7 +111,7 @@ const RelatoriosPage = () => {
 
   const handleFunnelClick = (label: string) => {
     const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
-      "Leads": { leads: leadSets.created, dateField: "created_at", dateLabel: "Criado em" },
+      "Leads": { leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato" },
       "Contato Iniciado": { leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
       "Proposta": { leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
       "Contrato Enviado": { leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
@@ -123,7 +123,7 @@ const RelatoriosPage = () => {
 
   const handleKpiClick = (key: string) => {
     const map: Record<string, { title: string; leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
-      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "created_at", dateLabel: "Criado em" },
+      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato" },
       "Contato Iniciado": { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
       "Propostas": { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
       "Contratos Enviados": { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
@@ -191,7 +191,7 @@ const RelatoriosPage = () => {
       // arrival in the pipeline. The trigger sometimes sets data_entrada_novo_lead
       // when status is moved BACK to "Novo Lead", which would otherwise mask the
       // real start date.
-      const candidates = [l.created_at, l.data_entrada_novo_lead].filter(Boolean) as string[];
+      const candidates = [(l as any).data_contato, l.data_entrada_novo_lead, l.created_at].filter(Boolean) as string[];
       const startTs = candidates.length
         ? candidates.reduce((a, b) => (new Date(a).getTime() < new Date(b).getTime() ? a : b))
         : null;
