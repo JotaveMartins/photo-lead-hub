@@ -53,6 +53,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [valor, setValor] = useState("");
   const [motivoPerda, setMotivoPerda] = useState("");
   const [showMore, setShowMore] = useState(false);
+  const [dataEntrada, setDataEntrada] = useState("");
 
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
@@ -75,6 +76,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setFollowUp2(toDateOnly(lead.follow_up_2));
       setValor(lead.valor?.toString() || "");
       setMotivoPerda(lead.motivo_perda || "");
+      setDataEntrada(toDateOnly(lead.data_entrada_novo_lead as any));
     } else {
       resetForm();
     }
@@ -88,6 +90,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
     setDataEvento(""); setDataContato(todayStr); setDataProposta("");
     setFollowUp1(""); setFollowUp2("");
     setValor(""); setMotivoPerda("");
+    setDataEntrada(todayStr);
   };
 
     const isPending = createLead.isPending || updateLead.isPending;
@@ -125,6 +128,11 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
         valor: valor ? parseFloat(valor) : null,
         motivo_perda: motivoPerda || null,
       };
+
+      // Only allow setting "Entrou em" on creation; never overwrite on edit
+      if (!lead && dataEntrada) {
+        leadData.data_entrada_novo_lead = new Date(`${dataEntrada}T12:00:00`).toISOString();
+      }
 
       if (lead) {
         await updateLead.mutateAsync({ id: lead.id, ...leadData });
@@ -253,6 +261,19 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
                     <Label>Follow-up 2</Label>
                     <DatePickerField value={followUp2} onChange={setFollowUp2} placeholder="Selecione" />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Entrou em {lead && <span className="text-xs text-muted-foreground">(não editável)</span>}</Label>
+                  {lead ? (
+                    <Input
+                      value={dataEntrada ? dataEntrada.split("-").reverse().join("/") : "—"}
+                      readOnly
+                      disabled
+                      className="bg-muted border-border opacity-70 cursor-not-allowed"
+                    />
+                  ) : (
+                    <DatePickerField value={dataEntrada} onChange={setDataEntrada} placeholder="Selecione" />
+                  )}
                 </div>
                 {status !== "Fechado Perdido" && (
                   <div className="space-y-2">
