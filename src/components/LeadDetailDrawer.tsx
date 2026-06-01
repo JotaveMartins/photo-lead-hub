@@ -297,13 +297,8 @@ const EditableSystemField = ({
 }) => {
   const [showWarning, setShowWarning] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
-
-
-
+  const [draftDate, setDraftDate] = useState("");
+  const [draftTime, setDraftTime] = useState("");
 
   const displayValue = value
     ? isTimestamp
@@ -311,14 +306,25 @@ const EditableSystemField = ({
       : parseLocalDate(value).toLocaleDateString("pt-BR")
     : "—";
 
-  const inputValue = value
-    ? isTimestamp
-      ? new Date(value).toISOString().slice(0, 16)
-      : value
-    : "";
-
   const handleClick = () => {
-    setDraft(inputValue);
+    if (value) {
+      if (isTimestamp) {
+        const d = new Date(value);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mi = String(d.getMinutes()).padStart(2, "0");
+        setDraftDate(`${yyyy}-${mm}-${dd}`);
+        setDraftTime(`${hh}:${mi}`);
+      } else {
+        setDraftDate(value);
+        setDraftTime("");
+      }
+    } else {
+      setDraftDate("");
+      setDraftTime("");
+    }
     setShowWarning(true);
   };
 
@@ -329,12 +335,15 @@ const EditableSystemField = ({
 
   const commit = () => {
     setEditing(false);
-    if (draft !== inputValue) {
-      if (isTimestamp && draft) {
-        onSave(new Date(draft).toISOString());
-      } else {
-        onSave(draft);
+    if (isTimestamp) {
+      if (draftDate) {
+        const [y, m, d] = draftDate.split("-").map(Number);
+        const [hh, mi] = (draftTime || "00:00").split(":").map(Number);
+        const local = new Date(y, m - 1, d, hh, mi, 0, 0);
+        onSave(local.toISOString());
       }
+    } else {
+      onSave(draftDate);
     }
   };
 
@@ -343,11 +352,16 @@ const EditableSystemField = ({
       <div className="space-y-0.5">
         <p className="text-[11px] text-muted-foreground">{label}</p>
         {editing ? (
-          <Input ref={inputRef} type={isTimestamp ? "datetime-local" : "date"} value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-            className="bg-muted border-border h-7 text-xs" />
+          <div className={isTimestamp ? "grid grid-cols-[1fr_auto] gap-1" : ""}>
+            <DatePickerField value={draftDate} onChange={setDraftDate} className="h-8 text-xs" />
+            {isTimestamp && (
+              <TimePickerField value={draftTime} onChange={setDraftTime} className="h-8 text-xs w-24" />
+            )}
+            <div className={isTimestamp ? "col-span-2 flex gap-1 justify-end" : "flex gap-1 justify-end"}>
+              <button type="button" onClick={() => setEditing(false)} className="text-[10px] text-muted-foreground hover:text-foreground px-1.5">Cancelar</button>
+              <button type="button" onClick={commit} className="text-[10px] text-primary hover:underline px-1.5">Salvar</button>
+            </div>
+          </div>
         ) : (
           <p className="text-xs text-foreground/70 cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 transition-colors flex items-center"
             onClick={handleClick}>
