@@ -338,8 +338,7 @@ const EditableSystemField = ({
     if (isTimestamp) {
       if (draftDate) {
         const [y, m, d] = draftDate.split("-").map(Number);
-        const [hh, mi] = (draftTime || "00:00").split(":").map(Number);
-        const local = new Date(y, m - 1, d, hh, mi, 0, 0);
+        const local = new Date(y, m - 1, d, 12, 0, 0, 0);
         onSave(local.toISOString());
       }
     } else {
