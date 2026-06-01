@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DatePickerField from "@/components/DatePickerField";
+import SearchSelect from "@/components/SearchSelect";
+import { parseLocalDate } from "@/lib/utils";
 import { useCreateCobranca, useCreateCobrancasBatch } from "@/hooks/useCobrancas";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useClientes } from "@/hooks/useClientes";
@@ -61,6 +63,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const [vencimentoEntrada, setVencimentoEntrada] = useState("");
   const [selectedItemName, setSelectedItemName] = useState("");
   const [enviarAsaas, setEnviarAsaas] = useState(false);
+  const [jaPago, setJaPago] = useState(false);
+  const [jaPagoEntrada, setJaPagoEntrada] = useState(false);
 
   // Sync props
   useEffect(() => {
@@ -85,6 +89,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     setVencimentoEntrada("");
     setSelectedItemName("");
     setEnviarAsaas(false);
+    setJaPago(false);
+    setJaPagoEntrada(false);
   };
 
   const syncAsaas = async (ids: string[]) => {
@@ -148,6 +154,18 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const nParcelas = parseInt(numParcelas) || 2;
   const valorParcela = nParcelas > 0 ? Math.round((restante / nParcelas) * 100) / 100 : 0;
 
+  const isPastDate = (d: string) => {
+    if (!d) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return parseLocalDate(d) < today;
+  };
+  const vencimentoPast = isPastDate(vencimento);
+  const vencimentoEntradaPast = isPastDate(vencimentoEntrada);
+
+  useEffect(() => { if (!vencimentoPast) setJaPago(false); }, [vencimentoPast]);
+  useEffect(() => { if (!vencimentoEntradaPast) setJaPagoEntrada(false); }, [vencimentoEntradaPast]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!effectiveUserId) return;
@@ -169,6 +187,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           forma_pagamento: formaPagamento,
           vencimento,
           cliente_id: clienteId || null,
+          ...(jaPago && vencimentoPast ? { status: "paga" as const, data_pagamento: vencimento } : {}),
         } as any);
         toast.success("Cobrança criada com sucesso!");
         if (result?.id) await syncAsaas([result.id]);
@@ -218,6 +237,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           forma_pagamento: formaPagamentoEntrada,
           vencimento: vencimentoEntrada,
           cliente_id: clienteId || null,
+          ...(jaPagoEntrada && vencimentoEntradaPast ? { status: "paga" as const, data_pagamento: vencimentoEntrada } : {}),
         } as any);
 
         // Parcelas
