@@ -734,7 +734,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
         <div className="flex flex-1 flex-col sm:flex-row min-h-0 overflow-hidden">
           {/* Left: Details - all inline editable */}
-          <div className="sm:w-[300px] flex-shrink-0 border-r border-border p-4 space-y-4 overflow-y-auto">
+          <div className="sm:w-[340px] flex-shrink-0 border-r border-border p-4 space-y-4 overflow-y-auto overflow-x-hidden">
             <h3 className="text-sm font-semibold text-foreground">Detalhes</h3>
 
             <InlineField label="WhatsApp" icon={<Phone className="w-3.5 h-3.5" />}
