@@ -224,7 +224,7 @@ const ContratoDrawer = ({ contrato, open, onClose }: Props) => {
                   <Input value={form.pacote} onChange={(e) => setField("pacote", e.target.value)} className="bg-muted border-border h-8 text-sm" />
                 </Field>
                 <Field label="Data do Evento">
-                  <Input type="date" value={form.data_evento} onChange={(e) => setField("data_evento", e.target.value)} className="bg-muted border-border h-8 text-sm" />
+                  <DatePickerField value={form.data_evento} onChange={(v) => setField("data_evento", v)} className="h-8 text-sm" />
                 </Field>
                 <Field label="Horário Início">
                   <Input type="time" value={form.horario_inicio} onChange={(e) => setField("horario_inicio", e.target.value)} className="bg-muted border-border h-8 text-sm" />
