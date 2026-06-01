@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { parseLocalDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
  import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History, Bot, Pause, Play, MapPin, BadgeDollarSign } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask, useDeleteLeadTask } from "@/hooks/useLeadTasks";
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
@@ -42,6 +43,79 @@ const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "Fechado Ganho", label: "Fechado Ganho" },
   { value: "Fechado Perdido", label: "Fechado Perdido" },
 ];
+
+const getStageStyles = (status: LeadStatus) => {
+  switch (status) {
+    case "Fechado Ganho":
+      return "bg-status-success/15 text-status-success border-status-success/30 dot-bg-status-success";
+    case "Fechado Perdido":
+      return "bg-status-danger/15 text-status-danger border-status-danger/30 dot-bg-status-danger";
+    case "Proposta Enviada":
+    case "Follow-up":
+      return "bg-status-warning/15 text-status-warning border-status-warning/30 dot-bg-status-warning";
+    case "Contato Iniciado":
+    case "Triagem Feita":
+    case "Contrato Enviado":
+      return "bg-status-info/15 text-status-info border-status-info/30 dot-bg-status-info";
+    default:
+      return "bg-muted text-muted-foreground border-border dot-bg-muted-foreground";
+  }
+};
+
+const StageDot = ({ status }: { status: LeadStatus }) => {
+  const color =
+    status === "Fechado Ganho" ? "bg-status-success"
+    : status === "Fechado Perdido" ? "bg-status-danger"
+    : status === "Proposta Enviada" || status === "Follow-up" ? "bg-status-warning"
+    : status === "Contato Iniciado" || status === "Triagem Feita" || status === "Contrato Enviado" ? "bg-status-info"
+    : "bg-muted-foreground";
+  return <span className={`w-1.5 h-1.5 rounded-full ${color}`} />;
+};
+
+interface StageSelectProps {
+  value: LeadStatus;
+  onChange: (v: LeadStatus) => void;
+}
+const StageSelect = ({ value, onChange }: StageSelectProps) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  const styles = getStageStyles(value);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs font-medium border transition-colors hover:opacity-90 ${styles}`}
+      >
+        <StageDot status={value} />
+        {value}
+        <ChevronDown className="w-3 h-3 opacity-70" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-popover shadow-lg overflow-hidden">
+          {STATUS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { setOpen(false); if (opt.value !== value) onChange(opt.value); }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${opt.value === value ? "bg-muted/60" : ""}`}
+            >
+              <StageDot status={opt.value} />
+              <span className="text-foreground">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -593,15 +667,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
             </SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <select
-              value={lead.status}
-              onChange={(e) => handleStatusChange(e.target.value as LeadStatus)}
-              className="h-8 px-2 rounded-md border border-input bg-muted text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <StageSelect value={lead.status} onChange={handleStatusChange} />
             {stageDate && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Nesta etapa há {formatStageDuration(stageDate)}

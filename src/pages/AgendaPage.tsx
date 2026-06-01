@@ -18,6 +18,7 @@ import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
 import { useTeamMembers, useEventTeamMembers, useReplaceEventTeam, useAllEventTeams } from "@/hooks/useTeamMembers";
 import TeamMemberModal from "@/components/equipe/TeamMemberModal";
+import ServiceModal from "@/components/ServiceModal";
 import { Switch } from "@/components/ui/switch";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -44,6 +45,7 @@ const AgendaPage = () => {
   const [responsavelProprio, setResponsavelProprio] = useState(true);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
 
   const { data: events = [] } = useEvents();
   const { data: deletedEvents = [] } = useDeletedEvents();
@@ -613,6 +615,13 @@ const AgendaPage = () => {
                 searchPlaceholder="Buscar serviço..."
                 emptyLabel="Sem serviço"
               />
+              <button
+                type="button"
+                onClick={() => setServiceModalOpen(true)}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                <Plus className="h-3 w-3" /> Novo serviço
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -711,6 +720,7 @@ const AgendaPage = () => {
       </Dialog>
 
       <TeamMemberModal open={teamModalOpen} onOpenChange={setTeamModalOpen} onCreated={(id) => setSelectedTeamIds(prev => [...prev, id])} />
+      <ServiceModal open={serviceModalOpen} onOpenChange={setServiceModalOpen} />
     </>
   );
 };

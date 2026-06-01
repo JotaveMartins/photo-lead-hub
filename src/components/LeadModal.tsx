@@ -9,7 +9,6 @@ import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -48,8 +47,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [dataContato, setDataContato] = useState("");
   const [dataProposta, setDataProposta] = useState("");
   const [valor, setValor] = useState("");
-  const [showMore, setShowMore] = useState(false);
-  const [dataEntrada, setDataEntrada] = useState("");
 
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
@@ -69,7 +66,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setDataContato(toDateOnly((lead as any).data_contato));
       setDataProposta(toDateOnly(lead.data_proposta));
       setValor(lead.valor?.toString() || "");
-      setDataEntrada(toDateOnly(lead.data_entrada_novo_lead as any));
     } else {
       resetForm();
     }
@@ -81,7 +77,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     setDataEvento(""); setDataContato(todayStr); setDataProposta("");
-    setValor(""); setDataEntrada(todayStr);
+    setValor("");
   };
 
     const isPending = createLead.isPending || updateLead.isPending;
@@ -116,11 +112,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
         data_proposta: dataProposta || null,
         valor: valor ? parseFloat(valor) : null,
       };
-
-      // Only allow setting "Entrou em" on creation; never overwrite on edit
-      if (!lead && dataEntrada) {
-        leadData.data_entrada_novo_lead = new Date(`${dataEntrada}T12:00:00`).toISOString();
-      }
 
       if (lead) {
         await updateLead.mutateAsync({ id: lead.id, ...leadData });
@@ -212,49 +203,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
               <Label>Data da Proposta</Label>
               <DatePickerField value={dataProposta} onChange={setDataProposta} placeholder="Selecione" />
             </div>
-          </div>
-
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setShowMore((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showMore ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              {showMore ? "Ocultar campos do sistema" : "Ver mais campos"}
-            </button>
-
-            {showMore && (
-              <div className="mt-4 space-y-4 rounded-md border border-border/50 bg-muted/30 p-4">
-                {lead && (
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as LeadStatus)}
-                      className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      {statusOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label>Entrou em {lead && <span className="text-xs text-muted-foreground">(não editável)</span>}</Label>
-                  {lead ? (
-                    <Input
-                      value={dataEntrada ? dataEntrada.split("-").reverse().join("/") : "—"}
-                      readOnly
-                      disabled
-                      className="bg-muted border-border opacity-70 cursor-not-allowed"
-                    />
-                  ) : (
-                    <DatePickerField value={dataEntrada} onChange={setDataEntrada} placeholder="Selecione" />
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
