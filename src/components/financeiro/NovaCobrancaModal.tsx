@@ -632,12 +632,12 @@ const ItemSelector = ({ onSelect, selectedName }: ItemSelectorProps) => {
       <ServiceModal
         open={serviceModalOpen}
         onOpenChange={setServiceModalOpen}
-        onCreated={(svc) => onSelect(svc.nome, svc.valor_base)}
+        onCreated={() => { setServiceModalOpen(false); setOpen(true); }}
       />
       <PackageModal
         open={packageModalOpen}
         onOpenChange={setPackageModalOpen}
-        onCreated={(pkg) => onSelect(pkg.nome, pkg.preco_final || 0)}
+        onCreated={() => { setPackageModalOpen(false); setOpen(true); }}
       />
     </div>
   );
