@@ -218,6 +218,51 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
             </div>
           </div>
 
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowMore((v) => !v)}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showMore ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              {showMore ? "Ocultar campos do sistema" : "Ver mais campos"}
+            </button>
+
+            {showMore && (
+              <div className="mt-4 space-y-4 rounded-md border border-border/50 bg-muted/30 p-4">
+                {lead && (
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as LeadStatus)}
+                      className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      {statusOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Follow-up 1</Label>
+                    <DatePickerField value={followUp1} onChange={setFollowUp1} placeholder="Selecione" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Follow-up 2</Label>
+                    <DatePickerField value={followUp2} onChange={setFollowUp2} placeholder="Selecione" />
+                  </div>
+                </div>
+                {status !== "Fechado Perdido" && (
+                  <div className="space-y-2">
+                    <Label>Motivo da Perda</Label>
+                    <Textarea value={motivoPerda} onChange={(e) => setMotivoPerda(e.target.value)} placeholder="Preenchido quando o lead for marcado como perdido" className="bg-muted border-border" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {status === "Fechado Perdido" && (
             <div className="space-y-2">
