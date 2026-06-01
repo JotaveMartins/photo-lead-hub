@@ -10,6 +10,7 @@ import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
 import { toast } from "sonner";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -51,6 +52,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [followUp2, setFollowUp2] = useState("");
   const [valor, setValor] = useState("");
   const [motivoPerda, setMotivoPerda] = useState("");
+  const [showMore, setShowMore] = useState(false);
 
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
