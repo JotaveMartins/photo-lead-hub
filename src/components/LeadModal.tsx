@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import InteresseSelect from "@/components/InteresseSelect";
 import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
@@ -48,10 +47,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [dataEvento, setDataEvento] = useState("");
   const [dataContato, setDataContato] = useState("");
   const [dataProposta, setDataProposta] = useState("");
-  const [followUp1, setFollowUp1] = useState("");
-  const [followUp2, setFollowUp2] = useState("");
   const [valor, setValor] = useState("");
-  const [motivoPerda, setMotivoPerda] = useState("");
   const [showMore, setShowMore] = useState(false);
   const [dataEntrada, setDataEntrada] = useState("");
 
@@ -72,10 +68,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setDataEvento(toDateOnly(lead.data_evento));
       setDataContato(toDateOnly((lead as any).data_contato));
       setDataProposta(toDateOnly(lead.data_proposta));
-      setFollowUp1(toDateOnly(lead.follow_up_1));
-      setFollowUp2(toDateOnly(lead.follow_up_2));
       setValor(lead.valor?.toString() || "");
-      setMotivoPerda(lead.motivo_perda || "");
       setDataEntrada(toDateOnly(lead.data_entrada_novo_lead as any));
     } else {
       resetForm();
@@ -88,9 +81,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     setDataEvento(""); setDataContato(todayStr); setDataProposta("");
-    setFollowUp1(""); setFollowUp2("");
-    setValor(""); setMotivoPerda("");
-    setDataEntrada(todayStr);
+    setValor(""); setDataEntrada(todayStr);
   };
 
     const isPending = createLead.isPending || updateLead.isPending;
@@ -123,10 +114,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
         data_evento: dataEvento || null,
         data_contato: dataContato || null,
         data_proposta: dataProposta || null,
-        follow_up_1: followUp1 || null,
-        follow_up_2: followUp2 || null,
         valor: valor ? parseFloat(valor) : null,
-        motivo_perda: motivoPerda || null,
       };
 
       // Only allow setting "Entrou em" on creation; never overwrite on edit
@@ -252,16 +240,6 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
                     </select>
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Follow-up 1</Label>
-                    <DatePickerField value={followUp1} onChange={setFollowUp1} placeholder="Selecione" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Follow-up 2</Label>
-                    <DatePickerField value={followUp2} onChange={setFollowUp2} placeholder="Selecione" />
-                  </div>
-                </div>
                 <div className="space-y-2">
                   <Label>Entrou em {lead && <span className="text-xs text-muted-foreground">(não editável)</span>}</Label>
                   {lead ? (
@@ -275,22 +253,9 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
                     <DatePickerField value={dataEntrada} onChange={setDataEntrada} placeholder="Selecione" />
                   )}
                 </div>
-                {status !== "Fechado Perdido" && (
-                  <div className="space-y-2">
-                    <Label>Motivo da Perda</Label>
-                    <Textarea value={motivoPerda} onChange={(e) => setMotivoPerda(e.target.value)} placeholder="Preenchido quando o lead for marcado como perdido" className="bg-muted border-border" />
-                  </div>
-                )}
               </div>
             )}
           </div>
-
-          {status === "Fechado Perdido" && (
-            <div className="space-y-2">
-              <Label>Motivo da Perda</Label>
-              <Textarea value={motivoPerda} onChange={(e) => setMotivoPerda(e.target.value)} placeholder="Por que o lead foi perdido?" className="bg-muted border-border" />
-            </div>
-          )}
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>Cancelar</Button>
