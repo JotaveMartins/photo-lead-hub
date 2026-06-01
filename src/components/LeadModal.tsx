@@ -48,10 +48,7 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
   const [dataEvento, setDataEvento] = useState("");
   const [dataContato, setDataContato] = useState("");
   const [dataProposta, setDataProposta] = useState("");
-  const [followUp1, setFollowUp1] = useState("");
-  const [followUp2, setFollowUp2] = useState("");
   const [valor, setValor] = useState("");
-  const [motivoPerda, setMotivoPerda] = useState("");
   const [showMore, setShowMore] = useState(false);
   const [dataEntrada, setDataEntrada] = useState("");
 
