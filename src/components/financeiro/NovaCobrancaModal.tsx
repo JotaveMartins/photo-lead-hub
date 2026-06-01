@@ -22,6 +22,23 @@ import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
 
+const PagoToggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+  <div
+    onClick={() => onChange(!checked)}
+    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${checked ? "border-green-500/40 bg-green-500/5" : "border-border bg-muted/30 hover:bg-muted/60"}`}
+  >
+    <div className="flex-1">
+      <p className="text-sm font-medium text-foreground">Já foi pago</p>
+      <p className="text-xs text-muted-foreground">
+        {checked ? "Será criada como paga (data de pagamento = vencimento)" : "A data de vencimento já passou. Marque se já foi pago."}
+      </p>
+    </div>
+    <div className={`w-10 h-5 rounded-full transition-colors relative ${checked ? "bg-green-500" : "bg-muted"}`}>
+      <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${checked ? "left-5" : "left-0.5"}`} />
+    </div>
+  </div>
+);
+
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "pix", label: "Pix" },
   { value: "cartao", label: "Cartão" },
