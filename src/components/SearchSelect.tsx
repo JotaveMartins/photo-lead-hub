@@ -121,6 +121,7 @@ const SearchSelect = ({
               bottom: pos.openUp ? window.innerHeight - pos.top : undefined,
               width: pos.width,
               zIndex: 9999,
+              pointerEvents: "auto",
             }}
             className="rounded-md border border-border bg-card shadow-md"
           >
