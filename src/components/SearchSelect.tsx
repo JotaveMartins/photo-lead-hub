@@ -38,6 +38,16 @@ const SearchSelect = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number; openUp: boolean } | null>(null);
 
+  // Find the nearest scroll-locking container (Radix Dialog/Sheet/Drawer content) so
+  // react-remove-scroll allows wheel events on our dropdown. Falls back to body.
+  const getPortalTarget = (): HTMLElement => {
+    if (typeof document === "undefined") return null as any;
+    const el = triggerRef.current?.closest(
+      '[role="dialog"], [data-radix-dialog-content], [data-radix-popper-content-wrapper], [data-vaul-drawer], [data-state][data-side]'
+    ) as HTMLElement | null;
+    return el || document.body;
+  };
+
   const updatePosition = () => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
@@ -178,7 +188,7 @@ const SearchSelect = ({
               )}
             </div>
           </div>,
-          document.body
+          getPortalTarget()
         )}
       </div>
     </div>
