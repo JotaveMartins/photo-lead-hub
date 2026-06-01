@@ -720,6 +720,7 @@ const AgendaPage = () => {
       </Dialog>
 
       <TeamMemberModal open={teamModalOpen} onOpenChange={setTeamModalOpen} onCreated={(id) => setSelectedTeamIds(prev => [...prev, id])} />
+      <ServiceModal open={serviceModalOpen} onOpenChange={setServiceModalOpen} />
     </>
   );
 };
