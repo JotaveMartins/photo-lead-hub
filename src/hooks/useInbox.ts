@@ -37,17 +37,20 @@ export const useInboxMessages = (conversationId?: string) => {
     queryKey: ["inbox_messages", conversationId],
     queryFn: async () => {
       if (!conversationId) return [];
-      
+
+      // Order by created_at (always set) — `timestamp` can be null for AI/webhook messages
       const { data, error } = await supabase
         .from("inbox_messages")
         .select("*")
         .eq("conversation_id", conversationId)
-        .order("timestamp", { ascending: true });
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       return data;
     },
     enabled: !!conversationId,
+    // Fallback polling in case realtime isn't delivering (e.g. table not in publication)
+    refetchInterval: 5000,
   });
 };
 

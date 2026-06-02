@@ -16,7 +16,12 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\mateu\\\\Desktop\\\\avanzo\\\\photo-lead-hub\" -Recurse -File -Include \"*.ts\", \"*.tsx\", \"*.js\", \"*.jsx\")",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Select-String -Pattern \"config not found\")",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(grep -n \"^const DEFAULT_PROMPT\\\\|^\\\\`;\" src/pages/IAPage.tsx)",
+      "Bash(grep -n '`;' src/pages/IAPage.tsx)",
+      "Bash(rm .new_prompt.txt)",
+      "Bash(node -e \"const fs=require\\('fs'\\);const c=fs.readFileSync\\('src/pages/IAPage.tsx','utf8'\\);const m=c.match\\(/const DEFAULT_PROMPT = \\\\`[\\\\s\\\\S]*?\\\\`;/\\);console.log\\('len:',m[0].length\\);console.log\\('starts:',m[0].slice\\(0,60\\)\\);console.log\\('ends:',m[0].slice\\(-80\\)\\);\")",
+      "Bash(node -e \"const fs=require\\('fs'\\);const c=fs.readFileSync\\('src/integrations/supabase/types.ts','utf8'\\);const i=c.indexOf\\('inbox_messages: {'\\);console.log\\(c.slice\\(i, i+900\\)\\);\")"
     ]
   }
 }
