@@ -387,6 +387,7 @@ Deno.serve(async (req) => {
       if (msgError) throw msgError;
 
       // 5. Trigger logic for new inbound messages
+      console.log(`[v2-keyword] Inbound check: fromMe=${key.fromMe}, isGroup=${isGroup}, convStatus=${conversation.status}, content="${content}"`);
       if (!key.fromMe && !isGroup) {
         // A. Check for triggers → auto-create lead (Novo Lead)
         const { data: triggers } = await supabase
