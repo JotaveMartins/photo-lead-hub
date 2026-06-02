@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.google-calendar-auth-callback]
 verify_jwt = false
+
+[functions.evolution-webhook]
+verify_jwt = false
+
+[functions.ai-reply]
+verify_jwt = false
+
+[functions.send-whatsapp-message]
+verify_jwt = false
+
+[functions.manage-evolution]
+verify_jwt = false

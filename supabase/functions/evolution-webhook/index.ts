@@ -266,7 +266,9 @@ Deno.serve(async (req) => {
         });
       }
       
-      const pushName = data.pushName || "";
+      // pushName is the SENDER's name. For messages we send (fromMe), that's our own
+      // name, not the contact's — so only trust it for inbound messages.
+      const pushName = (!key.fromMe && data.pushName) ? data.pushName : "";
 
       // 1. Determine message content
       let type = "text";
@@ -341,13 +343,18 @@ Deno.serve(async (req) => {
         conversation = newConv;
       } else {
         // Update existing conversation
+        const updates: Record<string, unknown> = {
+          last_message: content,
+          unread_count: key.fromMe ? 0 : (conversation.unread_count || 0) + 1,
+          updated_at: new Date().toISOString()
+        };
+        // Backfill the real contact name once the contact replies (when we only have the number)
+        if (pushName && (!conversation.contact_name || conversation.contact_name === conversation.contact_number)) {
+          updates.contact_name = pushName;
+        }
         await supabase
           .from("inbox_conversations")
-          .update({
-            last_message: content,
-            unread_count: key.fromMe ? 0 : (conversation.unread_count || 0) + 1,
-            updated_at: new Date().toISOString()
-          })
+          .update(updates)
           .eq("id", conversation.id);
       }
 

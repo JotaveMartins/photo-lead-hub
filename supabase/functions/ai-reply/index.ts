@@ -5,7 +5,61 @@
    "Access-Control-Allow-Origin": "*",
    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
  };
- 
+
+// Transcribe an audio file (URL) to text using Whisper (OpenAI/Groq) or the Lovable gateway.
+async function transcribeAudio(mediaUrl: string, provider: string, apiKey: string | null): Promise<string | null> {
+  try {
+    let url: string;
+    let key: string;
+    let model: string;
+    if (provider === "groq" && apiKey) {
+      url = "https://api.groq.com/openai/v1/audio/transcriptions";
+      key = apiKey;
+      model = "whisper-large-v3";
+    } else if (provider === "openai" && apiKey) {
+      url = "https://api.openai.com/v1/audio/transcriptions";
+      key = apiKey;
+      model = "whisper-1";
+    } else {
+      // Fallback: try OpenAI key from secrets, otherwise give up
+      const envKey = Deno.env.get("OPENAI_API_KEY");
+      if (!envKey) {
+        console.log("No transcription provider available (provider=" + provider + ")");
+        return null;
+      }
+      url = "https://api.openai.com/v1/audio/transcriptions";
+      key = envKey;
+      model = "whisper-1";
+    }
+
+    const audioResp = await fetch(mediaUrl);
+    if (!audioResp.ok) {
+      console.error("Failed to fetch audio for transcription:", audioResp.status);
+      return null;
+    }
+    const audioBlob = await audioResp.blob();
+    const form = new FormData();
+    form.append("file", audioBlob, "audio.ogg");
+    form.append("model", model);
+    form.append("language", "pt");
+
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${key}` },
+      body: form,
+    });
+    if (!resp.ok) {
+      console.error("Transcription API error:", resp.status, (await resp.text()).slice(0, 300));
+      return null;
+    }
+    const result = await resp.json();
+    return (result?.text || "").trim() || null;
+  } catch (err) {
+    console.error("transcribeAudio error:", err);
+    return null;
+  }
+}
+
  Deno.serve(async (req) => {
    if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
  
@@ -51,7 +105,23 @@
      let chatHistory: any[] = [];
      if (conv) {
        const { data: msgs } = await supabase.from("inbox_messages").select("*").eq("conversation_id", conv.id).order("created_at", { ascending: false }).limit(20);
-       chatHistory = (msgs || []).reverse().map(m => ({ role: m.direction === "inbound" ? "user" : "assistant", content: m.body || "" }));
+       const ordered = (msgs || []).reverse();
+       for (const m of ordered) {
+         let text = m.body || "";
+         // Transcribe inbound voice messages so the AI understands them
+         if (m.type === "audio" && m.media_url && !text && m.direction === "inbound") {
+           const transcript = await transcribeAudio(m.media_url, aiConfig.provider || "lovable", aiConfig.api_key);
+           if (transcript) {
+             text = transcript;
+             // Cache the transcription so we don't transcribe the same audio again
+             await supabase.from("inbox_messages").update({ body: transcript }).eq("id", m.id);
+             console.log(`Transcribed audio ${m.id}: "${transcript.slice(0, 80)}"`);
+           } else {
+             text = "[o cliente enviou um áudio, mas não foi possível transcrever]";
+           }
+         }
+         chatHistory.push({ role: m.direction === "inbound" ? "user" : "assistant", content: text });
+       }
      } else {
        const { data: msgs } = await supabase.from("messages").select("*").eq("lead_id", lead_id).order("created_at", { ascending: false }).limit(20);
        chatHistory = (msgs || []).reverse().map(m => ({ role: m.direction === "inbound" ? "user" : "assistant", content: m.content || "" }));
