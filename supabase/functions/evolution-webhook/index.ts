@@ -3,6 +3,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const normalizeWhatsApp = (value: string | null | undefined) => String(value || "").replace(/\D/g, "");
 
+// Lowercase + strip accents (ç→c, á→a) for robust keyword matching
+const COMBINING_MARKS = new RegExp("[\\u0300-\\u036f]", "g");
+const normalizeText = (value: string | null | undefined) =>
+  String(value || "").normalize("NFD").replace(COMBINING_MARKS, "").toLowerCase().trim();
+
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
   "video/mp4": "mp4", "video/ogg": "ogv", "video/webm": "webm",
@@ -439,15 +444,25 @@ Deno.serve(async (req) => {
           // AI replies when: globally active, OR already enabled for this conversation
           let shouldReply = aiCfg?.is_active === true || conversation.ai_enabled === true;
 
+          console.log(
+            `AI trigger eval: is_active=${aiCfg?.is_active}, trigger_enabled=${aiCfg?.ai_trigger_enabled}, ` +
+            `keywords=${JSON.stringify(aiCfg?.ai_trigger_keywords)}, content="${content}", conv.ai_enabled=${conversation.ai_enabled}`
+          );
+
           // Keyword trigger: when global AI is off, start AI if the message contains a configured keyword/phrase
           if (!shouldReply && aiCfg?.ai_trigger_enabled && Array.isArray(aiCfg.ai_trigger_keywords) && aiCfg.ai_trigger_keywords.length > 0) {
-            const text = (content || "").toLowerCase();
-            const matched = aiCfg.ai_trigger_keywords.some((kw: string) => kw && text.includes(kw.toLowerCase()));
-            if (matched) {
+            const text = normalizeText(content);
+            const matchedKw = aiCfg.ai_trigger_keywords.find((kw: string) => {
+              const nk = normalizeText(kw);
+              return nk.length > 0 && text.includes(nk);
+            });
+            if (matchedKw) {
               await supabase.from("inbox_conversations").update({ ai_enabled: true }).eq("id", conversation.id);
               conversation.ai_enabled = true;
               shouldReply = true;
-              console.log(`Keyword trigger matched → AI enabled for conv ${conversation.id}`);
+              console.log(`Keyword trigger matched ("${matchedKw}") → AI enabled for conv ${conversation.id}`);
+            } else {
+              console.log(`No keyword matched for content "${content}" (normalized: "${text}")`);
             }
           }
 
