@@ -16,7 +16,6 @@ export type Database = {
     Tables: {
       ai_config: {
         Row: {
-          ai_buffer_seconds: number | null
           ai_trigger_enabled: boolean
           ai_trigger_keyword: string | null
           ai_trigger_keywords: string[] | null
@@ -33,7 +32,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          ai_buffer_seconds?: number | null
           ai_trigger_enabled?: boolean
           ai_trigger_keyword?: string | null
           ai_trigger_keywords?: string[] | null
@@ -50,7 +48,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          ai_buffer_seconds?: number | null
           ai_trigger_enabled?: boolean
           ai_trigger_keyword?: string | null
           ai_trigger_keywords?: string[] | null
