@@ -430,14 +430,39 @@ Deno.serve(async (req) => {
 
         // B. Trigger AI if conversation still pending_ai
         if (conversation.status === 'pending_ai') {
-          fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ conversation_id: conversation.id })
-          }).catch(err => console.error("Error triggering AI reply:", err));
+          const { data: aiCfg } = await supabase
+            .from("ai_config")
+            .select("is_active, ai_trigger_enabled, ai_trigger_keywords")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          // AI replies when: globally active, OR already enabled for this conversation
+          let shouldReply = aiCfg?.is_active === true || conversation.ai_enabled === true;
+
+          // Keyword trigger: when global AI is off, start AI if the message contains a configured keyword/phrase
+          if (!shouldReply && aiCfg?.ai_trigger_enabled && Array.isArray(aiCfg.ai_trigger_keywords) && aiCfg.ai_trigger_keywords.length > 0) {
+            const text = (content || "").toLowerCase();
+            const matched = aiCfg.ai_trigger_keywords.some((kw: string) => kw && text.includes(kw.toLowerCase()));
+            if (matched) {
+              await supabase.from("inbox_conversations").update({ ai_enabled: true }).eq("id", conversation.id);
+              conversation.ai_enabled = true;
+              shouldReply = true;
+              console.log(`Keyword trigger matched → AI enabled for conv ${conversation.id}`);
+            }
+          }
+
+          if (shouldReply) {
+            fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-reply`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ conversation_id: conversation.id })
+            }).catch(err => console.error("Error triggering AI reply:", err));
+          } else {
+            console.log(`AI not triggered for conv ${conversation.id} (global off, no keyword match)`);
+          }
         }
       }
     } else if (event === "connection.update") {

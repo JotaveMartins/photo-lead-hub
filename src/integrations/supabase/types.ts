@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           ai_trigger_enabled: boolean
           ai_trigger_keyword: string | null
+          ai_trigger_keywords: string[] | null
           api_key: string
           created_at: string | null
           id: string
@@ -33,6 +34,7 @@ export type Database = {
         Insert: {
           ai_trigger_enabled?: boolean
           ai_trigger_keyword?: string | null
+          ai_trigger_keywords?: string[] | null
           api_key: string
           created_at?: string | null
           id?: string
@@ -48,6 +50,7 @@ export type Database = {
         Update: {
           ai_trigger_enabled?: boolean
           ai_trigger_keyword?: string | null
+          ai_trigger_keywords?: string[] | null
           api_key?: string
           created_at?: string | null
           id?: string

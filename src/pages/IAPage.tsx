@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Bot, Save, FileUp, Copy, Trash2, Info, Loader2,
-  Eye, EyeOff, Zap, MessageSquare, CheckCircle2, ChevronDown, HelpCircle, RotateCcw,
+  Eye, EyeOff, Zap, MessageSquare, CheckCircle2, ChevronDown, HelpCircle, RotateCcw, X, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ interface AiConfig {
   system_prompt: string;
   knowledge_base: string;
   is_active: boolean;
+  ai_trigger_enabled: boolean;
+  ai_trigger_keywords: string[];
   user_id?: string;
 }
 
@@ -305,7 +307,10 @@ const IAPage = () => {
     system_prompt: DEFAULT_PROMPT,
     knowledge_base: "",
     is_active: true,
+    ai_trigger_enabled: false,
+    ai_trigger_keywords: [],
   });
+  const [keywordInput, setKeywordInput] = useState("");
   const [files, setFiles] = useState<AiFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -325,7 +330,11 @@ const IAPage = () => {
         .select("*")
         .eq("user_id", effectiveUserId!)
         .maybeSingle();
-      if (cfg) setConfig(cfg as unknown as AiConfig);
+      if (cfg) setConfig({
+        ...(cfg as unknown as AiConfig),
+        ai_trigger_enabled: (cfg as any).ai_trigger_enabled ?? false,
+        ai_trigger_keywords: (cfg as any).ai_trigger_keywords ?? [],
+      });
 
       const { data: fls } = await supabase
         .from("ai_files")
@@ -343,6 +352,19 @@ const IAPage = () => {
   const handleProviderChange = (provider: string) => {
     const firstModel = PROVIDER_MODELS[provider]?.[0]?.value || "";
     setConfig((c) => ({ ...c, provider, model: firstModel }));
+  };
+
+  const addKeyword = () => {
+    const kw = keywordInput.trim();
+    if (!kw) return;
+    const exists = config.ai_trigger_keywords.some((k) => k.toLowerCase() === kw.toLowerCase());
+    if (exists) { setKeywordInput(""); return; }
+    setConfig((c) => ({ ...c, ai_trigger_keywords: [...c.ai_trigger_keywords, kw] }));
+    setKeywordInput("");
+  };
+
+  const removeKeyword = (kw: string) => {
+    setConfig((c) => ({ ...c, ai_trigger_keywords: c.ai_trigger_keywords.filter((k) => k !== kw) }));
   };
 
   const handleSaveConfig = async () => {
@@ -633,6 +655,61 @@ const IAPage = () => {
                 <Label>IA Ativa</Label>
                 <HelpTooltip text="Quando ativado, a IA responde automaticamente às novas mensagens recebidas no inbox. Desative para pausar o atendimento automático sem perder as configurações." />
               </div>
+            </div>
+
+            {/* Keyword trigger — start AI only when a message contains a keyword/phrase */}
+            <div className="border-t border-border pt-4 space-y-3">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={config.ai_trigger_enabled}
+                  onCheckedChange={(v) => setConfig((c) => ({ ...c, ai_trigger_enabled: v }))}
+                />
+                <div className="flex items-center">
+                  <Label>Iniciar IA por palavra-chave</Label>
+                  <HelpTooltip text="Quando a IA Ativa estiver desligada, a IA só inicia o atendimento se a mensagem do cliente contiver uma das palavras ou frases abaixo. Útil para acionar a IA apenas em situações específicas." />
+                </div>
+              </div>
+
+              {config.ai_trigger_enabled && (
+                <div className="space-y-3 pl-1">
+                  <p className="text-xs text-muted-foreground">
+                    A IA iniciará o atendimento se a mensagem contiver <strong>qualquer uma</strong> destas palavras ou frases:
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={keywordInput}
+                      onChange={(e) => setKeywordInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addKeyword(); } }}
+                      placeholder="Ex: orçamento, quero contratar, casamento..."
+                      className="text-sm"
+                    />
+                    <Button type="button" onClick={addKeyword} variant="outline" size="icon" className="shrink-0">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {config.ai_trigger_keywords.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {config.ai_trigger_keywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/30 text-xs font-medium"
+                        >
+                          {kw}
+                          <button
+                            type="button"
+                            onClick={() => removeKeyword(kw)}
+                            className="hover:text-destructive transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground italic">Nenhuma palavra-chave adicionada ainda.</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <Button onClick={handleSaveConfig} disabled={saving} className="w-full bg-gradient-primary gap-2">
