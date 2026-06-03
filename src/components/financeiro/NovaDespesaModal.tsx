@@ -170,7 +170,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">
             {isEditing ? "Editar Despesa" : "Adicionar Despesa"}
