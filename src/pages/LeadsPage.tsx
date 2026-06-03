@@ -58,22 +58,22 @@ const LeadsPage = () => {
 
   return (
     <>
-      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground flex items-center gap-3">
+      <header className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between mb-4 sm:mb-6">
+        <div className="w-full sm:w-auto">
+          <h1 className="hidden sm:flex text-2xl sm:text-3xl font-display font-bold text-foreground items-center gap-3">
             <Users className="w-8 h-8 text-primary" />
             Leads
           </h1>
-          <p className="text-muted-foreground mt-1">{activeLeads.length} leads ativos · {leads.length} total</p>
+          <p className="text-sm sm:text-base text-muted-foreground sm:mt-1">{activeLeads.length} leads ativos · {leads.length} total</p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <TrashBin />
 
           <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-8 w-8">
-                <Bell className="w-4 h-4" />
+              <Button variant="ghost" size="icon" className="relative h-10 w-10 sm:h-8 sm:w-8">
+                <Bell className="w-5 h-5 sm:w-4 sm:h-4" />
                 {todayTasks.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] font-bold flex items-center justify-center">
                     {todayTasks.length}
@@ -150,11 +150,10 @@ const LeadsPage = () => {
           </div>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
+            className="ml-auto bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow h-10"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Novo Lead</span>
-            <span className="sm:hidden">Novo</span>
+            <span>Novo Lead</span>
           </Button>
         </div>
       </header>
