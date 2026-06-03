@@ -329,10 +329,42 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
               <div className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <p className="text-sm font-medium text-foreground">Despesa Recorrente</p>
-                  <p className="text-xs text-muted-foreground">Repete mensalmente</p>
+                  <p className="text-xs text-muted-foreground">Repete automaticamente</p>
                 </div>
                 <Switch checked={recorrente} onCheckedChange={(v) => { setRecorrente(v); if (v) setParcelada(false); }} />
               </div>
+
+              {recorrente && (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <div className="space-y-2">
+                    <Label>Frequência</Label>
+                    <SearchSelect
+                      value={recorrenciaFreq}
+                      onChange={(v) => setRecorrenciaFreq((v || "mensal") as RecorrenciaFrequencia)}
+                      placeholder="Selecione"
+                      allowEmpty={false}
+                      options={[
+                        { value: "mensal", label: "Mensal" },
+                        { value: "anual", label: "Anual" },
+                        { value: "personalizada", label: "Personalizada" },
+                      ]}
+                    />
+                  </div>
+                  {recorrenciaFreq === "personalizada" && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">A cada quantos dias?</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="3650"
+                        value={recorrenciaDias}
+                        onChange={(e) => setRecorrenciaDias(e.target.value)}
+                        className="bg-muted border-border w-32"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
