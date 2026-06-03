@@ -302,7 +302,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v && lockOutsideClose) return; onOpenChange(v); }}>
       <DialogContent
-        className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto"
+        className="w-[calc(100vw-1.5rem)] max-w-lg bg-card border-border max-h-[90dvh] overflow-y-auto p-4 sm:p-6"
         onPointerDownOutside={(e) => { if (lockOutsideClose) e.preventDefault(); }}
       >
         <DialogHeader>
@@ -358,9 +358,9 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           {/* ===== ENTRADA + PARCELAS ===== */}
           {type === "entrada_parcelas" && (
             <>
-              <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-4">
+              <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
                 <p className="text-xs font-semibold text-primary uppercase tracking-wide">Entrada</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label className="text-xs">Valor da Entrada *</Label>
                     <div className="relative">
@@ -397,9 +397,9 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
                 )}
               </div>
 
-              <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-4">
+              <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
                 <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Parcelas do restante</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label className="text-xs">Nº Parcelas</Label>
                     <select
