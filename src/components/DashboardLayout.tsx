@@ -48,6 +48,28 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return "leads";
   };
 
+  const PAGE_TITLES: Record<string, string> = {
+    leads: "Leads",
+    tarefas: "Tarefas",
+    relatorios: "Relatórios",
+    servicos: "Serviços",
+    pacotes: "Pacotes",
+    agenda: "Agenda",
+    clientes: "Clientes",
+    equipe: "Equipe",
+    anuncios: "Anúncios",
+    contratos: "Contratos",
+    financeiro: "Financeiro",
+    "financeiro/cobrancas": "Cobranças",
+    "financeiro/despesas": "Despesas",
+    admin: "Admin",
+    ia: "IA",
+    whatsapp: "WhatsApp",
+    inbox: "Inbox",
+    integracoes: "Integrações",
+  };
+  const currentTitle = PAGE_TITLES[getActiveItem()] ?? "CRM";
+
   // Determine page-specific tutorial based on current route
   const { pageTutorial, pageKey } = useMemo(() => {
     const path = location.pathname;
@@ -98,21 +120,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         onMobileClose={() => setSidebarOpen(false)}
       />
       {/* Mobile top bar */}
-      <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 bg-background/95 backdrop-blur border-b border-border">
+      <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between gap-2 px-3 py-2.5 bg-background/95 backdrop-blur border-b border-border">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="p-2 -ml-2 rounded-md hover:bg-muted text-foreground"
+          className="inline-flex items-center justify-center w-11 h-11 -ml-2 rounded-md hover:bg-muted text-foreground"
           aria-label="Abrir menu"
         >
           <Menu className="w-6 h-6" />
         </button>
-        <div className="flex items-center gap-2">
+        <h1 className="flex-1 text-center font-display font-semibold text-base text-foreground truncate">
+          {currentTitle}
+        </h1>
+        <div className="flex items-center justify-center w-11 h-11">
           <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
-          <span className="font-display font-bold text-foreground">CRM</span>
         </div>
-        <div className="w-10" />
       </div>
-      <main className="lg:ml-64 p-4 sm:p-6 lg:p-8">
+      <main className="lg:ml-64 px-3 py-4 sm:p-6 lg:p-8">
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-glow pointer-events-none opacity-50" />
         {isImpersonating && (
           <div className="mb-4 -mt-2 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5">
