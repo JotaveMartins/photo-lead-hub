@@ -370,6 +370,8 @@ export type Database = {
           observacoes: string | null
           parcela_numero: number | null
           parcela_total: number | null
+          recorrencia_frequencia: string | null
+          recorrencia_intervalo_dias: number | null
           recorrente: boolean
           status: Database["public"]["Enums"]["despesa_status"]
           team_member_id: string | null
@@ -390,6 +392,8 @@ export type Database = {
           observacoes?: string | null
           parcela_numero?: number | null
           parcela_total?: number | null
+          recorrencia_frequencia?: string | null
+          recorrencia_intervalo_dias?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
           team_member_id?: string | null
@@ -410,6 +414,8 @@ export type Database = {
           observacoes?: string | null
           parcela_numero?: number | null
           parcela_total?: number | null
+          recorrencia_frequencia?: string | null
+          recorrencia_intervalo_dias?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
           team_member_id?: string | null
