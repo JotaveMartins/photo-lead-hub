@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
-import { useCreateDespesa, useCreateDespesasBatch, useUpdateDespesa, type DespesaInsert, type PaymentMethod, type DespesaStatus, type Despesa } from "@/hooks/useDespesas";
+import { useCreateDespesa, useCreateDespesasBatch, useUpdateDespesa, type DespesaInsert, type PaymentMethod, type DespesaStatus, type Despesa, type RecorrenciaFrequencia } from "@/hooks/useDespesas";
 import { useEvents } from "@/hooks/useEvents";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 
@@ -50,6 +50,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
   const [parcelada, setParcelada] = useState(false);
   const [numParcelas, setNumParcelas] = useState("2");
   const [recorrente, setRecorrente] = useState(false);
+  const [recorrenciaFreq, setRecorrenciaFreq] = useState<RecorrenciaFrequencia>("mensal");
+  const [recorrenciaDias, setRecorrenciaDias] = useState("30");
   const [teamMemberId, setTeamMemberId] = useState("");
 
   const isPending = createDespesa.isPending || createBatch.isPending || updateDespesa.isPending;
@@ -65,6 +67,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
       setEventoId(despesa.evento_id || "");
       setObservacoes(despesa.observacoes || "");
       setRecorrente(despesa.recorrente);
+      setRecorrenciaFreq((despesa.recorrencia_frequencia as RecorrenciaFrequencia) || "mensal");
+      setRecorrenciaDias(despesa.recorrencia_intervalo_dias ? String(despesa.recorrencia_intervalo_dias) : "30");
       setParcelada(false);
       setTeamMemberId(despesa.team_member_id || "");
     } else {
@@ -84,6 +88,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
     setParcelada(false);
     setNumParcelas("2");
     setRecorrente(false);
+    setRecorrenciaFreq("mensal");
+    setRecorrenciaDias("30");
     setTeamMemberId("");
   };
 
@@ -106,6 +112,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
         evento_id: eventoId || null,
         observacoes: observacoes.trim() || null,
         recorrente,
+        recorrencia_frequencia: recorrente ? recorrenciaFreq : null,
+        recorrencia_intervalo_dias: recorrente && recorrenciaFreq === "personalizada" ? (parseInt(recorrenciaDias) || null) : null,
         team_member_id: categoria === "Freelancer" ? (teamMemberId || null) : null,
       });
       onOpenChange(false);
@@ -150,6 +158,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
         evento_id: eventoId || null,
         observacoes: observacoes.trim() || null,
         recorrente,
+        recorrencia_frequencia: recorrente ? recorrenciaFreq : null,
+        recorrencia_intervalo_dias: recorrente && recorrenciaFreq === "personalizada" ? (parseInt(recorrenciaDias) || null) : null,
         team_member_id: categoria === "Freelancer" ? (teamMemberId || null) : null,
       });
     }
@@ -160,7 +170,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">
             {isEditing ? "Editar Despesa" : "Adicionar Despesa"}
@@ -223,48 +233,50 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
             </div>
           </div>
 
-          <div className="space-y-2 rounded-lg border border-border p-3">
-            <Label>Categoria *</Label>
-            <SearchSelect
-              value={categoria}
-              onChange={(v) => setCategoria(v || "Outros")}
-              placeholder="Selecione"
-              searchPlaceholder="Buscar categoria..."
-              allowEmpty={false}
-              options={CATEGORIAS.map((cat) => ({ value: cat, label: cat }))}
-            />
-            {categoria === "Freelancer" && (
-              <div className="space-y-1 pt-2">
-                <Label className="text-xs text-muted-foreground">Profissional</Label>
-                <SearchSelect
-                  value={teamMemberId}
-                  onChange={setTeamMemberId}
-                  placeholder="Selecione um profissional"
-                  searchPlaceholder="Buscar profissional..."
-                  emptyLabel="Nenhum"
-                  options={teamMembers.map((m) => ({
-                    value: m.id,
-                    label: m.nome,
-                    hint: m.funcao || null,
-                  }))}
-                />
-                {teamMembers.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Cadastre profissionais na seção Equipe.</p>
-                )}
-              </div>
-            )}
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <Label>Categoria *</Label>
+              <SearchSelect
+                value={categoria}
+                onChange={(v) => setCategoria(v || "Outros")}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar categoria..."
+                allowEmpty={false}
+                options={CATEGORIAS.map((cat) => ({ value: cat, label: cat }))}
+              />
+              {categoria === "Freelancer" && (
+                <div className="space-y-1 pt-2">
+                  <Label className="text-xs text-muted-foreground">Profissional</Label>
+                  <SearchSelect
+                    value={teamMemberId}
+                    onChange={setTeamMemberId}
+                    placeholder="Selecione um profissional"
+                    searchPlaceholder="Buscar profissional..."
+                    emptyLabel="Nenhum"
+                    options={teamMembers.map((m) => ({
+                      value: m.id,
+                      label: m.nome,
+                      hint: m.funcao || null,
+                    }))}
+                  />
+                  {teamMembers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Cadastre profissionais na seção Equipe.</p>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <div className="space-y-2 rounded-lg border border-border p-3">
-            <Label>Forma de Pagamento *</Label>
-            <SearchSelect
-              value={formaPagamento}
-              onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
-              placeholder="Selecione"
-              searchPlaceholder="Buscar..."
-              allowEmpty={false}
-              options={PAYMENT_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
-            />
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <Label>Forma de Pagamento *</Label>
+              <SearchSelect
+                value={formaPagamento}
+                onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar..."
+                allowEmpty={false}
+                options={PAYMENT_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+              />
+            </div>
           </div>
 
           <div className="space-y-2 rounded-lg border border-border p-3">
@@ -319,10 +331,42 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
               <div className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <p className="text-sm font-medium text-foreground">Despesa Recorrente</p>
-                  <p className="text-xs text-muted-foreground">Repete mensalmente</p>
+                  <p className="text-xs text-muted-foreground">Repete automaticamente</p>
                 </div>
                 <Switch checked={recorrente} onCheckedChange={(v) => { setRecorrente(v); if (v) setParcelada(false); }} />
               </div>
+
+              {recorrente && (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <div className="space-y-2">
+                    <Label>Frequência</Label>
+                    <SearchSelect
+                      value={recorrenciaFreq}
+                      onChange={(v) => setRecorrenciaFreq((v || "mensal") as RecorrenciaFrequencia)}
+                      placeholder="Selecione"
+                      allowEmpty={false}
+                      options={[
+                        { value: "mensal", label: "Mensal" },
+                        { value: "anual", label: "Anual" },
+                        { value: "personalizada", label: "Personalizada" },
+                      ]}
+                    />
+                  </div>
+                  {recorrenciaFreq === "personalizada" && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">A cada quantos dias?</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="3650"
+                        value={recorrenciaDias}
+                        onChange={(e) => setRecorrenciaDias(e.target.value)}
+                        className="bg-muted border-border w-32"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 

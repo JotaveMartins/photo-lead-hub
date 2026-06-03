@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 export type DespesaStatus = "paga" | "prevista";
 export type PaymentMethod = "pix" | "cartao" | "boleto" | "transferencia" | "dinheiro";
+export type RecorrenciaFrequencia = "mensal" | "anual" | "personalizada";
 
 export interface Despesa {
   id: string;
@@ -21,6 +22,8 @@ export interface Despesa {
   parcela_total: number | null;
   grupo_id: string | null;
   recorrente: boolean;
+  recorrencia_frequencia?: RecorrenciaFrequencia | null;
+  recorrencia_intervalo_dias?: number | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -40,6 +43,8 @@ export interface DespesaInsert {
   parcela_total?: number | null;
   grupo_id?: string | null;
   recorrente?: boolean;
+  recorrencia_frequencia?: RecorrenciaFrequencia | null;
+  recorrencia_intervalo_dias?: number | null;
   team_member_id?: string | null;
 }
 
