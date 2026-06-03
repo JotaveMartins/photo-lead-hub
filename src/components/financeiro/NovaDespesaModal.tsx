@@ -233,48 +233,50 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
             </div>
           </div>
 
-          <div className="space-y-2 rounded-lg border border-border p-3">
-            <Label>Categoria *</Label>
-            <SearchSelect
-              value={categoria}
-              onChange={(v) => setCategoria(v || "Outros")}
-              placeholder="Selecione"
-              searchPlaceholder="Buscar categoria..."
-              allowEmpty={false}
-              options={CATEGORIAS.map((cat) => ({ value: cat, label: cat }))}
-            />
-            {categoria === "Freelancer" && (
-              <div className="space-y-1 pt-2">
-                <Label className="text-xs text-muted-foreground">Profissional</Label>
-                <SearchSelect
-                  value={teamMemberId}
-                  onChange={setTeamMemberId}
-                  placeholder="Selecione um profissional"
-                  searchPlaceholder="Buscar profissional..."
-                  emptyLabel="Nenhum"
-                  options={teamMembers.map((m) => ({
-                    value: m.id,
-                    label: m.nome,
-                    hint: m.funcao || null,
-                  }))}
-                />
-                {teamMembers.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Cadastre profissionais na seção Equipe.</p>
-                )}
-              </div>
-            )}
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <Label>Categoria *</Label>
+              <SearchSelect
+                value={categoria}
+                onChange={(v) => setCategoria(v || "Outros")}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar categoria..."
+                allowEmpty={false}
+                options={CATEGORIAS.map((cat) => ({ value: cat, label: cat }))}
+              />
+              {categoria === "Freelancer" && (
+                <div className="space-y-1 pt-2">
+                  <Label className="text-xs text-muted-foreground">Profissional</Label>
+                  <SearchSelect
+                    value={teamMemberId}
+                    onChange={setTeamMemberId}
+                    placeholder="Selecione um profissional"
+                    searchPlaceholder="Buscar profissional..."
+                    emptyLabel="Nenhum"
+                    options={teamMembers.map((m) => ({
+                      value: m.id,
+                      label: m.nome,
+                      hint: m.funcao || null,
+                    }))}
+                  />
+                  {teamMembers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Cadastre profissionais na seção Equipe.</p>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <div className="space-y-2 rounded-lg border border-border p-3">
-            <Label>Forma de Pagamento *</Label>
-            <SearchSelect
-              value={formaPagamento}
-              onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
-              placeholder="Selecione"
-              searchPlaceholder="Buscar..."
-              allowEmpty={false}
-              options={PAYMENT_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
-            />
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <Label>Forma de Pagamento *</Label>
+              <SearchSelect
+                value={formaPagamento}
+                onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar..."
+                allowEmpty={false}
+                options={PAYMENT_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+              />
+            </div>
           </div>
 
           <div className="space-y-2 rounded-lg border border-border p-3">
