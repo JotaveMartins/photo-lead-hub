@@ -163,8 +163,8 @@ const ClienteDetailPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-xl bg-gradient-to-r from-primary/90 to-primary p-6 text-primary-foreground">
-        <div className="flex items-center justify-between mb-4">
+      <div className="rounded-xl bg-gradient-to-r from-primary/90 to-primary p-4 sm:p-6 text-primary-foreground">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <button onClick={() => navigate("/clientes")} className="flex items-center gap-2 text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />CLIENTES
           </button>
@@ -177,23 +177,23 @@ const ClienteDetailPage = () => {
             </Button>
           </div>
         </div>
-        <div className="mb-1"><span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-green-500/20 text-green-300">ATIVO</span></div>
-        <h1 className="text-2xl font-bold mb-1">{cliente.nome}</h1>
-        {cliente.whatsapp && <p className="flex items-center gap-2 text-sm text-primary-foreground/70"><Phone className="w-3.5 h-3.5" />{cliente.whatsapp}</p>}
+        <div className="mb-1"><span className="inline-block px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold bg-green-500/20 text-green-300">ATIVO</span></div>
+        <h1 className="text-xl sm:text-2xl font-bold mb-1 break-words">{cliente.nome}</h1>
+        {cliente.whatsapp && <p className="flex items-center gap-2 text-xs sm:text-sm text-primary-foreground/70"><Phone className="w-3.5 h-3.5" />{cliente.whatsapp}</p>}
 
-        <div className="grid grid-cols-3 gap-3 mt-5">
-          <div className="rounded-lg bg-primary-foreground/10 p-3">
-            <div className="flex items-center gap-1.5 text-xs text-primary-foreground/60 mb-1"><DollarSign className="w-3.5 h-3.5" />COBRANÇAS</div>
-            <p className="text-lg font-bold">{fmt(totalCobrancas)}</p>
-            <p className="text-xs text-primary-foreground/50">{cobrancas.length} cobranças</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4 sm:mt-5">
+          <div className="rounded-lg bg-primary-foreground/10 p-2 sm:p-3 min-w-0">
+            <div className="flex items-center gap-1 text-[9px] sm:text-xs text-primary-foreground/60 mb-1 uppercase"><DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /><span className="truncate">Cobranças</span></div>
+            <p className="text-sm sm:text-lg font-bold truncate">{fmt(totalCobrancas)}</p>
+            <p className="text-[10px] sm:text-xs text-primary-foreground/50 truncate">{cobrancas.length} cobranças</p>
           </div>
-          <div className="rounded-lg bg-primary-foreground/10 p-3">
-            <div className="flex items-center gap-1.5 text-xs text-primary-foreground/60 mb-1"><Receipt className="w-3.5 h-3.5" />RECEBIDO</div>
-            <p className="text-lg font-bold">{fmt(totalRecebido)}</p>
+          <div className="rounded-lg bg-primary-foreground/10 p-2 sm:p-3 min-w-0">
+            <div className="flex items-center gap-1 text-[9px] sm:text-xs text-primary-foreground/60 mb-1 uppercase"><Receipt className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /><span className="truncate">Recebido</span></div>
+            <p className="text-sm sm:text-lg font-bold truncate">{fmt(totalRecebido)}</p>
           </div>
-          <div className="rounded-lg bg-primary-foreground/10 p-3">
-            <div className="flex items-center gap-1.5 text-xs text-primary-foreground/60 mb-1"><DollarSign className="w-3.5 h-3.5" />A RECEBER</div>
-            <p className="text-lg font-bold">{fmt(totalPendente)}</p>
+          <div className="rounded-lg bg-primary-foreground/10 p-2 sm:p-3 min-w-0">
+            <div className="flex items-center gap-1 text-[9px] sm:text-xs text-primary-foreground/60 mb-1 uppercase"><DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /><span className="truncate">A receber</span></div>
+            <p className="text-sm sm:text-lg font-bold truncate">{fmt(totalPendente)}</p>
           </div>
         </div>
       </div>
