@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
-import { useCreateDespesa, useCreateDespesasBatch, useUpdateDespesa, type DespesaInsert, type PaymentMethod, type DespesaStatus, type Despesa } from "@/hooks/useDespesas";
+import { useCreateDespesa, useCreateDespesasBatch, useUpdateDespesa, type DespesaInsert, type PaymentMethod, type DespesaStatus, type Despesa, type RecorrenciaFrequencia } from "@/hooks/useDespesas";
 import { useEvents } from "@/hooks/useEvents";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 
@@ -50,6 +50,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
   const [parcelada, setParcelada] = useState(false);
   const [numParcelas, setNumParcelas] = useState("2");
   const [recorrente, setRecorrente] = useState(false);
+  const [recorrenciaFreq, setRecorrenciaFreq] = useState<RecorrenciaFrequencia>("mensal");
+  const [recorrenciaDias, setRecorrenciaDias] = useState("30");
   const [teamMemberId, setTeamMemberId] = useState("");
 
   const isPending = createDespesa.isPending || createBatch.isPending || updateDespesa.isPending;
@@ -65,6 +67,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
       setEventoId(despesa.evento_id || "");
       setObservacoes(despesa.observacoes || "");
       setRecorrente(despesa.recorrente);
+      setRecorrenciaFreq((despesa.recorrencia_frequencia as RecorrenciaFrequencia) || "mensal");
+      setRecorrenciaDias(despesa.recorrencia_intervalo_dias ? String(despesa.recorrencia_intervalo_dias) : "30");
       setParcelada(false);
       setTeamMemberId(despesa.team_member_id || "");
     } else {
@@ -84,6 +88,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
     setParcelada(false);
     setNumParcelas("2");
     setRecorrente(false);
+    setRecorrenciaFreq("mensal");
+    setRecorrenciaDias("30");
     setTeamMemberId("");
   };
 
@@ -106,6 +112,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
         evento_id: eventoId || null,
         observacoes: observacoes.trim() || null,
         recorrente,
+        recorrencia_frequencia: recorrente ? recorrenciaFreq : null,
+        recorrencia_intervalo_dias: recorrente && recorrenciaFreq === "personalizada" ? (parseInt(recorrenciaDias) || null) : null,
         team_member_id: categoria === "Freelancer" ? (teamMemberId || null) : null,
       });
       onOpenChange(false);
@@ -150,6 +158,8 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
         evento_id: eventoId || null,
         observacoes: observacoes.trim() || null,
         recorrente,
+        recorrencia_frequencia: recorrente ? recorrenciaFreq : null,
+        recorrencia_intervalo_dias: recorrente && recorrenciaFreq === "personalizada" ? (parseInt(recorrenciaDias) || null) : null,
         team_member_id: categoria === "Freelancer" ? (teamMemberId || null) : null,
       });
     }
