@@ -596,6 +596,7 @@ export type Database = {
           ai_enabled: boolean | null
           assigned_to: string | null
           contact_jid: string | null
+          contact_lid: string | null
           contact_name: string | null
           contact_number: string
           created_at: string
@@ -613,6 +614,7 @@ export type Database = {
           ai_enabled?: boolean | null
           assigned_to?: string | null
           contact_jid?: string | null
+          contact_lid?: string | null
           contact_name?: string | null
           contact_number: string
           created_at?: string
@@ -630,6 +632,7 @@ export type Database = {
           ai_enabled?: boolean | null
           assigned_to?: string | null
           contact_jid?: string | null
+          contact_lid?: string | null
           contact_name?: string | null
           contact_number?: string
           created_at?: string

@@ -257,17 +257,31 @@ Deno.serve(async (req) => {
       const key = data.key;
       const remoteJid = key.remoteJid;
       const isGroup = remoteJid.endsWith("@g.us");
-      const isLid = remoteJid.endsWith("@lid");
 
-      // For LID contacts the digits in remoteJid are NOT a phone number — the real
-      // phone JID comes in an alternative field. Capture it for display/lead-matching.
-      const phoneJid = isLid
-        ? (key.remoteJidAlt || key.senderPn || data.senderPn || data.key?.remoteJidAlt || remoteJid)
-        : remoteJid;
-      const whatsapp = normalizeWhatsApp(phoneJid.split("@")[0]);
-      // Best JID to reply to: the resolved phone-number JID when available,
-      // otherwise echo back the original (incl. @lid).
-      const contactJid = phoneJid;
+      // A contact can have two identities: the phone-number JID (@s.whatsapp.net)
+      // and the LID (@lid). Collect both from every field WhatsApp may use, so we
+      // can match the same person regardless of which identity a message arrives on.
+      let pnJid: string | null = null;
+      let lidJid: string | null = null;
+      const classifyJid = (j: string | null | undefined) => {
+        if (!j || typeof j !== "string") return;
+        if (j.endsWith("@s.whatsapp.net") && !pnJid) pnJid = j;
+        else if (j.endsWith("@lid") && !lidJid) lidJid = j;
+      };
+      classifyJid(remoteJid);
+      classifyJid(key.remoteJidAlt);
+      classifyJid(key.senderPn);
+      classifyJid(data.senderPn);
+      classifyJid(data.key?.remoteJidAlt);
+
+      const pnDigits = pnJid ? normalizeWhatsApp(String(pnJid).split("@")[0]) : null;
+      const lidDigits = lidJid ? normalizeWhatsApp(String(lidJid).split("@")[0]) : null;
+      // Canonical number for display/lead-matching: prefer the real phone number
+      const whatsapp = pnDigits || lidDigits || normalizeWhatsApp(remoteJid.split("@")[0]);
+      // Best JID to reply to: real phone JID when known, else the LID
+      const contactJid = pnJid || lidJid || remoteJid;
+
+      console.log(`[lid] remoteJid=${remoteJid}, remoteJidAlt=${key.remoteJidAlt}, senderPn=${key.senderPn}, pnDigits=${pnDigits}, lidDigits=${lidDigits}, canonical=${whatsapp}`);
 
       if (isGroup) {
         console.log("Skipping group message:", remoteJid);
@@ -318,13 +332,19 @@ Deno.serve(async (req) => {
         mediaMimeType = message.stickerMessage.mimetype || "image/webp";
       }
 
-      // 2. Find or create inbox conversation
+      // 2. Find or create inbox conversation.
+      // Match by ANY known identifier (phone digits or LID) against contact_number/contact_lid,
+      // so the same person isn't split into two conversations across their PN and @lid identities.
+      const knownIds = [pnDigits, lidDigits, whatsapp].filter((v, i, a) => v && a.indexOf(v) === i) as string[];
+      const orFilter = knownIds
+        .flatMap((id) => [`contact_number.eq.${id}`, `contact_lid.eq.${id}`])
+        .join(",");
       let { data: conversation } = await supabase
         .from("inbox_conversations")
         .select("*")
         .eq("user_id", userId)
-        .eq("contact_number", whatsapp)
         .eq("instance_id", instanceId)
+        .or(orFilter)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -340,6 +360,7 @@ Deno.serve(async (req) => {
           .insert({
             user_id: userId,
             contact_number: whatsapp,
+            contact_lid: lidDigits,
             contact_name: pushName || whatsapp,
             contact_jid: contactJid,
             is_group: isGroup,
@@ -359,7 +380,15 @@ Deno.serve(async (req) => {
           unread_count: key.fromMe ? 0 : (conversation.unread_count || 0) + 1,
           updated_at: new Date().toISOString()
         };
-        // Keep the exact reply-to JID up to date (handles @lid contacts)
+        // Backfill the real phone number once we learn it (was keyed by LID before)
+        if (pnDigits && conversation.contact_number !== pnDigits) {
+          updates.contact_number = pnDigits;
+        }
+        // Record the LID so future LID-keyed messages match this same conversation
+        if (lidDigits && conversation.contact_lid !== lidDigits) {
+          updates.contact_lid = lidDigits;
+        }
+        // Keep the exact reply-to JID up to date (prefer real phone JID)
         if (contactJid && conversation.contact_jid !== contactJid) {
           updates.contact_jid = contactJid;
         }
