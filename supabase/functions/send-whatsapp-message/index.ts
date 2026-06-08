@@ -90,24 +90,26 @@
      const result = await response.json();
      if (!response.ok) throw new Error(`Evolution API error: ${JSON.stringify(result)}`);
  
-     // 4. Save outbound message
-     const { error: msgError } = await supabase
-       .from("messages")
-       .insert({
-         lead_id,
-         instance_id,
-         direction: "outbound",
-         type,
-         content,
-         media_url: result.mediaUrl || null, // If API returns a URL
-         media_mime_type,
-         media_filename,
-         whatsapp_message_id: result.key?.id || result.messageId,
-         sent_by,
-         status: "sent"
-       });
- 
-     if (msgError) console.error("Error saving outbound message:", msgError);
+     // 4. Save outbound message to the lead message log (only for lead-based sends;
+     //    inbox conversations save to inbox_messages separately).
+     if (lead_id) {
+       const { error: msgError } = await supabase
+         .from("messages")
+         .insert({
+           lead_id,
+           direction: "outbound",
+           type,
+           content,
+           media_url: result.mediaUrl || null, // If API returns a URL
+           media_mime_type,
+           media_filename,
+           whatsapp_message_id: result.key?.id || result.messageId,
+           sent_by,
+           status: "sent"
+         });
+
+       if (msgError) console.error("Error saving outbound message:", msgError);
+     }
  
      return new Response(JSON.stringify({ success: true, result }), {
        headers: { ...corsHeaders, "Content-Type": "application/json" }
