@@ -16,7 +16,7 @@ export type Database = {
     Tables: {
       ai_config: {
         Row: {
-          ai_buffer_seconds: number | null
+          ai_buffer_seconds: number
           ai_trigger_enabled: boolean
           ai_trigger_keyword: string | null
           ai_trigger_keywords: string[] | null
@@ -33,7 +33,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          ai_buffer_seconds?: number | null
+          ai_buffer_seconds?: number
           ai_trigger_enabled?: boolean
           ai_trigger_keyword?: string | null
           ai_trigger_keywords?: string[] | null
@@ -50,7 +50,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          ai_buffer_seconds?: number | null
+          ai_buffer_seconds?: number
           ai_trigger_enabled?: boolean
           ai_trigger_keyword?: string | null
           ai_trigger_keywords?: string[] | null
@@ -370,6 +370,8 @@ export type Database = {
           observacoes: string | null
           parcela_numero: number | null
           parcela_total: number | null
+          recorrencia_frequencia: string | null
+          recorrencia_intervalo_dias: number | null
           recorrente: boolean
           status: Database["public"]["Enums"]["despesa_status"]
           team_member_id: string | null
@@ -390,6 +392,8 @@ export type Database = {
           observacoes?: string | null
           parcela_numero?: number | null
           parcela_total?: number | null
+          recorrencia_frequencia?: string | null
+          recorrencia_intervalo_dias?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
           team_member_id?: string | null
@@ -410,6 +414,8 @@ export type Database = {
           observacoes?: string | null
           parcela_numero?: number | null
           parcela_total?: number | null
+          recorrencia_frequencia?: string | null
+          recorrencia_intervalo_dias?: number | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["despesa_status"]
           team_member_id?: string | null

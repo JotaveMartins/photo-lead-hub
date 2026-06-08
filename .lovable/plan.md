@@ -1,51 +1,61 @@
-## 1. Remover "Ver mais campos" do modal de Lead
+# Revisão geral da interface mobile
 
-`src/components/LeadModal.tsx`:
-- Remover bloco `showMore`, botão "Ver mais campos", estado `showMore`, estado `dataEntrada` e o select de Status que estava lá dentro (já existe outro Status visível na edição).
-- Tirar `data_entrada_novo_lead` do `leadData` enviado ao backend (a trigger do banco já preenche automaticamente).
-- Remover imports não usados (`ChevronDown`, `ChevronRight`).
+O app já é responsivo (sidebar drawer, top bar mobile, modais com `max-h-[90vh]`), mas várias páginas e componentes ainda foram pensados primariamente em desktop. Como o escopo é "app inteiro", proponho atacar em **4 fases**, da mais visível para a menos. Cada fase pode ser aprovada/implementada de forma independente — assim você vê o resultado antes de seguir.
 
-## 2. Padronizar todos os date pickers
+Trabalho apenas em frontend/presentation, mantendo o tema escuro, tokens HSL e padrões já definidos (sem portals, native `<select>`, etc.).
 
-Trocar `<Input type="date" />` pelo `DatePickerField` em:
-- `src/components/ContratoInfoModal.tsx` (linha ~173)
-- `src/components/contratos/ContratoDrawer.tsx` (linha ~227)
+---
 
-Auditar com `rg 'type="date"' src/` depois para garantir zero ocorrências restantes.
+## Fase 1 — Fundamentos (chrome do app)
 
-## 3. Modernizar o seletor de etapa dentro do Lead
+Toca todas as páginas, baixo risco, alto impacto.
 
-`src/components/LeadDetailDrawer.tsx` (linha ~596): o `<select>` nativo do status fica feio. Vou substituí-lo por um botão customizado (estilo do `ItemSelector` em `NovaCobrancaModal`) com badge colorido por etapa, ainda sem usar Radix portal — respeitando a regra de UI do projeto (memory `tech/ui-input-constraints`). Cada opção mostra o nome da etapa com seu badge, e clicar dispara o mesmo `handleStatusChange` atual.
+1. **Top bar mobile** (`DashboardLayout.tsx`): adicionar título da página no centro (vindo da rota ativa) e um botão "+" rápido contextual quando aplicável (Novo Lead, Nova Despesa…). Hoje só tem o menu hamburger e o logo.
+2. **Sidebar mobile** (`Sidebar.tsx`): aumentar tap targets, melhorar espaçamento dos badges, fechar com swipe (drag horizontal) além do backdrop, e garantir scroll interno fluido em telas baixas.
+3. **Cabeçalhos de página** (`LeadsPage`, `DashboardHeader`, demais páginas): hoje muitos usam `flex-col sm:flex-row` mas empilham ações em 2 linhas no mobile. Padronizar:
+   - Título + contagem em 1 linha compacta
+   - Ações secundárias (lixeira, notificações) em ícones agrupados
+   - Botão primário (ex: Novo Lead) full-width abaixo, ou flutuante
+4. **Espaçamento global** (`<main>` em `DashboardLayout`): `p-4` no mobile está apertado para cards densos. Ajustar para `px-3 py-4` e revisar margens dos cabeçalhos (`mb-8` → `mb-4` no mobile).
 
-## 4. Agenda: permitir cadastrar Serviço inline
+## Fase 2 — Listagens e tabelas
 
-`src/pages/AgendaPage.tsx` (linha ~606): o `SearchSelect` de serviço não tem atalho para criar. Vou substituir por um seletor inline com botão **"+ Novo serviço"** (mesmo padrão do `ItemSelector` de cobranças, mas só com serviços, sem pacotes — já que o evento da agenda só vincula `service_id`).
+A maioria das tabelas (`LeadsTableDB`, `ClienteTable`, `CobrancaTable`, despesas, contratos, equipe, pacotes, serviços, agenda) força scroll horizontal no mobile.
 
-Ao clicar em "Novo serviço": abre `ServiceModal`. Quando o serviço é criado:
-- O modal de serviço fecha.
-- O modal de Novo Evento **permanece aberto**.
-- O novo serviço já fica selecionado (`selectedServiceId` recebe o id).
+- Converter cada tabela para **renderizar como lista de cards no mobile** (já existe padrão em `ClienteCards` e `CobrancaCards`). Aplicar o mesmo padrão nas que faltam.
+- No Kanban (`KanbanBoard.tsx`): no mobile, transformar as colunas de status num **carrossel horizontal snap** com indicador de coluna ativa e altura controlada, em vez de scroll vertical de página + scroll horizontal de board.
+- Filtros (origem, busca, intervalo de datas): empilhar verticalmente e usar um `Sheet` "Filtros" acionável por botão único quando houver mais de 2 filtros.
 
-## 5. Bug: criar serviço inline em Cobranças fecha tudo e salva a cobrança
+## Fase 3 — Modais e formulários
 
-Causa: o `ServiceModal` (e `PackageModal`) renderiza um `<form>` aninhado dentro do `<form>` do `NovaCobrancaModal`. HTML não permite forms aninhados — o submit borbulha pro form pai, criando a cobrança. Além disso, o `Dialog` interno fechando dispara `onOpenChange` no `Dialog` pai por causa do gerenciamento de foco do Radix.
+Padronizar todos os modais para mobile (referência: `NovaDespesaModal` que já está em `max-w-2xl`).
 
-Correção:
-- Garantir que `ServiceModal` e `PackageModal` sejam renderizados **fora** do `<form>` pai. Vou movê-los para fora do `<DialogContent>` do `NovaCobrancaModal`, junto ao Dialog raiz, ou usar `React.createPortal` para `document.body`. A solução mais simples e segura: mover esses dois modais para fora do `<form>` (irmãos do Dialog principal), passando `selectedName/onSelect` via props pra um wrapper.
-- No `ItemSelector`, o `onCreated` deve apenas chamar `onSelect(nome, valor)` e **não** disparar submit; já está assim, mas validar.
-- Verificar que os botões dentro do `ServiceModal` e `PackageModal` têm `type="button"` no Cancelar e o Salvar é `type="submit"` do form interno (que não vai mais ser aninhado).
+- Modais grandes (NovaCobrancaModal, EditCobrancaModal, LeadModal, EditClienteModal, NovoClienteModal, PackageModal, ServiceModal, ContratoInfoModal, TeamMemberModal, RequiredFieldsModal, FollowUpModal, LossReasonModal, CreateUserModal): garantir `w-[calc(100vw-1.5rem)] max-w-2xl max-h-[90dvh] overflow-y-auto`, grids `grid-cols-1 sm:grid-cols-2`, e rodapé com botões empilhados full-width no mobile.
+- `LeadDetailDrawer`: no mobile usar 100% da largura (atualmente 60%), e mover tabs internas para um sticky header dentro do drawer.
+- Date/Time pickers (`DatePickerField`, `TimePickerField`): conferir se abrem bem no mobile (popover não cortado pela viewport).
 
-Vou checar `ServiceModal.tsx` e `PackageModal.tsx` para confirmar o `<form>` interno e atributos `type` dos botões.
+## Fase 4 — Páginas específicas com layouts próprios
 
-## Ordem de implementação
+- **Dashboard / FinanceiroResumoPage / RelatoriosPage**: cards de stats em grid `grid-cols-2` no mobile (hoje muitos usam 4 colunas que ficam minúsculas). Gráficos (`recharts`) com altura reduzida e tooltip touch-friendly.
+- **InboxPage / MensagensPage / LeadConversation**: garantir conversação em tela cheia no mobile com header sticky e input fixo no rodapé (acima do teclado). Lista de conversas vira tela separada com "voltar".
+- **AgendaPage**: hoje é provavelmente uma grade — adicionar uma view "agenda lista" como padrão no mobile.
+- **AdminPage / IAPage / IntegracoesPage / WhatsAppConfigPage**: revisão de cards e formulários (geralmente menos críticos, mas finalizam a passada).
 
-1. Limpar `LeadModal` (item 1).
-2. Trocar date inputs nativos (item 2).
-3. Refatorar select de etapa no drawer (item 3).
-4. Corrigir bug do submit aninhado em Cobranças (item 5) — antes do item 4, porque é o mesmo padrão de inline-add.
-5. Implementar inline-add de serviço na Agenda (item 4) já com o padrão corrigido.
+---
 
-## Observações
+## Detalhes técnicos
 
-- Nenhuma mudança de banco.
-- Mantém a regra de UI: sem Radix portals em drawers/modais (item 3 usa custom dropdown, não Radix Select).
+- Sem mudanças de regra de negócio nem de banco; só CSS, layout e pequenos ajustes de componentes.
+- Continuo usando tokens (`bg-card`, `text-foreground`, `--border`, etc.). Nada de cor hardcoded.
+- Mantenho native `<select>` e proibição de portais conforme as regras de UI já existentes.
+- Uso `useIsMobile` (já existe em `src/hooks/use-mobile.tsx`) quando precisar de lógica condicional além do que Tailwind resolve.
+- Tap targets mínimos 44×44 nos pontos de toque primários.
+- QA visual em cada fase pelo preview no viewport atual (390×843).
+
+---
+
+## Como prosseguir
+
+Sugiro começarmos pela **Fase 1** (chrome do app) — é o que mais muda a sensação geral e serve de base para as outras. Você aprova, eu implemento, vemos o resultado, e seguimos para a Fase 2.
+
+Se preferir uma ordem diferente (ex: começar por modais porque te incomodam mais), é só me dizer.
