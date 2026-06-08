@@ -256,9 +256,19 @@ Deno.serve(async (req) => {
       const message = data.message;
       const key = data.key;
       const remoteJid = key.remoteJid;
-      const whatsapp = normalizeWhatsApp(remoteJid.split("@")[0]);
       const isGroup = remoteJid.endsWith("@g.us");
-      
+      const isLid = remoteJid.endsWith("@lid");
+
+      // For LID contacts the digits in remoteJid are NOT a phone number — the real
+      // phone JID comes in an alternative field. Capture it for display/lead-matching.
+      const phoneJid = isLid
+        ? (key.remoteJidAlt || key.senderPn || data.senderPn || data.key?.remoteJidAlt || remoteJid)
+        : remoteJid;
+      const whatsapp = normalizeWhatsApp(phoneJid.split("@")[0]);
+      // Best JID to reply to: the resolved phone-number JID when available,
+      // otherwise echo back the original (incl. @lid).
+      const contactJid = phoneJid;
+
       if (isGroup) {
         console.log("Skipping group message:", remoteJid);
         return new Response(JSON.stringify({ success: true, message: "Group message ignored" }), {
@@ -331,6 +341,7 @@ Deno.serve(async (req) => {
             user_id: userId,
             contact_number: whatsapp,
             contact_name: pushName || whatsapp,
+            contact_jid: contactJid,
             is_group: isGroup,
             status: 'pending_ai',
             last_message: content,
@@ -348,6 +359,10 @@ Deno.serve(async (req) => {
           unread_count: key.fromMe ? 0 : (conversation.unread_count || 0) + 1,
           updated_at: new Date().toISOString()
         };
+        // Keep the exact reply-to JID up to date (handles @lid contacts)
+        if (contactJid && conversation.contact_jid !== contactJid) {
+          updates.contact_jid = contactJid;
+        }
         // Backfill the real contact name once the contact replies (when we only have the number)
         if (pushName && (!conversation.contact_name || conversation.contact_name === conversation.contact_number)) {
           updates.contact_name = pushName;

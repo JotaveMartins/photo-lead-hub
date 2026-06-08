@@ -265,7 +265,7 @@ async function transcribeAudio(mediaUrl: string, provider: string, apiKey: strin
      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp-message`, {
        method: "POST",
        headers: { "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`, "Content-Type": "application/json" },
-       body: JSON.stringify({ lead_id: lead_id || null, phone_number: phoneNumber, instance_id: instanceId, type: "text", content: aiResponse, sent_by: "ai" })
+       body: JSON.stringify({ lead_id: lead_id || null, phone_number: phoneNumber, jid: conv?.contact_jid || undefined, instance_id: instanceId, type: "text", content: aiResponse, sent_by: "ai" })
      });
 
      // Save assistant reply to inbox_messages for visibility

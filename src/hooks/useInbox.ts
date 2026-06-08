@@ -78,6 +78,7 @@ export const useUpdateConversation = () => {
 export interface SendInboxMessageParams {
   conversationId: string;
   number: string;
+  jid?: string | null;
   instanceId: string;
   text?: string;
   type?: 'text' | 'image' | 'video' | 'audio' | 'document';
@@ -138,6 +139,7 @@ export const useSendInboxMessage = () => {
         body: {
           instance_id: params.instanceId,
           phone_number: params.number,
+          jid: params.jid || undefined,
           type: msgType,
           content: params.text || '',
           media_base64: params.mediaBase64 || undefined,

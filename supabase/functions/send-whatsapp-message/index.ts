@@ -15,7 +15,7 @@
        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
      );
  
-    const { lead_id, phone_number, instance_id, type, content, media_base64, media_filename, media_mime_type, sent_by = 'ai' } = await req.json();
+    const { lead_id, phone_number, jid, instance_id, type, content, media_base64, media_filename, media_mime_type, sent_by = 'ai' } = await req.json();
 
     // 1. Get instance details
     const { data: instance, error: instError } = await supabase
@@ -27,9 +27,12 @@
     if (instError || !instance) throw new Error("Instance not found");
 
     let remoteJid = "";
-    
+
     // 2. Get target identifier
-    if (lead_id) {
+    // Prefer the exact JID captured from WhatsApp (handles @lid contacts on newer versions)
+    if (jid && String(jid).includes('@')) {
+      remoteJid = jid;
+    } else if (lead_id) {
       const { data: lead, error: leadError } = await supabase
         .from("leads")
         .select("*")
@@ -41,7 +44,7 @@
     } else if (phone_number) {
       remoteJid = phone_number.includes('@') ? phone_number : `${phone_number}@s.whatsapp.net`;
     } else {
-      throw new Error("Either lead_id or phone_number must be provided");
+      throw new Error("Either lead_id, phone_number or jid must be provided");
     }
 
     let endpoint = "";

@@ -345,6 +345,7 @@ const InboxPage = () => {
         await sendMessage.mutateAsync({
           conversationId: selectedConv.id,
           number: selectedConv.contact_number,
+          jid: (selectedConv as any).contact_jid,
           instanceId: activeInstance.id,
           text: currentText || undefined,
           type: mediaType,
@@ -358,6 +359,7 @@ const InboxPage = () => {
         await sendMessage.mutateAsync({
           conversationId: selectedConv.id,
           number: selectedConv.contact_number,
+          jid: (selectedConv as any).contact_jid,
           text: currentText,
           instanceId: activeInstance.id,
           type: "text",
