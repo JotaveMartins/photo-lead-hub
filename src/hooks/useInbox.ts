@@ -213,6 +213,9 @@ export const useCreateInboxTrigger = () => {
       queryClient.invalidateQueries({ queryKey: ["inbox_triggers"] });
       toast.success("Trigger criado com sucesso!");
     },
+    onError: (error: any) => {
+      toast.error(error?.message || "Erro ao criar trigger.");
+    },
   });
 };
 
