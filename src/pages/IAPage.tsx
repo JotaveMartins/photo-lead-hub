@@ -882,6 +882,25 @@ const IAPage = () => {
 
       <InboxTriggersConfig />
     </div>
+    <AlertDialog open={triagemDialogOpen} onOpenChange={(o) => !movingLeads && setTriagemDialogOpen(o)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Mover leads da Triagem Feita?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Você tem <strong>{triagemCount}</strong> {triagemCount === 1 ? "lead" : "leads"} em
+            {" "}<strong>"Triagem Feita"</strong>. Como a IA será desativada, essa etapa deixará
+            de aparecer no Kanban. Deseja mover {triagemCount === 1 ? "esse lead" : "esses leads"} para
+            {" "}<strong>"Contato Iniciado"</strong>?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={movingLeads}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={(e) => { e.preventDefault(); handleMoveAndSave(); }} disabled={movingLeads}>
+            {movingLeads ? "Movendo..." : "Mover e desativar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </TooltipProvider>
   );
 };
