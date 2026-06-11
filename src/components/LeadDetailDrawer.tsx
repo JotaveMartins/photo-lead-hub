@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { parseLocalDate } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
  import { Phone, Calendar, Send, Trash2, MessageSquare, Pencil, Clock, CheckCircle2, Circle, Lock, Plus, CalendarCheck, ArrowRight, FileText, History, Bot, Pause, Play, MapPin, BadgeDollarSign } from "lucide-react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useLeadNotes";
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask, useDeleteLeadTask } from "@/hooks/useLeadTasks";
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
+import { useAiActive } from "@/hooks/useAiActive";
 import { useQueryClient } from "@tanstack/react-query";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import LeadToClienteFlow from "@/components/LeadToClienteFlow";
@@ -79,6 +80,7 @@ interface StageSelectProps {
 const StageSelect = ({ value, onChange }: StageSelectProps) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { data: aiActive = false } = useAiActive();
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -87,6 +89,9 @@ const StageSelect = ({ value, onChange }: StageSelectProps) => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
   const styles = getStageStyles(value);
+  const visibleStatusOptions = STATUS_OPTIONS.filter(
+    (opt) => opt.value !== "Triagem Feita" || aiActive || value === "Triagem Feita"
+  );
   return (
     <div ref={ref} className="relative">
       <button
@@ -100,7 +105,7 @@ const StageSelect = ({ value, onChange }: StageSelectProps) => {
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-popover shadow-lg overflow-hidden">
-          {STATUS_OPTIONS.map((opt) => (
+          {visibleStatusOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
@@ -169,19 +174,55 @@ const InlineSelectField = ({
 }: {
   label: string; value: string; options: string[]; onSave: (v: string) => void;
 }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   return (
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <select
-        value={value || ""}
-        onChange={(e) => onSave(e.target.value)}
-        className="w-full bg-transparent border-0 p-0 px-1 py-0.5 -mx-1 h-auto text-sm text-foreground cursor-pointer hover:bg-muted/50 rounded focus:outline-none focus:ring-1 focus:ring-ring"
-      >
-        <option value="">—</option>
-        {options.map((o) => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
+      <div ref={ref} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex h-9 w-full items-center justify-between rounded-md border border-border bg-muted px-2.5 py-1.5 text-sm text-foreground hover:bg-muted/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <span className={value ? "text-foreground" : "text-muted-foreground"}>{value || "—"}</span>
+          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-card shadow-md">
+            <div className="max-h-52 overflow-y-auto py-1">
+              <button
+                type="button"
+                onClick={() => { onSave(""); setOpen(false); }}
+                className={`w-full px-3 py-1.5 text-left text-sm flex items-center justify-between hover:bg-muted/60 transition-colors ${!value ? "text-foreground font-medium" : "text-muted-foreground"}`}
+              >
+                <span>—</span>
+                {!value && <Check className="w-3.5 h-3.5 text-primary" />}
+              </button>
+              {options.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => { onSave(o); setOpen(false); }}
+                  className={`w-full px-3 py-1.5 text-left text-sm flex items-center justify-between hover:bg-muted/60 transition-colors ${value === o ? "text-foreground font-medium bg-muted/40" : "text-foreground"}`}
+                >
+                  <span>{o}</span>
+                  {value === o && <Check className="w-3.5 h-3.5 text-primary" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -742,8 +783,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
               <InteresseSelect
                 value={lead.interesse || ""}
                 onValueChange={(v) => handleFieldSave("interesse", v || null)}
-                manageable={true}
-                variant="inline"
+                manageable={false}
               />
             </div>
 

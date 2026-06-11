@@ -4,6 +4,7 @@ import SearchSelect from "@/components/SearchSelect";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
+import { useAiActive } from "@/hooks/useAiActive";
  import { Phone, Calendar, GripVertical, Filter, DollarSign, ChevronRight, Trash2, Bot } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SearchInput } from "@/components/ui/search-input";
@@ -69,6 +70,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: leads = [], isLoading } = useLeads();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const { data: interesseOptions = [] } = useInteresseOptions();
+  const { data: aiActive = false } = useAiActive();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
@@ -374,7 +376,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         className="flex gap-3 overflow-x-auto overflow-y-visible pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {(statusFilter === "open"
-          ? ACTIVE_COLUMNS
+          ? ACTIVE_COLUMNS.filter((c) => c.status !== "Triagem Feita" || aiActive)
           : statusFilter === "won"
           ? CLOSED_COLUMNS.filter((c) => c.status === "Fechado Ganho")
           : CLOSED_COLUMNS.filter((c) => c.status === "Fechado Perdido")
@@ -386,7 +388,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           return (
             <div
               key={col.status}
-              className={`flex-shrink-0 w-72 bg-card border rounded-xl flex flex-col transition-colors ${
+              className={`flex-shrink-0 w-72 xl:flex-1 xl:w-auto xl:min-w-0 bg-card border rounded-xl flex flex-col transition-colors ${
                 isDragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
               onDragOver={(e) => handleDragOver(e, col.status)}
