@@ -939,6 +939,7 @@ export type Database = {
           data_entrada_follow_up: string | null
           data_entrada_novo_lead: string | null
           data_entrada_proposta_enviada: string | null
+          data_entrada_triagem_feita: string | null
           data_evento: string | null
           data_fechamento: string | null
           data_pedido: string | null
@@ -985,6 +986,7 @@ export type Database = {
           data_entrada_follow_up?: string | null
           data_entrada_novo_lead?: string | null
           data_entrada_proposta_enviada?: string | null
+          data_entrada_triagem_feita?: string | null
           data_evento?: string | null
           data_fechamento?: string | null
           data_pedido?: string | null
@@ -1031,6 +1033,7 @@ export type Database = {
           data_entrada_follow_up?: string | null
           data_entrada_novo_lead?: string | null
           data_entrada_proposta_enviada?: string | null
+          data_entrada_triagem_feita?: string | null
           data_evento?: string | null
           data_fechamento?: string | null
           data_pedido?: string | null
