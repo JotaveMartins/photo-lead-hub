@@ -376,7 +376,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         className="flex gap-3 overflow-x-auto overflow-y-visible pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {(statusFilter === "open"
-          ? ACTIVE_COLUMNS
+          ? ACTIVE_COLUMNS.filter((c) => c.status !== "Triagem Feita" || aiActive)
           : statusFilter === "won"
           ? CLOSED_COLUMNS.filter((c) => c.status === "Fechado Ganho")
           : CLOSED_COLUMNS.filter((c) => c.status === "Fechado Perdido")
