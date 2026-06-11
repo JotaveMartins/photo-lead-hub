@@ -1,0 +1,3 @@
+CREATE POLICY "Admins can view all conversations" ON public.inbox_conversations FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can view all inbox messages" ON public.inbox_messages FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Admins can view all triggers" ON public.inbox_triggers FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
