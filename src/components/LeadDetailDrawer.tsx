@@ -15,6 +15,7 @@ import { useLeadNotes, useCreateLeadNote, useDeleteLeadNote } from "@/hooks/useL
 import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLeadTask, useUpdateLeadTask, useCreateFollowUpTask, useDeleteLeadTask } from "@/hooks/useLeadTasks";
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
+import { useAiActive } from "@/hooks/useAiActive";
 import { useQueryClient } from "@tanstack/react-query";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import LeadToClienteFlow from "@/components/LeadToClienteFlow";
@@ -79,6 +80,7 @@ interface StageSelectProps {
 const StageSelect = ({ value, onChange }: StageSelectProps) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { data: aiActive = false } = useAiActive();
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -87,6 +89,9 @@ const StageSelect = ({ value, onChange }: StageSelectProps) => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
   const styles = getStageStyles(value);
+  const visibleStatusOptions = STATUS_OPTIONS.filter(
+    (opt) => opt.value !== "Triagem Feita" || aiActive || value === "Triagem Feita"
+  );
   return (
     <div ref={ref} className="relative">
       <button
@@ -100,7 +105,7 @@ const StageSelect = ({ value, onChange }: StageSelectProps) => {
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-popover shadow-lg overflow-hidden">
-          {STATUS_OPTIONS.map((opt) => (
+          {visibleStatusOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
