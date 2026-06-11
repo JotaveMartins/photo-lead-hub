@@ -388,7 +388,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           return (
             <div
               key={col.status}
-              className={`flex-shrink-0 w-72 bg-card border rounded-xl flex flex-col transition-colors ${
+              className={`flex-shrink-0 w-72 xl:flex-1 xl:w-auto xl:min-w-0 bg-card border rounded-xl flex flex-col transition-colors ${
                 isDragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
               onDragOver={(e) => handleDragOver(e, col.status)}
