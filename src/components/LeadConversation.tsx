@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { useSendInboxMessage } from "@/hooks/useInbox";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -61,17 +62,21 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const queryClient = useQueryClient();
+  const effectiveUserId = useEffectiveUserId();
   const { data: instances = [] } = useWhatsAppInstances();
   const sendMessage = useSendInboxMessage();
   const activeInstance = instances.find((i: any) => i.status === "connected");
 
   // ── Find conversation ──────────────────────────────────────────────────────
   const { data: conv } = useQuery({
-    queryKey: ["lead-conversation", leadId],
+    queryKey: ["lead-conversation", leadId, effectiveUserId],
     queryFn: async () => {
+      if (!effectiveUserId) return null;
+
       const { data } = await supabase
         .from("inbox_conversations")
         .select("*")
+        .eq("user_id", effectiveUserId)
         .eq("lead_id", leadId)
         .order("updated_at", { ascending: false });
 
@@ -85,6 +90,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
       const { data: all } = await supabase
         .from("inbox_conversations")
         .select("*")
+        .eq("user_id", effectiveUserId)
         .order("updated_at", { ascending: false });
 
       const matched = (all || []).find((c) => {
@@ -97,7 +103,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
       }
       return matched ?? null;
     },
-    enabled: !!leadId,
+    enabled: !!leadId && !!effectiveUserId,
   });
 
   // ── Fetch messages ─────────────────────────────────────────────────────────
