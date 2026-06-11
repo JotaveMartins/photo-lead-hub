@@ -11,6 +11,10 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -257,6 +261,9 @@ const IAPage = () => {
   const [testing, setTesting] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
+  const [triagemDialogOpen, setTriagemDialogOpen] = useState(false);
+  const [triagemCount, setTriagemCount] = useState(0);
+  const [movingLeads, setMovingLeads] = useState(false);
 
   useEffect(() => {
     if (effectiveUserId) fetchData();
@@ -308,7 +315,7 @@ const IAPage = () => {
     setConfig((c) => ({ ...c, ai_trigger_keywords: c.ai_trigger_keywords.filter((k) => k !== kw) }));
   };
 
-  const handleSaveConfig = async () => {
+  const performSaveConfig = async () => {
     if (!effectiveUserId) return;
     setSaving(true);
     try {
@@ -324,6 +331,63 @@ const IAPage = () => {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    if (!effectiveUserId) return;
+    // If both AI modes will be off, check for leads stuck in "Triagem Feita"
+    if (!config.is_active && !config.ai_trigger_enabled) {
+      const { count } = await supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", effectiveUserId)
+        .eq("status", "Triagem Feita")
+        .is("deleted_at", null);
+      if ((count ?? 0) > 0) {
+        setTriagemCount(count ?? 0);
+        setTriagemDialogOpen(true);
+        return;
+      }
+    }
+    await performSaveConfig();
+  };
+
+  const handleMoveAndSave = async () => {
+    if (!effectiveUserId) return;
+    setMovingLeads(true);
+    try {
+      const { data: leadsToMove, error: fetchErr } = await supabase
+        .from("leads")
+        .select("id")
+        .eq("user_id", effectiveUserId)
+        .eq("status", "Triagem Feita")
+        .is("deleted_at", null);
+      if (fetchErr) throw fetchErr;
+      const ids = (leadsToMove ?? []).map((l) => l.id);
+      if (ids.length > 0) {
+        const { error: updErr } = await supabase
+          .from("leads")
+          .update({ status: "Contato Iniciado" })
+          .in("id", ids);
+        if (updErr) throw updErr;
+        const historyRows = ids.map((leadId) => ({
+          lead_id: leadId,
+          user_id: effectiveUserId,
+          field_name: "status",
+          field_label: "Etapa",
+          old_value: "Triagem Feita",
+          new_value: "Contato Iniciado",
+        }));
+        await supabase.from("lead_history").insert(historyRows);
+        toast.success(`${ids.length} ${ids.length === 1 ? "lead movido" : "leads movidos"} para Contato Iniciado.`);
+      }
+      setTriagemDialogOpen(false);
+      await performSaveConfig();
+    } catch (err: any) {
+      toast.error("Erro ao mover leads: " + (err?.message || "tente novamente"));
+    } finally {
+      setMovingLeads(false);
     }
   };
 
@@ -818,6 +882,25 @@ const IAPage = () => {
 
       <InboxTriggersConfig />
     </div>
+    <AlertDialog open={triagemDialogOpen} onOpenChange={(o) => !movingLeads && setTriagemDialogOpen(o)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Mover leads da Triagem Feita?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Você tem <strong>{triagemCount}</strong> {triagemCount === 1 ? "lead" : "leads"} em
+            {" "}<strong>"Triagem Feita"</strong>. Como a IA será desativada, essa etapa deixará
+            de aparecer no Kanban. Deseja mover {triagemCount === 1 ? "esse lead" : "esses leads"} para
+            {" "}<strong>"Contato Iniciado"</strong>?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={movingLeads}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={(e) => { e.preventDefault(); handleMoveAndSave(); }} disabled={movingLeads}>
+            {movingLeads ? "Movendo..." : "Mover e desativar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </TooltipProvider>
   );
 };
