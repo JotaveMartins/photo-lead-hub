@@ -374,11 +374,10 @@ const IAPage = () => {
         const historyRows = ids.map((leadId) => ({
           lead_id: leadId,
           user_id: effectiveUserId,
-          action: "stage_changed",
           field_name: "status",
+          field_label: "Etapa",
           old_value: "Triagem Feita",
           new_value: "Contato Iniciado",
-          description: "Movido automaticamente da Triagem Feita ao desativar a IA",
         }));
         await supabase.from("lead_history").insert(historyRows);
         toast.success(`${ids.length} ${ids.length === 1 ? "lead movido" : "leads movidos"} para Contato Iniciado.`);
