@@ -194,21 +194,28 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     try {
       let conversationId = conv?.id ?? null;
 
-      // Create conversation if needed
+      // Create conversation if needed.
+      // Usa upsert porque já pode existir uma conversa com esse número
+      // (UNIQUE user_id+contact_number) — ex.: lead já no CRM com conversa
+      // criada por inbound. Sem isso o insert quebrava na constraint e a
+      // primeira mensagem não era enviada.
       if (!conversationId) {
-        const { data: user } = await supabase.auth.getUser();
-        const { data: newConv } = await supabase
+        if (!effectiveUserId) { toast.error("Usuário não identificado."); return; }
+        const { data: newConv, error: convError } = await supabase
           .from("inbox_conversations")
-          .insert({
-            user_id: user.user!.id,
+          .upsert({
+            user_id: effectiveUserId,
             contact_number: number,
             lead_id: leadId,
             status: "open",
             last_message: currentText || (pendingFile?.name ?? ""),
-          })
+          }, { onConflict: "user_id,contact_number" })
           .select()
           .single();
-        if (!newConv) { toast.error("Erro ao criar conversa"); return; }
+        if (convError || !newConv) {
+          toast.error("Erro ao criar conversa: " + (convError?.message || "tente novamente"));
+          return;
+        }
         conversationId = newConv.id;
         queryClient.invalidateQueries({ queryKey: ["lead-conversation", leadId] });
       } else if (conv?.status === "pending_ai") {

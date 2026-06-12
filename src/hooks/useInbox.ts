@@ -150,7 +150,18 @@ export const useSendInboxMessage = () => {
         }
       });
 
-      if (functionError) throw functionError;
+      if (functionError) {
+        // supabase.functions.invoke devolve uma mensagem genérica ("non-2xx
+        // status code"); extrai o erro real retornado pela Edge Function.
+        let detail = functionError.message;
+        try {
+          const body = await (functionError as any).context?.json?.();
+          if (body?.error) detail = body.error;
+        } catch { /* mantém a mensagem genérica */ }
+        throw new Error(detail);
+      }
+      // A função pode retornar 200 com { error } em alguns fluxos.
+      if (data?.error) throw new Error(data.error);
 
       const { error: insertError } = await supabase
         .from("inbox_messages")
