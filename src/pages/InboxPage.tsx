@@ -248,6 +248,7 @@ const InboxPage = () => {
   const sendMessage = useSendInboxMessage();
   const markRead = useMarkConversationRead();
   const createLead = useCreateLead();
+  const [showCreateLeadModal, setShowCreateLeadModal] = useState(false);
 
   const selectedConv = allConversations.find((c) => c.id === selectedConversationId) ?? null;
   const activeInstance = instances.find((i) => i.status === "connected");
@@ -432,19 +433,18 @@ const InboxPage = () => {
     toast.success("Atendimento reaberto.");
   };
 
-  const handleCreateLead = async () => {
+  const handleCreateLead = () => {
+    if (!selectedConv) return;
+    setShowCreateLeadModal(true);
+  };
+
+  const handleLeadCreated = async (lead: any) => {
     if (!selectedConv) return;
     try {
-      const lead = await createLead.mutateAsync({
-        nome: selectedConv.contact_name || `Contato ${selectedConv.contact_number}`,
-        whatsapp: selectedConv.contact_number.replace(/\D/g, ""),
-        status: "Novo Lead",
-        origem: "WhatsApp Inbox",
-      });
       await updateConv.mutateAsync({ id: selectedConv.id, lead_id: lead.id });
       toast.success("Lead criado e vinculado!");
     } catch {
-      toast.error("Erro ao criar lead.");
+      toast.error("Lead criado, mas erro ao vincular à conversa.");
     }
   };
 
