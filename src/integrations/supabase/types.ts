@@ -24,6 +24,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          knowledge_base: string | null
           max_tokens: number | null
           model: string
           provider: string
@@ -41,6 +42,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          knowledge_base?: string | null
           max_tokens?: number | null
           model: string
           provider: string
@@ -58,6 +60,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          knowledge_base?: string | null
           max_tokens?: number | null
           model?: string
           provider?: string
