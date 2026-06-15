@@ -35,9 +35,12 @@ interface LeadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lead?: Lead | null;
+  prefillNome?: string;
+  prefillWhatsapp?: string;
+  onCreated?: (lead: Lead) => void;
 }
 
-const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
+const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onCreated }: LeadModalProps) => {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [interesse, setInteresse] = useState("");
@@ -68,8 +71,10 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       setValor(lead.valor?.toString() || "");
     } else {
       resetForm();
+      if (prefillNome) setNome(prefillNome);
+      if (prefillWhatsapp) setWhatsapp(prefillWhatsapp.replace(/\D/g, ""));
     }
-  }, [lead, open]);
+  }, [lead, open, prefillNome, prefillWhatsapp]);
 
   const resetForm = () => {
     setNome(""); setWhatsapp(""); setInteresse(""); setStatus("Novo Lead"); setOrigem("");
@@ -116,7 +121,8 @@ const LeadModal = ({ open, onOpenChange, lead }: LeadModalProps) => {
       if (lead) {
         await updateLead.mutateAsync({ id: lead.id, ...leadData });
       } else {
-        await createLead.mutateAsync(leadData);
+        const created = await createLead.mutateAsync(leadData);
+        if (created && onCreated) onCreated(created as Lead);
       }
       onOpenChange(false);
       resetForm();

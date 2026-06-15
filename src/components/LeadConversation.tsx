@@ -12,7 +12,7 @@ import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { useSendInboxMessage } from "@/hooks/useInbox";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Props {
@@ -30,6 +30,14 @@ const toBase64 = (file: File): Promise<string> =>
     reader.onload = () => resolve((reader.result as string).split(",")[1]);
     reader.onerror = reject;
   });
+
+const formatMsgDate = (ts: string | null | undefined): string => {
+  if (!ts) return "";
+  const d = new Date(ts);
+  if (isToday(d)) return format(d, "HH:mm");
+  if (isYesterday(d)) return `Ontem ${format(d, "HH:mm")}`;
+  return format(d, "dd/MM HH:mm", { locale: ptBR });
+};
 
 const MEDIA_ACCEPT = "image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt";
 const MAX_FILE_MB = 16;
@@ -329,7 +337,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
                 >
                   <MediaBubble m={m} />
                   <span className="text-[9px] block mt-1 text-right opacity-50">
-                    {m.timestamp ? format(new Date(m.timestamp), "HH:mm", { locale: ptBR }) : ""}
+                    {formatMsgDate(m.timestamp || m.created_at)}
                   </span>
                 </div>
               </div>
