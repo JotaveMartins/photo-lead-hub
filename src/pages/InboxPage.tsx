@@ -25,6 +25,7 @@ import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreateLead } from "@/hooks/useLeads";
+import LeadModal from "@/components/LeadModal";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
