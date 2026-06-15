@@ -463,13 +463,16 @@ Deno.serve(async (req) => {
           });
 
           if (!existingLead) {
+            // Today's date in São Paulo timezone (YYYY-MM-DD)
+            const todaySP = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
             const { data: lead } = await supabase
               .from("leads")
               .insert({
                 nome: conversation.contact_name || `Lead ${whatsapp}`,
                 whatsapp: whatsapp,
                 status: "Novo Lead",
-                origem: "WhatsApp Inbox",
+                origem: "WhatsApp",
+                data_contato: todaySP,
                 user_id: userId
               })
               .select()
