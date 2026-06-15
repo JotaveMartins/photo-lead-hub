@@ -968,6 +968,14 @@ const InboxPage = () => {
         onClose={() => setShowQuickReplies(false)}
         onSelect={(body) => setMessageText(body)}
       />
+
+      <LeadModal
+        open={showCreateLeadModal}
+        onOpenChange={setShowCreateLeadModal}
+        prefillNome={selectedConv?.contact_name || (selectedConv?.contact_number ? `Contato ${selectedConv.contact_number}` : "")}
+        prefillWhatsapp={selectedConv?.contact_number || ""}
+        onCreated={handleLeadCreated}
+      />
     </>
   );
 };
