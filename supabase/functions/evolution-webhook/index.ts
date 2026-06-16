@@ -440,17 +440,10 @@ Deno.serve(async (req) => {
       // 5. Trigger logic for new inbound messages
       console.log(`[v2-keyword] Inbound check: fromMe=${key.fromMe}, isGroup=${isGroup}, convStatus=${conversation.status}, content="${content}"`);
       if (!key.fromMe && !isGroup) {
-        // A. Check for triggers → auto-create lead (Novo Lead)
-        const { data: triggers } = await supabase
-          .from("inbox_triggers")
-          .select("keyword")
-          .eq("user_id", userId)
-          .eq("active", true);
-
-        const hasTrigger = triggers?.some(t => content.toLowerCase().includes(t.keyword.toLowerCase()));
-
-        if (hasTrigger) {
-          // Check if a lead with this number already exists for this user
+        // A. SEMPRE tenta vincular a conversa a um lead já existente (por número),
+        //    mesmo sem palavra-chave — assim, se o lead já está no CRM, a mensagem
+        //    cai dentro do mesmo lead em vez de ficar solta ou duplicar.
+        if (!conversation.lead_id) {
           const { data: existingLeads } = await supabase
             .from("leads")
             .select("id, whatsapp")
@@ -462,29 +455,40 @@ Deno.serve(async (req) => {
             return current === whatsapp || current.endsWith(whatsapp) || whatsapp.endsWith(current);
           });
 
-          if (!existingLead) {
-            // Today's date in São Paulo timezone (YYYY-MM-DD)
-            const todaySP = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-            const { data: lead } = await supabase
-              .from("leads")
-              .insert({
-                nome: conversation.contact_name || `Lead ${whatsapp}`,
-                whatsapp: whatsapp,
-                status: "Novo Lead",
-                origem: "WhatsApp",
-                data_contato: todaySP,
-                user_id: userId
-              })
-              .select()
-              .single();
-            if (lead) {
-              await supabase.from("inbox_conversations").update({ lead_id: lead.id }).eq("id", conversation.id);
-              conversation.lead_id = lead.id;
-            }
-          } else if (!conversation.lead_id) {
-            // If lead exists but conversation is not linked, link it
+          if (existingLead) {
             await supabase.from("inbox_conversations").update({ lead_id: existingLead.id }).eq("id", conversation.id);
             conversation.lead_id = existingLead.id;
+          }
+        }
+
+        // B. Check for triggers → cria lead novo (Novo Lead) só se ainda não há
+        //    lead vinculado (não existe um lead com esse número).
+        const { data: triggers } = await supabase
+          .from("inbox_triggers")
+          .select("keyword")
+          .eq("user_id", userId)
+          .eq("active", true);
+
+        const hasTrigger = triggers?.some(t => content.toLowerCase().includes(t.keyword.toLowerCase()));
+
+        if (hasTrigger && !conversation.lead_id) {
+          // Today's date in São Paulo timezone (YYYY-MM-DD)
+          const todaySP = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+          const { data: lead } = await supabase
+            .from("leads")
+            .insert({
+              nome: conversation.contact_name || `Lead ${whatsapp}`,
+              whatsapp: whatsapp,
+              status: "Novo Lead",
+              origem: "WhatsApp",
+              data_contato: todaySP,
+              user_id: userId
+            })
+            .select()
+            .single();
+          if (lead) {
+            await supabase.from("inbox_conversations").update({ lead_id: lead.id }).eq("id", conversation.id);
+            conversation.lead_id = lead.id;
           }
         }
 

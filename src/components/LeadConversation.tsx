@@ -203,28 +203,48 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
       let conversationId = conv?.id ?? null;
 
       // Create conversation if needed.
-      // Usa upsert porque já pode existir uma conversa com esse número
-      // (UNIQUE user_id+contact_number) — ex.: lead já no CRM com conversa
-      // criada por inbound. Sem isso o insert quebrava na constraint e a
-      // primeira mensagem não era enviada.
+      // Buscar-ou-criar: já pode existir uma conversa com esse número
+      // (ex.: lead já no CRM com conversa criada por inbound). Fazemos a busca
+      // manual em vez de upsert/ON CONFLICT porque o banco pode não ter a
+      // constraint UNIQUE(user_id, contact_number).
       if (!conversationId) {
         if (!effectiveUserId) { toast.error("Usuário não identificado."); return; }
-        const { data: newConv, error: convError } = await supabase
+
+        // 1. Tenta reaproveitar uma conversa existente para esse número
+        const { data: existing } = await supabase
           .from("inbox_conversations")
-          .upsert({
-            user_id: effectiveUserId,
-            contact_number: number,
-            lead_id: leadId,
-            status: "open",
-            last_message: currentText || (pendingFile?.name ?? ""),
-          }, { onConflict: "user_id,contact_number" })
-          .select()
-          .single();
-        if (convError || !newConv) {
-          toast.error("Erro ao criar conversa: " + (convError?.message || "tente novamente"));
-          return;
+          .select("*")
+          .eq("user_id", effectiveUserId)
+          .eq("contact_number", number)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          conversationId = existing.id;
+          // Vincula ao lead atual se ainda não estiver
+          if (existing.lead_id !== leadId) {
+            await supabase.from("inbox_conversations").update({ lead_id: leadId }).eq("id", existing.id);
+          }
+        } else {
+          // 2. Não existe — cria
+          const { data: newConv, error: convError } = await supabase
+            .from("inbox_conversations")
+            .insert({
+              user_id: effectiveUserId,
+              contact_number: number,
+              lead_id: leadId,
+              status: "open",
+              last_message: currentText || (pendingFile?.name ?? ""),
+            })
+            .select()
+            .single();
+          if (convError || !newConv) {
+            toast.error("Erro ao criar conversa: " + (convError?.message || "tente novamente"));
+            return;
+          }
+          conversationId = newConv.id;
         }
-        conversationId = newConv.id;
         queryClient.invalidateQueries({ queryKey: ["lead-conversation", leadId] });
       } else if (conv?.status === "pending_ai") {
         await supabase.from("inbox_conversations").update({ status: "open" }).eq("id", conversationId);

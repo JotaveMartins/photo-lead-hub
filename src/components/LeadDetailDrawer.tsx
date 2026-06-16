@@ -755,7 +755,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                  </Button>
                )}
              </div>
-            {lead.status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
+            {(lead.status === "Follow-up" || lead.status === "Novo Lead") && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
               <Button size="sm" variant="outline" className="gap-1 h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => {
                   const completedFollowUps = tasks.filter(t => t.title.startsWith("Follow-up") && t.completed).length;

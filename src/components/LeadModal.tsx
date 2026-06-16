@@ -154,6 +154,17 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
             <div className="space-y-2">
               <Label htmlFor="whatsapp">WhatsApp *</Label>
               <Input id="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="31999999999" className="bg-muted border-border" required />
+              {(() => {
+                const digits = whatsapp.replace(/\D/g, "");
+                if (digits.length > 0 && digits.length < 10) {
+                  return (
+                    <p className="text-xs text-amber-500">
+                      Número parece incompleto ({digits.length} dígitos). Inclua o DDD — ex.: 31999999999.
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
 
