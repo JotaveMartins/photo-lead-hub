@@ -60,5 +60,10 @@ export function whatsappMatchKey(raw: string | null | undefined): string {
   if (!d) return "";
   if (d.startsWith("55") && d.length > 11) d = d.slice(2);
   if (d.length > 11) d = d.slice(-11);
+  // Brazil mobile fallback: collapse "DDD + 9 + 8 digits" (11) → "DDD + 8 digits" (10)
+  // Landline first digit is 2-5, so a leading 9 after the DDD is always a mobile prefix.
+  if (d.length === 11 && d[2] === "9") {
+    d = d.slice(0, 2) + d.slice(3);
+  }
   return d;
 }
