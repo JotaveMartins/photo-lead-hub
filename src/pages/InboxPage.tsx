@@ -438,6 +438,27 @@ const InboxPage = () => {
     setShowCreateLeadModal(true);
   };
 
+  const [syncingMessages, setSyncingMessages] = useState(false);
+  const handleSyncMessages = async () => {
+    if (!selectedConv) return;
+    setSyncingMessages(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-inbox-messages", {
+        body: { conversation_id: selectedConv.id, take: 50 },
+      });
+      if (error) throw error;
+      const inserted = data?.inserted ?? 0;
+      if (inserted > 0) toast.success(`${inserted} nova(s) mensagem(ns) importada(s).`);
+      else toast.info("Nenhuma mensagem nova.");
+      queryClient.invalidateQueries({ queryKey: ["inbox_messages", selectedConv.id] });
+      queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+    } catch (e: any) {
+      toast.error("Erro ao sincronizar: " + (e?.message || "tente novamente"));
+    } finally {
+      setSyncingMessages(false);
+    }
+  };
+
   const handleLeadCreated = async (lead: any) => {
     if (!selectedConv) return;
     try {
