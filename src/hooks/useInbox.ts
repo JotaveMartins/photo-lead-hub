@@ -163,6 +163,14 @@ export const useSendInboxMessage = () => {
       // A função pode retornar 200 com { error } em alguns fluxos.
       if (data?.error) throw new Error(data.error);
 
+      // Capture the WhatsApp message id returned by Evolution so the webhook
+      // (which echoes the same message back) can dedupe by whatsapp_message_id
+      // instead of inserting a second copy.
+      const evoMsgId: string | null =
+        data?.result?.key?.id ??
+        data?.result?.messageId ??
+        null;
+
       const { error: insertError } = await supabase
         .from("inbox_messages")
         .insert({
@@ -175,6 +183,7 @@ export const useSendInboxMessage = () => {
           media_url: params.mediaUrl || null,
           media_filename: params.mediaFilename || null,
           media_mime_type: params.mediaMimeType || null,
+          whatsapp_message_id: evoMsgId,
         });
 
       if (insertError) throw insertError;
