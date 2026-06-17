@@ -27,3 +27,22 @@ export function normalizeText(text: string | null | undefined): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
+
+/**
+ * Normalize a Brazilian WhatsApp number to E.164 digits (no '+').
+ * - Strips all non-digits.
+ * - If already starts with "55" and has 12-13 digits, returns as-is.
+ * - If has 10 or 11 digits (DDD + número), prefixes "55".
+ * - Otherwise returns the raw digits (assume already international).
+ */
+export function normalizeBrazilWhatsapp(raw: string | null | undefined): string {
+  const digits = (raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    return digits;
+  }
+  if (digits.length === 10 || digits.length === 11) {
+    return "55" + digits;
+  }
+  return digits;
+}
