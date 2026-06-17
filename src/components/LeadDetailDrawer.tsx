@@ -17,6 +17,7 @@ import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAiActive } from "@/hooks/useAiActive";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import LeadToClienteFlow from "@/components/LeadToClienteFlow";
 import FollowUpModal from "@/components/FollowUpModal";
