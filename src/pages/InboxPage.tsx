@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Inbox as InboxIcon, Search, Send, UserPlus, User, MessageSquare, Bot,
   Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
-  MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon,
+  MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon, RefreshCw,
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
 import { Button } from "@/components/ui/button";
