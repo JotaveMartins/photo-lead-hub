@@ -162,6 +162,23 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     };
   }, [showProxy]);
 
+  // Realtime: refresh unread counts when inbox_conversations changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("kanban-inbox-unread")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inbox_conversations" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["lead_unread_counts"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const filteredLeads = useMemo(() => {
     const q = normalizeText(searchQuery);
     return leads.filter((lead) => {
