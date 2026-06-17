@@ -1,69 +1,49 @@
-## Diagnóstico
+# Investigação — conversa da Vitória (554792426261)
 
-Conferi o banco e o webhook:
+Olhei o banco e o código. Encontrei duas causas distintas:
 
-- Emojis "normais" (🙏🏻☺️, ☺️🙏🏻 etc.) **estão chegando** na conta do Saulo — vários foram salvos hoje em `inbox_messages` com `type=text`.
-- Procurei o "😄👍" específico no `webhook_logs` e **não tem registro nenhum** dele. Ou seja, o webhook da Evolution simplesmente não disparou esse evento — não foi a função que descartou.
+## 1) Mensagem aparece duplicada
 
-Olhando o código do `evolution-webhook` (linhas 311-347), existem dois cenários onde uma mensagem que parece "só emoji" some de verdade:
+Na conversa só existem 2 linhas em `inbox_messages`, ambas com o mesmo texto e timestamp ~17:02:33:
 
-1. **Mensagens temporárias / "ver uma vez"**: chegam embrulhadas em `message.ephemeralMessage.message.*` ou `message.viewOnceMessageV2.message.*`. O webhook só olha o nível raiz, então `content` fica `""` e a bolha aparece em branco (ou nem aparece, no caso de mídia).
-2. **Reações** (emoji "long-press" em cima de outra mensagem): vêm como `message.reactionMessage.text` e não caem em nenhum ramo — somem silenciosamente.
+- Linha A → `whatsapp_message_id = 3EB097…2082` (gravada pelo **webhook** quando a Evolution ecoou de volta a mensagem enviada).
+- Linha B → `whatsapp_message_id = NULL` (gravada pelo **cliente** em `useInbox.ts`, logo depois do `send-whatsapp-message`).
 
-Já o caso do "😄👍" do Saulo, como nem entrou no log, foi quase certamente um evento que a Evolution não entregou (instabilidade pontual). Esse cenário é justamente o que o cron de 15min de `sync-inbox-messages` foi feito pra cobrir — mas hoje ele só tenta pelo nome da instância, e para alguns canais a Evolution responde 404 ("instance does not exist"), abortando a sincronização.
+Ou seja: toda mensagem que o Saulo envia pelo CRM cai duas vezes — uma do client (sem id) e outra do webhook (com id). Hoje não há nenhuma deduplicação.
 
-## Plano
+## 2) Emoji enviado pelo Saulo não aparece
 
-### 1. `evolution-webhook/index.ts` — desembrulhar containers e tratar reações
+Não tem registro nenhum desse evento — nem em `inbox_messages`, nem em `webhook_logs`. E descobri o motivo de não termos histórico de webhook: a inserção em `webhook_logs` está enviando uma coluna `user_id` que **não existe na tabela**, então toda gravação falha silenciosamente há semanas. Sem log bruto, não dá pra dizer se a Evolution sequer entregou o emoji ou se ele caiu em algum branch que ainda não tratamos.
 
-Antes do bloco que decide `type`/`content` (linha 311), normalizar a mensagem:
+---
 
-```ts
-const realMessage =
-  message.ephemeralMessage?.message ??
-  message.viewOnceMessage?.message ??
-  message.viewOnceMessageV2?.message ??
-  message.viewOnceMessageV2Extension?.message ??
-  message.documentWithCaptionMessage?.message ??
-  message;
-```
+# Plano
 
-Trocar todas as leituras `message.conversation`, `message.imageMessage`, etc. desse bloco por `realMessage.*`.
+## A. Eliminar a duplicação de outbound
 
-Adicionar um ramo novo logo após `stickerMessage`:
+1. **`src/hooks/useInbox.ts` (`useSendInboxMessage`)**: depois do `send-whatsapp-message`, ler `data.result.key.id` (a Evolution devolve) e gravar no insert do `inbox_messages` como `whatsapp_message_id`. Se a função não devolver id, mantém `null`.
+2. **Migration**: criar `UNIQUE INDEX inbox_messages_wid_unique ON inbox_messages (whatsapp_message_id) WHERE whatsapp_message_id IS NOT NULL`. Antes de criar o índice, limpar duplicatas históricas mantendo a linha com `whatsapp_message_id` preenchido.
+3. **`supabase/functions/evolution-webhook/index.ts`** (passo "4. Save message to inbox_messages"): trocar o `insert` puro por uma rotina idempotente para outbound (`key.fromMe = true`):
+   - Se já existe linha com aquele `whatsapp_message_id` → não faz nada.
+   - Senão, procura na mesma `conversation_id` uma linha outbound dos últimos 60s com `body` igual e `whatsapp_message_id IS NULL` → faz `UPDATE` preenchendo o `whatsapp_message_id` (e mídia, se houver) em vez de inserir.
+   - Senão, insere normalmente.
+   
+   Inbound (`fromMe = false`) continua igual, mas também ganha o "skip se whatsapp_message_id já existe" pra ser à prova de re-entrega.
 
-```ts
-else if (realMessage.reactionMessage) {
-  type = "text";
-  const emoji = realMessage.reactionMessage.text || "";
-  content = emoji ? `Reagiu: ${emoji}` : "Removeu reação";
-}
-```
+## B. Voltar a ter log bruto da Evolution
 
-### 2. `sync-inbox-messages/index.ts` — mesmo unwrap + reação
+4. **Migration**: adicionar coluna `user_id uuid` em `webhook_logs` (nullable, sem FK rígida, só pra debug). Com isso o `insert` do webhook volta a funcionar e a gente passa a ter os payloads recentes pra inspecionar.
+5. Sem mudanças no comportamento da edge function aqui — só corrigir o efeito colateral.
 
-Aplicar a mesma normalização (`realMessage`) e o mesmo handler de `reactionMessage` no ponto equivalente, senão o cron de recuperação continua deixando reações e mensagens efêmeras de fora.
+## C. Diagnóstico do emoji do Saulo (depois que B estiver em produção)
 
-### 3. `sync-inbox-messages/index.ts` — tolerar 404 da Evolution
-
-Quando `findMessages` responde 404 ("instance does not exist"), hoje o erro fica no log e nada mais é feito. Trocar para:
-
-- Log `info` ao invés de `error`.
-- Pular a instância silenciosamente e continuar processando as outras.
-
-(Isso não conserta a instância no provider, mas evita poluir log e garante que as demais sincronizam.)
-
-### 4. Deploy
-
-Redeployar `evolution-webhook` e `sync-inbox-messages`.
-
-## O que isso resolve
-
-- Reações por emoji (❤️ 👍 😂…) passam a aparecer como bolha "Reagiu: ❤️".
-- Mensagens em chats com "mensagens temporárias" ou "ver uma vez" deixam de chegar em branco.
-- O cron de 15min continua firme e cobre o caso "Evolution simplesmente não disparou o webhook" (que foi exatamente o que aconteceu com o 😄👍 do Saulo).
+6. Pedir pro Saulo reenviar o emoji. Eu consulto `webhook_logs` (filtrando por `554792426261` no payload) e confirmo se:
+   - a Evolution está entregando o evento, e
+   - em qual wrapper o emoji chega (`conversation`, `extendedTextMessage`, `editedMessage`, algo novo).
+7. Se for um wrapper que o webhook ainda não trata (ex.: `editedMessage`, `protocolMessage` com edição), adiciono o branch correspondente em `evolution-webhook` e em `sync-inbox-messages`. Esse passo fica como follow-up após coletar o log — não dá pra cegar agora porque não temos evidência do formato exato.
 
 ## Fora de escopo
 
-- Renderizar a reação grudada na mensagem original (estilo WhatsApp). Por ora vira uma bolha de texto.
-- Mudanças de schema em `inbox_messages`.
+- Mexer em mensagens de reação / efêmeras (já tratadas na rodada anterior).
+- Mudar a UX de envio (botão, modal, feedback).
+- Backfill manual de mensagens passadas — só passa a deduplicar daqui pra frente.

@@ -1428,6 +1428,7 @@ export type Database = {
           instance_key: string | null
           payload: Json | null
           processed: boolean | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1436,6 +1437,7 @@ export type Database = {
           instance_key?: string | null
           payload?: Json | null
           processed?: boolean | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1444,6 +1446,7 @@ export type Database = {
           instance_key?: string | null
           payload?: Json | null
           processed?: boolean | null
+          user_id?: string | null
         }
         Relationships: []
       }
