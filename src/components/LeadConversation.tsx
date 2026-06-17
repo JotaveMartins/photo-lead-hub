@@ -14,7 +14,7 @@ import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { normalizeBrazilWhatsapp } from "@/lib/utils";
+import { normalizeBrazilWhatsapp, whatsappMatchKey } from "@/lib/utils";
 
 interface Props {
   leadId: string;
@@ -82,35 +82,36 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     queryFn: async () => {
       if (!effectiveUserId) return null;
 
-      const { data } = await supabase
-        .from("inbox_conversations")
-        .select("*")
-        .eq("user_id", effectiveUserId)
-        .eq("lead_id", leadId)
-        .order("updated_at", { ascending: false });
-
-      if (data?.length) {
-        return data.find((c) => c.status !== "closed") ?? data[0];
-      }
-
-      const normalizedPhone = normalizeBrazilWhatsapp(leadWhatsapp);
-      if (!normalizedPhone) return null;
-
+      // Fetch every conversation for this user — we'll pick the best one for this lead.
       const { data: all } = await supabase
         .from("inbox_conversations")
         .select("*")
         .eq("user_id", effectiveUserId)
         .order("updated_at", { ascending: false });
 
-      const matched = (all || []).find((c) => {
-        const n = normalizeBrazilWhatsapp(c.contact_number);
-        return n === normalizedPhone || n.endsWith(normalizedPhone) || normalizedPhone.endsWith(n);
+      const leadKey = whatsappMatchKey(leadWhatsapp);
+      const candidates = (all || []).filter((c) => {
+        if (c.lead_id === leadId) return true;
+        if (!c.lead_id && leadKey && whatsappMatchKey(c.contact_number) === leadKey) return true;
+        return false;
       });
 
-      if (matched && matched.lead_id !== leadId) {
-        await supabase.from("inbox_conversations").update({ lead_id: leadId }).eq("id", matched.id);
+      if (!candidates.length) return null;
+
+      // Prefer: not-closed > most recently updated
+      candidates.sort((a, b) => {
+        const aClosed = a.status === "closed" ? 1 : 0;
+        const bClosed = b.status === "closed" ? 1 : 0;
+        if (aClosed !== bClosed) return aClosed - bClosed;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+
+      const best = candidates[0];
+      if (best.lead_id !== leadId) {
+        await supabase.from("inbox_conversations").update({ lead_id: leadId }).eq("id", best.id);
+        best.lead_id = leadId;
       }
-      return matched ?? null;
+      return best;
     },
     enabled: !!leadId && !!effectiveUserId,
   });
@@ -211,21 +212,29 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
       if (!conversationId) {
         if (!effectiveUserId) { toast.error("Usuário não identificado."); return; }
 
-        // 1. Tenta reaproveitar uma conversa existente para esse número
-        const { data: existing } = await supabase
+        // 1. Tenta reaproveitar uma conversa existente para esse número (fuzzy match)
+        const { data: allUserConvs } = await supabase
           .from("inbox_conversations")
           .select("*")
           .eq("user_id", effectiveUserId)
-          .eq("contact_number", number)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order("updated_at", { ascending: false });
+        const targetKey = whatsappMatchKey(number);
+        const existing = (allUserConvs || [])
+          .filter((c) => whatsappMatchKey(c.contact_number) === targetKey)
+          .sort((a, b) => {
+            const aClosed = a.status === "closed" ? 1 : 0;
+            const bClosed = b.status === "closed" ? 1 : 0;
+            return aClosed - bClosed;
+          })[0];
 
         if (existing) {
           conversationId = existing.id;
           // Vincula ao lead atual se ainda não estiver
           if (existing.lead_id !== leadId) {
             await supabase.from("inbox_conversations").update({ lead_id: leadId }).eq("id", existing.id);
+          }
+          if (existing.status === "closed") {
+            await supabase.from("inbox_conversations").update({ status: "open" }).eq("id", existing.id);
           }
         } else {
           // 2. Não existe — cria
