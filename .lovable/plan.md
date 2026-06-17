@@ -1,23 +1,40 @@
-## Problema
+# Corrigir envio do lead com número sem código do país
 
-O Kanban usa colunas com largura fixa (`w-72` = 288px) e `flex-shrink-0`. Com 6 etapas já estava no limite; adicionando "Triagem Feita" (7ª etapa) passou a estourar a largura disponível em telas grandes, forçando scroll horizontal mesmo quando dava pra caber tudo.
+## Causa raiz
+No `LeadConversation.handleSend`, o número é obtido apenas com `replace(/\D/g, "")`. Quando o lead foi salvo como `(61) 3306-1009`, isso gera `6133061009` — sem o `55`. A Evolution API faz lookup desse JID, não acha (`"exists":false`) e retorna 400.
 
-## Solução
+Conversas vindas do inbox não têm esse problema porque o `contact_number` já chega da Evolution com DDI.
 
-Em `src/components/KanbanBoard.tsx`, tornar a largura das colunas responsiva:
+## Mudanças
 
-- **Em telas grandes (xl+, ≥1280px)**: colunas dividem o espaço igualmente com `flex-1` e `min-w-0`, garantindo que todas as 7 etapas caibam sem scroll.
-- **Em telas menores**: mantém comportamento atual (`w-72 flex-shrink-0`) com scroll horizontal — não dá pra encaixar 7 colunas legíveis em telas pequenas.
+### 1. `src/lib/utils.ts`
+Adicionar helper `normalizeBrazilWhatsapp(raw: string): string`:
+- Remove tudo que não é dígito.
+- Se já começa com `55` e tem 12–13 dígitos → retorna como está.
+- Se tem 10 ou 11 dígitos (DDD + número) → prefixa `55`.
+- Caso contrário (já internacional com outro DDI, ou inválido) → retorna os dígitos crus, deixando a Evolution responder.
 
-Mudança pontual na classe do container da coluna:
+Não tentar adicionar/remover o 9º dígito automaticamente — isso é decisão de negócio e pode quebrar números válidos. Fica como follow-up se o usuário quiser.
 
-```diff
-- className="flex-shrink-0 w-72 bg-card border rounded-xl ..."
-+ className="flex-shrink-0 w-72 xl:flex-1 xl:w-auto xl:min-w-0 bg-card border rounded-xl ..."
-```
+### 2. `src/components/LeadConversation.tsx`
+- Importar `normalizeBrazilWhatsapp`.
+- Em `handleSend`, trocar:
+  ```ts
+  const number = (conv?.contact_number || leadWhatsapp || "").replace(/\D/g, "");
+  ```
+  por:
+  ```ts
+  const number = normalizeBrazilWhatsapp(conv?.contact_number || leadWhatsapp || "");
+  ```
+- Aplicar a mesma normalização no `normalizedPhone` da busca de conversa (assim, ao reaproveitar a conversa já existente para o lead, o match continua funcionando mesmo se o `contact_number` salvo tiver vindo com formatos diferentes).
 
-## O que NÃO muda
+### 3. Mensagem de erro mais clara
+Quando a Evolution responder com `exists:false`, mostrar um toast amigável tipo:
+> "Esse número não está no WhatsApp (verifique DDD/DDI ou se é um número Business)."
 
-- Nada de lógica/dados.
-- Nenhuma alteração no card do lead, header da coluna ou drop zones.
-- Comportamento mobile/tablet permanece igual.
+Detecção: no `catch`, se a mensagem inclui `"exists":false`, sobrescrever o toast.
+
+## Fora de escopo
+- Não vou mexer no `evolution-webhook` nem na criação de leads — esses fluxos já recebem o número com DDI.
+- Não vou alterar leads existentes no banco; a normalização acontece só na hora do envio.
+- Lógica de 9º dígito de celular fica para um próximo passo, se desejado.
