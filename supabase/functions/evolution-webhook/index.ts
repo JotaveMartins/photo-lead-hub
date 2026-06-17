@@ -508,44 +508,29 @@ Deno.serve(async (req) => {
           const sinceIso = new Date(Date.now() - 60_000).toISOString();
           const { data: pending } = await supabase
             .from("inbox_messages")
-            .select("id")
+            .select("id, body")
             .eq("conversation_id", conversation.id)
             .eq("direction", "outbound")
             .is("whatsapp_message_id", null)
             .gte("timestamp", sinceIso)
             .order("timestamp", { ascending: false })
             .limit(5);
-          const match = (pending || []).find(
-            (r: any) => true, // narrow below
+          const target = (pending || []).find(
+            (r: any) => (r.body || "") === (content || ""),
           );
-          // Filter by body equality in JS to avoid quoting issues
-          const bodyMatch = (pending || []).find((r: any) => {
-            // we didn't select body; do a second targeted query
-            return false;
-          });
-          // Actually need body, redo with body included
-          if (pending && pending.length > 0) {
-            const { data: pendingFull } = await supabase
+          if (target) {
+            const { data: updated } = await supabase
               .from("inbox_messages")
-              .select("id, body")
-              .in("id", pending.map((r: any) => r.id));
-            const target = (pendingFull || []).find(
-              (r: any) => (r.body || "") === (content || ""),
-            );
-            if (target) {
-              const { data: updated } = await supabase
-                .from("inbox_messages")
-                .update({
-                  whatsapp_message_id: key.id,
-                  media_url: resolvedMediaUrl,
-                  media_mime_type: mediaMimeType,
-                  media_filename: mediaFilename,
-                })
-                .eq("id", target.id)
-                .select()
-                .single();
-              savedMsg = updated;
-            }
+              .update({
+                whatsapp_message_id: key.id,
+                media_url: resolvedMediaUrl,
+                media_mime_type: mediaMimeType,
+                media_filename: mediaFilename,
+              })
+              .eq("id", target.id)
+              .select()
+              .single();
+            savedMsg = updated;
           }
         }
 
