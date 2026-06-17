@@ -5,6 +5,7 @@ import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
 import { useAiActive } from "@/hooks/useAiActive";
+import { useLeadUnreadCounts } from "@/hooks/useInbox";
  import { Phone, Calendar, GripVertical, Filter, DollarSign, ChevronRight, Trash2, Bot } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SearchInput } from "@/components/ui/search-input";
@@ -71,6 +72,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const { data: interesseOptions = [] } = useInteresseOptions();
   const { data: aiActive = false } = useAiActive();
+  const { data: unreadByLead = {} } = useLeadUnreadCounts();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
@@ -159,6 +161,23 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       proxy.removeEventListener("scroll", onProxy);
     };
   }, [showProxy]);
+
+  // Realtime: refresh unread counts when inbox_conversations changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("kanban-inbox-unread")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inbox_conversations" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["lead_unread_counts"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const filteredLeads = useMemo(() => {
     const q = normalizeText(searchQuery);
@@ -438,6 +457,18 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
                         <div className="flex items-center gap-1 flex-shrink-0">
+                          {(unreadByLead[lead.id] || 0) > 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="bg-destructive text-destructive-foreground rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center">
+                                  {unreadByLead[lead.id] > 99 ? "99+" : unreadByLead[lead.id]}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p className="text-xs">{unreadByLead[lead.id]} nova(s) mensagem(ns)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${taskConfig.color}`} style={{ borderColor: 'currentColor' }}>

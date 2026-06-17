@@ -948,8 +948,12 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                     id: `history-${h.id}`, type: "change", date: h.created_at, data: h,
                   }));
 
-                  // Sort by date descending (newest first)
-                  items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                  // Sort by date descending (newest first), but pin notes to the top
+                  items.sort((a, b) => {
+                    if (a.type === "note" && b.type !== "note") return -1;
+                    if (a.type !== "note" && b.type === "note") return 1;
+                    return new Date(b.date).getTime() - new Date(a.date).getTime();
+                  });
 
                   if (items.length === 0) {
                     return <p className="text-xs text-muted-foreground text-center py-8 ml-8">Nenhuma atividade ainda.</p>;
