@@ -485,23 +485,82 @@ Deno.serve(async (req) => {
       }
 
       // 4. Save message to inbox_messages
-      const { data: savedMsg, error: msgError } = await supabase
-        .from("inbox_messages")
-        .insert({
-          conversation_id: conversation.id,
-          user_id: userId,
-          body: content || null,
-          direction: key.fromMe ? 'outbound' : 'inbound',
-          whatsapp_message_id: key.id,
-          read: key.fromMe,
-          type,
-          media_url: resolvedMediaUrl,
-          media_mime_type: mediaMimeType,
-          media_filename: mediaFilename,
-        })
-        .select()
-        .single();
-      if (msgError) throw msgError;
+      // Idempotent save: Evolution echoes outbound messages back via webhook,
+      // and the client also inserts a row when sending from the CRM. Dedupe so
+      // we never end up with two rows for the same message.
+      let savedMsg: any = null;
+      {
+        // (a) Already saved this WA message id? Nothing to do.
+        if (key.id) {
+          const { data: existing } = await supabase
+            .from("inbox_messages")
+            .select("id")
+            .eq("whatsapp_message_id", key.id)
+            .maybeSingle();
+          if (existing) {
+            savedMsg = existing;
+          }
+        }
+
+        // (b) For outbound (fromMe), look for a recent client-inserted row
+        // with same body but no whatsapp_message_id and adopt it.
+        if (!savedMsg && key.fromMe) {
+          const sinceIso = new Date(Date.now() - 60_000).toISOString();
+          const { data: pending } = await supabase
+            .from("inbox_messages")
+            .select("id, body")
+            .eq("conversation_id", conversation.id)
+            .eq("direction", "outbound")
+            .is("whatsapp_message_id", null)
+            .gte("timestamp", sinceIso)
+            .order("timestamp", { ascending: false })
+            .limit(5);
+          const target = (pending || []).find(
+            (r: any) => (r.body || "") === (content || ""),
+          );
+          if (target) {
+            const { data: updated } = await supabase
+              .from("inbox_messages")
+              .update({
+                whatsapp_message_id: key.id,
+                media_url: resolvedMediaUrl,
+                media_mime_type: mediaMimeType,
+                media_filename: mediaFilename,
+              })
+              .eq("id", target.id)
+              .select()
+              .single();
+            savedMsg = updated;
+          }
+        }
+
+        // (c) Otherwise insert fresh.
+        if (!savedMsg) {
+          const { data: inserted, error: msgError } = await supabase
+            .from("inbox_messages")
+            .insert({
+              conversation_id: conversation.id,
+              user_id: userId,
+              body: content || null,
+              direction: key.fromMe ? 'outbound' : 'inbound',
+              whatsapp_message_id: key.id,
+              read: key.fromMe,
+              type,
+              media_url: resolvedMediaUrl,
+              media_mime_type: mediaMimeType,
+              media_filename: mediaFilename,
+            })
+            .select()
+            .single();
+          if (msgError) {
+            // Unique violation on whatsapp_message_id = a concurrent insert
+            // already saved this message; treat as success.
+            if ((msgError as any).code !== "23505") throw msgError;
+          } else {
+            savedMsg = inserted;
+          }
+        }
+      }
 
       // 5. Trigger logic for new inbound messages
       console.log(`[v2-keyword] Inbound check: fromMe=${key.fromMe}, isGroup=${isGroup}, convStatus=${conversation.status}, content="${content}"`);
