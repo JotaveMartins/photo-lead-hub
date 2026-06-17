@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Send, Bot, Play, Paperclip, X,
-  Image as ImageIcon, Film, Mic, Loader2, FileText, RefreshCw,
+  Image as ImageIcon, Film, Mic, Loader2, FileText, RefreshCw, Zap,
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
+import { QuickRepliesModal } from "@/components/chat/QuickRepliesModal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,10 +66,20 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow textarea up to ~4 lines, then scroll
+  const MAX_TEXTAREA_PX = 112;
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, MAX_TEXTAREA_PX) + "px";
+  }, [text]);
 
   const queryClient = useQueryClient();
   const effectiveUserId = useEffectiveUserId();
@@ -463,6 +474,19 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
             <Paperclip className="w-4 h-4" />
           </Button>
 
+          {/* Quick replies */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
+            onClick={() => setShowQuickReplies(true)}
+            disabled={isSending}
+            title="Respostas rápidas"
+          >
+            <Zap className="w-4 h-4" />
+          </Button>
+
           {/* Text input */}
           <Textarea
             ref={textareaRef}
@@ -471,7 +495,8 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
-            className="flex-1 resize-none min-h-[36px] max-h-28 py-2 text-sm bg-muted border-border"
+            className="flex-1 resize-none min-h-[36px] py-2 text-sm bg-muted border-border overflow-y-auto"
+            style={{ maxHeight: MAX_TEXTAREA_PX }}
             disabled={isSending}
           />
 
@@ -493,6 +518,12 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
           Enter para enviar · Shift+Enter nova linha · Máx {MAX_FILE_MB} MB
         </p>
       </div>
+
+      <QuickRepliesModal
+        open={showQuickReplies}
+        onClose={() => setShowQuickReplies(false)}
+        onSelect={(body) => setText((prev) => (prev ? prev + "\n" + body : body))}
+      />
     </div>
   );
 };
