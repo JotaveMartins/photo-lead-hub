@@ -655,7 +655,7 @@ const InboxPage = () => {
               {selectedConv.lead_id ? (
                 <Button
                   variant="outline" size="sm" className="text-cyan-400 border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10 h-7 text-xs"
-                  onClick={() => navigate(`/leads?id=${selectedConv.lead_id}`)}
+                  onClick={() => navigate(`/leads?open=${selectedConv.lead_id}`)}
                 >
                   Ver Lead
                 </Button>
