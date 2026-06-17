@@ -452,6 +452,24 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
 
+  // When user opens the "Conversa" tab, mark all inbox conversations for this
+  // lead as read so the red badge on the Kanban card disappears.
+  useEffect(() => {
+    if (activeTab !== "conversa" || !lead?.id) return;
+    (async () => {
+      const { error } = await supabase
+        .from("inbox_conversations")
+        .update({ unread_count: 0 })
+        .eq("lead_id", lead.id)
+        .gt("unread_count", 0);
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ["lead_unread_counts"] });
+        queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+        queryClient.invalidateQueries({ queryKey: ["inbox_total_unread"] });
+      }
+    })();
+  }, [activeTab, lead?.id, queryClient]);
+
   const { data: notes = [] } = useLeadNotes(lead?.id);
   const { data: tasks = [] } = useLeadTasks(lead?.id);
   const { data: history = [] } = useLeadHistory(lead?.id);
