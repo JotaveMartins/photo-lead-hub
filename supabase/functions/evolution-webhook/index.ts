@@ -3,6 +3,16 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const normalizeWhatsApp = (value: string | null | undefined) => String(value || "").replace(/\D/g, "");
 
+// Canonical key to compare two WhatsApp numbers regardless of formatting/DDI.
+// Strips non-digits, drops a leading "55" if present, keeps last 11 digits.
+const whatsappMatchKey = (value: string | null | undefined) => {
+  let d = String(value || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("55") && d.length > 11) d = d.slice(2);
+  if (d.length > 11) d = d.slice(-11);
+  return d;
+};
+
 // Lowercase + strip accents (ç→c, á→a) for robust keyword matching
 const COMBINING_MARKS = new RegExp("[\\u0300-\\u036f]", "g");
 const normalizeText = (value: string | null | undefined) =>
@@ -450,10 +460,10 @@ Deno.serve(async (req) => {
             .eq("user_id", userId)
             .is("deleted_at", null);
 
-          const existingLead = existingLeads?.find((lead) => {
-            const current = normalizeWhatsApp(lead.whatsapp);
-            return current === whatsapp || current.endsWith(whatsapp) || whatsapp.endsWith(current);
-          });
+          const inboundKey = whatsappMatchKey(whatsapp);
+          const existingLead = inboundKey
+            ? existingLeads?.find((lead) => whatsappMatchKey(lead.whatsapp) === inboundKey)
+            : undefined;
 
           if (existingLead) {
             await supabase.from("inbox_conversations").update({ lead_id: existingLead.id }).eq("id", conversation.id);
