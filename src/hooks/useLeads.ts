@@ -105,6 +105,28 @@ export const useUpdateLead = () => {
   });
 };
 
+export const useBulkUpdateLeads = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ids, updates }: { ids: string[]; updates: LeadUpdate }) => {
+      if (ids.length === 0) return;
+      const { error } = await supabase
+        .from("leads")
+        .update(updates)
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, { ids }) => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      toast.success(`${ids.length} lead(s) atualizado(s)!`);
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao atualizar leads: " + error.message);
+    },
+  });
+};
+
 export const useDeleteLead = () => {
   const queryClient = useQueryClient();
 

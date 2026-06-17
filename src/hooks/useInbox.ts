@@ -273,6 +273,38 @@ export const useInboxTotalUnread = () => {
   });
 };
 
+export const useLeadUnreadCounts = () => {
+  const effectiveUserId = useEffectiveUserId();
+  const queryClient = useQueryClient();
+
+  // Realtime invalidation
+  if (typeof window !== "undefined") {
+    // noop here; subscription handled in a separate effect-friendly hook
+  }
+
+  return useQuery({
+    queryKey: ["lead_unread_counts", effectiveUserId],
+    queryFn: async () => {
+      if (!effectiveUserId) return {} as Record<string, number>;
+      const { data, error } = await supabase
+        .from("inbox_conversations")
+        .select("lead_id, unread_count")
+        .eq("user_id", effectiveUserId)
+        .not("lead_id", "is", null)
+        .gt("unread_count", 0);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        if (!row.lead_id) return;
+        map[row.lead_id] = (map[row.lead_id] || 0) + (row.unread_count || 0);
+      });
+      return map;
+    },
+    enabled: !!effectiveUserId,
+    refetchInterval: 30_000,
+  });
+};
+
 export const useConversationNotes = (conversationId?: string) => {
   return useQuery({
     queryKey: ["inbox_notes", conversationId],
