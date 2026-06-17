@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Inbox as InboxIcon, Search, Send, UserPlus, User, MessageSquare, Bot,
   Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
-  MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon,
+  MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon, RefreshCw,
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
 import { Button } from "@/components/ui/button";
@@ -438,6 +438,27 @@ const InboxPage = () => {
     setShowCreateLeadModal(true);
   };
 
+  const [syncingMessages, setSyncingMessages] = useState(false);
+  const handleSyncMessages = async () => {
+    if (!selectedConv) return;
+    setSyncingMessages(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-inbox-messages", {
+        body: { conversation_id: selectedConv.id, take: 50 },
+      });
+      if (error) throw error;
+      const inserted = data?.inserted ?? 0;
+      if (inserted > 0) toast.success(`${inserted} nova(s) mensagem(ns) importada(s).`);
+      else toast.info("Nenhuma mensagem nova.");
+      queryClient.invalidateQueries({ queryKey: ["inbox_messages", selectedConv.id] });
+      queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+    } catch (e: any) {
+      toast.error("Erro ao sincronizar: " + (e?.message || "tente novamente"));
+    } finally {
+      setSyncingMessages(false);
+    }
+  };
+
   const handleLeadCreated = async (lead: any) => {
     if (!selectedConv) return;
     try {
@@ -704,6 +725,18 @@ const InboxPage = () => {
                   <Play className="w-3.5 h-3.5 mr-1" /> Abrir
                 </Button>
               )}
+
+              {/* Sync messages from Evolution */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleSyncMessages}
+                disabled={syncingMessages}
+                title="Recarregar mensagens do WhatsApp"
+              >
+                {syncingMessages ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              </Button>
 
               {/* Notes toggle */}
               <Button

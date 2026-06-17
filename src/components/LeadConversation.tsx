@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Send, Bot, Play, Paperclip, X,
-  Image as ImageIcon, Film, Mic, Loader2, FileText,
+  Image as ImageIcon, Film, Mic, Loader2, FileText, RefreshCw,
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
 import { Button } from "@/components/ui/button";
@@ -330,6 +330,29 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
 
   const isSending = sendMessage.isPending || uploadingFile;
 
+  const [syncing, setSyncing] = useState(false);
+  const handleSync = async () => {
+    if (!conv?.id) {
+      toast.error("Nenhuma conversa para sincronizar ainda.");
+      return;
+    }
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-inbox-messages", {
+        body: { conversation_id: conv.id, take: 50 },
+      });
+      if (error) throw error;
+      const inserted = data?.inserted ?? 0;
+      if (inserted > 0) toast.success(`${inserted} nova(s) mensagem(ns) importada(s).`);
+      else toast.info("Nenhuma mensagem nova.");
+      queryClient.invalidateQueries({ queryKey: ["inbox_messages", conv.id] });
+    } catch (e: any) {
+      toast.error("Erro ao sincronizar: " + (e?.message || "tente novamente"));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-muted/20 rounded-lg overflow-hidden border border-border">
@@ -339,7 +362,18 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         <span className="text-xs text-muted-foreground truncate max-w-[160px]">
           {conv?.contact_number || leadWhatsapp || "—"}
         </span>
-        {conv?.id && (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleSync}
+            disabled={syncing || !conv?.id}
+            title="Recarregar mensagens do WhatsApp"
+          >
+            {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+          </Button>
+          {conv?.id && (
           conv.status === "pending_ai" ? (
             <Button size="sm" className="h-7 text-xs bg-green-500 hover:bg-green-600" onClick={toggleAI}>
               <Play className="w-3 h-3 mr-1" /> Abrir Atendimento
@@ -349,7 +383,8 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
               <Bot className="w-3 h-3 mr-1" /> Voltar para IA
             </Button>
           )
-        )}
+          )}
+        </div>
       </div>
 
       {/* Messages list */}
