@@ -1,39 +1,89 @@
-## Diagnóstico
+## Objetivo
 
-Encontrei o motivo de ainda não sincronizar na conta `martinsdo.ads@gmail.com`:
+Garantir que mensagens recebidas no WhatsApp sempre apareçam no CRM, mesmo quando o webhook do Evolution falhar (instância momentaneamente desconectada, evento perdido, etc.). Para isso usamos duas camadas: um **botão de recarregar** sob demanda e um **cron job a cada 15 minutos** como rede de segurança.
 
-- O lead criado está com WhatsApp `61993146687`.
-- A Evolution está entregando a mensagem recebida como `556193146687`.
-- Ou seja: o WhatsApp/Evolution removeu o 9º dígito depois do DDD (`61 99314-6687` virou `55 61 9314-6687`).
-- Como a regra atual ficou em “match exato pelos últimos 10-11 dígitos”, esses dois valores não casam.
-- Além disso, o chat aberto pelo lead criou uma conversa sem `instance_id`, enquanto o inbox cria outra conversa com `instance_id`; por isso ficaram dois `conversation_id` diferentes.
-- O chat do lead também prioriza uma conversa já vinculada mesmo se ela estiver `closed`, então ele continua usando o histórico antigo fechado em vez da conversa nova do inbox.
+## Como vai funcionar
 
-## Plano de correção
+1. Edge function `sync-inbox-messages` consulta o endpoint `POST /chat/findMessages/{instancia}` da Evolution API, que devolve o histórico de mensagens armazenado na instância.
+2. Para cada mensagem retornada, compara o `whatsapp_message_id` com o que já existe em `inbox_messages`. Se já existe, ignora. Se não, insere usando a mesma lógica do webhook (matching por número/LID, vínculo com lead, criação de conversa se necessário).
+3. Nunca duplica mensagem nem cria conversa duplicada — sempre reaproveita conversa existente (mesma regra de `whatsappMatchKey` que já usamos).
 
-1. **Criar uma regra única de identidade WhatsApp**
-   - Manter o match exato como principal.
-   - Adicionar apenas um fallback controlado para Brasil: comparar também a versão com/sem o 9º dígito depois do DDD.
-   - Isso cobre exatamente o caso real encontrado: `61993146687` ↔ `556193146687`.
+## Camada 1 — Botão "Recarregar conversa" (sob demanda)
 
-2. **Corrigir o webhook de entrada**
-   - Ao receber mensagem, antes de criar conversa nova, procurar conversas existentes do mesmo usuário pelo telefone normalizado, mesmo quando `instance_id` estiver vazio.
-   - Se achar conversa do lead, reaproveitar a conversa existente e preencher `instance_id`, `contact_jid`, `contact_lid`, `contact_name` e número real recebido.
-   - Se encontrar conversa fechada vinculada ao lead, reabrir/usar essa conversa em vez de duplicar.
+- Botão pequeno no header da aba **Conversa do Lead** (`LeadConversation.tsx`) e no header do chat do **Inbox** (`InboxPage.tsx`).
+- Ao clicar, chama `sync-inbox-messages` passando `conversation_id` e o limite (ex.: últimas 50 mensagens daquele contato).
+- Mostra spinner enquanto roda e um toast com quantas mensagens novas foram importadas.
 
-3. **Corrigir o chat dentro do lead**
-   - Ao abrir a aba “Conversa”, procurar por telefone usando a mesma regra com/sem 9º dígito.
-   - Preferir conversa aberta/pending mais recente em vez de conversa fechada antiga.
-   - Se encontrar conversa do inbox com o mesmo contato, vincular ao `lead_id` e usar esse `conversation_id`.
+## Camada 2 — Cron job automático a cada 15 minutos
 
-4. **Atualizar o envio por dentro do lead**
-   - Quando enviar mensagem pelo lead, passar o `jid` salvo na conversa quando existir.
-   - Isso evita criar/envia para uma identidade diferente quando o WhatsApp usa `@lid` ou retorna número sem 9.
+- Habilita extensões `pg_cron` e `pg_net` no banco.
+- Cria um job que dispara `sync-inbox-messages` a cada 15 minutos, em modo "todas as instâncias conectadas".
+- Nesse modo, a função:
+  - Lista todas as `whatsapp_instances` com `status = 'connected'`.
+  - Para cada instância, busca as mensagens das últimas 2 horas (janela de segurança contra perdas) via `findMessages` com filtro `timestamp >= now - 2h`.
+  - Roda o mesmo pipeline de deduplicação/inserção.
+- Janela de 2h cobre eventos perdidos sem reprocessar histórico antigo. Como a deduplicação é por `whatsapp_message_id`, reprocessar é seguro (idempotente).
 
-5. **Adicionar correção no banco para dados já duplicados**
-   - Criar/ajustar função de trigger para vincular conversas órfãs ao lead usando a nova regra com/sem 9.
-   - Fazer uma limpeza pontual dos registros atuais da conta: mover mensagens das conversas duplicadas desse contato para uma conversa principal vinculada ao lead e fechar/remover as duplicadas vazias, preservando histórico.
+## Detalhes técnicos
+
+### Nova edge function `sync-inbox-messages`
+
+Aceita dois modos de chamada:
+
+```text
+modo "conversation"  →  body: { conversation_id: "..." }
+                        usa o instance_id e contact_number/jid da conversa
+                        importa últimas 50 mensagens desse contato
+
+modo "all_instances" →  body: { mode: "all_instances", since_minutes: 120 }
+                        usado pelo cron
+                        para cada instância conectada, busca mensagens
+                        com timestamp >= now - since_minutes
+```
+
+Para cada mensagem nova:
+- Reaproveita a mesma lógica de matching e criação de conversa do `evolution-webhook` (extrair em helper ou duplicar). Inclui:
+  - Detecção de JID (`@s.whatsapp.net` vs `@lid`)
+  - Busca por `whatsappMatchKey` para reaproveitar conversa
+  - Vínculo automático com lead existente pelo número
+- Insere em `inbox_messages` com `whatsapp_message_id` para evitar duplicata em rodadas futuras.
+- Adiciona índice único parcial em `inbox_messages(whatsapp_message_id)` (onde não nulo) se ainda não existir, como proteção extra contra duplicatas.
+
+### Refatoração
+
+Extrair a lógica de "salvar mensagem inbound a partir do payload Evolution" do `evolution-webhook/index.ts` para uma função compartilhada que ambos (webhook e sync) usam. Isso garante que webhook e sync produzem o mesmo resultado.
+
+### UI
+
+`LeadConversation.tsx` e `InboxPage.tsx`:
+- Botão ícone "Recarregar" (`RefreshCw` do lucide) no header do chat.
+- Estado de loading local, chamada via `supabase.functions.invoke('sync-inbox-messages', { body: { conversation_id } })`.
+- Toast com resultado: `"X novas mensagens importadas"` ou `"Nenhuma mensagem nova"`.
+- Após sucesso, invalida `["inbox_messages", conversationId]`.
+
+### Cron job
+
+SQL via supabase insert (não migration, contém URL e anon key específicos do projeto):
+
+```sql
+select cron.schedule(
+  'sync-inbox-messages-15min',
+  '*/15 * * * *',
+  $$ select net.http_post(
+    url := '<project>.functions/v1/sync-inbox-messages',
+    headers := '{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
+    body := '{"mode":"all_instances","since_minutes":120}'::jsonb
+  ); $$
+);
+```
+
+### Config
+
+- `supabase/config.toml`: adicionar `[functions.sync-inbox-messages] verify_jwt = false` (cron chama sem JWT de usuário; a função usa `SERVICE_ROLE_KEY` internamente).
 
 ## Resultado esperado
 
-Depois disso, mensagens recebidas no inbox e mensagens enviadas por dentro do lead devem aparecer na mesma conversa, mesmo quando a Evolution entregar o telefone como `556193146687` e o lead estiver salvo como `61993146687`.
+- Mensagens perdidas pelo webhook aparecem automaticamente em até 15 minutos.
+- Você pode forçar a sincronização imediata clicando no botão dentro do lead ou do inbox.
+- Zero duplicatas: mensagens já existentes (`whatsapp_message_id` já no banco) são ignoradas.
+- Conversas e leads continuam vinculados pelo mesmo `whatsappMatchKey` — nada quebra do que já funciona.
