@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Send, Bot, Play, Paperclip, X,
-  Image as ImageIcon, Film, Mic, Loader2, FileText,
+  Image as ImageIcon, Film, Mic, Loader2, FileText, RefreshCw,
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
 import { Button } from "@/components/ui/button";
