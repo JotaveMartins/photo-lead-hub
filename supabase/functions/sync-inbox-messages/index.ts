@@ -64,7 +64,12 @@ async function findMessages(
   });
   const text = await resp.text();
   if (!resp.ok) {
-    console.error(`findMessages failed (${resp.status}) for ${instanceName}:`, text.slice(0, 300));
+    // 404 = instance does not exist in the Evolution provider (stale name).
+    // Log as info and skip — no point spamming errors.
+    const level = resp.status === 404 ? "info" : "error";
+    (console as any)[level === "info" ? "log" : "error"](
+      `findMessages skipped (${resp.status}) for ${instanceName}: ${text.slice(0, 200)}`
+    );
     return [];
   }
   let parsed: any;
@@ -77,7 +82,20 @@ async function findMessages(
   return [];
 }
 
-function extractContent(msg: any): { type: string; content: string } {
+function unwrapMessage(msg: any): any {
+  if (!msg) return msg;
+  return (
+    msg.ephemeralMessage?.message ??
+    msg.viewOnceMessage?.message ??
+    msg.viewOnceMessageV2?.message ??
+    msg.viewOnceMessageV2Extension?.message ??
+    msg.documentWithCaptionMessage?.message ??
+    msg
+  );
+}
+
+function extractContent(rawMsg: any): { type: string; content: string } {
+  const msg = unwrapMessage(rawMsg);
   if (!msg) return { type: "text", content: "" };
   if (msg.conversation) return { type: "text", content: msg.conversation };
   if (msg.extendedTextMessage?.text) return { type: "text", content: msg.extendedTextMessage.text };
@@ -86,6 +104,10 @@ function extractContent(msg: any): { type: string; content: string } {
   if (msg.videoMessage) return { type: "video", content: msg.videoMessage.caption || "" };
   if (msg.documentMessage) return { type: "document", content: msg.documentMessage.caption || msg.documentMessage.fileName || "" };
   if (msg.stickerMessage) return { type: "image", content: "" };
+  if (msg.reactionMessage) {
+    const emoji = msg.reactionMessage.text || "";
+    return { type: "text", content: emoji ? `Reagiu: ${emoji}` : "Removeu reação" };
+  }
   return { type: "text", content: "" };
 }
 
