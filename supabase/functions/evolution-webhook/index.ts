@@ -309,41 +309,55 @@ Deno.serve(async (req) => {
       const pushName = (!key.fromMe && data.pushName) ? data.pushName : "";
 
       // 1. Determine message content
+      // Unwrap containers that hide the real payload (ephemeral / view-once / etc.)
+      const realMessage =
+        message?.ephemeralMessage?.message ??
+        message?.viewOnceMessage?.message ??
+        message?.viewOnceMessageV2?.message ??
+        message?.viewOnceMessageV2Extension?.message ??
+        message?.documentWithCaptionMessage?.message ??
+        message ?? {};
+
       let type = "text";
       let content = "";
       let mediaUrl: string | null = null;
       let mediaMimeType: string | null = null;
       let mediaFilename: string | null = null;
-      if (message.conversation) content = message.conversation;
-      else if (message.extendedTextMessage) content = message.extendedTextMessage.text;
-      else if (message.imageMessage) {
+      if (realMessage.conversation) content = realMessage.conversation;
+      else if (realMessage.extendedTextMessage) content = realMessage.extendedTextMessage.text;
+      else if (realMessage.imageMessage) {
         type = "image";
-        content = message.imageMessage.caption || "";
-        mediaMimeType = message.imageMessage.mimetype || "image/jpeg";
-        mediaUrl = message.imageMessage.url || null;
+        content = realMessage.imageMessage.caption || "";
+        mediaMimeType = realMessage.imageMessage.mimetype || "image/jpeg";
+        mediaUrl = realMessage.imageMessage.url || null;
       }
-      else if (message.audioMessage) {
+      else if (realMessage.audioMessage) {
         type = "audio";
-        mediaMimeType = message.audioMessage.mimetype || "audio/ogg";
-        mediaUrl = message.audioMessage.url || null;
+        mediaMimeType = realMessage.audioMessage.mimetype || "audio/ogg";
+        mediaUrl = realMessage.audioMessage.url || null;
       }
-      else if (message.videoMessage) {
+      else if (realMessage.videoMessage) {
         type = "video";
-        content = message.videoMessage.caption || "";
-        mediaMimeType = message.videoMessage.mimetype || "video/mp4";
-        mediaUrl = message.videoMessage.url || null;
+        content = realMessage.videoMessage.caption || "";
+        mediaMimeType = realMessage.videoMessage.mimetype || "video/mp4";
+        mediaUrl = realMessage.videoMessage.url || null;
       }
-      else if (message.documentMessage) {
+      else if (realMessage.documentMessage) {
         type = "document";
-        content = message.documentMessage.caption || message.documentMessage.fileName || "";
-        mediaMimeType = message.documentMessage.mimetype || null;
-        mediaFilename = message.documentMessage.fileName || null;
-        mediaUrl = message.documentMessage.url || null;
+        content = realMessage.documentMessage.caption || realMessage.documentMessage.fileName || "";
+        mediaMimeType = realMessage.documentMessage.mimetype || null;
+        mediaFilename = realMessage.documentMessage.fileName || null;
+        mediaUrl = realMessage.documentMessage.url || null;
       }
-      else if (message.stickerMessage) {
+      else if (realMessage.stickerMessage) {
         type = "image";
-        mediaUrl = message.stickerMessage.url || null;
-        mediaMimeType = message.stickerMessage.mimetype || "image/webp";
+        mediaUrl = realMessage.stickerMessage.url || null;
+        mediaMimeType = realMessage.stickerMessage.mimetype || "image/webp";
+      }
+      else if (realMessage.reactionMessage) {
+        type = "text";
+        const emoji = realMessage.reactionMessage.text || "";
+        content = emoji ? `Reagiu: ${emoji}` : "Removeu reação";
       }
 
       // 2. Find or create inbox conversation.
