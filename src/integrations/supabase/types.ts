@@ -1498,6 +1498,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      whatsapp_match_key: { Args: { raw: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
