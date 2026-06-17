@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.manage-evolution]
 verify_jwt = false
+
+[functions.sync-inbox-messages]
+verify_jwt = false
