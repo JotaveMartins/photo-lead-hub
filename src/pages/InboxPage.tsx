@@ -726,6 +726,18 @@ const InboxPage = () => {
                 </Button>
               )}
 
+              {/* Sync messages from Evolution */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleSyncMessages}
+                disabled={syncingMessages}
+                title="Recarregar mensagens do WhatsApp"
+              >
+                {syncingMessages ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              </Button>
+
               {/* Notes toggle */}
               <Button
                 variant={showNotes ? "default" : "outline"}
