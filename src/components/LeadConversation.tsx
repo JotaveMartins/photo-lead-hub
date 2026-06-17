@@ -14,6 +14,7 @@ import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { normalizeBrazilWhatsapp } from "@/lib/utils";
 
 interface Props {
   leadId: string;
@@ -92,7 +93,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         return data.find((c) => c.status !== "closed") ?? data[0];
       }
 
-      const normalizedPhone = normalizeWhatsApp(leadWhatsapp);
+      const normalizedPhone = normalizeBrazilWhatsapp(leadWhatsapp);
       if (!normalizedPhone) return null;
 
       const { data: all } = await supabase
@@ -102,7 +103,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         .order("updated_at", { ascending: false });
 
       const matched = (all || []).find((c) => {
-        const n = normalizeWhatsApp(c.contact_number);
+        const n = normalizeBrazilWhatsapp(c.contact_number);
         return n === normalizedPhone || n.endsWith(normalizedPhone) || normalizedPhone.endsWith(n);
       });
 
@@ -190,7 +191,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     const hasFile = !!pendingFile;
     if (!hasText && !hasFile) return;
 
-    const number = (conv?.contact_number || leadWhatsapp || "").replace(/\D/g, "");
+    const number = normalizeBrazilWhatsapp(conv?.contact_number || leadWhatsapp || "");
     if (!number) { toast.error("Sem número de WhatsApp."); return; }
     if (!activeInstance) { toast.error("Nenhuma instância de WhatsApp conectada."); return; }
 
@@ -292,7 +293,12 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     } catch (err: any) {
       console.error(err);
       setText(currentText);
-      toast.error("Erro ao enviar: " + (err?.message || "tente novamente"));
+      const msg = err?.message || "tente novamente";
+      if (typeof msg === "string" && msg.includes('"exists":false')) {
+        toast.error("Esse número não está no WhatsApp. Verifique DDD/DDI ou se é um número Business.");
+      } else {
+        toast.error("Erro ao enviar: " + msg);
+      }
     } finally {
       setUploadingFile(false);
     }
