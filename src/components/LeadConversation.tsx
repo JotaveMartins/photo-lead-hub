@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
 import { QuickRepliesModal } from "@/components/chat/QuickRepliesModal";
+import { EmojiPickerButton } from "@/components/chat/EmojiPickerButton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -486,6 +487,12 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
           >
             <Zap className="w-4 h-4" />
           </Button>
+
+          {/* Emoji */}
+          <EmojiPickerButton
+            disabled={isSending}
+            onSelect={(emoji) => setText((prev) => prev + emoji)}
+          />
 
           {/* Text input */}
           <Textarea

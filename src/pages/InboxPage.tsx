@@ -33,6 +33,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useQuickReplies, useCreateQuickReply, useDeleteQuickReply } from "@/hooks/useQuickReplies";
 import { QuickRepliesModal } from "@/components/chat/QuickRepliesModal";
+import { EmojiPickerButton } from "@/components/chat/EmojiPickerButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -845,6 +846,11 @@ const InboxPage = () => {
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
+              <EmojiPickerButton
+                variant="outline"
+                disabled={uploadingFile || sendMessage.isPending}
+                onSelect={(emoji) => setMessageText((prev) => prev + emoji)}
+              />
               <Textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
