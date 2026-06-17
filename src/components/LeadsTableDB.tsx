@@ -103,7 +103,7 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
 
   const bulkOptions =
     bulkField === "origem" ? ORIGEM_OPTIONS
-    : bulkField === "interesse" ? interesseOptions.map((i: any) => i.label || i.value || i)
+    : bulkField === "interesse" ? interesseOptions
     : STATUS_OPTIONS;
 
   const handleBulkApply = async () => {
