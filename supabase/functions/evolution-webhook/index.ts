@@ -10,6 +10,10 @@ const whatsappMatchKey = (value: string | null | undefined) => {
   if (!d) return "";
   if (d.startsWith("55") && d.length > 11) d = d.slice(2);
   if (d.length > 11) d = d.slice(-11);
+  // Brazil mobile fallback: collapse 11-digit mobile (DDD+9+8) into 10-digit (DDD+8)
+  if (d.length === 11 && d[2] === "9") {
+    d = d.slice(0, 2) + d.slice(3);
+  }
   return d;
 };
 
@@ -349,6 +353,7 @@ Deno.serve(async (req) => {
       const orFilter = knownIds
         .flatMap((id) => [`contact_number.eq.${id}`, `contact_lid.eq.${id}`])
         .join(",");
+      // First try exact identifier match on this instance (fast path)
       let { data: conversation } = await supabase
         .from("inbox_conversations")
         .select("*")
@@ -359,9 +364,46 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
+      // Fallback: fuzzy match by canonical key across ALL conversations of this user
+      // (handles conversations created via lead chat without instance_id, and the
+      //  Brazil "missing 9th digit" case).
+      if (!conversation) {
+        const inboundKey = whatsappMatchKey(whatsapp);
+        if (inboundKey) {
+          const { data: allConvs } = await supabase
+            .from("inbox_conversations")
+            .select("*")
+            .eq("user_id", userId)
+            .order("updated_at", { ascending: false });
+          const match = (allConvs || []).find(
+            (c: any) => whatsappMatchKey(c.contact_number) === inboundKey
+          );
+          if (match) {
+            conversation = match;
+            // Adopt the instance if the existing conversation had none
+            if (!match.instance_id && instanceId) {
+              await supabase
+                .from("inbox_conversations")
+                .update({ instance_id: instanceId })
+                .eq("id", match.id);
+              conversation.instance_id = instanceId;
+            }
+          }
+        }
+      }
+
       // If conversation is closed and a new inbound message arrives, create a new ticket
+      // EXCEPT when it's linked to a lead — in that case reopen instead of duplicating.
       if (conversation && conversation.status === 'closed' && !key.fromMe) {
-        conversation = null;
+        if (conversation.lead_id) {
+          await supabase
+            .from("inbox_conversations")
+            .update({ status: 'open' })
+            .eq("id", conversation.id);
+          conversation.status = 'open';
+        } else {
+          conversation = null;
+        }
       }
 
       if (!conversation) {
