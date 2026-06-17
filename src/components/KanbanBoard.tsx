@@ -400,7 +400,17 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           ? CLOSED_COLUMNS.filter((c) => c.status === "Fechado Ganho")
           : CLOSED_COLUMNS.filter((c) => c.status === "Fechado Perdido")
         ).map((col) => {
-          const columnLeads = filteredLeads.filter((l) => l.status === col.status);
+          const columnLeadsUnsorted = filteredLeads.filter((l) => l.status === col.status);
+          const getNextTaskTime = (leadId: string): number => {
+            const ts = pendingTasks
+              .filter((t) => t.lead_id === leadId)
+              .map((t) => parseLocalDate(t.due_date).getTime());
+            if (ts.length === 0) return Number.POSITIVE_INFINITY;
+            return Math.min(...ts);
+          };
+          const columnLeads = [...columnLeadsUnsorted].sort(
+            (a, b) => getNextTaskTime(a.id) - getNextTaskTime(b.id)
+          );
           const isDragOver = dragOverColumn === col.status;
           const totalValue = getColumnValue(col.status);
 
