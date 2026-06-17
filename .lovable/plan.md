@@ -1,49 +1,49 @@
-# Investigação — conversa da Vitória (554792426261)
+# Plano — 3 melhorias na tela de Leads
 
-Olhei o banco e o código. Encontrei duas causas distintas:
+## 1. Fixar notas no topo do histórico (Atividades)
+Arquivo: `src/components/LeadDetailDrawer.tsx` (linhas ~920-952, montagem do `items` da timeline).
 
-## 1) Mensagem aparece duplicada
+- Mudar a montagem do array: separar `noteItems` (do tipo `note`) dos demais (`otherItems`).
+- Ordenar cada grupo por data desc independentemente.
+- Renderizar `[...noteItems, ...otherItems]` para que **todas** as notas apareçam no topo, acima de tarefas/mudanças/histórico, mantendo entre si a ordem por data (mais recente primeiro).
+- Nenhuma mudança de banco. As notas continuam vindo de `lead_notes`.
 
-Na conversa só existem 2 linhas em `inbox_messages`, ambas com o mesmo texto e timestamp ~17:02:33:
+## 2. Edição em massa de campo (ex.: origem) em vários leads
+Adicionar seleção múltipla + barra de ação em massa.
 
-- Linha A → `whatsapp_message_id = 3EB097…2082` (gravada pelo **webhook** quando a Evolution ecoou de volta a mensagem enviada).
-- Linha B → `whatsapp_message_id = NULL` (gravada pelo **cliente** em `useInbox.ts`, logo depois do `send-whatsapp-message`).
+**Visualização Tabela** (`src/components/LeadsTableDB.tsx`):
+- Adicionar coluna de checkbox por linha + checkbox "selecionar todos" no header.
+- Estado `selectedIds: Set<string>` no componente.
+- Quando houver seleção, mostrar uma barra flutuante no topo da tabela:
+  - "X leads selecionados"
+  - Dropdown nativo: campo a editar (Origem, Interesse, Status, Responsável se existir) — começamos com **Origem** e **Interesse** (já existem opções fixas / `useInteresseOptions`).
+  - Select nativo com o novo valor.
+  - Botão "Aplicar" → roda `supabase.from("leads").update({ campo: valor }).in("id", ids)` via novo hook `useBulkUpdateLeads` em `src/hooks/useLeads.ts`.
+  - Toast de sucesso, invalida `["leads"]` e limpa a seleção.
+- Botão "Limpar seleção".
 
-Ou seja: toda mensagem que o Saulo envia pelo CRM cai duas vezes — uma do client (sem id) e outra do webhook (com id). Hoje não há nenhuma deduplicação.
+**Visualização Kanban**: fora do escopo desta iteração (manter só na tabela, que é a tela natural para ação em lote). Se quiser depois, replicamos.
 
-## 2) Emoji enviado pelo Saulo não aparece
+**Sem mudanças de schema** — usa update normal já coberto por RLS de `leads`.
 
-Não tem registro nenhum desse evento — nem em `inbox_messages`, nem em `webhook_logs`. E descobri o motivo de não termos histórico de webhook: a inserção em `webhook_logs` está enviando uma coluna `user_id` que **não existe na tabela**, então toda gravação falha silenciosamente há semanas. Sem log bruto, não dá pra dizer se a Evolution sequer entregou o emoji ou se ele caiu em algum branch que ainda não tratamos.
+## 3. Badge de mensagens novas no card do Kanban
+Arquivo: `src/components/KanbanBoard.tsx` (card do lead, ~linhas 438-463).
 
----
+Fonte de dados: tabela `inbox_conversations` já tem `unread_count` e (após a migração de 17/06) `lead_id` ligando à `leads`.
 
-# Plano
+- Criar hook `useLeadUnreadCounts()` em `src/hooks/useInbox.ts`:
+  - `select lead_id, unread_count from inbox_conversations where lead_id is not null and unread_count > 0`.
+  - Agrega `Map<lead_id, total_unread>` (soma se houver múltiplas conversas para o mesmo lead).
+  - Subscribe a realtime de `inbox_conversations` (já habilitado) para invalidar a query quando mudar.
+- No `KanbanBoard`, chamar o hook e, no card, mostrar uma **bolinha vermelha** no canto superior direito (ou ao lado do nome) com o número quando `unread > 0`:
+  - `<span className="bg-destructive text-destructive-foreground rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center">{n}</span>`
+  - Se >99, mostra "99+".
+- Quando o usuário abrir o Inbox e ler a conversa (já zera `unread_count` lá), o badge some automaticamente via realtime.
 
-## A. Eliminar a duplicação de outbound
+Opcional (confirmar): mostrar também na visualização Tabela? Por padrão **sim**, mesma bolinha numa coluna nova ou ao lado do nome. Posso adicionar se quiser.
 
-1. **`src/hooks/useInbox.ts` (`useSendInboxMessage`)**: depois do `send-whatsapp-message`, ler `data.result.key.id` (a Evolution devolve) e gravar no insert do `inbox_messages` como `whatsapp_message_id`. Se a função não devolver id, mantém `null`.
-2. **Migration**: criar `UNIQUE INDEX inbox_messages_wid_unique ON inbox_messages (whatsapp_message_id) WHERE whatsapp_message_id IS NOT NULL`. Antes de criar o índice, limpar duplicatas históricas mantendo a linha com `whatsapp_message_id` preenchido.
-3. **`supabase/functions/evolution-webhook/index.ts`** (passo "4. Save message to inbox_messages"): trocar o `insert` puro por uma rotina idempotente para outbound (`key.fromMe = true`):
-   - Se já existe linha com aquele `whatsapp_message_id` → não faz nada.
-   - Senão, procura na mesma `conversation_id` uma linha outbound dos últimos 60s com `body` igual e `whatsapp_message_id IS NULL` → faz `UPDATE` preenchendo o `whatsapp_message_id` (e mídia, se houver) em vez de inserir.
-   - Senão, insere normalmente.
-   
-   Inbound (`fromMe = false`) continua igual, mas também ganha o "skip se whatsapp_message_id já existe" pra ser à prova de re-entrega.
-
-## B. Voltar a ter log bruto da Evolution
-
-4. **Migration**: adicionar coluna `user_id uuid` em `webhook_logs` (nullable, sem FK rígida, só pra debug). Com isso o `insert` do webhook volta a funcionar e a gente passa a ter os payloads recentes pra inspecionar.
-5. Sem mudanças no comportamento da edge function aqui — só corrigir o efeito colateral.
-
-## C. Diagnóstico do emoji do Saulo (depois que B estiver em produção)
-
-6. Pedir pro Saulo reenviar o emoji. Eu consulto `webhook_logs` (filtrando por `554792426261` no payload) e confirmo se:
-   - a Evolution está entregando o evento, e
-   - em qual wrapper o emoji chega (`conversation`, `extendedTextMessage`, `editedMessage`, algo novo).
-7. Se for um wrapper que o webhook ainda não trata (ex.: `editedMessage`, `protocolMessage` com edição), adiciono o branch correspondente em `evolution-webhook` e em `sync-inbox-messages`. Esse passo fica como follow-up após coletar o log — não dá pra cegar agora porque não temos evidência do formato exato.
-
-## Fora de escopo
-
-- Mexer em mensagens de reação / efêmeras (já tratadas na rodada anterior).
-- Mudar a UX de envio (botão, modal, feedback).
-- Backfill manual de mensagens passadas — só passa a deduplicar daqui pra frente.
+## Detalhes técnicos
+- Nenhuma migração de banco necessária — todas as colunas já existem (`unread_count`, `lead_id` em `inbox_conversations`).
+- Bulk update respeita RLS atual de `leads` (user_id = auth.uid()), nada a ajustar.
+- Realtime já está ligado em `inbox_conversations`.
+- Sem `<Select>` Radix em modal — barra de ação na tabela vai usar `<select>` nativo conforme padrão do projeto.
