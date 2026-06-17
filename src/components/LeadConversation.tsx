@@ -474,6 +474,19 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
             <Paperclip className="w-4 h-4" />
           </Button>
 
+          {/* Quick replies */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
+            onClick={() => setShowQuickReplies(true)}
+            disabled={isSending}
+            title="Respostas rápidas"
+          >
+            <Zap className="w-4 h-4" />
+          </Button>
+
           {/* Text input */}
           <Textarea
             ref={textareaRef}
@@ -505,6 +518,12 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
           Enter para enviar · Shift+Enter nova linha · Máx {MAX_FILE_MB} MB
         </p>
       </div>
+
+      <QuickRepliesModal
+        open={showQuickReplies}
+        onClose={() => setShowQuickReplies(false)}
+        onSelect={(body) => setText((prev) => (prev ? prev + "\n" + body : body))}
+      />
     </div>
   );
 };
