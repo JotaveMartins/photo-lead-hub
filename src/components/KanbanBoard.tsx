@@ -5,6 +5,7 @@ import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAllPendingTasks, type LeadTask } from "@/hooks/useLeadTasks";
 import { useCreateFollowUpTask } from "@/hooks/useLeadTasks";
 import { useAiActive } from "@/hooks/useAiActive";
+import { useLeadUnreadCounts } from "@/hooks/useInbox";
  import { Phone, Calendar, GripVertical, Filter, DollarSign, ChevronRight, Trash2, Bot } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SearchInput } from "@/components/ui/search-input";
@@ -71,6 +72,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const { data: interesseOptions = [] } = useInteresseOptions();
   const { data: aiActive = false } = useAiActive();
+  const { data: unreadByLead = {} } = useLeadUnreadCounts();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
