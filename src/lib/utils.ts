@@ -46,3 +46,19 @@ export function normalizeBrazilWhatsapp(raw: string | null | undefined): string 
   }
   return digits;
 }
+
+/**
+ * Canonical key to compare two WhatsApp numbers regardless of formatting/DDI.
+ * - Strips non-digits.
+ * - Removes a leading "55" country code if present.
+ * - Returns the LAST 11 digits (DDD + 9 + número) or all digits if fewer.
+ *
+ * Use ONLY for matching two numbers between themselves — never to dial out.
+ */
+export function whatsappMatchKey(raw: string | null | undefined): string {
+  let d = (raw || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("55") && d.length > 11) d = d.slice(2);
+  if (d.length > 11) d = d.slice(-11);
+  return d;
+}
