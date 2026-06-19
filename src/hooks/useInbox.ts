@@ -329,18 +329,23 @@ export const useInboxMessageSearch = (term: string) => {
   return useQuery({
     queryKey: ["inbox_message_search", effectiveUserId, trimmed],
     queryFn: async () => {
-      if (!effectiveUserId || trimmed.length < 2) return [] as string[];
+      if (!effectiveUserId || trimmed.length < 2) return new Map() as Map<string, string>;
       const escaped = trimmed.replace(/[%_\\]/g, (m) => `\\${m}`);
       const { data, error } = await supabase
         .from("inbox_messages")
-        .select("conversation_id")
+        .select("conversation_id, body, created_at")
         .eq("user_id", effectiveUserId)
         .ilike("body", `%${escaped}%`)
+        .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
-      const ids = new Set<string>();
-      (data || []).forEach((r: any) => r.conversation_id && ids.add(r.conversation_id));
-      return Array.from(ids);
+      const map = new Map<string, string>();
+      (data || []).forEach((r: any) => {
+        if (r.conversation_id && r.body && !map.has(r.conversation_id)) {
+          map.set(r.conversation_id, r.body);
+        }
+      });
+      return map;
     },
     enabled: !!effectiveUserId && trimmed.length >= 2,
   });
