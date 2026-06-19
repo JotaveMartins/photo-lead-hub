@@ -525,7 +525,17 @@ const InboxPage = () => {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate mb-1.5">
-                    {conv.last_message || "Nenhuma mensagem"}
+                    {(() => {
+                      const matchedBody = messageMatchMap.get(conv.id);
+                      if (matchedBody) {
+                        return (
+                          <span className="text-foreground/80">
+                            <HighlightMatch text={getMatchSnippet(matchedBody, searchTerm)} term={searchTerm} />
+                          </span>
+                        );
+                      }
+                      return conv.last_message || "Nenhuma mensagem";
+                    })()}
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
