@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Inbox as InboxIcon, Search, Send, UserPlus, User, MessageSquare, Bot,
   Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useInboxConversations,
   useInboxMessages,
+  useInboxMessageSearch,
   useUpdateConversation,
   useSendInboxMessage,
   useMarkConversationRead,
