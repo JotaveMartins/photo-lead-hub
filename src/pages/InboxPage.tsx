@@ -167,13 +167,18 @@ const InboxPage = () => {
   const selectedConv = allConversations.find((c) => c.id === selectedConversationId) ?? null;
   const activeInstance = instances.find((i) => i.status === "connected");
 
+  const { data: messageMatchIds = [], isFetching: searchingMessages } =
+    useInboxMessageSearch(searchTerm);
+  const messageMatchSet = useMemo(() => new Set(messageMatchIds), [messageMatchIds]);
+
+  const hasSearch = searchTerm.trim().length > 0;
   const filteredConversations = allConversations.filter((c) => {
-    if (c.status !== activeStatus) return false;
-    if (!searchTerm) return true;
+    if (!hasSearch) return c.status === activeStatus;
     const q = searchTerm.toLowerCase();
     return (
       (c.contact_name?.toLowerCase().includes(q) || false) ||
-      c.contact_number.includes(q)
+      c.contact_number.includes(q) ||
+      messageMatchSet.has(c.id)
     );
   });
 
