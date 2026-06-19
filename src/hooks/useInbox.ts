@@ -323,6 +323,29 @@ export const useConversationNotes = (conversationId?: string) => {
   });
 };
 
+export const useInboxMessageSearch = (term: string) => {
+  const effectiveUserId = useEffectiveUserId();
+  const trimmed = term.trim();
+  return useQuery({
+    queryKey: ["inbox_message_search", effectiveUserId, trimmed],
+    queryFn: async () => {
+      if (!effectiveUserId || trimmed.length < 2) return [] as string[];
+      const escaped = trimmed.replace(/[%_\\]/g, (m) => `\\${m}`);
+      const { data, error } = await supabase
+        .from("inbox_messages")
+        .select("conversation_id")
+        .eq("user_id", effectiveUserId)
+        .ilike("body", `%${escaped}%`)
+        .limit(500);
+      if (error) throw error;
+      const ids = new Set<string>();
+      (data || []).forEach((r: any) => r.conversation_id && ids.add(r.conversation_id));
+      return Array.from(ids);
+    },
+    enabled: !!effectiveUserId && trimmed.length >= 2,
+  });
+};
+
 export const useAddConversationNote = () => {
   const queryClient = useQueryClient();
   const effectiveUserId = useEffectiveUserId();
