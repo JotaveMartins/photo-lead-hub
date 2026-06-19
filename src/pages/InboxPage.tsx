@@ -204,9 +204,8 @@ const InboxPage = () => {
   const selectedConv = allConversations.find((c) => c.id === selectedConversationId) ?? null;
   const activeInstance = instances.find((i) => i.status === "connected");
 
-  const { data: messageMatchIds = [], isFetching: searchingMessages } =
+  const { data: messageMatchMap = new Map(), isFetching: searchingMessages } =
     useInboxMessageSearch(searchTerm);
-  const messageMatchSet = useMemo(() => new Set(messageMatchIds), [messageMatchIds]);
 
   const hasSearch = searchTerm.trim().length > 0;
   const filteredConversations = allConversations.filter((c) => {
@@ -215,7 +214,7 @@ const InboxPage = () => {
     return (
       (c.contact_name?.toLowerCase().includes(q) || false) ||
       c.contact_number.includes(q) ||
-      messageMatchSet.has(c.id)
+      messageMatchMap.has(c.id)
     );
   });
 
