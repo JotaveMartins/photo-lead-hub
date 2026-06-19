@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Inbox as InboxIcon, Search, Send, UserPlus, User, MessageSquare, Bot,
   Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
@@ -68,6 +68,42 @@ const formatConvDate = (ts: string): string => {
   if (isToday(d)) return format(d, "HH:mm");
   if (isYesterday(d)) return "Ontem";
   return format(d, "dd/MM", { locale: ptBR });
+};
+
+const getMatchSnippet = (text: string, term: string, maxLen = 80): string => {
+  const t = term.trim();
+  if (!t) return text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
+  const lowerText = text.toLowerCase();
+  const lowerTerm = t.toLowerCase();
+  const idx = lowerText.indexOf(lowerTerm);
+  if (idx === -1) return text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
+  const context = Math.max(0, Math.floor((maxLen - t.length) / 2));
+  const start = Math.max(0, idx - context);
+  const end = Math.min(text.length, idx + t.length + context);
+  let snippet = text.slice(start, end);
+  if (start > 0) snippet = "…" + snippet;
+  if (end < text.length) snippet = snippet + "…";
+  return snippet;
+};
+
+const HighlightMatch = ({ text, term }: { text: string; term: string }) => {
+  const t = term.trim();
+  if (!t) return <>{text}</>;
+  const safeTerm = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${safeTerm})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === t.toLowerCase() ? (
+          <mark key={i} className="bg-primary/30 text-primary rounded-sm px-0.5">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
 };
 
 // ─────────────────────────────────────────────
@@ -168,9 +204,8 @@ const InboxPage = () => {
   const selectedConv = allConversations.find((c) => c.id === selectedConversationId) ?? null;
   const activeInstance = instances.find((i) => i.status === "connected");
 
-  const { data: messageMatchIds = [], isFetching: searchingMessages } =
+  const { data: messageMatchMap = new Map(), isFetching: searchingMessages } =
     useInboxMessageSearch(searchTerm);
-  const messageMatchSet = useMemo(() => new Set(messageMatchIds), [messageMatchIds]);
 
   const hasSearch = searchTerm.trim().length > 0;
   const filteredConversations = allConversations.filter((c) => {
@@ -179,7 +214,7 @@ const InboxPage = () => {
     return (
       (c.contact_name?.toLowerCase().includes(q) || false) ||
       c.contact_number.includes(q) ||
-      messageMatchSet.has(c.id)
+      messageMatchMap.has(c.id)
     );
   });
 
@@ -490,7 +525,17 @@ const InboxPage = () => {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate mb-1.5">
-                    {conv.last_message || "Nenhuma mensagem"}
+                    {(() => {
+                      const matchedBody = messageMatchMap.get(conv.id);
+                      if (matchedBody) {
+                        return (
+                          <span className="text-foreground/80">
+                            <HighlightMatch text={getMatchSnippet(matchedBody, searchTerm)} term={searchTerm} />
+                          </span>
+                        );
+                      }
+                      return conv.last_message || "Nenhuma mensagem";
+                    })()}
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
