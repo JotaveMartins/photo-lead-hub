@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { normalizeBrazilWhatsapp, whatsappMatchKey } from "@/lib/utils";
+import { dedupeMessages } from "@/lib/dedupeMessages";
 
 interface Props {
   leadId: string;
@@ -143,6 +144,8 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     },
     enabled: !!conv?.id,
   });
+
+  const displayedMessages = dedupeMessages(messages as any[]);
 
   // ── Scroll to bottom ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -354,10 +357,20 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
         body: { conversation_id: conv.id, take: 50 },
       });
       if (error) throw error;
-      const inserted = data?.inserted ?? 0;
-      if (inserted > 0) toast.success(`${inserted} nova(s) mensagem(ns) importada(s).`);
-      else toast.info("Nenhuma mensagem nova.");
-      queryClient.invalidateQueries({ queryKey: ["inbox_messages", conv.id] });
+      if (data?.ok === false) {
+        const reasonMap: Record<string, string> = {
+          no_connected_instance: "Nenhuma instância do WhatsApp conectada.",
+          ambiguous_instance: "Conversa sem instância vinculada e há mais de uma instância conectada.",
+          conversation_not_found: "Conversa não encontrada.",
+          instance_not_found: "Instância do WhatsApp não encontrada.",
+        };
+        toast.error(reasonMap[data.reason] || "Não foi possível sincronizar.");
+      } else {
+        const inserted = data?.inserted ?? 0;
+        if (inserted > 0) toast.success(`${inserted} nova(s) mensagem(ns) importada(s).`);
+        else toast.info("Nenhuma mensagem nova.");
+        queryClient.invalidateQueries({ queryKey: ["inbox_messages", conv.id] });
+      }
     } catch (e: any) {
       toast.error("Erro ao sincronizar: " + (e?.message || "tente novamente"));
     } finally {
@@ -401,12 +414,12 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
 
       {/* Messages list */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
-        {messages.length === 0 ? (
+        {displayedMessages.length === 0 ? (
           <p className="text-center text-xs text-muted-foreground py-8">
             Nenhuma mensagem ainda.
           </p>
         ) : (
-          messages.map((m: any) => {
+          displayedMessages.map((m: any) => {
             const isOut = m.direction === "outbound";
             return (
               <div key={m.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
