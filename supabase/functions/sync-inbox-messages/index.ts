@@ -321,27 +321,46 @@ Deno.serve(async (req) => {
         .eq("id", body.conversation_id)
         .maybeSingle();
       if (!conv) {
-        return new Response(JSON.stringify({ error: "Conversation not found" }), {
-          status: 404,
+        return new Response(JSON.stringify({ ok: false, reason: "conversation_not_found" }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!conv.instance_id) {
-        return new Response(JSON.stringify({ error: "Conversation has no instance attached" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      let inst: { id: string; name: string; user_id: string } | null = null;
+      if (conv.instance_id) {
+        const { data } = await supabase
+          .from("whatsapp_instances")
+          .select("id, name, user_id")
+          .eq("id", conv.instance_id)
+          .maybeSingle();
+        inst = data as any;
       }
-      const { data: inst } = await supabase
-        .from("whatsapp_instances")
-        .select("id, name, user_id")
-        .eq("id", conv.instance_id)
-        .maybeSingle();
       if (!inst) {
-        return new Response(JSON.stringify({ error: "Instance not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // Fallback: look up connected instances for the conversation's user
+        const { data: connected } = await supabase
+          .from("whatsapp_instances")
+          .select("id, name, user_id")
+          .eq("user_id", conv.user_id)
+          .eq("status", "connected");
+        if (!connected || connected.length === 0) {
+          return new Response(JSON.stringify({ ok: false, reason: "no_connected_instance" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (connected.length > 1) {
+          return new Response(JSON.stringify({ ok: false, reason: "ambiguous_instance" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        inst = connected[0] as any;
+        // Persist the link so future syncs are immediate
+        await supabase
+          .from("inbox_conversations")
+          .update({ instance_id: inst!.id })
+          .eq("id", conv.id);
+        conv.instance_id = inst!.id;
       }
 
       // Try both PN and LID JIDs
@@ -353,7 +372,7 @@ Deno.serve(async (req) => {
 
       let totals = { total: 0, inserted: 0, exists: 0, skipped: 0 };
       for (const jid of uniqueJids) {
-        const r = await syncForInstance(supabase, inst, baseUrl, apiKey, {
+        const r = await syncForInstance(supabase, inst!, baseUrl, apiKey, {
           remoteJid: jid,
           take: body.take ?? 50,
         });
