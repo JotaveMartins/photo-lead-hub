@@ -1,63 +1,88 @@
-## Objetivo
+## Mudanças a implementar
 
-Resolver dois problemas no Inbox/conversa do lead:
+### 1. Emoji picker fechando ao passar mouse na divisória
+**Arquivo:** `src/components/chat/EmojiPickerButton.tsx`
 
-1. A sincronização do histórico do WhatsApp falha com `Erro ao sincronizar: Edge function returned a non-2xx status code`.
-2. Mensagens enviadas aparecem duplicadas visualmente no CRM, embora tenham sido enviadas uma única vez.
+O `PopoverContent` do shadcn fecha em `pointer-down-outside` / `focus-outside`, mas o `EmojiPicker` (lib `emoji-picker-react`) tem áreas internas (separadores entre categorias, scrollbar) que disparam o blur do popover, fazendo-o fechar quando o mouse passa sobre a linha divisória entre seções.
 
-## Diagnóstico confirmado
+Solução: bloquear os handlers de auto-close do Radix dentro do conteúdo do popover:
+```tsx
+<PopoverContent
+  onPointerDownOutside={(e) => {
+    // Permite fechar se for clique fora do picker; já é o default.
+  }}
+  onInteractOutside={(e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest(".EmojiPickerReact")) e.preventDefault();
+  }}
+  onFocusOutside={(e) => e.preventDefault()}
+  ...
+>
+```
+Garantir também que o popover só feche em clique fora real ou na seleção de emoji.
 
-- Na conta do Saulo, a conversa do telefone `5548999527087` existe, mas está com `instance_id` vazio.
-- A função `sync-inbox-messages` hoje retorna erro HTTP quando a conversa não tem instância vinculada, causando o erro genérico no front.
-- O Saulo tem uma única instância conectada, então a função pode vincular automaticamente essa conversa à instância correta.
-- Para a duplicidade visual, o banco não mostrou duplicatas exatas nesse caso. O comportamento mais provável é uma corrida entre atualização otimista, insert real e realtime/refetch, ou mensagens com mesmo conteúdo/horário vindas de fontes diferentes. A correção deve deduplicar a lista exibida sem apagar dados.
+---
 
-## Plano de implementação
+### 2. Divisória de data no meio das conversas (estilo WhatsApp)
+**Arquivos:** `src/components/LeadConversation.tsx`, `src/pages/InboxPage.tsx`
 
-### 1. Corrigir a edge `sync-inbox-messages`
+Hoje cada mensagem renderiza só a hora (`formatMsgDate`). Vamos inserir um chip centralizado ("Hoje", "Ontem", "22 jun 2026") sempre que a data da mensagem mudar em relação à anterior.
 
-Em `supabase/functions/sync-inbox-messages/index.ts`:
+Criar helper `src/lib/formatMessageDay.ts`:
+- recebe timestamp
+- retorna `"Hoje"`, `"Ontem"`, ou `"DD MMM YYYY"` em PT-BR usando `parseLocalDate`/timezone America/Sao_Paulo (conforme a regra do projeto).
 
-- Quando a conversa não tiver `instance_id`, buscar instâncias conectadas do mesmo usuário.
-- Se houver exatamente uma instância conectada:
-  - usar essa instância para sincronizar;
-  - salvar o `instance_id` na conversa para corrigir o vínculo permanentemente.
-- Se não houver instância conectada, retornar resposta JSON amigável com `ok: false`, sem HTTP 400/500.
-- Se houver mais de uma instância conectada e não der para inferir a correta, retornar `ok: false` com motivo claro.
-- Evitar que erros esperados do modo conversa virem `non-2xx`; o front deve receber JSON tratável.
+No `.map(displayedMessages)` dos dois arquivos, antes de cada mensagem, comparar o dia local com a anterior e, se diferente, renderizar:
+```tsx
+<div className="flex justify-center my-3">
+  <span className="text-[11px] px-3 py-1 rounded-full bg-muted/60 text-muted-foreground">
+    {label}
+  </span>
+</div>
+```
 
-### 2. Melhorar o tratamento de erro no front
+---
 
-Em `src/components/LeadConversation.tsx` e `src/pages/InboxPage.tsx`:
+### 3. Botão "Ativar Sequência de Follow-up" só na etapa Follow-up
+**Arquivo:** `src/components/LeadDetailDrawer.tsx` (linha 777)
 
-- Após chamar `sync-inbox-messages`, verificar `data.ok === false`.
-- Mostrar toast em português conforme o motivo:
-  - sem instância conectada;
-  - conversa sem instância e múltiplas instâncias disponíveis;
-  - conversa não encontrada;
-  - instância não encontrada.
-- Manter o fluxo atual quando houver mensagens importadas.
+Hoje a condição inclui `"Novo Lead"`. Remover para que o botão apareça apenas quando `lead.status === "Follow-up"`:
+```tsx
+{lead.status === "Follow-up" && pendingTasks.filter(...).length === 0 && (...)}
+```
 
-### 3. Evitar duplicidade visual das mensagens
+---
 
-Em `src/components/LeadConversation.tsx` e `src/pages/InboxPage.tsx`:
+### 4. Leads criados pelo Inbox Trigger → origem "Tráfego Pago"
+**Arquivo:** `supabase/functions/evolution-webhook/index.ts` (linha ~607)
 
-- Criar um helper de deduplicação apenas para renderização da conversa.
-- Prioridade de chave:
-  1. `whatsapp_message_id`, quando existir;
-  2. fallback por `direction + body + type + minuto/horário aproximado`, para capturar duplicidade visual de mensagens sem ID igual.
-- Usar a lista deduplicada no `.map()` da UI, sem deletar registros do banco.
-- Preservar ordenação cronológica.
+Na inserção do lead disparada pelo trigger de keyword, trocar:
+```ts
+origem: "WhatsApp",
+```
+por:
+```ts
+origem: "Tráfego Pago",
+```
+(O bloco fica isolado a esse caminho — leads criados manualmente ou via outras rotas mantêm seu fluxo.)
 
-### 4. Backfill pontual via migration
+Verificar se "Tráfego Pago" já existe como opção de origem no sistema; se houver lista fixa, garantir a string idêntica. Não fazer migration de dados retroativa — afeta só novos leads.
 
-Criar migration para corrigir conversas antigas sem instância:
+---
 
-- Para usuários com exatamente uma instância conectada, preencher `inbox_conversations.instance_id` quando estiver vazio.
-- Isso corrige imediatamente o caso do Saulo e outros casos equivalentes.
+### 5. Botão "Pausar IA" só aparece se IA global estiver ativa
+**Arquivo:** `src/components/LeadDetailDrawer.tsx` (linhas 761-776)
 
-## Resultado esperado
+Hoje o botão Pausar/Retomar IA aparece sempre. Vamos:
+1. Buscar `ai_config.is_active` do usuário (via hook novo `useAIConfig` ou query inline com React Query em `useEffectiveUserId`).
+2. Renderizar o bloco inteiro `<div className="ml-auto">...Pausar IA...</div>` apenas quando `aiConfig?.is_active === true`.
+3. Quando `is_active` for `false`, ocultar tanto o badge "IA Pausada" quanto os botões, porque a IA já está desligada globalmente e o controle perde sentido.
 
-- O botão de sincronizar histórico deixa de mostrar `Edge function returned a non-2xx status code` nesse caso.
-- A conversa do Saulo com `5548999527087` passa a conseguir puxar o histórico usando a instância conectada.
-- Mensagens duplicadas deixam de aparecer duplicadas visualmente no CRM.
+---
+
+## Detalhes técnicos
+
+- **Emoji picker:** `onInteractOutside` do Radix dispara para qualquer pointer-down fora do `PopoverContent`. O bug atual é dentro do próprio popover (categoria/scroll trigger blur). Vamos verificar se basta `modal={false}` + manter `setOpen(false)` só no `onEmojiClick`, ou se precisa do `onInteractOutside` guard. Testar ambos.
+- **Date dividers:** usar `toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })` para a chave de comparação dia-a-dia, evitando bug de fuso.
+- **ai_config query:** a tabela já é lida pelo `IAPage`. Criar hook `useAIConfig` em `src/hooks/useAIConfig.ts` reutilizável (cacheia por `effectiveUserId`).
+- **Origem trigger:** confirmar que a constraint/enum de `leads.origem` aceita `"Tráfego Pago"` (já usada no projeto conforme grep em `RelatoriosPage`, `MetaAdsSection`).

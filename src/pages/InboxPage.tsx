@@ -34,6 +34,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useQuickReplies, useCreateQuickReply, useDeleteQuickReply } from "@/hooks/useQuickReplies";
 import { dedupeMessages } from "@/lib/dedupeMessages";
+import { messageDayKey, formatMessageDayLabel } from "@/lib/formatMessageDay";
 import { QuickRepliesModal } from "@/components/chat/QuickRepliesModal";
 import { EmojiPickerButton } from "@/components/chat/EmojiPickerButton";
 import {
@@ -835,25 +836,37 @@ const InboxPage = () => {
               ) : displayedMessages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-10 text-sm">Nenhuma mensagem ainda.</div>
               ) : (
-                displayedMessages.map((msg) => {
+                displayedMessages.map((msg, idx) => {
+                  const ts = (msg as any).timestamp || (msg as any).created_at;
+                  const prev = idx > 0 ? (displayedMessages[idx - 1] as any) : null;
+                  const prevTs = prev ? (prev.timestamp || prev.created_at) : null;
+                  const showDayDivider = messageDayKey(ts) !== messageDayKey(prevTs);
                   return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div className={`max-w-[75%] px-3.5 py-2 rounded-2xl text-sm relative shadow-sm ${
-                        msg.direction === "outbound"
-                          ? "bg-primary text-primary-foreground rounded-tr-none"
-                          : "bg-muted text-foreground rounded-tl-none border border-border/50"
-                      }`}>
-                        <MediaBubble m={msg as any} />
-                        <div className={`flex items-center gap-1 mt-0.5 ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}>
-                          <span className="text-[9px] opacity-60">
-                            {formatMsgDate(msg.timestamp || msg.created_at)}
+                    <div key={msg.id}>
+                      {showDayDivider && (
+                        <div className="flex justify-center my-3">
+                          <span className="text-[11px] px-3 py-1 rounded-full bg-muted/60 text-muted-foreground border border-border/40">
+                            {formatMessageDayLabel(ts)}
                           </span>
-                          {msg.direction === "outbound" && (
-                            <Check className="w-2.5 h-2.5 opacity-60" />
-                          )}
+                        </div>
+                      )}
+                      <div
+                        className={`flex ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div className={`max-w-[75%] px-3.5 py-2 rounded-2xl text-sm relative shadow-sm ${
+                          msg.direction === "outbound"
+                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                            : "bg-muted text-foreground rounded-tl-none border border-border/50"
+                        }`}>
+                          <MediaBubble m={msg as any} />
+                          <div className={`flex items-center gap-1 mt-0.5 ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}>
+                            <span className="text-[9px] opacity-60">
+                              {formatMsgDate(ts)}
+                            </span>
+                            {msg.direction === "outbound" && (
+                              <Check className="w-2.5 h-2.5 opacity-60" />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

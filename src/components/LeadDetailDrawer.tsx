@@ -16,6 +16,7 @@ import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLead
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAiActive } from "@/hooks/useAiActive";
+import { useAiGlobalActive } from "@/hooks/useAiGlobalActive";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
@@ -486,6 +487,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const deleteTask = useDeleteLeadTask();
   const [deleteLeadConfirmOpen, setDeleteLeadConfirmOpen] = useState(false);
   const createHistory = useCreateLeadHistory();
+  const { data: aiGloballyActive = false } = useAiGlobalActive();
 
   const FIELD_LABELS: Record<string, string> = {
     nome: "Nome", whatsapp: "WhatsApp", interesse: "Interesse", origem: "Origem",
@@ -758,6 +760,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                </span>
              )}
  
+             {aiGloballyActive && (
              <div className="flex items-center gap-2 ml-auto">
                {(lead as any).ai_paused ? (
                  <>
@@ -774,7 +777,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                  </Button>
                )}
              </div>
-            {(lead.status === "Follow-up" || lead.status === "Novo Lead") && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
+             )}
+            {lead.status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
               <Button size="sm" variant="outline" className="gap-1 h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => {
                   const completedFollowUps = tasks.filter(t => t.title.startsWith("Follow-up") && t.completed).length;
