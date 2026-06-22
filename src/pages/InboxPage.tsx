@@ -33,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useQuickReplies, useCreateQuickReply, useDeleteQuickReply } from "@/hooks/useQuickReplies";
+import { dedupeMessages } from "@/lib/dedupeMessages";
 import { QuickRepliesModal } from "@/components/chat/QuickRepliesModal";
 import { EmojiPickerButton } from "@/components/chat/EmojiPickerButton";
 import {
@@ -194,6 +195,9 @@ const InboxPage = () => {
   // Fetch all conversations (no status filter) so selectedConv stays valid after status change
   const { data: allConversations = [], isLoading: loadingConvs } = useInboxConversations();
   const { data: messages = [], isLoading: loadingMsgs } = useInboxMessages(selectedConversationId || undefined);
+  const displayedMessages = dedupeMessages(
+    (messages as any[]).filter((m) => !(m as any).is_note),
+  );
   const { data: instances = [] } = useWhatsAppInstances();
   const updateConv = useUpdateConversation();
   const sendMessage = useSendInboxMessage();
@@ -402,11 +406,21 @@ const InboxPage = () => {
         body: { conversation_id: selectedConv.id, take: 50 },
       });
       if (error) throw error;
-      const inserted = data?.inserted ?? 0;
-      if (inserted > 0) toast.success(`${inserted} nova(s) mensagem(ns) importada(s).`);
-      else toast.info("Nenhuma mensagem nova.");
-      queryClient.invalidateQueries({ queryKey: ["inbox_messages", selectedConv.id] });
-      queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+      if (data?.ok === false) {
+        const reasonMap: Record<string, string> = {
+          no_connected_instance: "Nenhuma instância do WhatsApp conectada.",
+          ambiguous_instance: "Conversa sem instância vinculada e há mais de uma instância conectada.",
+          conversation_not_found: "Conversa não encontrada.",
+          instance_not_found: "Instância do WhatsApp não encontrada.",
+        };
+        toast.error(reasonMap[data.reason] || "Não foi possível sincronizar.");
+      } else {
+        const inserted = data?.inserted ?? 0;
+        if (inserted > 0) toast.success(`${inserted} nova(s) mensagem(ns) importada(s).`);
+        else toast.info("Nenhuma mensagem nova.");
+        queryClient.invalidateQueries({ queryKey: ["inbox_messages", selectedConv.id] });
+        queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+      }
     } catch (e: any) {
       toast.error("Erro ao sincronizar: " + (e?.message || "tente novamente"));
     } finally {
@@ -818,12 +832,10 @@ const InboxPage = () => {
                 <div className="flex justify-center py-10">
                   <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-primary" />
                 </div>
-              ) : messages.length === 0 ? (
+              ) : displayedMessages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-10 text-sm">Nenhuma mensagem ainda.</div>
               ) : (
-                messages.map((msg) => {
-                  const isNote = (msg as any).is_note;
-                  if (isNote) return null; // notes shown in panel
+                displayedMessages.map((msg) => {
                   return (
                     <div
                       key={msg.id}
