@@ -1,0 +1,1 @@
+UPDATE public.ai_config SET is_active = false, ai_trigger_enabled = false;
