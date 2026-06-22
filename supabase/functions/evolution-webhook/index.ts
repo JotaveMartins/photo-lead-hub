@@ -605,7 +605,7 @@ Deno.serve(async (req) => {
               nome: conversation.contact_name || `Lead ${whatsapp}`,
               whatsapp: whatsapp,
               status: "Novo Lead",
-              origem: "WhatsApp",
+              origem: "Tráfego Pago",
               data_contato: todaySP,
               user_id: userId
             })

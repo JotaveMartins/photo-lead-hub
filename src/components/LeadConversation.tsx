@@ -18,6 +18,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { normalizeBrazilWhatsapp, whatsappMatchKey } from "@/lib/utils";
 import { dedupeMessages } from "@/lib/dedupeMessages";
+import { messageDayKey, formatMessageDayLabel } from "@/lib/formatMessageDay";
 
 interface Props {
   leadId: string;
@@ -419,21 +420,34 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
             Nenhuma mensagem ainda.
           </p>
         ) : (
-          displayedMessages.map((m: any) => {
+          displayedMessages.map((m: any, idx: number) => {
             const isOut = m.direction === "outbound";
+            const ts = m.timestamp || m.created_at;
+            const prev = idx > 0 ? displayedMessages[idx - 1] : null;
+            const prevTs = prev ? (prev.timestamp || prev.created_at) : null;
+            const showDayDivider = messageDayKey(ts) !== messageDayKey(prevTs);
             return (
-              <div key={m.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[78%] px-3 py-2 rounded-2xl shadow-sm ${
-                    isOut
-                      ? "bg-primary text-primary-foreground rounded-tr-none"
-                      : "bg-muted text-foreground rounded-tl-none border border-border/50"
-                  }`}
-                >
-                  <MediaBubble m={m} />
-                  <span className="text-[9px] block mt-1 text-right opacity-50">
-                    {formatMsgDate(m.timestamp || m.created_at)}
-                  </span>
+              <div key={m.id}>
+                {showDayDivider && (
+                  <div className="flex justify-center my-3">
+                    <span className="text-[11px] px-3 py-1 rounded-full bg-muted/60 text-muted-foreground border border-border/40">
+                      {formatMessageDayLabel(ts)}
+                    </span>
+                  </div>
+                )}
+                <div className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[78%] px-3 py-2 rounded-2xl shadow-sm ${
+                      isOut
+                        ? "bg-primary text-primary-foreground rounded-tr-none"
+                        : "bg-muted text-foreground rounded-tl-none border border-border/50"
+                    }`}
+                  >
+                    <MediaBubble m={m} />
+                    <span className="text-[9px] block mt-1 text-right opacity-50">
+                      {formatMsgDate(ts)}
+                    </span>
+                  </div>
                 </div>
               </div>
             );

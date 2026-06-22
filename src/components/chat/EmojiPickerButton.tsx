@@ -27,7 +27,22 @@ export const EmojiPickerButton = ({ onSelect, disabled, className, variant = "gh
           <Smile className="w-4 h-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="top" align="start" className="p-0 border-none bg-transparent shadow-none w-auto">
+      <PopoverContent
+        side="top"
+        align="start"
+        className="p-0 border-none bg-transparent shadow-none w-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.closest(".EmojiPickerReact")) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.closest(".EmojiPickerReact")) e.preventDefault();
+        }}
+      >
         <EmojiPicker
           theme={Theme.DARK}
           emojiStyle={EmojiStyle.NATIVE}
