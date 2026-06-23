@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, RefreshCw, CheckCircle, AlertCircle, Plus, Trash2,
-  Power, ArrowRightLeft, Activity, MessageCircle, Clock,
+  Power, ArrowRightLeft, Activity, MessageCircle, Clock, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
