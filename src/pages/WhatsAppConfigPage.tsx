@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, RefreshCw, CheckCircle, AlertCircle, Plus, Trash2,
-  Power, ArrowRightLeft, Activity, MessageCircle, Clock,
+  Power, ArrowRightLeft, Activity, MessageCircle, Clock, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -249,6 +249,19 @@ const WhatsAppConfigPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="rounded-lg border border-status-warning/20 bg-status-warning/10 p-4 text-sm text-status-warning flex gap-3">
+        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="font-medium">Aviso importante</p>
+          <p>
+            A conexão com o WhatsApp não é feita via API Oficial (que gera custos), então existe uma chance de o seu número ser bloqueado por 24 horas caso ele não seja antigo ou já tenha recebido outros bloqueios.
+          </p>
+          <p>
+            Não nos responsabilizamos por esses bloqueios, vistos que eles dependem do uso do usuário (enviar mensagens em massa aumentam a chance de bloqueios).
+          </p>
+        </div>
       </div>
 
       {instances.length === 0 ? (
