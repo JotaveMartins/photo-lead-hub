@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plano_basico boolean NOT NULL DEFAULT false;

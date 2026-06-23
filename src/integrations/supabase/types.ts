@@ -1285,6 +1285,7 @@ export type Database = {
           id: string
           meta_ad_account_id: string | null
           nome: string
+          plano_basico: boolean
           senha: string | null
           ultimo_acesso: string | null
           updated_at: string
@@ -1301,6 +1302,7 @@ export type Database = {
           id?: string
           meta_ad_account_id?: string | null
           nome: string
+          plano_basico?: boolean
           senha?: string | null
           ultimo_acesso?: string | null
           updated_at?: string
@@ -1317,6 +1319,7 @@ export type Database = {
           id?: string
           meta_ad_account_id?: string | null
           nome?: string
+          plano_basico?: boolean
           senha?: string | null
           ultimo_acesso?: string | null
           updated_at?: string
