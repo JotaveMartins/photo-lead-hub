@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 
 interface AdminUser {
   user_id: string;
@@ -15,6 +16,7 @@ interface AdminUser {
   cpl_limite_alerta?: number | null;
   asaas_api_key?: string | null;
   autentique_token?: string | null;
+  plano_basico?: boolean | null;
 }
 
 interface Props {
@@ -31,6 +33,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
   const [cplAlerta, setCplAlerta] = useState("");
   const [asaasKey, setAsaasKey] = useState("");
   const [autentiqueToken, setAutentiqueToken] = useState("");
+  const [planoBasico, setPlanoBasico] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -39,6 +42,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
       setCplAlerta(user.cpl_limite_alerta != null ? String(user.cpl_limite_alerta) : "");
       setAsaasKey(user.asaas_api_key || "");
       setAutentiqueToken(user.autentique_token || "");
+      setPlanoBasico(!!user.plano_basico);
     }
   }, [user]);
 
@@ -53,6 +57,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
           cpl_limite_alerta: cplAlerta.trim() ? Number(cplAlerta.replace(",", ".")) : null,
           asaas_api_key: asaasKey.trim() || null,
           autentique_token: autentiqueToken.trim() || null,
+          plano_basico: planoBasico,
         } as any)
         .eq("user_id", user.user_id);
       if (error) throw error;
@@ -80,6 +85,16 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
           onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
           className="space-y-4"
         >
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="edit-plano-basico" className="cursor-pointer">Plano Básico</Label>
+              <p className="text-xs text-muted-foreground">
+                Cliente pontual — esconde o menu IA e a seção Meta Ads em Relatórios.
+              </p>
+            </div>
+            <Switch id="edit-plano-basico" checked={planoBasico} onCheckedChange={setPlanoBasico} />
+          </div>
+
           <div>
             <Label>Conta Meta Ads (ad_account_id)</Label>
             <Input
