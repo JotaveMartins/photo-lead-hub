@@ -14,6 +14,7 @@ import MetaAdsSection from "@/components/reports/MetaAdsSection";
 import RevenueCompositionSection from "@/components/reports/RevenueCompositionSection";
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
+import { usePlanoBasico } from "@/hooks/usePlanoBasico";
 
 type DrillDown = {
   title: string;
@@ -39,6 +40,7 @@ const RelatoriosPage = () => {
   } | null>(null);
 
   const { leads: allLeads, tasks, profiles, isLoading, isAdmin } = useReportData({ clienteUserId });
+  const planoBasico = usePlanoBasico();
 
   const dateRange = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
 
@@ -365,16 +367,18 @@ const RelatoriosPage = () => {
       </div>
 
       {/* Meta Ads */}
-      <div className="mb-6">
-        <MetaAdsSection
-          from={dateRange.start}
-          to={dateRange.end}
-          clienteUserId={clienteUserId}
-          leadsCriados={kpis.created}
-          ganhos={kpis.ganhos}
-          ganhosTrafegoPago={leadSets.ganhos.filter((l: any) => (l.origem || "").toLowerCase() === "tráfego pago" || (l.origem || "").toLowerCase() === "trafego pago").length}
-        />
-      </div>
+      {!planoBasico && (
+        <div className="mb-6">
+          <MetaAdsSection
+            from={dateRange.start}
+            to={dateRange.end}
+            clienteUserId={clienteUserId}
+            leadsCriados={kpis.created}
+            ganhos={kpis.ganhos}
+            ganhosTrafegoPago={leadSets.ganhos.filter((l: any) => (l.origem || "").toLowerCase() === "tráfego pago" || (l.origem || "").toLowerCase() === "trafego pago").length}
+          />
+        </div>
+      )}
 
       {/* Revenue */}
       <div className="mb-6">

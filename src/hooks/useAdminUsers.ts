@@ -17,12 +17,12 @@ export const useAdminUsers = () => {
   });
 
   const createUser = useMutation({
-    mutationFn: async ({ nome, email }: { nome: string; email: string }) => {
+    mutationFn: async ({ nome, email, planoBasico }: { nome: string; email: string; planoBasico?: boolean }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
       const response = await supabase.functions.invoke("create-user", {
-        body: { nome, email },
+        body: { nome, email, plano_basico: !!planoBasico },
       });
 
       if (response.error) throw new Error(response.error.message);

@@ -30,6 +30,7 @@ import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { useState } from "react";
 import { useInboxTotalUnread } from "@/hooks/useInbox";
+import { usePlanoBasico } from "@/hooks/usePlanoBasico";
 
 interface SidebarProps {
   activeItem: string;
@@ -74,6 +75,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
   const { data: allPending = [] } = useAllPendingTasks();
   const { data: events = [] } = useEvents();
   const { data: inboxUnread = 0 } = useInboxTotalUnread();
+  const planoBasico = usePlanoBasico();
   const clienteBadge = clienteTasksToday.length;
   const today = startOfDay(new Date());
   const tarefasBadge = allPending.filter((t) => {
@@ -157,7 +159,9 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
         })}
 
          {/* Configurações group */}
-         {showConfig && configMenuItems.map((item) => {
+         {showConfig && configMenuItems
+           .filter((item) => !(planoBasico && item.id === 'ia'))
+           .map((item) => {
            const Icon = item.icon;
            const isActive = activeItem === item.id;
            const badgeCount = item.id === 'inbox' ? inboxUnread : 0;
