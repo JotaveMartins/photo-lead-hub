@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Check } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface CreateUserModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface CreateUserModalProps {
 const CreateUserModal = ({ open, onOpenChange }: CreateUserModalProps) => {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [planoBasico, setPlanoBasico] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { createUser } = useAdminUsers();
@@ -27,7 +29,7 @@ const CreateUserModal = ({ open, onOpenChange }: CreateUserModalProps) => {
     }
 
     try {
-      const result = await createUser.mutateAsync({ nome, email });
+      const result = await createUser.mutateAsync({ nome, email, planoBasico });
       setGeneratedPassword(result.password);
       toast({ title: "Cliente criado com sucesso!" });
     } catch (error: any) {
@@ -46,6 +48,7 @@ const CreateUserModal = ({ open, onOpenChange }: CreateUserModalProps) => {
   const handleClose = () => {
     setNome("");
     setEmail("");
+    setPlanoBasico(false);
     setGeneratedPassword(null);
     setCopied(false);
     onOpenChange(false);
@@ -91,6 +94,15 @@ const CreateUserModal = ({ open, onOpenChange }: CreateUserModalProps) => {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+            </div>
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="plano-basico" className="cursor-pointer">Plano Básico</Label>
+                <p className="text-xs text-muted-foreground">
+                  Cliente pontual — esconde o menu IA e a seção Meta Ads em Relatórios.
+                </p>
+              </div>
+              <Switch id="plano-basico" checked={planoBasico} onCheckedChange={setPlanoBasico} />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={handleClose}>Cancelar</Button>
