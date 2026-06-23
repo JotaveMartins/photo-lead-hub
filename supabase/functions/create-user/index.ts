@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { nome, email } = await req.json()
+    const { nome, email, plano_basico } = await req.json()
     if (!nome || !email) {
       return new Response(JSON.stringify({ error: 'Nome e email são obrigatórios' }), {
         status: 400,
@@ -86,8 +86,11 @@ Deno.serve(async (req) => {
       role: 'user',
     })
 
-    // Save generated password in profile for admin reference
-    await adminClient.from('profiles').update({ senha: password }).eq('user_id', newUser.user.id)
+    // Save generated password and plan flag in profile
+    await adminClient
+      .from('profiles')
+      .update({ senha: password, plano_basico: !!plano_basico })
+      .eq('user_id', newUser.user.id)
 
     return new Response(JSON.stringify({ 
       user: { id: newUser.user.id, email: newUser.user.email },
