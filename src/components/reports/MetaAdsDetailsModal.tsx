@@ -2,12 +2,32 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronRight, ChevronDown, Search, ImageOff, ExternalLink } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { parseLocalDate } from "@/lib/utils";
 import type { MetaAdsRow } from "@/hooks/useMetaAdsReport";
 import { useMetaAdCreatives } from "@/hooks/useMetaAdCreatives";
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (v: number) => v.toLocaleString("pt-BR");
 const fmtPct = (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`);
+const fmtDateBR = (iso: string) => {
+  try { return parseLocalDate(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); }
+  catch { return iso; }
+};
+
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload || payload.length === 0) return null;
+  const spend = payload.find((p: any) => p.dataKey === "spend")?.value ?? 0;
+  const conversas = payload.find((p: any) => p.dataKey === "conversas")?.value ?? 0;
+  const cpl = conversas > 0 ? spend / conversas : null;
+  return (
+    <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg text-xs">
+      <p className="font-medium text-foreground mb-1">{fmtDateBR(label)}</p>
+      <p className="text-muted-foreground">Investimento: <span className="text-foreground">{fmtBRL(Number(spend))}</span></p>
+      <p className="text-primary">Conversas: <span className="text-foreground">{fmtNum(Number(conversas))}</span></p>
+      <p className="text-muted-foreground">Custo/conv.: <span className="text-foreground">{cpl == null ? "—" : fmtBRL(cpl)}</span></p>
+    </div>
+  );
+}
 
 interface Agg {
   spend: number; conversas: number; clicks: number; impressions: number; reach: number;
@@ -167,12 +187,12 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                 <ResponsiveContainer>
                   <LineChart data={dailySeries} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(d) => d.slice(5)} />
-                    <YAxis yAxisId="left" stroke="hsl(var(--primary))" fontSize={11} />
-                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }} />
-                    <Line yAxisId="left" type="monotone" dataKey="spend" name="Investimento" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                    <Line yAxisId="right" type="monotone" dataKey="conversas" name="Conversas" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={false} />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={fmtDateBR} />
+                    <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--primary))" fontSize={11} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Line yAxisId="left" type="monotone" dataKey="spend" name="Investimento" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="conversas" name="Conversas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
