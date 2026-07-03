@@ -373,9 +373,15 @@ const RelatoriosPage = () => {
             from={dateRange.start}
             to={dateRange.end}
             clienteUserId={clienteUserId}
-            leadsCriados={kpis.created}
+            leadsCriados={leadSets.created.filter((l: any) => {
+              const o = (l.origem || "").toLowerCase();
+              return o === "tráfego pago" || o === "trafego pago";
+            }).length}
             ganhos={kpis.ganhos}
-            ganhosTrafegoPago={leadSets.ganhos.filter((l: any) => (l.origem || "").toLowerCase() === "tráfego pago" || (l.origem || "").toLowerCase() === "trafego pago").length}
+            ganhosTrafegoPago={leadSets.ganhos.filter((l: any) => {
+              const o = (l.origem || "").toLowerCase();
+              return o === "tráfego pago" || o === "trafego pago";
+            }).length}
           />
         </div>
       )}
