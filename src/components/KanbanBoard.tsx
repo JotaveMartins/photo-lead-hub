@@ -261,7 +261,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         } else {
           const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(newStatus) && (
             (!lead.valor || lead.valor <= 0) ||
-            ((newStatus === "Proposta Enviada") && (!lead.data_proposta || !lead.data_evento || !lead.interesse || !lead.origem))
+            ((newStatus === "Proposta Enviada") && (!lead.data_proposta || !lead.interesse || !lead.origem))
           );
           if (needsRequiredFields) {
             setRequiredFieldsLead(lead);

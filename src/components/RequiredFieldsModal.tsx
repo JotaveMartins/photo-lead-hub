@@ -48,14 +48,12 @@ const RequiredFieldsModal = ({
 
   const needsValor = !currentValor || currentValor <= 0;
   const needsDataProposta = isProposal && !currentDataProposta;
-  const needsDataEvento = isProposal && !currentDataEvento;
   const needsInteresse = isProposal && !currentInteresse;
   const needsOrigem = isProposal && !currentOrigem;
 
   const canSubmit = () => {
     if (needsValor && (!valor || parseFloat(valor) <= 0)) return false;
     if (needsDataProposta && !dataProposta) return false;
-    if (needsDataEvento && !dataEvento) return false;
     if (needsInteresse && !interesse.trim()) return false;
     if (needsOrigem && !origem) return false;
     return true;
@@ -67,7 +65,6 @@ const RequiredFieldsModal = ({
     onConfirm({
       valor: parsed || currentValor || 0,
       ...(needsDataProposta && dataProposta ? { data_proposta: dataProposta } : {}),
-      ...(needsDataEvento && dataEvento ? { data_evento: dataEvento } : {}),
       ...(needsInteresse && interesse ? { interesse } : {}),
       ...(needsOrigem && origem ? { origem } : {}),
     });
@@ -99,13 +96,6 @@ const RequiredFieldsModal = ({
             <div className="space-y-2">
               <Label>Data da Proposta <span className="text-destructive">*</span></Label>
               <DatePickerField value={dataProposta} onChange={setDataProposta} placeholder="Selecione" />
-            </div>
-          )}
-
-          {needsDataEvento && (
-            <div className="space-y-2">
-              <Label>Data do Evento <span className="text-destructive">*</span></Label>
-              <DatePickerField value={dataEvento} onChange={setDataEvento} placeholder="Selecione" />
             </div>
           )}
 
