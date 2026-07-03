@@ -61,13 +61,15 @@ interface Props {
   leadsCriados: number;
   ganhos: number;
   ganhosTrafegoPago?: number;
+  faturamento: number;
+  faturamentoTrafegoPago?: number;
 }
 
 type SortBy = "spend" | "conversas";
 
-export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCriados, ganhos, ganhosTrafegoPago }: Props) {
+export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCriados, ganhos, ganhosTrafegoPago, faturamento, faturamentoTrafegoPago }: Props) {
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<SortBy>("spend");
+  const [sortBy, setSortBy] = useState<SortBy>("conversas");
   const [expandedCamp, setExpandedCamp] = useState<Set<string>>(new Set());
   const [expandedSet, setExpandedSet] = useState<Set<string>>(new Set());
   const [hoverPreview, setHoverPreview] = useState<{ src: string; x: number; y: number } | null>(null);
@@ -137,24 +139,28 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
   const custoPorConversa = totals.conversas > 0 ? totals.spend / totals.conversas : null;
   const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : null;
   const cpm = totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : null;
-  const aproveitamento = totals.conversas > 0 ? (leadsCriados / totals.conversas) * 100 : null;
   const custoPorLead = leadsCriados > 0 ? totals.spend / leadsCriados : null;
-  const vendasParaCAC = ganhosTrafegoPago ?? ganhos;
-  const custoPorVenda = vendasParaCAC > 0 ? totals.spend / vendasParaCAC : null;
+  const vendas = ganhosTrafegoPago ?? ganhos;
+  const fat = faturamentoTrafegoPago ?? faturamento;
+  const custoPorVenda = vendas > 0 ? totals.spend / vendas : null;
+  const ticketMedio = vendas > 0 ? fat / vendas : null;
 
-  const kpis: { label: string; value: string }[] = [
+  const kpisTop = [
     { label: "Investimento", value: fmtBRL(totals.spend) },
-    { label: "Conversas", value: fmtNum(totals.conversas) },
-    { label: "Custo/conversa", value: custoPorConversa == null ? "—" : fmtBRL(custoPorConversa) },
-    { label: "Cliques", value: fmtNum(totals.clicks) },
-    { label: "CTR", value: fmtPct(ctr) },
-    { label: "CPM", value: cpm == null ? "—" : fmtBRL(cpm) },
-    { label: "Impressões", value: fmtNum(totals.impressions) },
     { label: "Alcance", value: fmtNum(totals.reach) },
-    { label: "Leads CRM", value: fmtNum(leadsCriados) },
-    { label: "Custo/lead", value: custoPorLead == null ? "—" : fmtBRL(custoPorLead) },
-    { label: "Custo/venda", value: custoPorVenda == null ? "—" : fmtBRL(custoPorVenda) },
-    { label: "Aproveitamento", value: fmtPct(aproveitamento) },
+    { label: "Cliques", value: fmtNum(totals.clicks) },
+    { label: "Conversas", value: fmtNum(totals.conversas) },
+    { label: "Custo por conversa", value: custoPorConversa == null ? "—" : fmtBRL(custoPorConversa) },
+    { label: "CTR", value: fmtPct(ctr) },
+  ];
+
+  const kpisBottom = [
+    { label: "Leads no CRM", value: fmtNum(leadsCriados) },
+    { label: "Custo por Lead", value: custoPorLead == null ? "—" : fmtBRL(custoPorLead) },
+    { label: "Vendas", value: fmtNum(vendas) },
+    { label: "Faturamento", value: fmtBRL(fat) },
+    { label: "Custo por Venda", value: custoPorVenda == null ? "—" : fmtBRL(custoPorVenda) },
+    { label: "Ticket Médio", value: ticketMedio == null ? "—" : fmtBRL(ticketMedio) },
   ];
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
@@ -162,6 +168,8 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
     if (n.has(id)) n.delete(id); else n.add(id);
     setter(n);
   };
+
+  const gridColsClass = "grid-cols-[minmax(240px,1fr)_120px_110px_130px_90px_90px]";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -171,9 +179,19 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* KPIs */}
+          {/* KPIs Top */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {kpis.map((k) => (
+            {kpisTop.map((k) => (
+              <div key={k.label} className="bg-background border border-border rounded-lg p-3">
+                <p className="text-xs text-muted-foreground truncate">{k.label}</p>
+                <p className="text-lg font-bold text-foreground">{k.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* KPIs Bottom */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {kpisBottom.map((k) => (
               <div key={k.label} className="bg-background border border-border rounded-lg p-3">
                 <p className="text-xs text-muted-foreground truncate">{k.label}</p>
                 <p className="text-lg font-bold text-foreground">{k.value}</p>
@@ -227,13 +245,13 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
 
           {/* Tree table */}
           <div className="border border-border rounded-lg">
-            <div className="grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] text-xs uppercase text-muted-foreground bg-muted/30 border-b border-border px-4 py-2.5 gap-2">
+            <div className={`grid ${gridColsClass} text-xs uppercase text-muted-foreground bg-muted/30 border-b border-border px-4 py-2.5 gap-2`}>
               <div>Nome</div>
               <div className="text-right">Invest.</div>
               <div className="text-right">Conversas</div>
               <div className="text-right">Custo/conv.</div>
-              <div className="text-right">Cliques</div>
               <div className="text-right">CTR</div>
+              <div className="text-right">CPM</div>
             </div>
 
             {campaignList.length === 0 && (
@@ -243,12 +261,13 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
             {campaignList.map((c) => {
               const cCpc = c.agg.conversas > 0 ? c.agg.spend / c.agg.conversas : null;
               const cCtr = c.agg.impressions > 0 ? (c.agg.clicks / c.agg.impressions) * 100 : null;
+              const cCpm = c.agg.impressions > 0 ? (c.agg.spend / c.agg.impressions) * 1000 : null;
               const isOpen = expandedCamp.has(c.id);
               return (
                 <div key={c.id} className="border-b border-border/60 last:border-0">
                   <button
                     onClick={() => toggle(expandedCamp, setExpandedCamp, c.id)}
-                    className="w-full grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] gap-2 items-center px-4 py-2.5 hover:bg-muted/20 text-sm text-left"
+                    className={`w-full grid ${gridColsClass} gap-2 items-center px-4 py-2.5 hover:bg-muted/20 text-sm text-left`}
                   >
                     <div className="flex items-center gap-1.5 text-foreground font-medium truncate">
                       {isOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
@@ -257,19 +276,20 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                     <div className="text-right text-foreground">{fmtBRL(c.agg.spend)}</div>
                     <div className="text-right text-foreground">{fmtNum(c.agg.conversas)}</div>
                     <div className="text-right text-foreground">{cCpc == null ? "—" : fmtBRL(cCpc)}</div>
-                    <div className="text-right text-foreground">{fmtNum(c.agg.clicks)}</div>
                     <div className="text-right text-foreground">{fmtPct(cCtr)}</div>
+                    <div className="text-right text-foreground">{cCpm == null ? "—" : fmtBRL(cCpm)}</div>
                   </button>
 
                   {isOpen && sortAgg(Array.from(c.adsets.values())).map((s) => {
                     const sCpc = s.agg.conversas > 0 ? s.agg.spend / s.agg.conversas : null;
                     const sCtr = s.agg.impressions > 0 ? (s.agg.clicks / s.agg.impressions) * 100 : null;
+                    const sCpm = s.agg.impressions > 0 ? (s.agg.spend / s.agg.impressions) * 1000 : null;
                     const sOpen = expandedSet.has(`${c.id}::${s.id}`);
                     return (
                       <div key={s.id} className="bg-muted/10">
                         <button
                           onClick={() => toggle(expandedSet, setExpandedSet, `${c.id}::${s.id}`)}
-                          className="w-full grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] gap-2 items-center px-4 py-2 pl-10 hover:bg-muted/30 text-sm text-left"
+                          className={`w-full grid ${gridColsClass} gap-2 items-center px-4 py-2 pl-10 hover:bg-muted/30 text-sm text-left`}
                         >
                           <div className="flex items-center gap-1.5 text-foreground/90 truncate">
                             {sOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
@@ -278,17 +298,18 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                           <div className="text-right text-foreground/90">{fmtBRL(s.agg.spend)}</div>
                           <div className="text-right text-foreground/90">{fmtNum(s.agg.conversas)}</div>
                           <div className="text-right text-foreground/90">{sCpc == null ? "—" : fmtBRL(sCpc)}</div>
-                          <div className="text-right text-foreground/90">{fmtNum(s.agg.clicks)}</div>
                           <div className="text-right text-foreground/90">{fmtPct(sCtr)}</div>
+                          <div className="text-right text-foreground/90">{sCpm == null ? "—" : fmtBRL(sCpm)}</div>
                         </button>
 
                         {sOpen && sortAgg(Array.from(s.ads.values())).map((a) => {
                           const aCpc = a.agg.conversas > 0 ? a.agg.spend / a.agg.conversas : null;
                           const aCtr = a.agg.impressions > 0 ? (a.agg.clicks / a.agg.impressions) * 100 : null;
+                          const aCpm = a.agg.impressions > 0 ? (a.agg.spend / a.agg.impressions) * 1000 : null;
                           const cr = creatives[a.id];
                           const thumb = cr?.thumbnail_url || cr?.image_url || null;
                           return (
-                            <div key={a.id} className="grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] gap-2 items-center px-4 py-2 pl-16 text-sm border-t border-border/30">
+                            <div className={`grid ${gridColsClass} gap-2 items-center px-4 py-2 pl-16 text-sm border-t border-border/30`}>
                               <div className="flex items-center gap-2 truncate">
                                 <div
                                   className="shrink-0"
@@ -322,8 +343,8 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                               <div className="text-right text-foreground/80">{fmtBRL(a.agg.spend)}</div>
                               <div className="text-right text-foreground/80">{fmtNum(a.agg.conversas)}</div>
                               <div className="text-right text-foreground/80">{aCpc == null ? "—" : fmtBRL(aCpc)}</div>
-                              <div className="text-right text-foreground/80">{fmtNum(a.agg.clicks)}</div>
                               <div className="text-right text-foreground/80">{fmtPct(aCtr)}</div>
+                              <div className="text-right text-foreground/80">{aCpm == null ? "—" : fmtBRL(aCpm)}</div>
                             </div>
                           );
                         })}
