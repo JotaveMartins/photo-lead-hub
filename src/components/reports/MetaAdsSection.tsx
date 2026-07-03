@@ -1,8 +1,9 @@
-import { useMemo } from "react";
-import { Megaphone, DollarSign, MessageSquare, MousePointerClick, Percent, Users, HelpCircle, TrendingUp, Target } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Megaphone, DollarSign, MessageSquare, MousePointerClick, Percent, Users, HelpCircle, TrendingUp, Target, Maximize2 } from "lucide-react";
 import { useMetaAdsReport } from "@/hooks/useMetaAdsReport";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import MetaAdsDetailsModal from "./MetaAdsDetailsModal";
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (v: number) => v.toLocaleString("pt-BR");
@@ -41,6 +42,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
   const toStr = format(toIncl, "yyyy-MM-dd");
 
   const { data: rows = [], isLoading } = useMetaAdsReport(fromStr, toStr, clienteUserId);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const totals = useMemo(() => {
     const t = { spend: 0, conversas: 0, clicks: 0, impressions: 0 };
@@ -106,7 +108,18 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
           <Megaphone className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold text-foreground">Meta Ads</h2>
         </div>
-        <span className="text-xs text-muted-foreground">Investimento → Conversas → Leads → Vendas</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground hidden sm:inline">Investimento → Conversas → Leads → Vendas</span>
+          {rows.length > 0 && (
+            <button
+              onClick={() => setDetailsOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg px-3 py-1.5 transition"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              Ver detalhes
+            </button>
+          )}
+        </div>
       </header>
 
       {isLoading ? (
@@ -191,6 +204,14 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
               </table>
             </div>
           </div>
+          <MetaAdsDetailsModal
+            open={detailsOpen}
+            onOpenChange={setDetailsOpen}
+            rows={rows}
+            leadsCriados={leadsCriados}
+            ganhos={ganhos}
+            ganhosTrafegoPago={ganhosTrafegoPago}
+          />
         </>
       )}
     </section>
