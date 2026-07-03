@@ -16,6 +16,8 @@ interface MetaAdsSectionProps {
   leadsCriados: number;
   ganhos: number;
   ganhosTrafegoPago?: number;
+  faturamento: number;
+  faturamentoTrafegoPago?: number;
 }
 
 function Hint({ text }: { text: string }) {
