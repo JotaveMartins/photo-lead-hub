@@ -2,12 +2,32 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronRight, ChevronDown, Search, ImageOff, ExternalLink } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { parseLocalDate } from "@/lib/utils";
 import type { MetaAdsRow } from "@/hooks/useMetaAdsReport";
 import { useMetaAdCreatives } from "@/hooks/useMetaAdCreatives";
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (v: number) => v.toLocaleString("pt-BR");
 const fmtPct = (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`);
+const fmtDateBR = (iso: string) => {
+  try { return parseLocalDate(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); }
+  catch { return iso; }
+};
+
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload || payload.length === 0) return null;
+  const spend = payload.find((p: any) => p.dataKey === "spend")?.value ?? 0;
+  const conversas = payload.find((p: any) => p.dataKey === "conversas")?.value ?? 0;
+  const cpl = conversas > 0 ? spend / conversas : null;
+  return (
+    <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg text-xs">
+      <p className="font-medium text-foreground mb-1">{fmtDateBR(label)}</p>
+      <p className="text-muted-foreground">Investimento: <span className="text-foreground">{fmtBRL(Number(spend))}</span></p>
+      <p className="text-primary">Conversas: <span className="text-foreground">{fmtNum(Number(conversas))}</span></p>
+      <p className="text-muted-foreground">Custo/conv.: <span className="text-foreground">{cpl == null ? "—" : fmtBRL(cpl)}</span></p>
+    </div>
+  );
+}
 
 interface Agg {
   spend: number; conversas: number; clicks: number; impressions: number; reach: number;
@@ -167,12 +187,12 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                 <ResponsiveContainer>
                   <LineChart data={dailySeries} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(d) => d.slice(5)} />
-                    <YAxis yAxisId="left" stroke="hsl(var(--primary))" fontSize={11} />
-                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }} />
-                    <Line yAxisId="left" type="monotone" dataKey="spend" name="Investimento" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                    <Line yAxisId="right" type="monotone" dataKey="conversas" name="Conversas" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={false} />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={fmtDateBR} />
+                    <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--primary))" fontSize={11} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Line yAxisId="left" type="monotone" dataKey="spend" name="Investimento" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="conversas" name="Conversas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -204,7 +224,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
           </div>
 
           {/* Tree table */}
-          <div className="border border-border rounded-lg overflow-hidden">
+          <div className="border border-border rounded-lg">
             <div className="grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] text-xs uppercase text-muted-foreground bg-muted/30 border-b border-border px-3 py-2 gap-2">
               <div>Nome</div>
               <div className="text-right">Invest.</div>
@@ -266,7 +286,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                           const cr = creatives[a.id];
                           const thumb = cr?.thumbnail_url || cr?.image_url || null;
                           return (
-                            <div key={a.id} className="grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-14 text-sm border-t border-border/30">
+                            <div key={a.id} className="relative grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-14 text-sm border-t border-border/30 hover:z-40">
                               <div className="flex items-center gap-2 truncate">
                                 <div className="relative group shrink-0">
                                   {thumb ? (
@@ -282,7 +302,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                                     </div>
                                   )}
                                   {thumb && (
-                                    <div className="hidden group-hover:block absolute z-50 left-12 top-0 w-40 h-40 rounded-lg overflow-hidden border border-border shadow-lg bg-card">
+                                    <div className="hidden group-hover:block absolute z-[60] left-12 -top-4 w-48 h-48 rounded-lg overflow-hidden border border-border shadow-xl bg-card pointer-events-none">
                                       <img src={thumb} alt={a.name} className="w-full h-full object-cover" />
                                     </div>
                                   )}
