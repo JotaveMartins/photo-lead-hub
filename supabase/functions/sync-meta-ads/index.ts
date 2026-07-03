@@ -9,6 +9,27 @@ const corsHeaders = {
 
 const META_API_VERSION = "v21.0";
 
+function fmtInTz(d: Date, tz: string): string {
+  // Returns YYYY-MM-DD in the given IANA timezone
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  return `${y}-${m}-${day}`;
+}
+
+function addDaysStr(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
 function objectiveToResultType(objective: string | null | undefined): string | null {
   if (!objective) return null;
   const o = objective.toUpperCase();
@@ -70,11 +91,11 @@ Deno.serve(async (req) => {
     );
 
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const today = new Date();
-    const yesterday = new Date(today.getTime() - 86400000);
-    const fmt = (d: Date) => d.toISOString().slice(0, 10);
-    const since: string = body.since || fmt(yesterday);
-    const until: string = body.until || fmt(today);
+    const now = new Date();
+    // Default period will be recomputed per-account using its own timezone below.
+    const explicitSince: string | undefined = body.since;
+    const explicitUntil: string | undefined = body.until;
+    const refreshCreatives: boolean = body.refreshCreatives !== false; // default true
 
     // Build accounts list
     let accounts: { ad_account_id: string; client_id: string | null }[] = [];
@@ -108,6 +129,20 @@ Deno.serve(async (req) => {
 
     for (const { ad_account_id, client_id } of accounts) {
       try {
+        // 0. Get account timezone so day boundaries match Ads Manager
+        let accountTz = "America/Sao_Paulo";
+        try {
+          const accUrl = `https://graph.facebook.com/${META_API_VERSION}/${ad_account_id}?fields=timezone_name&access_token=${META_TOKEN}`;
+          const accRes = await fetch(accUrl);
+          const accJson = await accRes.json();
+          if (accRes.ok && accJson?.timezone_name) accountTz = accJson.timezone_name;
+        } catch (_e) { /* fallback to SP */ }
+
+        const todayLocal = fmtInTz(now, accountTz);
+        const yesterdayLocal = addDaysStr(todayLocal, -1);
+        const since = explicitSince || yesterdayLocal;
+        const until = explicitUntil || todayLocal;
+
         // 1. Get campaign objectives
         const campaignsUrl = `https://graph.facebook.com/${META_API_VERSION}/${ad_account_id}/campaigns?fields=id,objective&limit=200&access_token=${META_TOKEN}`;
         const campaigns = await fetchAllPages(campaignsUrl);
@@ -117,7 +152,7 @@ Deno.serve(async (req) => {
         // 2. Get insights
         const fields = "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,reach,clicks,ctr,cpm,actions";
         const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
-        const insightsUrl = `https://graph.facebook.com/${META_API_VERSION}/${ad_account_id}/insights?level=ad&time_increment=1&time_range=${timeRange}&fields=${fields}&limit=500&access_token=${META_TOKEN}`;
+        const insightsUrl = `https://graph.facebook.com/${META_API_VERSION}/${ad_account_id}/insights?level=ad&time_increment=1&time_range=${timeRange}&use_account_attribution_setting=true&fields=${fields}&limit=500&access_token=${META_TOKEN}`;
         const insights = await fetchAllPages(insightsUrl);
 
         const rows = insights.map((row: any) => {
@@ -193,7 +228,66 @@ Deno.serve(async (req) => {
           upserted += batch.length;
         }
         totalUpserted += upserted;
-        perAccount.push({ account: ad_account_id, fetched: rows.length, deduped: dedupedRows.length, upserted });
+
+        // 3. Fetch creatives for the ads seen in this period (cached).
+        let creativesFetched = 0;
+        if (refreshCreatives) {
+          const adIds = Array.from(new Set(dedupedRows.map((r) => r.ad_id).filter(Boolean))) as string[];
+          // Check which ones need refresh (missing or updated_at > 24h ago)
+          const cutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+          const { data: existing } = await supabase
+            .from("meta_ad_creatives")
+            .select("ad_id, updated_at")
+            .in("ad_id", adIds);
+          const fresh = new Set((existing || []).filter((r: any) => r.updated_at > cutoff).map((r: any) => r.ad_id));
+          const toFetch = adIds.filter((id) => !fresh.has(id));
+
+          // Batch API: 50 per request
+          for (let i = 0; i < toFetch.length; i += 50) {
+            const batch = toFetch.slice(i, i + 50).map((id) => ({
+              method: "GET",
+              relative_url: `${id}?fields=creative{thumbnail_url,image_url,effective_object_story_id,object_type,video_id}`,
+            }));
+            const form = new FormData();
+            form.append("access_token", META_TOKEN);
+            form.append("batch", JSON.stringify(batch));
+            const batchRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/`, {
+              method: "POST",
+              body: form,
+            });
+            const batchJson = await batchRes.json();
+            if (!batchRes.ok || !Array.isArray(batchJson)) continue;
+            const creativeRows: any[] = [];
+            batchJson.forEach((resp: any, idx: number) => {
+              if (!resp || resp.code !== 200) return;
+              let parsed: any;
+              try { parsed = JSON.parse(resp.body); } catch { return; }
+              const c = parsed?.creative;
+              const ad_id = toFetch[i + idx];
+              const isVideo = !!c?.video_id;
+              creativeRows.push({
+                ad_id,
+                ad_account_id,
+                client_id,
+                thumbnail_url: c?.thumbnail_url || null,
+                image_url: c?.image_url || null,
+                permalink_url: c?.effective_object_story_id
+                  ? `https://www.facebook.com/${c.effective_object_story_id}`
+                  : null,
+                creative_type: isVideo ? "video" : (c?.object_type || "image").toLowerCase(),
+                updated_at: new Date().toISOString(),
+              });
+            });
+            if (creativeRows.length > 0) {
+              const { error: cErr } = await supabase
+                .from("meta_ad_creatives")
+                .upsert(creativeRows, { onConflict: "ad_id" });
+              if (!cErr) creativesFetched += creativeRows.length;
+            }
+          }
+        }
+
+        perAccount.push({ account: ad_account_id, timezone: accountTz, since, until, fetched: rows.length, deduped: dedupedRows.length, upserted, creatives_fetched: creativesFetched });
       } catch (err: any) {
         perAccount.push({ account: ad_account_id, fetched: 0, upserted: 0, error: err.message });
       }
@@ -201,7 +295,6 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      period: { since, until },
       accounts_processed: accounts.length,
       total_fetched: totalFetched,
       total_upserted: totalUpserted,
