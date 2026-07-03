@@ -213,6 +213,8 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
             leadsCriados={leadsCriados}
             ganhos={ganhos}
             ganhosTrafegoPago={ganhosTrafegoPago}
+            faturamento={faturamento}
+            faturamentoTrafegoPago={faturamentoTrafegoPago}
           />
         </>
       )}
