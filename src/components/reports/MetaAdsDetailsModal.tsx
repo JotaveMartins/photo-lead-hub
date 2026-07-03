@@ -164,7 +164,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-6xl w-[95vw] max-h-[92vh] flex flex-col p-0">
+      <DialogContent className="bg-card border-border !max-w-[95vw] w-[95vw] h-[92vh] max-h-[92vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
           <DialogTitle className="text-lg font-display text-foreground">Meta Ads — Detalhamento</DialogTitle>
         </DialogHeader>
@@ -291,8 +291,11 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                               <div className="flex items-center gap-2 truncate">
                                 <div
                                   className="shrink-0"
-                                  onMouseEnter={(e) => thumb && setHoverPreview({ src: thumb, x: e.clientX, y: e.clientY })}
-                                  onMouseMove={(e) => thumb && setHoverPreview({ src: thumb, x: e.clientX, y: e.clientY })}
+                                  onMouseEnter={(e) => {
+                                    if (!thumb) return;
+                                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                    setHoverPreview({ src: thumb, x: r.right, y: r.top });
+                                  }}
                                   onMouseLeave={() => setHoverPreview(null)}
                                 >
                                   {thumb ? (
@@ -332,17 +335,20 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
           </div>
         </div>
 
-        {hoverPreview && (
-          <div
-            className="fixed pointer-events-none z-[100] w-56 h-56 rounded-lg overflow-hidden border border-border shadow-2xl bg-card"
-            style={{
-              left: Math.min(hoverPreview.x + 16, window.innerWidth - 240),
-              top: Math.min(hoverPreview.y + 16, window.innerHeight - 240),
-            }}
-          >
-            <img src={hoverPreview.src} alt="preview" className="w-full h-full object-cover" />
-          </div>
-        )}
+        {hoverPreview && (() => {
+          const size = 288; // w-72 h-72
+          const left = Math.min(hoverPreview.x + 12, window.innerWidth - size - 12);
+          // Anchor vertically centered on the thumbnail, clamped to viewport
+          const top = Math.max(12, Math.min(hoverPreview.y - size / 2 + 20, window.innerHeight - size - 12));
+          return (
+            <div
+              className="fixed pointer-events-none z-[100] w-72 h-72 rounded-lg overflow-hidden border border-border shadow-2xl bg-card"
+              style={{ left, top }}
+            >
+              <img src={hoverPreview.src} alt="preview" className="w-full h-full object-cover" />
+            </div>
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );
