@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronRight, ChevronDown, Search, ImageOff, ExternalLink } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -164,36 +165,36 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border !max-w-[95vw] w-[95vw] h-[92vh] max-h-[92vh] flex flex-col p-0">
+      <DialogContent className="bg-card border-border max-w-6xl w-[95vw] max-h-[92vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
-          <DialogTitle className="text-lg font-display text-foreground">Meta Ads — Detalhamento</DialogTitle>
+          <DialogTitle className="text-xl font-display text-foreground">Meta Ads — Detalhamento</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {kpis.map((k) => (
-              <div key={k.label} className="bg-background border border-border rounded-lg p-2.5">
-                <p className="text-[11px] text-muted-foreground truncate">{k.label}</p>
-                <p className="text-base font-bold text-foreground">{k.value}</p>
+              <div key={k.label} className="bg-background border border-border rounded-lg p-3">
+                <p className="text-xs text-muted-foreground truncate">{k.label}</p>
+                <p className="text-lg font-bold text-foreground">{k.value}</p>
               </div>
             ))}
           </div>
 
           {/* Chart */}
           {dailySeries.length > 1 && (
-            <div className="bg-background border border-border rounded-lg p-3">
-              <p className="text-xs text-muted-foreground mb-2">Investimento e conversas por dia</p>
-              <div style={{ width: "100%", height: 200 }}>
+            <div className="bg-background border border-border rounded-lg p-4">
+              <p className="text-sm text-muted-foreground mb-3">Investimento e conversas por dia</p>
+              <div style={{ width: "100%", height: 240 }}>
                 <ResponsiveContainer>
                   <LineChart data={dailySeries} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={fmtDateBR} />
-                    <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--primary))" fontSize={11} />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={fmtDateBR} />
+                    <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--primary))" fontSize={12} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Line yAxisId="left" type="monotone" dataKey="spend" name="Investimento" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={false} />
-                    <Line yAxisId="right" type="monotone" dataKey="conversas" name="Conversas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="spend" name="Investimento" stroke="hsl(var(--muted-foreground))" strokeWidth={2.5} dot={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="conversas" name="Conversas" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -202,21 +203,21 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
 
           {/* Controls */}
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar campanha, conjunto ou anúncio..."
-                className="w-full pl-8 pr-3 py-2 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-9 pr-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Ordenar por:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortBy)}
-                className="bg-background border border-border rounded px-2 py-1 text-foreground"
+                className="bg-background border border-border rounded px-2 py-1.5 text-foreground"
               >
                 <option value="spend">Investimento</option>
                 <option value="conversas">Conversas</option>
@@ -226,7 +227,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
 
           {/* Tree table */}
           <div className="border border-border rounded-lg">
-            <div className="grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] text-xs uppercase text-muted-foreground bg-muted/30 border-b border-border px-3 py-2 gap-2">
+            <div className="grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] text-xs uppercase text-muted-foreground bg-muted/30 border-b border-border px-4 py-2.5 gap-2">
               <div>Nome</div>
               <div className="text-right">Invest.</div>
               <div className="text-right">Conversas</div>
@@ -247,10 +248,10 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                 <div key={c.id} className="border-b border-border/60 last:border-0">
                   <button
                     onClick={() => toggle(expandedCamp, setExpandedCamp, c.id)}
-                    className="w-full grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-2 hover:bg-muted/20 text-sm text-left"
+                    className="w-full grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] gap-2 items-center px-4 py-2.5 hover:bg-muted/20 text-sm text-left"
                   >
                     <div className="flex items-center gap-1.5 text-foreground font-medium truncate">
-                      {isOpen ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+                      {isOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
                       <span className="truncate" title={c.name}>{c.name}</span>
                     </div>
                     <div className="text-right text-foreground">{fmtBRL(c.agg.spend)}</div>
@@ -268,10 +269,10 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                       <div key={s.id} className="bg-muted/10">
                         <button
                           onClick={() => toggle(expandedSet, setExpandedSet, `${c.id}::${s.id}`)}
-                          className="w-full grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-8 hover:bg-muted/30 text-sm text-left"
+                          className="w-full grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] gap-2 items-center px-4 py-2 pl-10 hover:bg-muted/30 text-sm text-left"
                         >
                           <div className="flex items-center gap-1.5 text-foreground/90 truncate">
-                            {sOpen ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+                            {sOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
                             <span className="truncate" title={s.name}>{s.name}</span>
                           </div>
                           <div className="text-right text-foreground/90">{fmtBRL(s.agg.spend)}</div>
@@ -287,7 +288,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                           const cr = creatives[a.id];
                           const thumb = cr?.thumbnail_url || cr?.image_url || null;
                           return (
-                            <div key={a.id} className="grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-14 text-sm border-t border-border/30">
+                            <div key={a.id} className="grid grid-cols-[minmax(240px,1fr)_120px_110px_130px_100px_90px] gap-2 items-center px-4 py-2 pl-16 text-sm border-t border-border/30">
                               <div className="flex items-center gap-2 truncate">
                                 <div
                                   className="shrink-0"
@@ -302,11 +303,11 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                                     <img
                                       src={thumb}
                                       alt={a.name}
-                                      className="w-10 h-10 rounded object-cover bg-muted"
+                                      className="w-12 h-12 rounded object-cover bg-muted"
                                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                                     />
                                   ) : (
-                                    <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
                                       <ImageOff className="w-4 h-4 text-muted-foreground" />
                                     </div>
                                   )}
@@ -335,20 +336,22 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
           </div>
         </div>
 
-        {hoverPreview && (() => {
-          const size = 288; // w-72 h-72
-          const left = Math.min(hoverPreview.x + 12, window.innerWidth - size - 12);
-          // Anchor vertically centered on the thumbnail, clamped to viewport
-          const top = Math.max(12, Math.min(hoverPreview.y - size / 2 + 20, window.innerHeight - size - 12));
-          return (
-            <div
-              className="fixed pointer-events-none z-[100] w-72 h-72 rounded-lg overflow-hidden border border-border shadow-2xl bg-card"
-              style={{ left, top }}
-            >
-              <img src={hoverPreview.src} alt="preview" className="w-full h-full object-cover" />
-            </div>
-          );
-        })()}
+        {hoverPreview && typeof document !== "undefined" && createPortal(
+          (() => {
+            const size = 320;
+            const left = Math.min(hoverPreview.x + 12, window.innerWidth - size - 12);
+            const top = Math.max(12, Math.min(hoverPreview.y - size / 2 + 24, window.innerHeight - size - 12));
+            return (
+              <div
+                className="fixed pointer-events-none z-[9999] w-80 h-80 rounded-lg overflow-hidden border border-border shadow-2xl bg-card"
+                style={{ left, top }}
+              >
+                <img src={hoverPreview.src} alt="preview" className="w-full h-full object-cover" />
+              </div>
+            );
+          })(),
+          document.body
+        )}
       </DialogContent>
     </Dialog>
   );
