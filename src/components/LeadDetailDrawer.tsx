@@ -558,7 +558,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     const isProposalTarget = status === "Proposta Enviada";
     const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(status) && (
       (!lead.valor || lead.valor <= 0) ||
-      (isProposalTarget && (!lead.data_proposta || !lead.data_evento || !lead.interesse || !lead.origem))
+      (isProposalTarget && (!lead.data_proposta || !lead.interesse || !lead.origem))
     );
     if (needsRequiredFields) {
       setPendingStatus(status);

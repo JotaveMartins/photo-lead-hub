@@ -65,7 +65,6 @@ const RequiredFieldsModal = ({
     onConfirm({
       valor: parsed || currentValor || 0,
       ...(needsDataProposta && dataProposta ? { data_proposta: dataProposta } : {}),
-      ...(needsDataEvento && dataEvento ? { data_evento: dataEvento } : {}),
       ...(needsInteresse && interesse ? { interesse } : {}),
       ...(needsOrigem && origem ? { origem } : {}),
     });
@@ -97,13 +96,6 @@ const RequiredFieldsModal = ({
             <div className="space-y-2">
               <Label>Data da Proposta <span className="text-destructive">*</span></Label>
               <DatePickerField value={dataProposta} onChange={setDataProposta} placeholder="Selecione" />
-            </div>
-          )}
-
-          {needsDataEvento && (
-            <div className="space-y-2">
-              <Label>Data do Evento <span className="text-destructive">*</span></Label>
-              <DatePickerField value={dataEvento} onChange={setDataEvento} placeholder="Selecione" />
             </div>
           )}
 
