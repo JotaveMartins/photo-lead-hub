@@ -382,6 +382,13 @@ const RelatoriosPage = () => {
               const o = (l.origem || "").toLowerCase();
               return o === "tráfego pago" || o === "trafego pago";
             }).length}
+            faturamento={kpis.receita}
+            faturamentoTrafegoPago={leadSets.ganhos
+              .filter((l: any) => {
+                const o = (l.origem || "").toLowerCase();
+                return o === "tráfego pago" || o === "trafego pago";
+              })
+              .reduce((s: number, l: any) => s + (l.valor || 0), 0)}
           />
         </div>
       )}
