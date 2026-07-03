@@ -224,7 +224,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
           </div>
 
           {/* Tree table */}
-          <div className="border border-border rounded-lg overflow-hidden">
+          <div className="border border-border rounded-lg">
             <div className="grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] text-xs uppercase text-muted-foreground bg-muted/30 border-b border-border px-3 py-2 gap-2">
               <div>Nome</div>
               <div className="text-right">Invest.</div>
@@ -286,7 +286,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                           const cr = creatives[a.id];
                           const thumb = cr?.thumbnail_url || cr?.image_url || null;
                           return (
-                            <div key={a.id} className="grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-14 text-sm border-t border-border/30">
+                            <div key={a.id} className="relative grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-14 text-sm border-t border-border/30 hover:z-40">
                               <div className="flex items-center gap-2 truncate">
                                 <div className="relative group shrink-0">
                                   {thumb ? (
@@ -302,7 +302,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                                     </div>
                                   )}
                                   {thumb && (
-                                    <div className="hidden group-hover:block absolute z-50 left-12 top-0 w-40 h-40 rounded-lg overflow-hidden border border-border shadow-lg bg-card">
+                                    <div className="hidden group-hover:block absolute z-[60] left-12 -top-4 w-48 h-48 rounded-lg overflow-hidden border border-border shadow-xl bg-card pointer-events-none">
                                       <img src={thumb} alt={a.name} className="w-full h-full object-cover" />
                                     </div>
                                   )}
