@@ -16,6 +16,8 @@ interface MetaAdsSectionProps {
   leadsCriados: number;
   ganhos: number;
   ganhosTrafegoPago?: number;
+  faturamento: number;
+  faturamentoTrafegoPago?: number;
 }
 
 function Hint({ text }: { text: string }) {
@@ -35,7 +37,7 @@ function Hint({ text }: { text: string }) {
   );
 }
 
-export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, ganhos, ganhosTrafegoPago }: MetaAdsSectionProps) {
+export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, ganhos, ganhosTrafegoPago, faturamento, faturamentoTrafegoPago }: MetaAdsSectionProps) {
   // to is exclusive end — convert to inclusive for date column
   const fromStr = format(from, "yyyy-MM-dd");
   const toIncl = new Date(to.getTime() - 86400000);
@@ -211,6 +213,8 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
             leadsCriados={leadsCriados}
             ganhos={ganhos}
             ganhosTrafegoPago={ganhosTrafegoPago}
+            faturamento={faturamento}
+            faturamentoTrafegoPago={faturamentoTrafegoPago}
           />
         </>
       )}
