@@ -1117,6 +1117,42 @@ export type Database = {
           },
         ]
       }
+      meta_ad_creatives: {
+        Row: {
+          ad_account_id: string
+          ad_id: string
+          client_id: string | null
+          created_at: string
+          creative_type: string | null
+          image_url: string | null
+          permalink_url: string | null
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id: string
+          ad_id: string
+          client_id?: string | null
+          created_at?: string
+          creative_type?: string | null
+          image_url?: string | null
+          permalink_url?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string
+          ad_id?: string
+          client_id?: string | null
+          created_at?: string
+          creative_type?: string | null
+          image_url?: string | null
+          permalink_url?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meta_daily_ads: {
         Row: {
           ad_account_id: string

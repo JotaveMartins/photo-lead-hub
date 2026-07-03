@@ -7,7 +7,12 @@ import { useUserRole } from "@/hooks/useUserRole";
 export interface MetaAdsRow {
   date: string;
   ad_account_id: string;
+  campaign_id: string | null;
   campaign_name: string;
+  adset_id: string | null;
+  adset_name: string;
+  ad_id: string | null;
+  ad_name: string;
   spend: number;
   impressions: number;
   clicks: number;
@@ -32,7 +37,7 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
       while (true) {
         let q = supabase
           .from("meta_daily_ads")
-          .select("date,ad_account_id,campaign_name,spend,impressions,clicks,reach,messaging_conversations_started,client_id")
+          .select("date,ad_account_id,campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,reach,messaging_conversations_started,client_id")
           .gte("date", from)
           .lte("date", to)
           .range(offset, offset + PAGE - 1);
