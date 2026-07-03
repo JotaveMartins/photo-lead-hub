@@ -69,6 +69,7 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
   const [sortBy, setSortBy] = useState<SortBy>("spend");
   const [expandedCamp, setExpandedCamp] = useState<Set<string>>(new Set());
   const [expandedSet, setExpandedSet] = useState<Set<string>>(new Set());
+  const [hoverPreview, setHoverPreview] = useState<{ src: string; x: number; y: number } | null>(null);
 
   const totals = useMemo(() => {
     const t = emptyAgg();
@@ -286,9 +287,14 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                           const cr = creatives[a.id];
                           const thumb = cr?.thumbnail_url || cr?.image_url || null;
                           return (
-                            <div key={a.id} className="relative grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-14 text-sm border-t border-border/30 hover:z-40">
+                            <div key={a.id} className="grid grid-cols-[minmax(220px,1fr)_100px_90px_110px_80px_80px] gap-2 items-center px-3 py-1.5 pl-14 text-sm border-t border-border/30">
                               <div className="flex items-center gap-2 truncate">
-                                <div className="relative group shrink-0">
+                                <div
+                                  className="shrink-0"
+                                  onMouseEnter={(e) => thumb && setHoverPreview({ src: thumb, x: e.clientX, y: e.clientY })}
+                                  onMouseMove={(e) => thumb && setHoverPreview({ src: thumb, x: e.clientX, y: e.clientY })}
+                                  onMouseLeave={() => setHoverPreview(null)}
+                                >
                                   {thumb ? (
                                     <img
                                       src={thumb}
@@ -301,15 +307,10 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
                                       <ImageOff className="w-4 h-4 text-muted-foreground" />
                                     </div>
                                   )}
-                                  {thumb && (
-                                    <div className="hidden group-hover:block absolute z-[60] left-12 -top-4 w-48 h-48 rounded-lg overflow-hidden border border-border shadow-xl bg-card pointer-events-none">
-                                      <img src={thumb} alt={a.name} className="w-full h-full object-cover" />
-                                    </div>
-                                  )}
                                 </div>
                                 <span className="truncate text-foreground/80" title={a.name}>{a.name}</span>
-                                {cr?.permalink_url && (
-                                  <a href={cr.permalink_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground shrink-0">
+                                {thumb && (
+                                  <a href={thumb} target="_blank" rel="noopener noreferrer" title="Abrir imagem do criativo" className="text-muted-foreground hover:text-foreground shrink-0">
                                     <ExternalLink className="w-3 h-3" />
                                   </a>
                                 )}
@@ -330,6 +331,18 @@ export default function MetaAdsDetailsModal({ open, onOpenChange, rows, leadsCri
             })}
           </div>
         </div>
+
+        {hoverPreview && (
+          <div
+            className="fixed pointer-events-none z-[100] w-56 h-56 rounded-lg overflow-hidden border border-border shadow-2xl bg-card"
+            style={{
+              left: Math.min(hoverPreview.x + 16, window.innerWidth - 240),
+              top: Math.min(hoverPreview.y + 16, window.innerHeight - 240),
+            }}
+          >
+            <img src={hoverPreview.src} alt="preview" className="w-full h-full object-cover" />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
