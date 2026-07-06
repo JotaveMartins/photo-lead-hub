@@ -46,6 +46,7 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
+  const [deleteAlsoTasks, setDeleteAlsoTasks] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkField, setBulkField] = useState<"origem" | "interesse" | "status">("origem");
   const [bulkValue, setBulkValue] = useState<string>("");
@@ -79,8 +80,9 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
 
   const handleDelete = async () => {
     if (deletingLeadId) {
-      await deleteLead.mutateAsync(deletingLeadId);
+      await deleteLead.mutateAsync({ id: deletingLeadId, deleteTasks: deleteAlsoTasks });
       setDeletingLeadId(null);
+      setDeleteAlsoTasks(true);
     }
   };
 
@@ -349,14 +351,18 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
       />
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deletingLeadId} onOpenChange={(open) => !open && setDeletingLeadId(null)}>
+      <AlertDialog open={!!deletingLeadId} onOpenChange={(open) => { if (!open) { setDeletingLeadId(null); setDeleteAlsoTasks(true); } }}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lead?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O lead será permanentemente removido.
+              O lead será movido para a lixeira.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+            <Checkbox checked={deleteAlsoTasks} onCheckedChange={(v) => setDeleteAlsoTasks(!!v)} />
+            Também excluir as tarefas criadas para este lead
+          </label>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">

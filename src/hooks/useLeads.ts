@@ -167,7 +167,18 @@ export const useDeleteLead = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (input: string | { id: string; deleteTasks?: boolean }) => {
+      const id = typeof input === "string" ? input : input.id;
+      const deleteTasks = typeof input === "string" ? false : !!input.deleteTasks;
+
+      if (deleteTasks) {
+        const { error: tasksError } = await supabase
+          .from("lead_tasks")
+          .delete()
+          .eq("lead_id", id);
+        if (tasksError) throw tasksError;
+      }
+
       const { error } = await supabase
         .from("leads")
         .update({ deleted_at: new Date().toISOString() } as any)
@@ -178,6 +189,7 @@ export const useDeleteLead = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["deleted_leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
       toast.success("Lead movido para a lixeira!");
     },
     onError: (error: Error) => {
