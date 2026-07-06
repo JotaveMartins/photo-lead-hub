@@ -486,6 +486,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const createFollowUp = useCreateFollowUpTask();
   const deleteTask = useDeleteLeadTask();
   const [deleteLeadConfirmOpen, setDeleteLeadConfirmOpen] = useState(false);
+  const [deleteAlsoTasks, setDeleteAlsoTasks] = useState(true);
   const createHistory = useCreateLeadHistory();
   const { data: aiGloballyActive = false } = useAiGlobalActive();
 
@@ -1105,20 +1106,24 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       onDecline={handleFollowUpDecline}
     />
 
-    <AlertDialog open={deleteLeadConfirmOpen} onOpenChange={setDeleteLeadConfirmOpen}>
+    <AlertDialog open={deleteLeadConfirmOpen} onOpenChange={(open) => { setDeleteLeadConfirmOpen(open); if (!open) setDeleteAlsoTasks(true); }}>
       <AlertDialogContent className="bg-card border-border">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-foreground">Excluir lead</AlertDialogTitle>
           <AlertDialogDescription>
-            Tem certeza que deseja excluir <span className="font-semibold text-foreground">{lead?.nome}</span>? Esta ação não pode ser desfeita. Todas as tarefas, notas e histórico serão removidos.
+            Tem certeza que deseja excluir <span className="font-semibold text-foreground">{lead?.nome}</span>? O lead será movido para a lixeira.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+          <Checkbox checked={deleteAlsoTasks} onCheckedChange={(v) => setDeleteAlsoTasks(!!v)} />
+          Também excluir as tarefas criadas para este lead
+        </label>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={() => {
               if (lead) {
-                deleteLead.mutate(lead.id, { onSuccess: () => onOpenChange(false) });
+                deleteLead.mutate({ id: lead.id, deleteTasks: deleteAlsoTasks }, { onSuccess: () => onOpenChange(false) });
               }
             }}>
             Excluir
