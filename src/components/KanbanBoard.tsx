@@ -92,6 +92,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   // Delete confirmation state
   const [deleteConfirmLead, setDeleteConfirmLead] = useState<Lead | null>(null);
+  const [deleteAlsoTasks, setDeleteAlsoTasks] = useState(true);
   // Loss reason modal state
   const [lossReasonLead, setLossReasonLead] = useState<Lead | null>(null);
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
@@ -597,22 +598,27 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       )}
 
       {/* Delete confirmation dialog */}
-      <AlertDialog open={!!deleteConfirmLead} onOpenChange={(open) => { if (!open) setDeleteConfirmLead(null); }}>
+      <AlertDialog open={!!deleteConfirmLead} onOpenChange={(open) => { if (!open) { setDeleteConfirmLead(null); setDeleteAlsoTasks(true); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lead</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleteConfirmLead?.nome}</strong>? Esta ação não pode ser desfeita. Todas as tarefas, notas e histórico serão removidos.
+              Tem certeza que deseja excluir <strong>{deleteConfirmLead?.nome}</strong>? O lead será movido para a lixeira.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+            <Checkbox checked={deleteAlsoTasks} onCheckedChange={(v) => setDeleteAlsoTasks(!!v)} />
+            Também excluir as tarefas criadas para este lead
+          </label>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (deleteConfirmLead) {
-                  deleteLead.mutate(deleteConfirmLead.id);
+                  deleteLead.mutate({ id: deleteConfirmLead.id, deleteTasks: deleteAlsoTasks });
                   setDeleteConfirmLead(null);
+                  setDeleteAlsoTasks(true);
                 }
               }}
             >
