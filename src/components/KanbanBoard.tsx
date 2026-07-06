@@ -9,6 +9,7 @@ import { useLeadUnreadCounts } from "@/hooks/useInbox";
  import { Phone, Calendar, GripVertical, Filter, DollarSign, ChevronRight, Trash2, Bot } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SearchInput } from "@/components/ui/search-input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import LeadToClienteFlow from "@/components/LeadToClienteFlow";
