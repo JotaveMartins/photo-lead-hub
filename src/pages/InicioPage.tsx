@@ -417,9 +417,10 @@ const InicioPage = () => {
                       </div>
                       <div className="space-y-1.5">
                         {items.map((e: any) => (
-                          <div
+                          <button
                             key={e.id}
-                            className="p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
+                            onClick={() => navigate(`/agenda?open=${e.id}`)}
+                            className="w-full text-left p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
                           >
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-sm font-medium text-foreground truncate">
@@ -434,7 +435,7 @@ const InicioPage = () => {
                                 {e.clientes.nome}
                               </p>
                             )}
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
