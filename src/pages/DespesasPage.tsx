@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DollarSign, ChevronLeft, ChevronRight, Plus, TrendingDown, Clock, Hash, Tag, PieChart, BarChart3, Pencil, Trash2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ const tooltipStyle = {
 };
 
 const DespesasPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -45,6 +47,26 @@ const DespesasPage = () => {
   const [editingDespesa, setEditingDespesa] = useState<Despesa | null>(null);
 
   const { data: despesas = [], isLoading } = useDespesas(currentMonth);
+
+  // Open despesa by URL param (?open=<id>&date=<yyyy-mm-dd>)
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId) return;
+    const dateStr = searchParams.get("date");
+    if (dateStr) {
+      const [y, m] = dateStr.split("-").map(Number);
+      if (y && m) setCurrentMonth(new Date(y, m - 1, 1));
+    }
+    const found = despesas.find((d) => d.id === openId);
+    if (found) {
+      setEditingDespesa(found);
+      setModalOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      next.delete("date");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, despesas, setSearchParams]);
   const { data: deletedDespesas = [] } = useDeletedDespesas();
   const deleteDespesa = useDeleteDespesa();
   const restoreDespesa = useRestoreDespesa();
