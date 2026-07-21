@@ -203,9 +203,10 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           descricao: descricao || null,
           valor: valorNum,
           forma_pagamento: formaPagamento,
+          status: jaPago && vencimentoPast ? "paga" : "aguardando",
           vencimento,
           cliente_id: clienteId || null,
-          ...(jaPago && vencimentoPast ? { status: "paga" as const, data_pagamento: vencimento } : {}),
+          ...(jaPago && vencimentoPast ? { data_pagamento: vencimento } : {}),
         } as any);
         toast.success("Cobrança criada com sucesso!");
         if (result?.id) await syncAsaas([result.id]);
@@ -226,6 +227,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             descricao: descricao || null,
             valor: vp,
             forma_pagamento: formaPagamento,
+            status: "aguardando",
             vencimento: dueDate.toISOString().split("T")[0],
             parcela_numero: i + 1,
             parcela_total: n,
@@ -253,9 +255,10 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           descricao: descricao ? `Entrada - ${descricao}` : "Entrada",
           valor: entradaNum,
           forma_pagamento: formaPagamentoEntrada,
+          status: jaPagoEntrada && vencimentoEntradaPast ? "paga" : "aguardando",
           vencimento: vencimentoEntrada,
           cliente_id: clienteId || null,
-          ...(jaPagoEntrada && vencimentoEntradaPast ? { status: "paga" as const, data_pagamento: vencimentoEntrada } : {}),
+          ...(jaPagoEntrada && vencimentoEntradaPast ? { data_pagamento: vencimentoEntrada } : {}),
         } as any);
 
         // Parcelas
@@ -270,6 +273,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             descricao: descricao || null,
             valor: vp,
             forma_pagamento: formaPagamento,
+            status: "aguardando",
             vencimento: dueDate.toISOString().split("T")[0],
             parcela_numero: i + 1,
             parcela_total: n,
