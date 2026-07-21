@@ -1,62 +1,55 @@
-# Meta Ads — correção de fuso e detalhamento por conjunto/anúncio
+## Objetivo
 
-## 1. Corrigir divergência de valores (fuso horário)
+1. Registrar **todas** as mudanças de um lead no Histórico (origem, datas, valor, interesse, pacote, status, motivo/observação de perda, whatsapp, nome), independente de onde a mudança acontece (drawer, kanban, tabelas, modais de campos obrigatórios, motivo de perda, edge functions).
+2. Marcar cada entrada como **Manual** ou **Automático** (ex.: criação via "criar lead" do Inbox, datas de entrada de etapa preenchidas por trigger, cadência gerada ao iniciar atendimento).
+3. Rodar o sync do Meta Ads da conta do Saulo manualmente.
 
-**Causa provável:** o `sync-meta-ads` calcula `since`/`until` com `toISOString().slice(0,10)` (UTC), mas a conta Meta do Igor opera em `America/Sao_Paulo`. Entre 21:00 e 00:00 BR o "dia" UTC já virou, então o sync grava spend em um `date` diferente do que o gerenciador mostra. Ao longo de 30 dias essa diferença acumula ~5% (bate com os R$113).
+## Estado atual (verificado)
 
-**Correções em `supabase/functions/sync-meta-ads/index.ts`:**
-- Buscar o `timezone_name` de cada `ad_account` (`GET /act_XXX?fields=timezone_name`).
-- Calcular `since`/`until` na timezone da conta (usar `Intl.DateTimeFormat` com `timeZone`), não em UTC.
-- Passar `time_range` + `use_account_attribution_setting=true` para o insights, garantindo alinhamento com o gerenciador.
-- Aceitar `since`/`until` do body para permitir backfill manual.
+- `lead_history` só é gravado em `LeadDetailDrawer.tsx > handleFieldSave`. Mudanças feitas via Kanban (drag), `RequiredFieldsModal`, `LossReasonModal`, `LeadModal` e edge functions **não** aparecem no timeline.
+- Não existe distinção manual/automático — todas as entradas hoje são efetivamente manuais.
+- Conta Meta do Saulo: `meta_ad_account_id = 10150838015447315` cadastrado, mas 0 linhas em `meta_daily_ads` para o `client_id` dele.
 
-**Backfill 90 dias:** invocar a função uma vez com `{ since: "<hoje-90d>", until: "<hoje>" }` para regravar `meta_daily_ads` com as datas corretas (o upsert por `date,ad_account_id,campaign_name,adset_name,ad_name` sobrescreve os valores antigos).
+## Mudanças
 
-## 2. Botão "Ver detalhes" + Modal grande
+### 1. Banco (migration)
 
-Em `MetaAdsSection.tsx` adicionar botão no header. Ao clicar abre um `Dialog` largo (`max-w-6xl`, altura ~90vh, scroll interno) com:
+- `lead_history`: adicionar coluna `source text not null default 'manual'` com check `('manual','automatic')`.
+- `leads`: adicionar coluna `created_via text not null default 'manual'` (valores: `'manual' | 'inbox_auto'`).
+- Novo trigger `zzz_track_lead_field_changes` em `AFTER UPDATE ON leads`:
+  - Compara OLD vs NEW para os campos: `nome, whatsapp, interesse, origem, valor, data_evento, data_contato, data_proposta, package_id, status, motivo_perda, observacao_perda, iniciar_atendimento` e para todas as `data_entrada_*`.
+  - Insere uma linha em `lead_history` por campo alterado, com `user_id = NEW.user_id`.
+  - `source`: lê `current_setting('app.history_source', true)`; se for `'automatic'`, marca automático; caso contrário `'manual'`.
+- Ajustar `track_lead_stage_dates` e `create_cadence_task_on_contato` para chamar `perform set_config('app.history_source','automatic', true)` no início — assim as datas de etapa preenchidas por trigger entram como automáticas.
+- Novo trigger `zzz_lead_created_history` em `AFTER INSERT ON leads`: insere entrada "Lead criado" com `source = 'automatic'` se `created_via = 'inbox_auto'`, senão `'manual'`.
+- GRANTs já cobrem `lead_history` (INSERT via trigger roda como definer/owner).
 
-**Cabeçalho do modal — KPIs expandidos:**
-- Investimento, Conversas, Custo/conversa, Cliques, CTR, CPM, Alcance, Impressões, Leads CRM, Custo/lead, Custo/venda, Aproveitamento.
-- Mini gráfico de linha do investimento e conversas por dia (recharts, tokens HSL do tema).
+### 2. Edge function `evolution-webhook`
 
-**Árvore expansível Campanha → Conjunto → Anúncio:**
-- Cada linha mostra: nome, investimento, conversas, custo/conversa, cliques, CTR, impressões.
-- Clicar na campanha expande os conjuntos daquela campanha (agregados a partir de `meta_daily_ads`).
-- Clicar no conjunto expande os anúncios, e cada linha de anúncio mostra à esquerda o **thumbnail 64×64** do criativo com hover para 160×160.
-- Ordenação padrão por investimento desc; toggle simples "por conversas".
-- Filtro de texto no topo para buscar por nome.
+- No ponto onde cria lead automático (origem "Tráfego Pago"), passar `created_via: 'inbox_auto'` no insert.
 
-## 3. Thumbnail do criativo
+### 3. Frontend
 
-**Nova tabela `meta_ad_creatives`** (cache de thumbnails para não bater na API Meta a cada abertura do modal):
-- `ad_id` (PK), `ad_account_id`, `client_id`, `thumbnail_url`, `permalink_url`, `creative_type` (image/video), `updated_at`.
-- RLS: usuário lê linhas onde `client_id = auth.uid()`; admin lê tudo; service_role tudo.
+- `src/hooks/useLeadHistory.ts`: adicionar `source: 'manual' | 'automatic'` ao tipo.
+- `src/components/LeadDetailDrawer.tsx > handleFieldSave`: **remover** o `createHistory.mutate` (o trigger passa a ser fonte única, evita duplicidade). Manter apenas o `updateLead.mutate`.
+- Timeline (item `change`): renderizar badge ao lado do label:
+  - `Automático` (cinza/muted) quando `source === 'automatic'`
+  - `Manual` (primary suave) quando `source === 'manual'`
+- Mapa `FIELD_LABELS` já cobre os campos principais; complementar rótulos que faltarem (ex.: `created_via`, `ai_paused` fica de fora do rastreamento).
 
-**No `sync-meta-ads`:** após buscar insights, coletar `ad_id` únicos e chamar `GET /{ad_id}?fields=creative{thumbnail_url,image_url,effective_object_story_id,video_id}` em lote (batch API do Meta, 50 por request). Upsert em `meta_ad_creatives`. Thumbnails expiram — refazer a busca se `updated_at` > 24h.
+### 4. Sync Meta Ads do Saulo
 
-**No modal:** hook novo `useMetaAdCreatives(adIds[])` que lê da tabela; se faltar algum, dispara `sync-meta-ads` com flag `refreshCreatives: true` para aquele `ad_account_id`.
-
-## 4. Arquivos afetados
-
-- `supabase/functions/sync-meta-ads/index.ts` — timezone da conta + fetch de criativos.
-- `supabase/migrations/<novo>.sql` — cria `meta_ad_creatives` com GRANTs e RLS.
-- `src/hooks/useMetaAdsReport.ts` — passar a incluir `adset_name`, `ad_name`, `adset_id`, `ad_id` no select.
-- `src/hooks/useMetaAdCreatives.ts` — novo.
-- `src/components/reports/MetaAdsSection.tsx` — botão "Ver detalhes".
-- `src/components/reports/MetaAdsDetailsModal.tsx` — novo, com árvore e KPIs.
-- `src/integrations/supabase/types.ts` — regenerado após migration.
-
-## 5. Passos de execução
-
-1. Migration da tabela `meta_ad_creatives`.
-2. Editar `sync-meta-ads` (timezone + criativos).
-3. Rodar backfill 90 dias.
-4. Criar hooks e modal no frontend.
-5. Adicionar botão em `MetaAdsSection`.
+- Invocar a edge function `sync-meta-ads` para o `user_id` do Saulo (`8042a01c-...`) com backfill de ~90 dias.
+- Verificar o resultado consultando `meta_daily_ads` e reportar quantas linhas foram inseridas / erro retornado pela function, se houver.
 
 ## Detalhes técnicos
 
-- Timezone: `new Intl.DateTimeFormat("en-CA", { timeZone: tz, year:"numeric", month:"2-digit", day:"2-digit" }).format(d)` → `YYYY-MM-DD` local da conta.
-- Batch API Meta: `POST https://graph.facebook.com/v21.0/?batch=[...]&access_token=...`.
-- Thumbnail cache TTL 24h (URLs assinadas do Meta expiram em ~alguns dias, seguro renovar diariamente no sync incremental).
+- O trigger de captura fica em `AFTER UPDATE` (não BEFORE) para enxergar o NEW já com efeitos dos BEFORE triggers (`track_lead_stage_dates`, `create_cadence_task_on_contato`), mantendo a semântica correta de "quem mexeu no campo".
+- `set_config(..., true)` é local à transação, então não vaza entre requisições.
+- Remover a inserção de histórico no cliente elimina a divergência de rótulos e evita dupla entrada quando o trigger passar a rodar.
+- Campos de tarefa/cadência (`cadencia_*`, `follow_up_*`) atualmente rastreados no `FIELD_LABELS` do drawer não existem em `leads` — permanecem sem histórico (comportamento igual ao atual).
+
+## Fora do escopo
+
+- Retroatividade: não vamos gerar histórico para mudanças antigas.
+- Notas e tarefas continuam com o comportamento atual no timeline.
