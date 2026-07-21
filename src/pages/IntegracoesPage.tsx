@@ -80,7 +80,7 @@ const IntegracoesPage = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-6 hidden">
         {/* Asaas */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
