@@ -281,8 +281,10 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
       }
       onOpenChange(false);
       resetForm();
-    } catch {
-      toast.error("Erro ao criar cobrança");
+    } catch (err: any) {
+      console.error("Erro ao criar cobrança:", err);
+      const msg = err?.message || err?.error_description || err?.details || String(err);
+      toast.error(`Erro ao criar cobrança: ${msg}`, { duration: 8000 });
     }
   };
 
