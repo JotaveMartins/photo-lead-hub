@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import DatePickerField from "@/components/DatePickerField";
 
 import TimePickerField from "@/components/TimePickerField";
@@ -25,16 +26,24 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
-type FilterKey = "todo" | "overdue" | "today" | "this_week" | "future" | "completed";
+type FilterKey = "todo" | "hoje" | "overdue" | "today" | "this_week" | "future" | "completed";
 
 const TarefasPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: allTasks = [] } = useAllTasks();
   const { data: leads = [] } = useLeads();
   const { data: clientes = [] } = useClientes();
   const completeTask = useCompleteLeadTask();
   const createTask = useCreateLeadTask();
 
-  const [filter, setFilter] = useState<FilterKey>("todo");
+  const initialFilter = (searchParams.get("filter") as FilterKey) || "todo";
+  const [filter, setFilter] = useState<FilterKey>(initialFilter);
+
+  useEffect(() => {
+    const f = searchParams.get("filter") as FilterKey | null;
+    if (f && f !== filter) setFilter(f);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
@@ -61,6 +70,7 @@ const TarefasPage = () => {
         case "completed": return task.completed;
         case "overdue": return !task.completed && isBefore(dueDate, today);
         case "today": return !task.completed && isToday(dueDate);
+        case "hoje": return !task.completed && (isToday(dueDate) || isBefore(dueDate, today));
         case "this_week": return !task.completed && isThisWeek(dueDate, { weekStartsOn: 1 });
         case "future": return !task.completed && !isBefore(dueDate, today) && !isToday(dueDate);
         default: return true;
@@ -121,6 +131,7 @@ const TarefasPage = () => {
 
   const filters: { key: FilterKey; label: string; count?: number }[] = [
     { key: "todo", label: "Para fazer", count: stats.pending },
+    { key: "hoje", label: "Hoje + Vencidas", count: stats.today + stats.overdue },
     { key: "overdue", label: "Vencido", count: stats.overdue },
     { key: "today", label: "Hoje", count: stats.today },
     { key: "this_week", label: "Esta semana" },
