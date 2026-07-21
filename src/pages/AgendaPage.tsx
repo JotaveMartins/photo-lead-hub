@@ -143,6 +143,20 @@ const AgendaPage = () => {
 
   const today = startOfDay(new Date());
 
+  // Open event by URL param (?open=<id>)
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId || events.length === 0) return;
+    const ev = events.find((e: any) => e.id === openId);
+    if (ev) {
+      openModal(ev);
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, events]);
+
   const filteredEvents = useMemo(() => {
     let filtered = [...events];
 
