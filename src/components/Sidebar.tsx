@@ -146,14 +146,14 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
     { key: 'config', title: 'Configurações', items: configFiltered },
   ];
 
-  const STORAGE_KEY = 'sidebar-open-sections-v1';
+  const STORAGE_KEY = 'sidebar-open-sections-v2';
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     if (typeof window === 'undefined') return {};
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
     } catch {}
-    return {};
+    return { vendas: true, clientes: true, financeiro: true, config: false };
   });
 
   // Auto-open section containing active route
