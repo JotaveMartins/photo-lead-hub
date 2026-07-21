@@ -529,18 +529,6 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
   const handleFieldSave = (field: string, value: any) => {
     if (!lead) return;
-    const oldValue = (lead as any)[field];
-    const oldStr = oldValue != null ? String(oldValue) : null;
-    const newStr = value != null ? String(value) : null;
-    if (oldStr !== newStr) {
-      createHistory.mutate({
-        lead_id: lead.id,
-        field_name: field,
-        field_label: FIELD_LABELS[field] || field,
-        old_value: oldStr,
-        new_value: newStr,
-      });
-    }
     updateLead.mutate({ id: lead.id, [field]: value });
   };
 
@@ -1052,13 +1040,24 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
                         {item.type === "change" && (
                           <div className="py-1">
-                            <p className="text-sm text-foreground">
+                            <p className="text-sm text-foreground flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                               <span className="font-medium">{item.data.field_label}</span>
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
+                                  item.data.source === "automatic"
+                                    ? "bg-muted text-muted-foreground border-border"
+                                    : "bg-primary/10 text-primary border-primary/30"
+                                }`}
+                              >
+                                {item.data.source === "automatic" ? "Automático" : "Manual"}
+                              </span>
+                              <span className="text-foreground">
                               {item.data.old_value ? (
                                 <>{": "}<span className="text-muted-foreground line-through">{item.data.old_value}</span> → <span>{item.data.new_value || "—"}</span></>
                               ) : (
                                 <>{": "}<span>{item.data.new_value || "—"}</span></>
                               )}
+                              </span>
                             </p>
                             <p className="text-[11px] text-muted-foreground">{formatDateTime(item.data.created_at)}</p>
                           </div>

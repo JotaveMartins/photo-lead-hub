@@ -796,6 +796,7 @@ export type Database = {
           lead_id: string
           new_value: string | null
           old_value: string | null
+          source: string
           user_id: string
         }
         Insert: {
@@ -806,6 +807,7 @@ export type Database = {
           lead_id: string
           new_value?: string | null
           old_value?: string | null
+          source?: string
           user_id: string
         }
         Update: {
@@ -816,6 +818,7 @@ export type Database = {
           lead_id?: string
           new_value?: string | null
           old_value?: string | null
+          source?: string
           user_id?: string
         }
         Relationships: [
@@ -934,6 +937,7 @@ export type Database = {
           cadencia_5: string | null
           city: string | null
           created_at: string
+          created_via: string
           data_contato: string | null
           data_entrada_contato_iniciado: string | null
           data_entrada_contrato_enviado: string | null
@@ -981,6 +985,7 @@ export type Database = {
           cadencia_5?: string | null
           city?: string | null
           created_at?: string
+          created_via?: string
           data_contato?: string | null
           data_entrada_contato_iniciado?: string | null
           data_entrada_contrato_enviado?: string | null
@@ -1028,6 +1033,7 @@ export type Database = {
           cadencia_5?: string | null
           city?: string | null
           created_at?: string
+          created_via?: string
           data_contato?: string | null
           data_entrada_contato_iniciado?: string | null
           data_entrada_contrato_enviado?: string | null
