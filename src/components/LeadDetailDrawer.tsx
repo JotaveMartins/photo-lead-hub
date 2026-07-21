@@ -529,18 +529,6 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
   const handleFieldSave = (field: string, value: any) => {
     if (!lead) return;
-    const oldValue = (lead as any)[field];
-    const oldStr = oldValue != null ? String(oldValue) : null;
-    const newStr = value != null ? String(value) : null;
-    if (oldStr !== newStr) {
-      createHistory.mutate({
-        lead_id: lead.id,
-        field_name: field,
-        field_label: FIELD_LABELS[field] || field,
-        old_value: oldStr,
-        new_value: newStr,
-      });
-    }
     updateLead.mutate({ id: lead.id, [field]: value });
   };
 
