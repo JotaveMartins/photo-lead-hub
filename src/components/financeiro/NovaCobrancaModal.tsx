@@ -64,7 +64,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const createBatch = useCreateCobrancasBatch();
   const asaasCreateCharge = useAsaasCreateCharge();
   const { data: integrations } = useIntegrationSettings();
-  const hasAsaas = !!integrations?.asaas_api_key;
+  // Integração com Asaas desativada temporariamente
+  const hasAsaas = false;
   const { data: clientes = [] } = useClientes();
 
   const [clienteId, setClienteId] = useState(initialClienteId || "");
