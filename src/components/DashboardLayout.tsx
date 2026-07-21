@@ -27,6 +27,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const getActiveItem = () => {
     const path = location.pathname;
+    if (path === "/inicio") return "inicio";
     if (path === "/" || path === "/leads") return "leads";
     if (path === "/tarefas") return "tarefas";
     if (path === "/relatorios") return "relatorios";
@@ -49,6 +50,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   const PAGE_TITLES: Record<string, string> = {
+    inicio: "Início",
     leads: "Leads",
     tarefas: "Tarefas",
     relatorios: "Relatórios",
@@ -84,6 +86,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const handleItemClick = (item: string) => {
     const routes: Record<string, string> = {
+      inicio: "/inicio",
       leads: "/leads",
       tarefas: "/tarefas",
       relatorios: "/relatorios",
