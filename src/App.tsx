@@ -28,6 +28,7 @@ import EquipePage from "./pages/EquipePage";
 import AnunciosPage from "./pages/AnunciosPage";
 import InboxPage from "./pages/InboxPage";
 import ContratosPage from "./pages/ContratosPage";
+import InicioPage from "./pages/InicioPage";
 import { useWhatsAppDisconnectAlert } from "@/hooks/useWhatsAppDisconnectAlert";
 
 const queryClient = new QueryClient();
@@ -76,9 +77,10 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<Navigate to="/leads" replace />} />
+      <Route path="/" element={<Navigate to="/inicio" replace />} />
 
       <Route element={<ProtectedLayout />}>
+        <Route path="/inicio" element={<InicioPage />} />
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/tarefas" element={<TarefasPage />} />
         <Route path="/relatorios" element={<RelatoriosPage />} />
