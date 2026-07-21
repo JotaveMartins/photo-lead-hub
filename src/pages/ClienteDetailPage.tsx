@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpdateCliente, useDeleteCliente, type Cliente } from "@/hooks/useClientes";
@@ -24,6 +24,13 @@ const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const ClienteDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") || "dados";
+  const setTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", v);
+    setSearchParams(next, { replace: true });
+  };
   const effectiveUserId = useEffectiveUserId();
   const deleteCliente = useDeleteCliente();
   const [editOpen, setEditOpen] = useState(false);
