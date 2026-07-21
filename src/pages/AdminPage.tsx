@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { UserPlus, Trash2, Copy, Check, LogIn, Settings } from "lucide-react";
+import { UserPlus, Trash2, Copy, Check, LogIn, Settings, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EvolutionSettingsCard from "@/components/admin/EvolutionSettingsCard";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useToast } from "@/hooks/use-toast";
 import CreateUserModal from "@/components/CreateUserModal";
 import EditAdminUserModal from "@/components/admin/EditAdminUserModal";
+import { usePrivacyMode, maskName, maskEmail } from "@/hooks/usePrivacyMode";
 
 const AdminPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -25,6 +26,7 @@ const AdminPage = () => {
   const { startImpersonation } = useImpersonation();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { enabled: privacy, toggle: togglePrivacy } = usePrivacyMode();
 
   const SUPER_ADMIN_EMAIL = "avanzosolucoesdigitais@gmail.com";
   const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
@@ -58,10 +60,20 @@ const AdminPage = () => {
           <h1 className="text-2xl font-display font-bold text-foreground">Clientes</h1>
           <p className="text-muted-foreground">Gerencie as contas dos seus clientes</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Novo Cliente
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={togglePrivacy}
+            title={privacy ? "Mostrar nomes" : "Ocultar nomes"}
+          >
+            {privacy ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+          <Button onClick={() => setShowModal(true)}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Novo Cliente
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border bg-card">
@@ -88,14 +100,17 @@ const AdminPage = () => {
                 <TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
               </TableRow>
             ) : (
-              users?.map((user) => (
+              users?.map((user, idx) => {
+                const displayName = privacy ? maskName(idx) : user.nome;
+                const displayEmail = privacy ? maskEmail() : user.email;
+                return (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.nome}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+                  <TableCell className="font-medium">{displayName}</TableCell>
+                  <TableCell>{displayEmail}</TableCell>
                   <TableCell>
                     {(user as any).senha ? (
                       <div className="flex items-center gap-1">
-                        <code className="text-sm font-mono text-primary">{(user as any).senha}</code>
+                        <code className="text-sm font-mono text-primary">{privacy ? "••••••" : (user as any).senha}</code>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -117,7 +132,7 @@ const AdminPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleImpersonate(user.user_id, user.nome)}
+                      onClick={() => handleImpersonate(user.user_id, displayName)}
                       className="gap-1.5 text-xs"
                     >
                       <LogIn className="w-3.5 h-3.5" />
@@ -148,7 +163,7 @@ const AdminPage = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setDeleteTarget({ user_id: user.user_id, nome: user.nome })}
+                        onClick={() => setDeleteTarget({ user_id: user.user_id, nome: displayName })}
                         className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -156,7 +171,8 @@ const AdminPage = () => {
                     )}
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
