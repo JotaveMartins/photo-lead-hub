@@ -497,9 +497,14 @@ const InicioPage = () => {
                   />
                 ) : (
                   weekCobrancas.map((c) => (
-                    <div
+                    <button
                       key={c.id}
-                      className="flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
+                      onClick={() =>
+                        navigate(
+                          `/financeiro/cobrancas?open=${c.id}&date=${c.vencimento}`
+                        )
+                      }
+                      className="w-full text-left flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -515,7 +520,7 @@ const InicioPage = () => {
                       <span className="text-sm font-semibold text-foreground whitespace-nowrap">
                         {brl(Number(c.valor || 0))}
                       </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
@@ -542,9 +547,14 @@ const InicioPage = () => {
                   />
                 ) : (
                   weekDespesas.map((d) => (
-                    <div
+                    <button
                       key={d.id}
-                      className="flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
+                      onClick={() =>
+                        navigate(
+                          `/financeiro/despesas?open=${d.id}&date=${d.data}`
+                        )
+                      }
+                      className="w-full text-left flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -560,7 +570,7 @@ const InicioPage = () => {
                       <span className="text-sm font-semibold text-foreground whitespace-nowrap">
                         {brl(Number(d.valor || 0))}
                       </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
