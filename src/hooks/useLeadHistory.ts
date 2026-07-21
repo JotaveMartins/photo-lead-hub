@@ -11,6 +11,7 @@ export interface LeadHistoryEntry {
   old_value: string | null;
   new_value: string | null;
   created_at: string;
+  source: "manual" | "automatic";
 }
 
 export const useLeadHistory = (leadId: string | undefined) => {
