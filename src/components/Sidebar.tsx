@@ -216,8 +216,9 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
         />
       )}
       <aside
-        className={`fixed left-0 top-0 h-[100dvh] w-[82%] max-w-[280px] lg:w-64 lg:max-w-none bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-200 ease-out shadow-2xl lg:shadow-none
+        className={`fixed left-0 top-0 h-[100dvh] data-[impersonating=true]:top-8 data-[impersonating=true]:h-[calc(100dvh-2rem)] w-[82%] max-w-[280px] lg:w-64 lg:max-w-none bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-200 ease-out shadow-2xl lg:shadow-none
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        data-impersonating={isImpersonating ? "true" : "false"}
       >
         <div className="p-4 lg:p-6 border-b border-sidebar-border">
           <div className="flex items-center justify-between gap-3">
