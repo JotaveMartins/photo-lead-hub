@@ -1,62 +1,62 @@
-## 1. Reorganização do menu lateral
+## Mudanças
 
-Novo agrupamento em `src/components/Sidebar.tsx` (com cabeçalhos de seção não clicáveis):
+### 1. Sidebar — seções colapsáveis (dropdown)
 
-- **Início** (item raiz, no topo)
-- **Vendas**: Leads, Tarefas, Relatórios, WhatsApp, Inbox
-- **Clientes**: Clientes, Agenda, Contratos
-- **Financeiro**: Dashboard (Resumo), Cobranças, Despesas
-- **Configurações**: IA, Integrações, Serviços, Pacotes, Equipe
-- **Admin** (mantido separado, só para admins) + **Anúncios**
+Transformar cada seção (Vendas, Clientes, Financeiro, Configurações) em um grupo colapsável com setinha (chevron) no cabeçalho. Estado inicial: **todas fechadas**, exceto a seção que contém a rota ativa (abre automaticamente). Estado guardado em `localStorage` para persistir entre sessões.
 
-Ajustes técnicos:
-- Cabeçalhos de seção com estilo discreto (`text-xs uppercase text-muted-foreground`) e um pequeno divisor entre grupos.
-- Ícones mantidos por item; seção continua expandida por padrão (sem colapso por enquanto — pode virar melhoria futura).
-- Atualizar `DashboardLayout.tsx` `PAGE_TITLES` e mapeamento `getActiveItem` para incluir `inicio`.
+Reorganização pedida:
+- **Vendas:** Leads, Tarefas, Relatórios, WhatsApp, Inbox
+- **Clientes:** Clientes, Agenda, Contratos, **Serviços, Pacotes, Equipe** (movidos de Configurações)
+- **Financeiro:** Dashboard, Cobranças, Despesas
+- **Configurações:** IA, Integrações
 
-## 2. Tela de Início
+"Início" continua fora das seções, no topo, sempre visível.
 
-Nova página `src/pages/InicioPage.tsx` na rota `/inicio`, definida em `src/App.tsx` dentro do `ProtectedLayout`. Redirect `"/"` passa a apontar para `/inicio` (antes ia para `/leads`).
+### 2. Versionamento automático
 
-Layout:
+Regra confirmada: a cada mensagem sua que gere alteração, incremento o **patch** (`3.1.1 → 3.1.2 → … → 3.1.9`). Ao passar de 9, incremento o **minor** e zero o patch (`3.1.9 → 3.2.0`). O **major** (3) só muda quando você pedir.
 
-```text
-┌─────────────────────────────────────────────┐
-│  Olá, {nome} — Semana de {seg} a {dom}      │
-├──────────────────────┬──────────────────────┤
-│  Tarefas de hoje     │  Tarefas de hoje     │
-│  — Clientes          │  — Leads             │
-│  (lista scroll)      │  (lista scroll)      │
-├──────────┬───────────┴──────┬───────────────┤
-│ Agenda   │  Recebimentos    │  Despesas     │
-│ da semana│  da semana       │  da semana    │
-└──────────┴──────────────────┴───────────────┘
-```
+- Fonte única da versão: constante `CRM_VERSION` em `src/lib/version.ts` (novo arquivo), lida pelo Sidebar e por `package.json` (manual).
+- Nesta entrega já subo para **`3.1.2`** (esta mensagem = 1 alteração). Nas próximas mensagens com alteração, subo mais um.
 
-Fontes de dados (hooks já existentes, filtrados por `useEffectiveUserId`):
-- **Tarefas hoje – Leads**: `useLeadTasks` filtrando `due_date === hoje` e `status !== 'concluida'`.
-- **Tarefas hoje – Clientes**: tarefas ligadas a `cliente_id` (verificar se `lead_tasks` já cobre; caso não, usar tabela de tarefas de cliente existente — inspecionar antes de codar).
-- **Agenda da semana**: `useEvents` no intervalo seg–dom da semana corrente.
-- **Recebimentos da semana**: `useCobrancas` com `vencimento` na semana corrente (status `aguardando` ou `paga`).
-- **Despesas da semana**: `useDespesas` com `data` na semana corrente.
+### 3. Redesign da página Início
 
-Regra de "semana corrente": segunda 00:00 a domingo 23:59, timezone America/Sao_Paulo, usando `parseLocalDate` do `src/lib/utils.ts`.
+Manter o mesmo sistema de design (tema dark, primária ciano/turquesa), mas elevar o visual:
 
-Cada card mostra: título, contagem/total no cabeçalho, lista compacta (máx. 5 itens visíveis + scroll) e link "Ver todos" que navega para a página correspondente.
+**Hero de boas-vindas**
+- Saudação dinâmica ("Bom dia, {nome}") com data por extenso.
+- Subfaixa com o período da semana atual.
+- Fundo com `bg-gradient-glow` sutil no topo do conteúdo.
 
-## 3. Rota inicial
+**Faixa de KPIs (4 cards compactos)**
+- Tarefas de hoje (clientes + leads somados)
+- Eventos da semana
+- A receber na semana (valor em BRL, cor primária)
+- A pagar na semana (valor em BRL, cor destructive)
+- Cards com ícone em pill colorida, número grande em `font-display`, hover com leve elevação.
 
-- `<Route path="/" element={<Navigate to="/inicio" replace />} />` em `App.tsx`.
-- Adicionar item **Início** (ícone `Home` do lucide) como primeiro item do Sidebar.
+**Grid principal (2 colunas no desktop, 1 no mobile)**
 
-## Detalhes técnicos
+Coluna esquerda — Tarefas
+- Card único "Tarefas de hoje" com abas internas **Clientes / Leads** (contador em cada aba).
+- Linhas mais elegantes: avatar/inicial colorida, título, subtítulo (nome do lead/cliente), pill de data à direita (vermelha se atrasada).
 
-- Nenhuma alteração de schema/DB. Só front-end.
-- Sem mudança de business logic dos hooks; apenas consumo.
-- Manter tokens de design (sem `text-white`/`bg-black` hardcoded).
-- Sidebar mobile: verificar que os cabeçalhos de seção não quebram o layout do drawer.
+Coluna direita — Semana
+- **Agenda da semana:** timeline vertical com marcador por dia, evento agrupado por data.
+- **Recebimentos vs Despesas:** um único card com duas colunas lado a lado, cada uma listando os itens; totais no topo em ciano (receita) e vermelho (despesa); saldo líquido da semana em destaque no rodapé.
 
-## Fora do escopo (para confirmar depois)
+**Detalhes visuais**
+- Cabeçalhos de card com divisor sutil.
+- Estado vazio com ícone grande em `text-muted-foreground/40` e mensagem curta.
+- Animação `animate-fade-in` escalonada nos cards.
+- Scroll interno com `scrollbar-thin` (via utilitário Tailwind).
 
-- Colapso/expansão das seções e persistência da preferência.
-- Personalização dos blocos da tela de Início.
+Sem alterar dados ou hooks — só `src/pages/InicioPage.tsx` e talvez um subcomponente `InicioKpiCard.tsx`.
+
+## Arquivos afetados
+
+- `src/components/Sidebar.tsx` — seções colapsáveis, mover Serviços/Pacotes/Equipe, ler versão da constante.
+- `src/lib/version.ts` *(novo)* — `export const CRM_VERSION = "3.1.2"`.
+- `src/pages/InicioPage.tsx` — redesign completo.
+- `src/components/inicio/InicioKpiCard.tsx` *(novo)* — card de KPI reutilizável.
+- `package.json` — bump para `3.1.2`.

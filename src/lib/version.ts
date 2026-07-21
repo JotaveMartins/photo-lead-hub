@@ -1,0 +1,1 @@
+export const CRM_VERSION = "3.1.2";

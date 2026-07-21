@@ -14,13 +14,15 @@ import {
   FileText,
   X,
   HardHat,
-   Megaphone,
-   Bot,
+  Megaphone,
+  Bot,
   MessageSquare,
   Inbox,
   Plug,
   Home,
+  ChevronDown,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -30,8 +32,7 @@ import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { useInboxTotalUnread } from "@/hooks/useInbox";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
-
-const CRM_VERSION = "3.1.1";
+import { CRM_VERSION } from "@/lib/version";
 
 interface SidebarProps {
   activeItem: string;
@@ -55,6 +56,9 @@ const clientesItems: MenuItem[] = [
   { id: 'clientes', label: 'Clientes', icon: UserCheck },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'contratos', label: 'Contratos', icon: FileText },
+  { id: 'servicos', label: 'Serviços', icon: Wrench },
+  { id: 'pacotes', label: 'Pacotes', icon: Package },
+  { id: 'equipe', label: 'Equipe', icon: HardHat },
 ];
 
 const financeiroItems: MenuItem[] = [
@@ -66,9 +70,6 @@ const financeiroItems: MenuItem[] = [
 const configItems: MenuItem[] = [
   { id: 'ia', label: 'IA', icon: Bot },
   { id: 'integracoes', label: 'Integrações', icon: Plug },
-  { id: 'servicos', label: 'Serviços', icon: Wrench },
-  { id: 'pacotes', label: 'Pacotes', icon: Package },
-  { id: 'equipe', label: 'Equipe', icon: HardHat },
 ];
 
 const adminMenuItems: MenuItem[] = [
@@ -138,6 +139,73 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
 
   const configFiltered = configItems.filter((i) => !(planoBasico && i.id === 'ia'));
 
+  const sections: { key: string; title: string; items: MenuItem[] }[] = [
+    { key: 'vendas', title: 'Vendas', items: vendasItems },
+    { key: 'clientes', title: 'Clientes', items: clientesItems },
+    { key: 'financeiro', title: 'Financeiro', items: financeiroItems },
+    { key: 'config', title: 'Configurações', items: configFiltered },
+  ];
+
+  const STORAGE_KEY = 'sidebar-open-sections-v1';
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {};
+  });
+
+  // Auto-open section containing active route
+  useEffect(() => {
+    const activeSection = sections.find((s) => s.items.some((i) => i.id === activeItem));
+    if (activeSection && !openSections[activeSection.key]) {
+      setOpenSections((prev) => ({ ...prev, [activeSection.key]: true }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeItem]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(openSections));
+    } catch {}
+  }, [openSections]);
+
+  const toggleSection = (key: string) =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const renderCollapsibleSection = (
+    key: string,
+    title: string,
+    items: MenuItem[],
+  ) => {
+    const isOpen = !!openSections[key];
+    const sectionBadge = items.reduce((sum, i) => sum + badgeFor(i.id), 0);
+    const hasActive = items.some((i) => i.id === activeItem);
+    return (
+      <div key={key} className="pt-3 first:pt-0">
+        <button
+          onClick={() => toggleSection(key)}
+          className={`w-full flex items-center gap-2 px-4 py-1.5 rounded-md transition-colors
+            ${hasActive ? 'text-foreground' : 'text-muted-foreground/70 hover:text-foreground'}`}
+        >
+          <ChevronDown
+            className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`}
+          />
+          <span className="text-[10px] font-semibold uppercase tracking-wider flex-1 text-left">
+            {title}
+          </span>
+          {!isOpen && sectionBadge > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
+              {sectionBadge > 99 ? '99+' : sectionBadge}
+            </span>
+          )}
+        </button>
+        {isOpen && <div className="space-y-0.5 mt-1">{items.map(renderItem)}</div>}
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -175,10 +243,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
 
        <nav className="flex-1 p-3 overflow-y-auto">
           {renderItem({ id: 'inicio', label: 'Início', icon: Home })}
-          {renderSection('Vendas', vendasItems)}
-          {renderSection('Clientes', clientesItems)}
-          {renderSection('Financeiro', financeiroItems)}
-          {renderSection('Configurações', configFiltered)}
+          {sections.map((s) => renderCollapsibleSection(s.key, s.title, s.items))}
        </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-1">
