@@ -115,7 +115,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${isImpersonating ? "pt-8" : ""}`}>
+      {isImpersonating && (
+        <div className="fixed top-0 inset-x-0 z-[60] h-8 flex items-center justify-between gap-3 px-4 bg-primary/15 backdrop-blur border-b border-primary/30">
+          <span className="text-xs font-medium text-primary truncate">
+            Visualizando como <strong>{impersonatedUserName}</strong>
+          </span>
+          <button
+            onClick={handleStopImpersonation}
+            className="flex items-center gap-1 rounded-md bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <X className="w-3 h-3" />
+            Sair
+          </button>
+        </div>
+      )}
       <Sidebar
         activeItem={getActiveItem()}
         onItemClick={handleItemClick}
@@ -140,20 +154,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </div>
       <main className="lg:ml-64 px-3 py-4 sm:p-6 lg:p-8">
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-glow pointer-events-none opacity-50" />
-        {isImpersonating && (
-          <div className="mb-4 -mt-2 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5">
-            <span className="text-sm font-medium text-primary">
-              Visualizando como <strong>{impersonatedUserName}</strong>
-            </span>
-            <button
-              onClick={handleStopImpersonation}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-              Sair
-            </button>
-          </div>
-        )}
         {children}
       </main>
       <TutorialModal />

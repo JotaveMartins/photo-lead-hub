@@ -16,6 +16,9 @@ import { useEvents } from "@/hooks/useEvents";
 import { useAllCobrancas } from "@/hooks/useCobrancas";
 import { useDespesas } from "@/hooks/useDespesas";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { parseLocalDate } from "@/lib/utils";
 import {
   format,
@@ -183,6 +186,19 @@ const TaskRow = ({
 const InicioPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
+  const { data: effectiveProfile } = useQuery({
+    queryKey: ["profile-nome", effectiveUserId],
+    enabled: !!effectiveUserId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("nome")
+        .eq("user_id", effectiveUserId!)
+        .maybeSingle();
+      return data;
+    },
+  });
   const { data: pending = [] } = useAllPendingTasks();
   const { data: events = [] } = useEvents();
   const { data: cobrancas = [] } = useAllCobrancas();
@@ -234,6 +250,7 @@ const InicioPage = () => {
   const saldoPrevisto = totalRecebimentos - totalDespesas;
 
   const nome =
+    (effectiveProfile?.nome as string | undefined)?.split(" ")[0] ||
     (user?.user_metadata as any)?.nome?.split(" ")[0] ||
     user?.email?.split("@")[0] ||
     "";

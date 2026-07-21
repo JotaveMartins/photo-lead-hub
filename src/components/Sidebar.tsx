@@ -73,7 +73,6 @@ const configItems: MenuItem[] = [
 ];
 
 const adminMenuItems: MenuItem[] = [
-  { id: 'anuncios', label: 'Anúncios', icon: Megaphone },
   { id: 'admin', label: 'Clientes', icon: UserCog },
 ];
 
