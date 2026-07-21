@@ -607,7 +607,8 @@ Deno.serve(async (req) => {
               status: "Novo Lead",
               origem: "Tráfego Pago",
               data_contato: todaySP,
-              user_id: userId
+              user_id: userId,
+              created_via: "inbox_auto"
             })
             .select()
             .single();
