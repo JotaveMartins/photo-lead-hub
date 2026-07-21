@@ -1,0 +1,1 @@
+ALTER TABLE public.cobrancas ALTER COLUMN status SET DEFAULT 'aguardando';
