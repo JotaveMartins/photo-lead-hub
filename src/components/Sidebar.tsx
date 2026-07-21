@@ -9,7 +9,6 @@ import {
   Calendar,
   DollarSign,
   UserCheck,
-  ChevronDown,
   Receipt,
   TrendingDown,
   FileText,
@@ -20,6 +19,7 @@ import {
   MessageSquare,
   Inbox,
   Plug,
+  Home,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,7 +28,6 @@ import { useTodayClienteTasks, useAllPendingTasks } from "@/hooks/useLeadTasks";
 import { useEvents } from "@/hooks/useEvents";
 import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
-import { useState } from "react";
 import { useInboxTotalUnread } from "@/hooks/useInbox";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
 
@@ -41,34 +40,41 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-const baseMenuItems = [
+type MenuItem = { id: string; label: string; icon: any };
+type MenuSection = { title: string; items: MenuItem[] };
+
+const vendasItems: MenuItem[] = [
   { id: 'leads', label: 'Leads', icon: Users },
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
   { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-  { id: 'servicos', label: 'Serviços', icon: Wrench },
-  { id: 'pacotes', label: 'Pacotes', icon: Package },
-  { id: 'agenda', label: 'Agenda', icon: Calendar },
+  { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+  { id: 'inbox', label: 'Inbox', icon: Inbox },
+];
+
+const clientesItems: MenuItem[] = [
   { id: 'clientes', label: 'Clientes', icon: UserCheck },
-  { id: 'equipe', label: 'Equipe', icon: HardHat },
+  { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'contratos', label: 'Contratos', icon: FileText },
 ];
 
-const financeiroSubItems = [
+const financeiroItems: MenuItem[] = [
+  { id: 'financeiro', label: 'Dashboard', icon: DollarSign },
   { id: 'financeiro/cobrancas', label: 'Cobranças', icon: Receipt },
   { id: 'financeiro/despesas', label: 'Despesas', icon: TrendingDown },
 ];
 
- const adminMenuItems = [
-   { id: 'anuncios', label: 'Anúncios', icon: Megaphone },
-   { id: 'admin', label: 'Clientes', icon: UserCog },
- ];
+const configItems: MenuItem[] = [
+  { id: 'ia', label: 'IA', icon: Bot },
+  { id: 'integracoes', label: 'Integrações', icon: Plug },
+  { id: 'servicos', label: 'Serviços', icon: Wrench },
+  { id: 'pacotes', label: 'Pacotes', icon: Package },
+  { id: 'equipe', label: 'Equipe', icon: HardHat },
+];
 
- const configMenuItems = [
-   { id: 'inbox', label: 'Inbox', icon: Inbox },
-   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-   { id: 'ia', label: 'IA', icon: Bot },
-   { id: 'integracoes', label: 'Integrações', icon: Plug },
- ];
+const adminMenuItems: MenuItem[] = [
+  { id: 'anuncios', label: 'Anúncios', icon: Megaphone },
+  { id: 'admin', label: 'Clientes', icon: UserCog },
+];
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
@@ -85,18 +91,52 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
     return isToday(d) || isBefore(d, today);
   }).length;
   const agendaBadge = events.filter((e: any) => isToday(new Date(e.data_evento))).length;
-  const isFinanceiroActive = activeItem.startsWith('financeiro');
-  const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroActive);
-
-  const menuItems = baseMenuItems;
-  const showFinanceiro = true;
-   const showAdmin = isAdmin;
-   const showConfig = true; // All photographers should see config
 
   const handleItemClick = (id: string) => {
     onItemClick(id);
     onMobileClose?.();
   };
+
+  const badgeFor = (id: string): number => {
+    if (id === 'clientes') return clienteBadge;
+    if (id === 'tarefas') return tarefasBadge;
+    if (id === 'agenda') return agendaBadge;
+    if (id === 'inbox') return inboxUnread;
+    return 0;
+  };
+
+  const renderItem = (item: MenuItem) => {
+    const Icon = item.icon;
+    const isActive = activeItem === item.id;
+    const badgeCount = badgeFor(item.id);
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleItemClick(item.id)}
+        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
+          ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+      >
+        <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
+        <span className="flex-1 text-left">{item.label}</span>
+        {badgeCount > 0 && (
+          <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  const renderSection = (title: string, items: MenuItem[]) => (
+    <div className="pt-3 first:pt-0">
+      <div className="px-4 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+        {title}
+      </div>
+      <div className="space-y-0.5">{items.map(renderItem)}</div>
+    </div>
+  );
+
+  const configFiltered = configItems.filter((i) => !(planoBasico && i.id === 'ia'));
 
   return (
     <>
@@ -133,105 +173,17 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
           </div>
         </div>
 
-       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-         {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeItem === item.id;
-          let badgeCount = 0;
-          if (item.id === 'clientes') badgeCount = clienteBadge;
-          else if (item.id === 'tarefas') badgeCount = tarefasBadge;
-          else if (item.id === 'agenda') badgeCount = agendaBadge;
-          const showBadge = badgeCount > 0;
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleItemClick(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
-                ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
-            >
-              <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
-              <span className="flex-1 text-left">{item.label}</span>
-              {showBadge && (
-                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                  {badgeCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-
-         {/* Configurações group */}
-         {showConfig && configMenuItems
-           .filter((item) => !(planoBasico && item.id === 'ia'))
-           .map((item) => {
-           const Icon = item.icon;
-           const isActive = activeItem === item.id;
-           const badgeCount = item.id === 'inbox' ? inboxUnread : 0;
-           return (
-             <button
-               key={item.id}
-               onClick={() => handleItemClick(item.id)}
-               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group
-                 ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
-             >
-               <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
-               <span className="flex-1 text-left">{item.label}</span>
-               {badgeCount > 0 && (
-                 <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                   {badgeCount > 99 ? "99+" : badgeCount}
-                 </span>
-               )}
-             </button>
-           );
-         })}
-
-         {/* Financeiro expandable group */}
-         {showFinanceiro && (
-          <div>
-            <div className="flex items-center">
-              <button
-                onClick={() => handleItemClick('financeiro')}
-                className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-l-lg text-sm font-medium transition-all duration-200 group
-                  ${activeItem === 'financeiro' ? 'bg-primary text-primary-foreground shadow-glow' : isFinanceiroActive ? 'text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
-              >
-                <DollarSign className={`w-5 h-5 ${activeItem === 'financeiro' || isFinanceiroActive ? '' : 'group-hover:text-primary'}`} />
-                Financeiro
-              </button>
-              <button
-                onClick={() => setFinanceiroOpen(!financeiroOpen)}
-                className={`px-2 py-3 rounded-r-lg text-sm transition-all duration-200
-                  ${activeItem === 'financeiro' ? 'bg-primary text-primary-foreground' : isFinanceiroActive ? 'text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent'}`}
-              >
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${financeiroOpen ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
-            {financeiroOpen && (
-              <div className="ml-4 mt-1 space-y-1">
-                {financeiroSubItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeItem === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleItemClick(item.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
-                        ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
-                    >
-                      <Icon className={`w-4 h-4 ${isActive ? '' : 'group-hover:text-primary'}`} />
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-      </nav>
+       <nav className="flex-1 p-3 overflow-y-auto">
+          {renderItem({ id: 'inicio', label: 'Início', icon: Home })}
+          {renderSection('Vendas', vendasItems)}
+          {renderSection('Clientes', clientesItems)}
+          {renderSection('Financeiro', financeiroItems)}
+          {renderSection('Configurações', configFiltered)}
+       </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-1">
         {/* Admin items - at the bottom */}
-        {showAdmin && adminMenuItems.map((item) => {
+        {isAdmin && adminMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
           return (
