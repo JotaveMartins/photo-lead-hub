@@ -213,6 +213,10 @@ const InicioPage = () => {
     (s, c) => s + Number(c.valor || 0),
     0
   );
+  const recebidoRealizado = weekCobrancas
+    .filter((c) => c.status === "paga")
+    .reduce((s, c) => s + Number(c.valor || 0), 0);
+  const recebidoPrevisto = totalRecebimentos - recebidoRealizado;
 
   const weekDespesas = despesas.filter((d) => {
     const dt = parseLocalDate(d.data);
@@ -222,7 +226,12 @@ const InicioPage = () => {
     (s, d) => s + Number(d.valor || 0),
     0
   );
-  const saldo = totalRecebimentos - totalDespesas;
+  const despesaRealizada = weekDespesas
+    .filter((d) => d.status === "paga")
+    .reduce((s, d) => s + Number(d.valor || 0), 0);
+  const despesaPrevista = totalDespesas - despesaRealizada;
+  const saldoReal = recebidoRealizado - despesaRealizada;
+  const saldoPrevisto = totalRecebimentos - totalDespesas;
 
   const nome =
     (user?.user_metadata as any)?.nome?.split(" ")[0] ||
@@ -460,17 +469,34 @@ const InicioPage = () => {
                 Financeiro da semana
               </h3>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Saldo
+                  Saldo real
                 </p>
                 <p
                   className={`text-sm font-bold ${
-                    saldo >= 0 ? "text-status-success" : "text-destructive"
+                    saldoReal >= 0 ? "text-status-success" : "text-destructive"
                   }`}
+                  title="Recebimentos pagos − despesas pagas"
                 >
-                  {brl(saldo)}
+                  {brl(saldoReal)}
+                </p>
+              </div>
+              <div className="h-8 w-px bg-border/60" />
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Saldo previsto
+                </p>
+                <p
+                  className={`text-sm font-bold ${
+                    saldoPrevisto >= 0
+                      ? "text-status-success/80"
+                      : "text-destructive/80"
+                  }`}
+                  title="Total previsto de recebimentos − total previsto de despesas"
+                >
+                  {brl(saldoPrevisto)}
                 </p>
               </div>
             </div>
@@ -485,9 +511,14 @@ const InicioPage = () => {
                     Recebimentos
                   </p>
                 </div>
-                <span className="text-sm font-bold text-status-success">
-                  {brl(totalRecebimentos)}
-                </span>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-status-success leading-tight">
+                    {brl(recebidoRealizado)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    + {brl(recebidoPrevisto)} a receber
+                  </p>
+                </div>
               </div>
               <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                 {weekCobrancas.length === 0 ? (
@@ -535,9 +566,14 @@ const InicioPage = () => {
                     Despesas
                   </p>
                 </div>
-                <span className="text-sm font-bold text-destructive">
-                  {brl(totalDespesas)}
-                </span>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-destructive leading-tight">
+                    {brl(despesaRealizada)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    + {brl(despesaPrevista)} a pagar
+                  </p>
+                </div>
               </div>
               <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                 {weekDespesas.length === 0 ? (
