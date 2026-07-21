@@ -32,6 +32,7 @@ import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { useInboxTotalUnread } from "@/hooks/useInbox";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { CRM_VERSION } from "@/lib/version";
 
 interface SidebarProps {
@@ -79,6 +80,7 @@ const adminMenuItems: MenuItem[] = [
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isImpersonating } = useImpersonation();
   const { data: clienteTasksToday = [] } = useTodayClienteTasks();
   const { data: allPending = [] } = useAllPendingTasks();
   const { data: events = [] } = useEvents();
@@ -216,8 +218,9 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
         />
       )}
       <aside
-        className={`fixed left-0 top-0 h-[100dvh] w-[82%] max-w-[280px] lg:w-64 lg:max-w-none bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-200 ease-out shadow-2xl lg:shadow-none
+        className={`fixed left-0 top-0 h-[100dvh] data-[impersonating=true]:top-8 data-[impersonating=true]:h-[calc(100dvh-2rem)] w-[82%] max-w-[280px] lg:w-64 lg:max-w-none bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-transform duration-200 ease-out shadow-2xl lg:shadow-none
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        data-impersonating={isImpersonating ? "true" : "false"}
       >
         <div className="p-4 lg:p-6 border-b border-sidebar-border">
           <div className="flex items-center justify-between gap-3">
