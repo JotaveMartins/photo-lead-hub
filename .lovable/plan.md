@@ -1,62 +1,48 @@
-## Mudanças
+Quatro ajustes pequenos, todos de UI:
 
-### 1. Sidebar — seções colapsáveis (dropdown)
+## 1. Saudação no Início usa o nome da conta impersonada
 
-Transformar cada seção (Vendas, Clientes, Financeiro, Configurações) em um grupo colapsável com setinha (chevron) no cabeçalho. Estado inicial: **todas fechadas**, exceto a seção que contém a rota ativa (abre automaticamente). Estado guardado em `localStorage` para persistir entre sessões.
+Em `src/pages/InicioPage.tsx`, hoje o "Olá, {nome}" lê `user.user_metadata.nome` — que continua sendo o admin (João) mesmo dentro da conta do cliente.
 
-Reorganização pedida:
-- **Vendas:** Leads, Tarefas, Relatórios, WhatsApp, Inbox
-- **Clientes:** Clientes, Agenda, Contratos, **Serviços, Pacotes, Equipe** (movidos de Configurações)
-- **Financeiro:** Dashboard, Cobranças, Despesas
-- **Configurações:** IA, Integrações
+- Usar `useEffectiveUserId()` para descobrir o usuário efetivo.
+- Buscar o `nome` em `profiles` (via `useQuery` já usado no projeto) para esse ID e usar o primeiro nome.
+- Fallback para o `user_metadata.nome` quando não houver perfil.
 
-"Início" continua fora das seções, no topo, sempre visível.
+## 2. Remover "Anúncios" do menu inferior de admin
 
-### 2. Versionamento automático
+Em `src/components/Sidebar.tsx`, remover o item `anuncios` de `adminMenuItems` (mantém só "Clientes"). A rota `/anuncios` continua existindo, só não aparece na sidebar.
 
-Regra confirmada: a cada mensagem sua que gere alteração, incremento o **patch** (`3.1.1 → 3.1.2 → … → 3.1.9`). Ao passar de 9, incremento o **minor** e zero o patch (`3.1.9 → 3.2.0`). O **major** (3) só muda quando você pedir.
+## 3. Faixa "Visualizando como…" fixa no topo
 
-- Fonte única da versão: constante `CRM_VERSION` em `src/lib/version.ts` (novo arquivo), lida pelo Sidebar e por `package.json` (manual).
-- Nesta entrega já subo para **`3.1.2`** (esta mensagem = 1 alteração). Nas próximas mensagens com alteração, subo mais um.
+Em `src/components/DashboardLayout.tsx`:
 
-### 3. Redesign da página Início
+- Tirar a faixa de dentro do `<main>` (onde hoje ela rola junto com a página).
+- Renderizar como uma barra fina `fixed top-0 inset-x-0 z-[60]` acima de tudo, cobrindo a largura inteira da tela (inclusive por cima da sidebar no desktop).
+- Quando `isImpersonating`, adicionar padding-top ao container raiz (e à top bar mobile) para não sobrepor conteúdo.
+- Manter texto "Visualizando como {nome}" + botão "Sair".
 
-Manter o mesmo sistema de design (tema dark, primária ciano/turquesa), mas elevar o visual:
+## 4. Modo privacidade no admin (esconder nomes dos clientes)
 
-**Hero de boas-vindas**
-- Saudação dinâmica ("Bom dia, {nome}") com data por extenso.
-- Subfaixa com o período da semana atual.
-- Fundo com `bg-gradient-glow` sutil no topo do conteúdo.
+Objetivo: numa reunião, o admin clica num ícone de olho e todos os nomes/e-mails de clientes viram um placeholder ("Cliente 1", "Cliente 2", …). Ao clicar de novo, volta ao normal.
 
-**Faixa de KPIs (4 cards compactos)**
-- Tarefas de hoje (clientes + leads somados)
-- Eventos da semana
-- A receber na semana (valor em BRL, cor primária)
-- A pagar na semana (valor em BRL, cor destructive)
-- Cards com ícone em pill colorida, número grande em `font-display`, hover com leve elevação.
+Implementação:
 
-**Grid principal (2 colunas no desktop, 1 no mobile)**
+- Novo hook `src/hooks/usePrivacyMode.ts` com estado booleano persistido em `localStorage` (`crm-privacy-mode`) e função `toggle()`. Emitir evento `storage`-like via `window.dispatchEvent` para sincronizar entre componentes na mesma aba.
+- Em `src/pages/AdminPage.tsx`:
+  - Botão `Eye` / `EyeOff` (lucide) no header ao lado do título.
+  - Quando ativo, renderizar `nome` como `Cliente {index+1}` e ofuscar `email` como `••••••@•••` na tabela e no diálogo de exclusão.
+  - No `handleImpersonate`, passar o nome mascarado quando o modo estiver ativo, para que a faixa "Visualizando como" também respeite o modo privacidade.
+- O modo é puramente visual/admin — não altera dados no backend.
 
-Coluna esquerda — Tarefas
-- Card único "Tarefas de hoje" com abas internas **Clientes / Leads** (contador em cada aba).
-- Linhas mais elegantes: avatar/inicial colorida, título, subtítulo (nome do lead/cliente), pill de data à direita (vermelha se atrasada).
+## 5. Versionamento
 
-Coluna direita — Semana
-- **Agenda da semana:** timeline vertical com marcador por dia, evento agrupado por data.
-- **Recebimentos vs Despesas:** um único card com duas colunas lado a lado, cada uma listando os itens; totais no topo em ciano (receita) e vermelho (despesa); saldo líquido da semana em destaque no rodapé.
+Bump `src/lib/version.ts` para **3.1.6** conforme regra do projeto.
 
-**Detalhes visuais**
-- Cabeçalhos de card com divisor sutil.
-- Estado vazio com ícone grande em `text-muted-foreground/40` e mensagem curta.
-- Animação `animate-fade-in` escalonada nos cards.
-- Scroll interno com `scrollbar-thin` (via utilitário Tailwind).
+## Arquivos alterados
 
-Sem alterar dados ou hooks — só `src/pages/InicioPage.tsx` e talvez um subcomponente `InicioKpiCard.tsx`.
-
-## Arquivos afetados
-
-- `src/components/Sidebar.tsx` — seções colapsáveis, mover Serviços/Pacotes/Equipe, ler versão da constante.
-- `src/lib/version.ts` *(novo)* — `export const CRM_VERSION = "3.1.2"`.
-- `src/pages/InicioPage.tsx` — redesign completo.
-- `src/components/inicio/InicioKpiCard.tsx` *(novo)* — card de KPI reutilizável.
-- `package.json` — bump para `3.1.2`.
+- `src/pages/InicioPage.tsx`
+- `src/components/Sidebar.tsx`
+- `src/components/DashboardLayout.tsx`
+- `src/pages/AdminPage.tsx`
+- `src/hooks/usePrivacyMode.ts` (novo)
+- `src/lib/version.ts`
