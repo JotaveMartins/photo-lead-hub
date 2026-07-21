@@ -32,6 +32,8 @@ import { useState } from "react";
 import { useInboxTotalUnread } from "@/hooks/useInbox";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
 
+const CRM_VERSION = "3.1.1";
+
 interface SidebarProps {
   activeItem: string;
   onItemClick: (item: string) => void;
@@ -251,6 +253,9 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
           <LogOut className="w-5 h-5" />
           Sair
         </button>
+        <div className="px-4 pt-1 text-[11px] font-medium text-muted-foreground/70">
+          CRM v{CRM_VERSION}
+        </div>
       </div>
       </aside>
     </>

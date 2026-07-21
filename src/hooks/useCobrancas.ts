@@ -28,6 +28,7 @@ export interface Cobranca {
 export interface CobrancaInsert {
   user_id: string;
   lead_id?: string | null;
+  cliente_id?: string | null;
   grupo_id?: string | null;
   tipo?: CobrancaTipo;
   descricao?: string | null;
@@ -96,9 +97,16 @@ export const useCreateCobranca = () => {
 
   return useMutation({
     mutationFn: async (data: CobrancaInsert) => {
+      const payload: CobrancaInsert = {
+        tipo: "unica",
+        forma_pagamento: "pix",
+        ...data,
+        status: data.status ?? "aguardando",
+      };
+
       const { data: result, error } = await supabase
         .from("cobrancas")
-        .insert(data as any)
+        .insert(payload as any)
         .select()
         .single();
       if (error) throw error;
@@ -116,9 +124,16 @@ export const useCreateCobrancasBatch = () => {
 
   return useMutation({
     mutationFn: async (items: CobrancaInsert[]) => {
+      const payload = items.map((item) => ({
+        tipo: "unica" as CobrancaTipo,
+        forma_pagamento: "pix" as PaymentMethod,
+        ...item,
+        status: item.status ?? "aguardando",
+      }));
+
       const { data, error } = await supabase
         .from("cobrancas")
-        .insert(items as any[])
+        .insert(payload as any[])
         .select();
       if (error) throw error;
       return data;
