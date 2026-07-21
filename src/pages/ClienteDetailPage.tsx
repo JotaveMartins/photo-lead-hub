@@ -206,7 +206,7 @@ const ClienteDetailPage = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="dados" className="w-full">
+      <Tabs value={tabParam} onValueChange={setTab} className="w-full">
         <TabsList className="bg-muted/50 w-full justify-start flex-wrap">
           <TabsTrigger value="dados" className="gap-1.5"><FileText className="w-4 h-4" />Dados</TabsTrigger>
           <TabsTrigger value="contratos" className="gap-1.5"><FileText className="w-4 h-4" />Contratos{contratos.length > 0 && <span className="ml-1 text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5">{contratos.length}</span>}</TabsTrigger>
