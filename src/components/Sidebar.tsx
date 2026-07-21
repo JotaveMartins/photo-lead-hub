@@ -32,6 +32,7 @@ import { isToday, isBefore, startOfDay } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { useInboxTotalUnread } from "@/hooks/useInbox";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { CRM_VERSION } from "@/lib/version";
 
 interface SidebarProps {
@@ -79,6 +80,7 @@ const adminMenuItems: MenuItem[] = [
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isImpersonating } = useImpersonation();
   const { data: clienteTasksToday = [] } = useTodayClienteTasks();
   const { data: allPending = [] } = useAllPendingTasks();
   const { data: events = [] } = useEvents();
