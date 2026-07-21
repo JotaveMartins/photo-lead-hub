@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, List, ArrowUpDown, HardHat, UserPlus } from "lucide-react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Calendar } from "@/components/ui/calendar";
@@ -106,6 +107,7 @@ const ServiceInlineSelect = ({
 };
 
 const AgendaPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
@@ -140,6 +142,20 @@ const AgendaPage = () => {
   const permanentDeleteEvent = usePermanentDeleteEvent();
 
   const today = startOfDay(new Date());
+
+  // Open event by URL param (?open=<id>)
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId || events.length === 0) return;
+    const ev = events.find((e: any) => e.id === openId);
+    if (ev) {
+      openModal(ev);
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, events]);
 
   const filteredEvents = useMemo(() => {
     let filtered = [...events];

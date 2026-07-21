@@ -143,16 +143,21 @@ const TaskRow = ({
   title,
   subtitle,
   due,
+  onClick,
 }: {
   title: string;
   subtitle?: string | null;
   due: string;
+  onClick?: () => void;
 }) => {
   const d = parseLocalDate(due);
   const overdue =
     !isToday(d) && d < new Date(new Date().setHours(0, 0, 0, 0));
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors">
+    <button
+      onClick={onClick}
+      className="w-full text-left flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
+    >
       <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
         {initials(subtitle || title)}
       </div>
@@ -171,7 +176,7 @@ const TaskRow = ({
       >
         {format(d, "dd/MM", { locale: ptBR })}
       </span>
-    </div>
+    </button>
   );
 };
 
@@ -236,9 +241,14 @@ const InicioPage = () => {
   }, {});
   const eventDayKeys = Object.keys(eventsByDay).sort();
 
-  const [taskTab, setTaskTab] = useState<"clientes" | "leads">("clientes");
+  const [taskTab, setTaskTab] = useState<"clientes" | "leads">("leads");
   const activeTasks =
     taskTab === "clientes" ? todayClienteTasks : todayLeadTasks;
+
+  const openTask = (t: any) => {
+    if (t.cliente_id) navigate(`/clientes/${t.cliente_id}?tab=tarefas`);
+    else if (t.lead_id) navigate(`/leads?open=${t.lead_id}`);
+  };
 
   return (
     <div className="relative">
@@ -279,7 +289,7 @@ const InicioPage = () => {
             value={todayClienteTasks.length + todayLeadTasks.length}
             icon={CheckSquare}
             tone="primary"
-            onClick={() => navigate("/tarefas")}
+            onClick={() => navigate("/tarefas?filter=hoje")}
             delay={0}
           />
           <KpiCard
@@ -314,23 +324,10 @@ const InicioPage = () => {
           <CardShell
             title="Tarefas de hoje"
             icon={CheckSquare}
-            onSeeAll={() => navigate("/tarefas")}
+            onSeeAll={() => navigate("/tarefas?filter=hoje")}
             delay={220}
             right={
               <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/60">
-                <button
-                  onClick={() => setTaskTab("clientes")}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                    taskTab === "clientes"
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <UserCheck className="w-3 h-3" /> Clientes
-                  <span className="text-[10px] font-bold text-primary">
-                    {todayClienteTasks.length}
-                  </span>
-                </button>
                 <button
                   onClick={() => setTaskTab("leads")}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
@@ -342,6 +339,19 @@ const InicioPage = () => {
                   <Users className="w-3 h-3" /> Leads
                   <span className="text-[10px] font-bold text-primary">
                     {todayLeadTasks.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setTaskTab("clientes")}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                    taskTab === "clientes"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <UserCheck className="w-3 h-3" /> Clientes
+                  <span className="text-[10px] font-bold text-primary">
+                    {todayClienteTasks.length}
                   </span>
                 </button>
               </div>
@@ -366,6 +376,7 @@ const InicioPage = () => {
                       (t.clientes?.nome ?? t.leads?.nome) ?? undefined
                     }
                     due={t.due_date}
+                    onClick={() => openTask(t)}
                   />
                 ))
               )}
@@ -406,9 +417,10 @@ const InicioPage = () => {
                       </div>
                       <div className="space-y-1.5">
                         {items.map((e: any) => (
-                          <div
+                          <button
                             key={e.id}
-                            className="p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
+                            onClick={() => navigate(`/agenda?open=${e.id}`)}
+                            className="w-full text-left p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors"
                           >
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-sm font-medium text-foreground truncate">
@@ -423,7 +435,7 @@ const InicioPage = () => {
                                 {e.clientes.nome}
                               </p>
                             )}
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -485,9 +497,14 @@ const InicioPage = () => {
                   />
                 ) : (
                   weekCobrancas.map((c) => (
-                    <div
+                    <button
                       key={c.id}
-                      className="flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
+                      onClick={() =>
+                        navigate(
+                          `/financeiro/cobrancas?open=${c.id}&date=${c.vencimento}`
+                        )
+                      }
+                      className="w-full text-left flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -503,7 +520,7 @@ const InicioPage = () => {
                       <span className="text-sm font-semibold text-foreground whitespace-nowrap">
                         {brl(Number(c.valor || 0))}
                       </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
@@ -530,9 +547,14 @@ const InicioPage = () => {
                   />
                 ) : (
                   weekDespesas.map((d) => (
-                    <div
+                    <button
                       key={d.id}
-                      className="flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
+                      onClick={() =>
+                        navigate(
+                          `/financeiro/despesas?open=${d.id}&date=${d.data}`
+                        )
+                      }
+                      className="w-full text-left flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-muted/40 transition-colors"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -548,7 +570,7 @@ const InicioPage = () => {
                       <span className="text-sm font-semibold text-foreground whitespace-nowrap">
                         {brl(Number(d.valor || 0))}
                       </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>

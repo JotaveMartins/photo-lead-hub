@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DollarSign, ChevronLeft, ChevronRight, Plus, Calendar, ArrowDownUp, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import type { Cobranca } from "@/hooks/useCobrancas";
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
 
 const FinanceiroPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -26,6 +28,25 @@ const FinanceiroPage = () => {
 
   const { data: monthCobrancas = [], isLoading } = useCobrancas(showAll ? undefined : currentMonth);
   const { data: allCobrancas = [] } = useAllCobrancas();
+
+  // Open cobranca by URL param (?open=<id>&date=<yyyy-mm-dd>)
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId) return;
+    const dateStr = searchParams.get("date");
+    if (dateStr) {
+      const [y, m] = dateStr.split("-").map(Number);
+      if (y && m) setCurrentMonth(new Date(y, m - 1, 1));
+    }
+    const found = allCobrancas.find((c) => c.id === openId);
+    if (found) {
+      setEditCobranca(found);
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      next.delete("date");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, allCobrancas, setSearchParams]);
 
   const prevMonth = () => {
     setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
