@@ -100,7 +100,6 @@ export const useCreateCobranca = () => {
       const payload: CobrancaInsert = {
         tipo: "unica",
         forma_pagamento: "pix",
-        status: "aguardando",
         ...data,
         status: data.status ?? "aguardando",
       };
@@ -128,7 +127,6 @@ export const useCreateCobrancasBatch = () => {
       const payload = items.map((item) => ({
         tipo: "unica" as CobrancaTipo,
         forma_pagamento: "pix" as PaymentMethod,
-        status: "aguardando" as CobrancaStatus,
         ...item,
         status: item.status ?? "aguardando",
       }));
