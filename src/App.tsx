@@ -29,6 +29,7 @@ import AnunciosPage from "./pages/AnunciosPage";
 import InboxPage from "./pages/InboxPage";
 import ContratosPage from "./pages/ContratosPage";
 import InicioPage from "./pages/InicioPage";
+import EntregasPage from "./pages/EntregasPage";
 import { useWhatsAppDisconnectAlert } from "@/hooks/useWhatsAppDisconnectAlert";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ const AppRoutes = () => {
         <Route path="/agenda" element={<AgendaPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/:id" element={<ClienteDetailPage />} />
+        <Route path="/entregas" element={<EntregasPage />} />
         <Route path="/equipe" element={<EquipePage />} />
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/ia" element={<IAPage />} />
