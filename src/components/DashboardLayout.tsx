@@ -31,10 +31,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/" || path === "/leads") return "leads";
     if (path === "/tarefas") return "tarefas";
     if (path === "/relatorios") return "relatorios";
-    if (path === "/servicos") return "servicos";
-    if (path === "/pacotes") return "pacotes";
+    if (path === "/catalogo" || path === "/servicos" || path === "/pacotes") return "catalogo";
     if (path === "/agenda") return "agenda";
     if (path === "/clientes" || path.startsWith("/clientes/")) return "clientes";
+    if (path === "/entregas") return "entregas";
     if (path === "/equipe") return "equipe";
     if (path === "/anuncios") return "anuncios";
     if (path === "/contratos") return "contratos";
@@ -54,10 +54,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     leads: "Leads",
     tarefas: "Tarefas",
     relatorios: "Relatórios",
-    servicos: "Serviços",
-    pacotes: "Pacotes",
+    catalogo: "Serviços e Pacotes",
     agenda: "Agenda",
     clientes: "Clientes",
+    entregas: "Entregas",
     equipe: "Equipe",
     anuncios: "Anúncios",
     contratos: "Contratos",
@@ -90,10 +90,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       leads: "/leads",
       tarefas: "/tarefas",
       relatorios: "/relatorios",
-      servicos: "/servicos",
-      pacotes: "/pacotes",
+      catalogo: "/catalogo",
       agenda: "/agenda",
       clientes: "/clientes",
+      entregas: "/entregas",
       equipe: "/equipe",
       anuncios: "/anuncios",
       contratos: "/contratos",
