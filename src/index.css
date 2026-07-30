@@ -47,6 +47,21 @@
     --status-info: 199 89% 48%;
     --status-neutral: 215 20% 45%;
 
+    /* Funil de vendas — gradiente frio → quente */
+    --stage-1: 215 20% 55%;   /* Novo Lead — cinza-azulado */
+    --stage-2: 217 91% 60%;   /* Contato Iniciado — azul */
+    --stage-3: 187 85% 45%;   /* Triagem Feita — ciano */
+    --stage-4: 265 85% 65%;   /* Proposta Enviada — roxo */
+    --stage-5: 38 92% 50%;    /* Follow-up — âmbar */
+    --stage-6: 22 92% 55%;    /* Contrato Enviado — laranja */
+
+    /* Funil de entregas */
+    --delivery-1: 215 20% 55%;
+    --delivery-2: 217 91% 60%;
+    --delivery-3: 187 85% 45%;
+    --delivery-4: 265 85% 65%;
+    --delivery-5: 142 76% 46%;
+
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(173 80% 60%) 0%, hsl(199 89% 48%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(222 47% 10%) 0%, hsl(222 47% 8%) 100%);
