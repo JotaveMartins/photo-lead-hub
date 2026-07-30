@@ -59,6 +59,7 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
 
   const createEvent = useCreateEvent();
   const { data: services = [] } = useServices();
+  const createEntrega = useCreateEntrega();
 
   const handleClienteCreated = (clienteId: string) => {
     setCreatedClienteId(clienteId);
@@ -96,13 +97,28 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
     const eventDate = new Date(eventoDate);
     eventDate.setHours(hours, minutes, 0, 0);
 
-    await createEvent.mutateAsync({
+    const novoEvento: any = await createEvent.mutateAsync({
       titulo: eventoTitulo.trim() || "Evento",
       data_evento: eventDate.toISOString(),
       local: eventoLocal.trim() || null,
       cliente_id: createdClienteId || null,
       service_id: eventoServiceId || null,
     });
+
+    // Cria o trabalho no funil de entregas (pós-venda)
+    try {
+      await createEntrega.mutateAsync({
+        titulo: eventoTitulo.trim() || lead?.nome || "Entrega",
+        etapa: "Ensaio Agendado",
+        cliente_id: createdClienteId || null,
+        lead_id: lead?.id || null,
+        event_id: novoEvento?.id || null,
+        service_id: eventoServiceId || null,
+        data_ensaio: format(eventDate, "yyyy-MM-dd"),
+      });
+    } catch {
+      /* erro já exibido pelo hook */
+    }
 
     setEventoWasCreated(true);
     goToConfirmacao();
