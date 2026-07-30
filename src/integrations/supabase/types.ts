@@ -443,6 +443,110 @@ export type Database = {
           },
         ]
       }
+      entregas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          data_ensaio: string | null
+          data_entrada_em_edicao: string | null
+          data_entrada_ensaio_agendado: string | null
+          data_entrada_ensaio_realizado: string | null
+          data_entrada_entregue: string | null
+          data_entrada_previa_enviada: string | null
+          data_entrega_final: string | null
+          data_entrega_prevista: string | null
+          data_previa_prevista: string | null
+          deleted_at: string | null
+          etapa: Database["public"]["Enums"]["entrega_etapa"]
+          event_id: string | null
+          id: string
+          lead_id: string | null
+          link_galeria: string | null
+          observacoes: string | null
+          service_id: string | null
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          data_ensaio?: string | null
+          data_entrada_em_edicao?: string | null
+          data_entrada_ensaio_agendado?: string | null
+          data_entrada_ensaio_realizado?: string | null
+          data_entrada_entregue?: string | null
+          data_entrada_previa_enviada?: string | null
+          data_entrega_final?: string | null
+          data_entrega_prevista?: string | null
+          data_previa_prevista?: string | null
+          deleted_at?: string | null
+          etapa?: Database["public"]["Enums"]["entrega_etapa"]
+          event_id?: string | null
+          id?: string
+          lead_id?: string | null
+          link_galeria?: string | null
+          observacoes?: string | null
+          service_id?: string | null
+          titulo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          data_ensaio?: string | null
+          data_entrada_em_edicao?: string | null
+          data_entrada_ensaio_agendado?: string | null
+          data_entrada_ensaio_realizado?: string | null
+          data_entrada_entregue?: string | null
+          data_entrada_previa_enviada?: string | null
+          data_entrega_final?: string | null
+          data_entrega_prevista?: string | null
+          data_previa_prevista?: string | null
+          deleted_at?: string | null
+          etapa?: Database["public"]["Enums"]["entrega_etapa"]
+          event_id?: string | null
+          id?: string
+          lead_id?: string | null
+          link_galeria?: string | null
+          observacoes?: string | null
+          service_id?: string | null
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_team_members: {
         Row: {
           created_at: string
@@ -1553,6 +1657,12 @@ export type Database = {
       cobranca_status: "aguardando" | "paga" | "vencida"
       cobranca_tipo: "unica" | "parcela" | "recorrente"
       despesa_status: "paga" | "prevista"
+      entrega_etapa:
+        | "Ensaio Agendado"
+        | "Ensaio Realizado"
+        | "Prévia enviada"
+        | "Em edição"
+        | "Entregue"
       inbox_status: "pending_ai" | "open" | "closed"
       lead_status:
         | "Novo Lead"
@@ -1695,6 +1805,13 @@ export const Constants = {
       cobranca_status: ["aguardando", "paga", "vencida"],
       cobranca_tipo: ["unica", "parcela", "recorrente"],
       despesa_status: ["paga", "prevista"],
+      entrega_etapa: [
+        "Ensaio Agendado",
+        "Ensaio Realizado",
+        "Prévia enviada",
+        "Em edição",
+        "Entregue",
+      ],
       inbox_status: ["pending_ai", "open", "closed"],
       lead_status: [
         "Novo Lead",
