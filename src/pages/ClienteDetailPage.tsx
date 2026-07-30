@@ -41,6 +41,8 @@ const ClienteDetailPage = () => {
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const { data: clienteTasks = [] } = useClienteTasks(id);
   const { data: contratos = [] } = useContratosByClienteId(id);
+  const { data: todasEntregas = [] } = useEntregas();
+  const entregas = todasEntregas.filter((e) => e.cliente_id === id);
   const createTask = useCreateLeadTask();
   const completeTask = useCompleteLeadTask();
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -429,6 +431,51 @@ const ClienteDetailPage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Tab: Entregas */}
+        <TabsContent value="entregas" className="mt-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">Trabalhos em pós-venda deste cliente</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/entregas")}>Ver funil</Button>
+              <Button size="sm" className="bg-gradient-primary gap-1" onClick={() => { setSelectedEntrega(null); setEntregaOpen(true); }}>
+                <Plus className="w-4 h-4" /> Nova entrega
+              </Button>
+            </div>
+          </div>
+          {entregas.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Package className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-medium text-muted-foreground">Nenhuma entrega criada</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {entregas.map((e) => {
+                const col = ENTREGA_ETAPAS.find((s) => s.etapa === e.etapa);
+                return (
+                  <div
+                    key={e.id}
+                    onClick={() => { setSelectedEntrega(e); setEntregaOpen(true); }}
+                    className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{e.titulo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {e.data_entrega_prevista
+                          ? `Entrega prevista: ${format(parseLocalDate(e.data_entrega_prevista), "dd/MM/yyyy")}`
+                          : "Sem data de entrega definida"}
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+                      <span className={`w-2.5 h-2.5 rounded-full ${col?.color || "bg-muted"}`} />
+                      {e.etapa}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </TabsContent>
