@@ -21,8 +21,7 @@ import FinanceiroPage from "./pages/FinanceiroPage";
 import FinanceiroResumoPage from "./pages/FinanceiroResumoPage";
 import ClientesPage from "./pages/ClientesPage";
 import ClienteDetailPage from "./pages/ClienteDetailPage";
-import ServicosPage from "./pages/ServicosPage";
-import PacotesPage from "./pages/PacotesPage";
+import CatalogoPage from "./pages/CatalogoPage";
 import AgendaPage from "./pages/AgendaPage";
 import EquipePage from "./pages/EquipePage";
 import AnunciosPage from "./pages/AnunciosPage";
@@ -85,8 +84,9 @@ const AppRoutes = () => {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/tarefas" element={<TarefasPage />} />
         <Route path="/relatorios" element={<RelatoriosPage />} />
-        <Route path="/servicos" element={<ServicosPage />} />
-        <Route path="/pacotes" element={<PacotesPage />} />
+        <Route path="/catalogo" element={<CatalogoPage />} />
+        <Route path="/servicos" element={<Navigate to="/catalogo" replace />} />
+        <Route path="/pacotes" element={<Navigate to="/catalogo" replace />} />
         <Route path="/agenda" element={<AgendaPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/:id" element={<ClienteDetailPage />} />
