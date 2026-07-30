@@ -26,12 +26,12 @@ type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
 
 const ACTIVE_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
-  { status: "Novo Lead", label: "Novo Lead", color: "bg-[hsl(var(--status-info))]" },
-   { status: "Contato Iniciado", label: "Contato Iniciado", color: "bg-[hsl(var(--status-warning))]" },
-   { status: "Triagem Feita", label: "Triagem Feita", color: "bg-emerald-500" },
-  { status: "Proposta Enviada", label: "Proposta Enviada", color: "bg-primary" },
-  { status: "Follow-up", label: "Follow-up", color: "bg-[hsl(var(--status-warning))]" },
-  { status: "Contrato Enviado", label: "Contrato Enviado", color: "bg-accent" },
+  { status: "Novo Lead", label: "Novo Lead", color: "bg-[hsl(var(--stage-1))]" },
+  { status: "Contato Iniciado", label: "Contato Iniciado", color: "bg-[hsl(var(--stage-2))]" },
+  { status: "Triagem Feita", label: "Triagem Feita", color: "bg-[hsl(var(--stage-3))]" },
+  { status: "Proposta Enviada", label: "Proposta Enviada", color: "bg-[hsl(var(--stage-4))]" },
+  { status: "Follow-up", label: "Follow-up", color: "bg-[hsl(var(--stage-5))]" },
+  { status: "Contrato Enviado", label: "Contrato Enviado", color: "bg-[hsl(var(--stage-6))]" },
 ];
 
 const CLOSED_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
