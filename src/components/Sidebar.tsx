@@ -49,7 +49,6 @@ const vendasItems: MenuItem[] = [
   { id: 'leads', label: 'Leads', icon: Users },
   { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
   { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-  { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
   { id: 'inbox', label: 'Inbox', icon: Inbox },
 ];
 
@@ -58,8 +57,7 @@ const clientesItems: MenuItem[] = [
   { id: 'entregas', label: 'Entregas', icon: Package },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'contratos', label: 'Contratos', icon: FileText },
-  { id: 'servicos', label: 'Serviços', icon: Wrench },
-  { id: 'pacotes', label: 'Pacotes', icon: Package },
+  { id: 'catalogo', label: 'Serviços e Pacotes', icon: Wrench },
   { id: 'equipe', label: 'Equipe', icon: HardHat },
 ];
 
@@ -70,6 +68,7 @@ const financeiroItems: MenuItem[] = [
 ];
 
 const configItems: MenuItem[] = [
+  { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
   { id: 'ia', label: 'IA', icon: Bot },
   { id: 'integracoes', label: 'Integrações', icon: Plug },
 ];
