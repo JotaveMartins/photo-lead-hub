@@ -55,6 +55,7 @@ const vendasItems: MenuItem[] = [
 
 const clientesItems: MenuItem[] = [
   { id: 'clientes', label: 'Clientes', icon: UserCheck },
+  { id: 'entregas', label: 'Entregas', icon: Package },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'contratos', label: 'Contratos', icon: FileText },
   { id: 'servicos', label: 'Serviços', icon: Wrench },

@@ -18,6 +18,8 @@ import { useClienteTasks, useCreateLeadTask, useCompleteLeadTask } from "@/hooks
 import { Input } from "@/components/ui/input";
 import DatePickerField from "@/components/DatePickerField";
 import { parseLocalDate } from "@/lib/utils";
+import EntregaDrawer from "@/components/entregas/EntregaDrawer";
+import { useEntregas, ENTREGA_ETAPAS, type Entrega } from "@/hooks/useEntregas";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -35,8 +37,12 @@ const ClienteDetailPage = () => {
   const deleteCliente = useDeleteCliente();
   const [editOpen, setEditOpen] = useState(false);
   const [viewContrato, setViewContrato] = useState<Contrato | null>(null);
+  const [entregaOpen, setEntregaOpen] = useState(false);
+  const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const { data: clienteTasks = [] } = useClienteTasks(id);
   const { data: contratos = [] } = useContratosByClienteId(id);
+  const { data: todasEntregas = [] } = useEntregas();
+  const entregas = todasEntregas.filter((e) => e.cliente_id === id);
   const createTask = useCreateLeadTask();
   const completeTask = useCompleteLeadTask();
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -214,6 +220,7 @@ const ClienteDetailPage = () => {
           <TabsTrigger value="despesas" className="gap-1.5"><TrendingDown className="w-4 h-4" />Despesas</TabsTrigger>
           <TabsTrigger value="servicos" className="gap-1.5"><Wrench className="w-4 h-4" />Serviços</TabsTrigger>
           <TabsTrigger value="agenda" className="gap-1.5"><Calendar className="w-4 h-4" />Agenda</TabsTrigger>
+          <TabsTrigger value="entregas" className="gap-1.5"><Package className="w-4 h-4" />Entregas</TabsTrigger>
           <TabsTrigger value="tarefas" className="gap-1.5"><CheckSquare className="w-4 h-4" />Tarefas</TabsTrigger>
           <TabsTrigger value="relatorio" className="gap-1.5"><BarChart3 className="w-4 h-4" />Relatório</TabsTrigger>
         </TabsList>
@@ -428,6 +435,51 @@ const ClienteDetailPage = () => {
           )}
         </TabsContent>
 
+        {/* Tab: Entregas */}
+        <TabsContent value="entregas" className="mt-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">Trabalhos em pós-venda deste cliente</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/entregas")}>Ver funil</Button>
+              <Button size="sm" className="bg-gradient-primary gap-1" onClick={() => { setSelectedEntrega(null); setEntregaOpen(true); }}>
+                <Plus className="w-4 h-4" /> Nova entrega
+              </Button>
+            </div>
+          </div>
+          {entregas.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Package className="w-10 h-10 text-muted-foreground/30" />
+              <p className="font-medium text-muted-foreground">Nenhuma entrega criada</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {entregas.map((e) => {
+                const col = ENTREGA_ETAPAS.find((s) => s.etapa === e.etapa);
+                return (
+                  <div
+                    key={e.id}
+                    onClick={() => { setSelectedEntrega(e); setEntregaOpen(true); }}
+                    className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{e.titulo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {e.data_entrega_prevista
+                          ? `Entrega prevista: ${format(parseLocalDate(e.data_entrega_prevista), "dd/MM/yyyy")}`
+                          : "Sem data de entrega definida"}
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+                      <span className={`w-2.5 h-2.5 rounded-full ${col?.color || "bg-muted"}`} />
+                      {e.etapa}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
         {/* Tab: Tarefas */}
         <TabsContent value="tarefas" className="mt-4 space-y-4">
           <Card className="bg-card border-border">
@@ -566,6 +618,12 @@ const ClienteDetailPage = () => {
 
       <ContratoDrawer contrato={viewContrato} open={!!viewContrato} onClose={() => setViewContrato(null)} />
       <EditClienteModal open={editOpen} onClose={() => setEditOpen(false)} cliente={cliente} />
+      <EntregaDrawer
+        open={entregaOpen}
+        onClose={() => { setEntregaOpen(false); setSelectedEntrega(null); }}
+        entrega={selectedEntrega}
+        defaultClienteId={id}
+      />
     </div>
   );
 };
