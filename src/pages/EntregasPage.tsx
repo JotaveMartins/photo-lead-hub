@@ -57,9 +57,9 @@ const EntregasPage = () => {
         <div className="flex items-center gap-2">
           <SearchInput
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onValueChange={setSearch}
             placeholder="Buscar entrega ou cliente..."
-            className="w-full sm:w-64"
+            containerClassName="w-full sm:w-64"
           />
           <Button className="bg-gradient-primary hover:opacity-90 gap-2 shrink-0" onClick={openNew}>
             <Plus className="w-4 h-4" /> Nova entrega
