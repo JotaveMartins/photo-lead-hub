@@ -1,48 +1,47 @@
-Quatro ajustes pequenos, todos de UI:
+## 1. Aba "Conversa" do lead vira somente leitura
 
-## 1. Saudação no Início usa o nome da conta impersonada
+Em `src/components/LeadConversation.tsx`, esconder a área de composição (anexo, respostas rápidas, emoji, campo de texto, botão enviar e a linha de dica) atrás de uma flag `ENABLE_LEAD_CHAT_COMPOSER = false`. O código de envio permanece no arquivo, só não é renderizado — basta trocar a flag para reativar. Mantém o botão de sincronizar mensagens e o histórico.
 
-Em `src/pages/InicioPage.tsx`, hoje o "Olá, {nome}" lê `user.user_metadata.nome` — que continua sendo o admin (João) mesmo dentro da conta do cliente.
+## 2. Cores das etapas do funil de vendas
 
-- Usar `useEffectiveUserId()` para descobrir o usuário efetivo.
-- Buscar o `nome` em `profiles` (via `useQuery` já usado no projeto) para esse ID e usar o primeiro nome.
-- Fallback para o `user_metadata.nome` quando não houver perfil.
+Em `src/components/KanbanBoard.tsx` (e nos badges de status correspondentes), aplicar gradiente frio → quente conforme o avanço:
 
-## 2. Remover "Anúncios" do menu inferior de admin
+```text
+Novo Lead          cinza-azulado
+Contato Iniciado   azul
+Triagem Feita      ciano
+Proposta Enviada   roxo
+Follow-up          âmbar
+Contrato Enviado   laranja
+Fechado Ganho      verde
+Fechado Perdido    vermelho
+```
 
-Em `src/components/Sidebar.tsx`, remover o item `anuncios` de `adminMenuItems` (mantém só "Clientes"). A rota `/anuncios` continua existindo, só não aparece na sidebar.
+Cores como tokens HSL no `index.css` (`--stage-1` … `--stage-6`), sem cores hardcoded nos componentes.
 
-## 3. Faixa "Visualizando como…" fixa no topo
+## 3. Funil de Entregas (pós-venda) — em Clientes
 
-Em `src/components/DashboardLayout.tsx`:
+**Onde fica:** nova página `/entregas` dentro da seção "Clientes" do menu lateral, mais uma aba "Entregas" no perfil do cliente mostrando só as entregas dele. O funil de vendas continua em Leads, intocado.
 
-- Tirar a faixa de dentro do `<main>` (onde hoje ela rola junto com a página).
-- Renderizar como uma barra fina `fixed top-0 inset-x-0 z-[60]` acima de tudo, cobrindo a largura inteira da tela (inclusive por cima da sidebar no desktop).
-- Quando `isImpersonating`, adicionar padding-top ao container raiz (e à top bar mobile) para não sobrepor conteúdo.
-- Manter texto "Visualizando como {nome}" + botão "Sair".
+**Banco:** nova tabela `entregas` (com RLS por `user_id` e GRANTs), ligando cliente, lead e evento:
+- `cliente_id`, `lead_id`, `event_id`, `service_id`
+- `titulo`, `etapa` (enum: Ensaio Agendado, Ensaio Realizado, Prévia enviada, Em edição, Entregue)
+- `data_ensaio`, `data_previa_prevista`, `data_entrega_prevista`, `data_entrega_final`
+- `link_galeria`, `observacoes`, timestamps + `deleted_at` (soft delete) e datas de entrada em cada etapa (para relatório futuro)
 
-## 4. Modo privacidade no admin (esconder nomes dos clientes)
+Comecei com um conjunto enxuto de campos; dá para adicionar outros depois sem quebrar nada.
 
-Objetivo: numa reunião, o admin clica num ícone de olho e todos os nomes/e-mails de clientes viram um placeholder ("Cliente 1", "Cliente 2", …). Ao clicar de novo, volta ao normal.
+**Criação automática:** no fluxo de lead ganho (`src/components/LeadToClienteFlow.tsx`), ao confirmar o evento, criar também a entrega na etapa "Ensaio Agendado" já vinculada ao cliente, lead e evento, com `data_ensaio` = data do evento. Na tela de confirmação, mostrar "Entrega criada no funil de entregas".
 
-Implementação:
+**Tela `/entregas`:** kanban com as 5 colunas, drag-and-drop para mudar etapa (mesmo padrão visual do KanbanBoard atual), card com cliente, serviço, data do ensaio e data de entrega prevista, com destaque de atraso. Clique abre um drawer para editar datas, link da galeria e observações, com atalho para o cliente e para o evento na agenda.
 
-- Novo hook `src/hooks/usePrivacyMode.ts` com estado booleano persistido em `localStorage` (`crm-privacy-mode`) e função `toggle()`. Emitir evento `storage`-like via `window.dispatchEvent` para sincronizar entre componentes na mesma aba.
-- Em `src/pages/AdminPage.tsx`:
-  - Botão `Eye` / `EyeOff` (lucide) no header ao lado do título.
-  - Quando ativo, renderizar `nome` como `Cliente {index+1}` e ofuscar `email` como `••••••@•••` na tabela e no diálogo de exclusão.
-  - No `handleImpersonate`, passar o nome mascarado quando o modo estiver ativo, para que a faixa "Visualizando como" também respeite o modo privacidade.
-- O modo é puramente visual/admin — não altera dados no backend.
+**Perfil do cliente:** aba "Entregas" listando as entregas com etapa e datas, e botão para criar entrega manual (para trabalhos que não vieram de lead).
 
-## 5. Versionamento
+## Detalhes técnicos
 
-Bump `src/lib/version.ts` para **3.1.6** conforme regra do projeto.
+- Hook `src/hooks/useEntregas.ts` (list/create/update/soft-delete) usando `useEffectiveUserId`, seguindo o padrão de `useEvents`/`useClientes`.
+- Selects nativos nos formulários, `parseLocalDate` para datas, toasts de erro/sucesso e estados de loading.
+- Rota nova em `src/App.tsx` e item de menu em `src/components/Sidebar.tsx` (seção Clientes).
+- Bump de versão em `src/lib/version.ts`.
 
-## Arquivos alterados
-
-- `src/pages/InicioPage.tsx`
-- `src/components/Sidebar.tsx`
-- `src/components/DashboardLayout.tsx`
-- `src/pages/AdminPage.tsx`
-- `src/hooks/usePrivacyMode.ts` (novo)
-- `src/lib/version.ts`
+Ordem de execução: migração da tabela → hook → página/kanban → aba no cliente → integração no fluxo de ganho → cores → chat somente leitura.
