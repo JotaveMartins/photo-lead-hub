@@ -76,8 +76,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { pageTutorial, pageKey } = useMemo(() => {
     const path = location.pathname;
     if (path === "/agenda") return { pageTutorial: agendaTutorial, pageKey: "agenda" };
-    if (path === "/servicos") return { pageTutorial: servicosTutorial, pageKey: "servicos" };
-    if (path === "/pacotes") return { pageTutorial: pacotesTutorial, pageKey: "pacotes" };
+    if (path === "/catalogo") return { pageTutorial: servicosTutorial, pageKey: "servicos" };
     if (path === "/financeiro/cobrancas") return { pageTutorial: cobrancasTutorial, pageKey: "cobrancas" };
     if (path === "/financeiro/despesas") return { pageTutorial: despesasTutorial, pageKey: "despesas" };
     if (path.startsWith("/clientes/") && path !== "/clientes") return { pageTutorial: clienteDetailTutorial, pageKey: "cliente-detail" };
