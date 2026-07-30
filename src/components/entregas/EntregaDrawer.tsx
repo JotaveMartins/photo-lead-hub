@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import SearchSelect from "@/components/SearchSelect";
+import ClienteSearchSelect from "@/components/ClienteSearchSelect";
+import DatePickerField from "@/components/DatePickerField";
 import { Loader2, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -24,9 +27,6 @@ interface Props {
   entrega?: Entrega | null;
   defaultClienteId?: string | null;
 }
-
-const selectClass =
-  "w-full h-10 rounded-md bg-muted border border-border px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
 
 const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   const navigate = useNavigate();
@@ -118,50 +118,51 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Etapa</Label>
-              <select className={selectClass} value={etapa} onChange={(e) => setEtapa(e.target.value as EntregaEtapa)}>
-                {ENTREGA_ETAPAS.map((s) => (
-                  <option key={s.etapa} value={s.etapa}>{s.label}</option>
-                ))}
-              </select>
+              <SearchSelect
+                label="Etapa"
+                options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
+                value={etapa}
+                onChange={(v) => v && setEtapa(v as EntregaEtapa)}
+                allowEmpty={false}
+                placeholder="Selecione a etapa"
+                searchPlaceholder="Buscar etapa..."
+              />
             </div>
             <div className="space-y-2">
-              <Label>Serviço</Label>
-              <select className={selectClass} value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-                <option value="">Sem serviço</option>
-                {services.filter((s: any) => s.ativo).map((s: any) => (
-                  <option key={s.id} value={s.id}>{s.nome}</option>
-                ))}
-              </select>
+              <SearchSelect
+                label="Serviço"
+                options={services.filter((s: any) => s.ativo).map((s: any) => ({ value: s.id, label: s.nome }))}
+                value={serviceId}
+                onChange={setServiceId}
+                placeholder="Sem serviço"
+                emptyLabel="Sem serviço"
+                searchPlaceholder="Buscar serviço..."
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Cliente</Label>
-            <select className={selectClass} value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
-              <option value="">Sem cliente</option>
-              {clientes.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
-          </div>
+          <ClienteSearchSelect
+            clientes={clientes as any}
+            value={clienteId}
+            onChange={setClienteId}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Data do ensaio</Label>
-              <Input type="date" value={dataEnsaio} onChange={(e) => setDataEnsaio(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataEnsaio} onChange={setDataEnsaio} placeholder="Data do ensaio" />
             </div>
             <div className="space-y-2">
               <Label>Prévia prevista</Label>
-              <Input type="date" value={dataPrevia} onChange={(e) => setDataPrevia(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataPrevia} onChange={setDataPrevia} placeholder="Prévia prevista" />
             </div>
             <div className="space-y-2">
               <Label>Entrega prevista</Label>
-              <Input type="date" value={dataPrevista} onChange={(e) => setDataPrevista(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataPrevista} onChange={setDataPrevista} placeholder="Entrega prevista" />
             </div>
             <div className="space-y-2">
               <Label>Entrega final</Label>
-              <Input type="date" value={dataFinal} onChange={(e) => setDataFinal(e.target.value)} className="bg-muted border-border" />
+              <DatePickerField value={dataFinal} onChange={setDataFinal} placeholder="Entrega final" />
             </div>
           </div>
 
