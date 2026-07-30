@@ -22,6 +22,7 @@ import {
 import SearchSelect from "@/components/SearchSelect";
 import { useCreateEvent } from "@/hooks/useEvents";
 import { useServices } from "@/hooks/useServices";
+import { useCreateEntrega } from "@/hooks/useEntregas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn, parseLocalDate } from "@/lib/utils";
