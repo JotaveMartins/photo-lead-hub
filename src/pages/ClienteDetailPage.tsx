@@ -618,6 +618,12 @@ const ClienteDetailPage = () => {
 
       <ContratoDrawer contrato={viewContrato} open={!!viewContrato} onClose={() => setViewContrato(null)} />
       <EditClienteModal open={editOpen} onClose={() => setEditOpen(false)} cliente={cliente} />
+      <EntregaDrawer
+        open={entregaOpen}
+        onClose={() => { setEntregaOpen(false); setSelectedEntrega(null); }}
+        entrega={selectedEntrega}
+        defaultClienteId={id}
+      />
     </div>
   );
 };
