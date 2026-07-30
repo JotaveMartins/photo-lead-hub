@@ -18,6 +18,8 @@ import { useClienteTasks, useCreateLeadTask, useCompleteLeadTask } from "@/hooks
 import { Input } from "@/components/ui/input";
 import DatePickerField from "@/components/DatePickerField";
 import { parseLocalDate } from "@/lib/utils";
+import EntregaDrawer from "@/components/entregas/EntregaDrawer";
+import { useEntregas, ENTREGA_ETAPAS, type Entrega } from "@/hooks/useEntregas";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -35,6 +37,8 @@ const ClienteDetailPage = () => {
   const deleteCliente = useDeleteCliente();
   const [editOpen, setEditOpen] = useState(false);
   const [viewContrato, setViewContrato] = useState<Contrato | null>(null);
+  const [entregaOpen, setEntregaOpen] = useState(false);
+  const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const { data: clienteTasks = [] } = useClienteTasks(id);
   const { data: contratos = [] } = useContratosByClienteId(id);
   const createTask = useCreateLeadTask();
@@ -214,6 +218,7 @@ const ClienteDetailPage = () => {
           <TabsTrigger value="despesas" className="gap-1.5"><TrendingDown className="w-4 h-4" />Despesas</TabsTrigger>
           <TabsTrigger value="servicos" className="gap-1.5"><Wrench className="w-4 h-4" />Serviços</TabsTrigger>
           <TabsTrigger value="agenda" className="gap-1.5"><Calendar className="w-4 h-4" />Agenda</TabsTrigger>
+          <TabsTrigger value="entregas" className="gap-1.5"><Package className="w-4 h-4" />Entregas</TabsTrigger>
           <TabsTrigger value="tarefas" className="gap-1.5"><CheckSquare className="w-4 h-4" />Tarefas</TabsTrigger>
           <TabsTrigger value="relatorio" className="gap-1.5"><BarChart3 className="w-4 h-4" />Relatório</TabsTrigger>
         </TabsList>
