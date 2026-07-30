@@ -1,47 +1,44 @@
-## 1. Aba "Conversa" do lead vira somente leitura
+## Objetivo
 
-Em `src/components/LeadConversation.tsx`, esconder a área de composição (anexo, respostas rápidas, emoji, campo de texto, botão enviar e a linha de dica) atrás de uma flag `ENABLE_LEAD_CHAT_COMPOSER = false`. O código de envio permanece no arquivo, só não é renderizado — basta trocar a flag para reativar. Mantém o botão de sincronizar mensagens e o histórico.
+Definir e documentar um padrão único de componentes de formulário do CRM, salvá-lo na memória do projeto (para valer automaticamente em qualquer feature futura) e aplicar esse padrão retroativamente no funil de Entregas.
 
-## 2. Cores das etapas do funil de vendas
+## Padrão oficial (o "modelo novo")
 
-Em `src/components/KanbanBoard.tsx` (e nos badges de status correspondentes), aplicar gradiente frio → quente conforme o avanço:
+| Elemento | Componente obrigatório |
+|---|---|
+| Dropdown de seleção | `SearchSelect` (`src/components/SearchSelect.tsx`) — trigger estilizado, busca interna, portal com posicionamento automático |
+| Seleção de cliente | `ClienteSearchSelect` (`src/components/ClienteSearchSelect.tsx`) — mesmo formato usado em Cobranças (nome + WhatsApp) |
+| Campo de data | `DatePickerField` (`src/components/DatePickerField.tsx`) — nunca `<input type="date">` |
+| Campo de hora | `TimePickerField` |
+| Barra de pesquisa | `SearchInput` (`src/components/ui/search-input.tsx`) — nunca `Input` + ícone manual |
+| Modal | `Dialog` / Drawer lateral com `Sheet` |
+| Feedback | `toast` (sonner) + estado de loading desabilitando o botão |
+| Cores | apenas tokens semânticos (`bg-muted`, `border-border`, `text-foreground`) |
 
-```text
-Novo Lead          cinza-azulado
-Contato Iniciado   azul
-Triagem Feita      ciano
-Proposta Enviada   roxo
-Follow-up          âmbar
-Contrato Enviado   laranja
-Fechado Ganho      verde
-Fechado Perdido    vermelho
-```
+Proibidos em novas telas: `<select>` nativo, `<input type="date">`, dropdowns customizados novos, barras de busca improvisadas, cores fixas.
 
-Cores como tokens HSL no `index.css` (`--stage-1` … `--stage-6`), sem cores hardcoded nos componentes.
+## Etapas
 
-## 3. Funil de Entregas (pós-venda) — em Clientes
+1. **Registrar o padrão na memória do projeto** (`mem://tech/ui-component-standards` + linha no Core do índice), de forma que toda feature nova já nasça com esses componentes sem precisar ser pedido. Atualizar também a memória `UI Constraints` existente para não conflitar (a regra antiga de "sempre `<select>` nativo" passa a ser: `<select>` nativo somente em filtros simples de tabela já existentes; formulários usam `SearchSelect`).
 
-**Onde fica:** nova página `/entregas` dentro da seção "Clientes" do menu lateral, mais uma aba "Entregas" no perfil do cliente mostrando só as entregas dele. O funil de vendas continua em Leads, intocado.
+2. **Criar o guia em código** `src/components/ui/README-padroes.md` — referência curta com a tabela acima e exemplos de uso, para consulta rápida.
 
-**Banco:** nova tabela `entregas` (com RLS por `user_id` e GRANTs), ligando cliente, lead e evento:
-- `cliente_id`, `lead_id`, `event_id`, `service_id`
-- `titulo`, `etapa` (enum: Ensaio Agendado, Ensaio Realizado, Prévia enviada, Em edição, Entregue)
-- `data_ensaio`, `data_previa_prevista`, `data_entrega_prevista`, `data_entrega_final`
-- `link_galeria`, `observacoes`, timestamps + `deleted_at` (soft delete) e datas de entrada em cada etapa (para relatório futuro)
+3. **Corrigir o funil de Entregas** (`src/components/entregas/EntregaDrawer.tsx`):
+   - Etapa e Serviço → `SearchSelect`
+   - Cliente → `ClienteSearchSelect` (idêntico ao de Cobranças)
+   - As 4 datas (ensaio, prévia, entrega prevista, entrega final) → `DatePickerField`
+   - Manter layout, validações e comportamento de salvar/excluir
 
-Comecei com um conjunto enxuto de campos; dá para adicionar outros depois sem quebrar nada.
+4. **Auditoria rápida das telas do mesmo funil**: conferir `EntregasPage.tsx` (já usa `SearchInput`, apenas validar) e o card de Entregas em `ClienteDetailPage.tsx`.
 
-**Criação automática:** no fluxo de lead ganho (`src/components/LeadToClienteFlow.tsx`), ao confirmar o evento, criar também a entrega na etapa "Ensaio Agendado" já vinculada ao cliente, lead e evento, com `data_ensaio` = data do evento. Na tela de confirmação, mostrar "Entrega criada no funil de entregas".
+5. Subir versão para **3.2.0** (mudança estrutural de padrão) em `src/lib/version.ts`.
 
-**Tela `/entregas`:** kanban com as 5 colunas, drag-and-drop para mudar etapa (mesmo padrão visual do KanbanBoard atual), card com cliente, serviço, data do ensaio e data de entrega prevista, com destaque de atraso. Clique abre um drawer para editar datas, link da galeria e observações, com atalho para o cliente e para o evento na agenda.
+## Fora do escopo (posso fazer depois, se quiser)
 
-**Perfil do cliente:** aba "Entregas" listando as entregas com etapa e datas, e botão para criar entrega manual (para trabalhos que não vieram de lead).
+Migrar os `<select>` nativos que ainda existem em `LeadModal`, `NovoClienteModal`, `EditClienteModal`, `ContratoInfoModal`, `RequiredFieldsModal`, `EditCobrancaModal`, `TarefasPage` e `AnunciosPage`. Faz sentido fazer isso em uma segunda leva, para não misturar com a padronização de Entregas.
 
 ## Detalhes técnicos
 
-- Hook `src/hooks/useEntregas.ts` (list/create/update/soft-delete) usando `useEffectiveUserId`, seguindo o padrão de `useEvents`/`useClientes`.
-- Selects nativos nos formulários, `parseLocalDate` para datas, toasts de erro/sucesso e estados de loading.
-- Rota nova em `src/App.tsx` e item de menu em `src/components/Sidebar.tsx` (seção Clientes).
-- Bump de versão em `src/lib/version.ts`.
-
-Ordem de execução: migração da tabela → hook → página/kanban → aba no cliente → integração no fluxo de ganho → cores → chat somente leitura.
+- `SearchSelect` já resolve portal dentro de `Sheet`/`Dialog` (evita corte e travamento de scroll), então funciona no drawer de Entregas sem ajustes.
+- `DatePickerField` trabalha com string `YYYY-MM-DD` e `parseLocalDate`, exatamente o formato já usado pelos campos de `entregas` — a troca é direta, sem mudança no payload nem no banco.
+- Nenhuma alteração de schema ou de regra de negócio.
