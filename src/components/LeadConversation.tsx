@@ -47,6 +47,10 @@ const formatMsgDate = (ts: string | null | undefined): string => {
 const MEDIA_ACCEPT = "image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt";
 const MAX_FILE_MB = 16;
 
+// Envio de mensagens pela aba "Conversa" do lead está desativado por enquanto —
+// a aba funciona apenas como visualizador. Basta trocar para `true` para reativar.
+const ENABLE_LEAD_CHAT_COMPOSER = false;
+
 
 // ── File type icon (for the pending attachment chip) ────────────────────────
 const fileTypeIcon = (file: File) => {
@@ -457,7 +461,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
       </div>
 
       {/* Pending file preview */}
-      {pendingFile && (
+      {ENABLE_LEAD_CHAT_COMPOSER && pendingFile && (
         <div className="px-3 py-2 border-t border-border bg-card shrink-0">
           <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5 text-xs">
             {pendingFileUrl && pendingFile.type.startsWith("image/") ? (
@@ -480,6 +484,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
       )}
 
       {/* Input area */}
+      {ENABLE_LEAD_CHAT_COMPOSER ? (
       <div className="px-3 py-2 border-t border-border bg-card shrink-0">
         <div className="flex items-end gap-2">
           {/* Attach file */}
@@ -552,6 +557,13 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
           Enter para enviar · Shift+Enter nova linha · Máx {MAX_FILE_MB} MB
         </p>
       </div>
+      ) : (
+        <div className="px-3 py-2 border-t border-border bg-card shrink-0">
+          <p className="text-[11px] text-muted-foreground text-center">
+            Visualização somente leitura. Responda pelo Inbox.
+          </p>
+        </div>
+      )}
 
       <QuickRepliesModal
         open={showQuickReplies}
