@@ -1,44 +1,17 @@
-## Objetivo
+# Entrega: campos obrigatórios e criação rápida de cliente
 
-Definir e documentar um padrão único de componentes de formulário do CRM, salvá-lo na memória do projeto (para valer automaticamente em qualquer feature futura) e aplicar esse padrão retroativamente no funil de Entregas.
+## O que muda
 
-## Padrão oficial (o "modelo novo")
+1. **Campos obrigatórios no drawer de entrega** (Nova/Editar entrega): Título, Etapa e Cliente passam a ser obrigatórios.
+   - Asterisco vermelho ao lado dos três rótulos.
+   - Botão "Salvar" desabilitado enquanto algum deles estiver vazio, com aviso (toast) caso o envio seja tentado.
+   - Remove o preenchimento automático do título como "Entrega" quando vazio.
 
-| Elemento | Componente obrigatório |
-|---|---|
-| Dropdown de seleção | `SearchSelect` (`src/components/SearchSelect.tsx`) — trigger estilizado, busca interna, portal com posicionamento automático |
-| Seleção de cliente | `ClienteSearchSelect` (`src/components/ClienteSearchSelect.tsx`) — mesmo formato usado em Cobranças (nome + WhatsApp) |
-| Campo de data | `DatePickerField` (`src/components/DatePickerField.tsx`) — nunca `<input type="date">` |
-| Campo de hora | `TimePickerField` |
-| Barra de pesquisa | `SearchInput` (`src/components/ui/search-input.tsx`) — nunca `Input` + ícone manual |
-| Modal | `Dialog` / Drawer lateral com `Sheet` |
-| Feedback | `toast` (sonner) + estado de loading desabilitando o botão |
-| Cores | apenas tokens semânticos (`bg-muted`, `border-border`, `text-foreground`) |
-
-Proibidos em novas telas: `<select>` nativo, `<input type="date">`, dropdowns customizados novos, barras de busca improvisadas, cores fixas.
-
-## Etapas
-
-1. **Registrar o padrão na memória do projeto** (`mem://tech/ui-component-standards` + linha no Core do índice), de forma que toda feature nova já nasça com esses componentes sem precisar ser pedido. Atualizar também a memória `UI Constraints` existente para não conflitar (a regra antiga de "sempre `<select>` nativo" passa a ser: `<select>` nativo somente em filtros simples de tabela já existentes; formulários usam `SearchSelect`).
-
-2. **Criar o guia em código** `src/components/ui/README-padroes.md` — referência curta com a tabela acima e exemplos de uso, para consulta rápida.
-
-3. **Corrigir o funil de Entregas** (`src/components/entregas/EntregaDrawer.tsx`):
-   - Etapa e Serviço → `SearchSelect`
-   - Cliente → `ClienteSearchSelect` (idêntico ao de Cobranças)
-   - As 4 datas (ensaio, prévia, entrega prevista, entrega final) → `DatePickerField`
-   - Manter layout, validações e comportamento de salvar/excluir
-
-4. **Auditoria rápida das telas do mesmo funil**: conferir `EntregasPage.tsx` (já usa `SearchInput`, apenas validar) e o card de Entregas em `ClienteDetailPage.tsx`.
-
-5. Subir versão para **3.2.0** (mudança estrutural de padrão) em `src/lib/version.ts`.
-
-## Fora do escopo (posso fazer depois, se quiser)
-
-Migrar os `<select>` nativos que ainda existem em `LeadModal`, `NovoClienteModal`, `EditClienteModal`, `ContratoInfoModal`, `RequiredFieldsModal`, `EditCobrancaModal`, `TarefasPage` e `AnunciosPage`. Faz sentido fazer isso em uma segunda leva, para não misturar com a padronização de Entregas.
+2. **Criar novo cliente direto no seletor**: dentro da lista suspensa de clientes, um botão fixo "+ Novo cliente" no topo abre o modal de cadastro já existente. Ao salvar, o novo cliente é selecionado automaticamente no campo.
 
 ## Detalhes técnicos
 
-- `SearchSelect` já resolve portal dentro de `Sheet`/`Dialog` (evita corte e travamento de scroll), então funciona no drawer de Entregas sem ajustes.
-- `DatePickerField` trabalha com string `YYYY-MM-DD` e `parseLocalDate`, exatamente o formato já usado pelos campos de `entregas` — a troca é direta, sem mudança no payload nem no banco.
-- Nenhuma alteração de schema ou de regra de negócio.
+- `src/components/entregas/EntregaDrawer.tsx`: validação local (`titulo.trim()`, `etapa`, `clienteId`), `disabled` no botão salvar, marcação visual de obrigatório no Título; passar `required` para `SearchSelect` (Etapa) e `ClienteSearchSelect`.
+- `src/components/ClienteSearchSelect.tsx`: nova prop opcional `allowCreate` (padrão ligado) que renderiza o botão "+ Novo cliente" no dropdown e monta `NovoClienteModal` usando o callback `onClienteCreated` já existente para selecionar o cliente recém-criado. Também nova prop `required` para exibir o asterisco. Como o componente é compartilhado (Agenda, Cobranças, Entregas), o comportamento novo fica igual em todos os formulários — padrão desejado.
+- `SearchSelect` recebe suporte a `required` para o asterisco no rótulo da Etapa.
+- Versão do CRM: 3.2.4.
