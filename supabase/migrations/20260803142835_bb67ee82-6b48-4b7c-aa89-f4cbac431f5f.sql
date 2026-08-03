@@ -1,0 +1,4 @@
+ALTER TABLE public.ai_config DROP CONSTRAINT ai_config_user_id_fkey, ADD CONSTRAINT ai_config_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.ai_files DROP CONSTRAINT ai_files_user_id_fkey, ADD CONSTRAINT ai_files_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.whatsapp_instances DROP CONSTRAINT whatsapp_instances_user_id_fkey, ADD CONSTRAINT whatsapp_instances_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.inbox_conversations DROP CONSTRAINT inbox_conversations_assigned_to_fkey, ADD CONSTRAINT inbox_conversations_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES auth.users(id) ON DELETE SET NULL;
