@@ -62,12 +62,17 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   }, [open, entrega, defaultClienteId]);
 
   const saving = createEntrega.isPending || updateEntrega.isPending;
+  const isValid = Boolean(titulo.trim() && etapa && clienteId);
 
   const handleSave = async () => {
+    if (!isValid) {
+      toast.error("Preencha Título, Etapa e Cliente");
+      return;
+    }
     const payload = {
-      titulo: titulo.trim() || "Entrega",
+      titulo: titulo.trim(),
       etapa,
-      cliente_id: clienteId || null,
+      cliente_id: clienteId,
       service_id: serviceId || null,
       data_ensaio: dataEnsaio || null,
       data_previa_prevista: dataPrevia || null,
@@ -107,7 +112,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
 
         <div className="space-y-4 mt-5">
           <div className="space-y-2">
-            <Label>Título</Label>
+            <Label>Título <span className="text-destructive">*</span></Label>
             <Input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
@@ -120,6 +125,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
             <div className="space-y-2">
               <SearchSelect
                 label="Etapa"
+                required
                 options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
                 value={etapa}
                 onChange={(v) => v && setEtapa(v as EntregaEtapa)}
@@ -145,6 +151,9 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
             clientes={clientes as any}
             value={clienteId}
             onChange={setClienteId}
+            required
+            allowEmpty={false}
+            emptyLabel="Selecione o cliente"
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -199,7 +208,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
             ) : <span />}
             <div className="flex gap-2">
               <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-              <Button className="bg-gradient-primary hover:opacity-90 gap-2" onClick={handleSave} disabled={saving}>
+              <Button className="bg-gradient-primary hover:opacity-90 gap-2" onClick={handleSave} disabled={saving || !isValid}>
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />} Salvar
               </Button>
             </div>

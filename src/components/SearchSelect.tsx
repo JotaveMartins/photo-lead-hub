@@ -19,6 +19,7 @@ interface SearchSelectProps {
   searchPlaceholder?: string;
   allowEmpty?: boolean;
   emptyLabel?: string;
+  required?: boolean;
 }
 
 const SearchSelect = ({
@@ -30,6 +31,7 @@ const SearchSelect = ({
   searchPlaceholder = "Buscar...",
   allowEmpty = true,
   emptyLabel = "Nenhum",
+  required = false,
 }: SearchSelectProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -123,7 +125,11 @@ const SearchSelect = ({
 
   return (
     <div className={cn("space-y-2")}>
-      {label && <Label>{label}</Label>}
+      {label && (
+        <Label>
+          {label} {required && <span className="text-destructive">*</span>}
+        </Label>
+      )}
       <div ref={ref} className="relative">
         {/* Trigger */}
         <button

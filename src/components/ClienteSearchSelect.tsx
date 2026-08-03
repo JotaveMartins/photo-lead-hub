@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
+import NovoClienteModal from "@/components/clientes/NovoClienteModal";
 
 interface ClienteSearchSelectProps {
   clientes: { id: string; nome: string; whatsapp: string | null }[];
@@ -9,6 +11,8 @@ interface ClienteSearchSelectProps {
   placeholder?: string;
   allowEmpty?: boolean;
   emptyLabel?: string;
+  allowCreate?: boolean;
+  required?: boolean;
 }
 
 const ClienteSearchSelect = ({
@@ -19,9 +23,12 @@ const ClienteSearchSelect = ({
   placeholder = "Buscar cliente...",
   allowEmpty = true,
   emptyLabel = "Sem cliente vinculado",
+  allowCreate = true,
+  required = false,
 }: ClienteSearchSelectProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [novoOpen, setNovoOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,7 +51,11 @@ const ClienteSearchSelect = ({
 
   return (
     <div className="space-y-2">
-      {label && <Label>{label}</Label>}
+      {label && (
+        <Label>
+          {label} {required && <span className="text-destructive">*</span>}
+        </Label>
+      )}
       <div ref={ref} className="relative">
         <button
           type="button"
@@ -76,6 +87,15 @@ const ClienteSearchSelect = ({
               />
             </div>
             <div className="max-h-48 overflow-y-auto">
+              {allowCreate && (
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); setSearch(""); setNovoOpen(true); }}
+                  className="w-full px-3 py-2 text-left text-sm text-primary font-medium hover:bg-muted transition-colors flex items-center gap-2 border-b border-border"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Novo cliente
+                </button>
+              )}
               {allowEmpty && (
                 <button
                   type="button"
@@ -103,6 +123,16 @@ const ClienteSearchSelect = ({
           </div>
         )}
       </div>
+
+      {allowCreate && (
+        <NovoClienteModal
+          open={novoOpen}
+          onClose={() => setNovoOpen(false)}
+          hideCobrancaPrompt
+          initialData={search.trim() ? { nome: search.trim() } : undefined}
+          onClienteCreated={(id) => { onChange(id); setNovoOpen(false); }}
+        />
+      )}
     </div>
   );
 };
