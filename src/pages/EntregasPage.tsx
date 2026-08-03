@@ -1,6 +1,20 @@
 import { Construction } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
+import EntregasFunil from "./EntregasPageOld";
 
 const EntregasPage = () => {
+  const { isAdmin, isLoading } = useUserRole();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-muted-foreground animate-pulse">
+        Carregando...
+      </div>
+    );
+  }
+
+  if (isAdmin) return <EntregasFunil />;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
       <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
