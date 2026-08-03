@@ -49,7 +49,7 @@ const MAX_FILE_MB = 16;
 
 // Envio de mensagens pela aba "Conversa" do lead está desativado por enquanto —
 // a aba funciona apenas como visualizador. Basta trocar para `true` para reativar.
-const ENABLE_LEAD_CHAT_COMPOSER = false;
+const ENABLE_LEAD_CHAT_COMPOSER = true;
 
 
 // ── File type icon (for the pending attachment chip) ────────────────────────
