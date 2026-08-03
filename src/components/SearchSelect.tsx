@@ -125,7 +125,11 @@ const SearchSelect = ({
 
   return (
     <div className={cn("space-y-2")}>
-      {label && <Label>{label}</Label>}
+      {label && (
+        <Label>
+          {label} {required && <span className="text-destructive">*</span>}
+        </Label>
+      )}
       <div ref={ref} className="relative">
         {/* Trigger */}
         <button
