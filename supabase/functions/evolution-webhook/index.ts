@@ -667,7 +667,9 @@ Deno.serve(async (req) => {
       }
     } else if (event === "connection.update") {
       const state = data.state;
-      const newStatus = state === "open" ? "connected" : "disconnected";
+      // "connecting" is a transient state (reconnect blips) — não é desconexão
+      const newStatus =
+        state === "open" ? "connected" : state === "connecting" ? "connecting" : "disconnected";
 
       const { data: instRow } = await supabase
         .from("whatsapp_instances")
@@ -681,7 +683,42 @@ Deno.serve(async (req) => {
         .eq("name", instanceName);
 
       // Fire disconnect webhook only on connected -> disconnected transition
-      if (newStatus === "disconnected" && instRow?.status === "connected") {
+      if (state === "close" && instRow?.status === "connected") {
+        // Confirma na Evolution API — evita alarme falso em quedas momentâneas
+        let reallyDown = true;
+        try {
+          const { data: settingsRow } = await supabase
+            .from("app_settings").select("value").eq("key", "evolution").maybeSingle();
+          const s: any = settingsRow?.value || {};
+          const bUrl = (s.base_url || Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
+          const aKey = s.api_key || Deno.env.get("EVOLUTION_API_KEY");
+          if (bUrl && aKey) {
+            await new Promise((r) => setTimeout(r, 15000));
+            const chk = await fetch(`${bUrl}/instance/connectionState/${instanceName}`, {
+              headers: { apikey: aKey },
+            });
+            if (chk.ok) {
+              const cd = await chk.json();
+              const cur = cd?.instance?.state || cd?.state;
+              console.log(`[disconnect-check] ${instanceName} state after delay: ${cur}`);
+              if (cur === "open") {
+                reallyDown = false;
+                await supabase.from("whatsapp_instances")
+                  .update({ status: "connected" }).eq("name", instanceName);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("[disconnect-check] failed:", e);
+        }
+
+        if (!reallyDown) {
+          console.log(`[disconnect-check] ${instanceName} reconectou — webhook não disparado`);
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
         const hookUrl = Deno.env.get("WHATSAPP_DISCONNECT_WEBHOOK_URL");
         if (hookUrl) {
           let accountName = "Conta desconhecida";
