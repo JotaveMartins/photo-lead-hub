@@ -667,10 +667,50 @@ Deno.serve(async (req) => {
       }
     } else if (event === "connection.update") {
       const state = data.state;
+      const newStatus = state === "open" ? "connected" : "disconnected";
+
+      const { data: instRow } = await supabase
+        .from("whatsapp_instances")
+        .select("id, user_id, name, status")
+        .eq("name", instanceName)
+        .maybeSingle();
+
       await supabase
         .from("whatsapp_instances")
-        .update({ status: state === "open" ? "connected" : "disconnected" })
+        .update({ status: newStatus })
         .eq("name", instanceName);
+
+      // Fire disconnect webhook only on connected -> disconnected transition
+      if (newStatus === "disconnected" && instRow?.status === "connected") {
+        const hookUrl = Deno.env.get("WHATSAPP_DISCONNECT_WEBHOOK_URL");
+        if (hookUrl) {
+          let accountName = "Conta desconhecida";
+          if (instRow.user_id) {
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("nome")
+              .eq("user_id", instRow.user_id)
+              .maybeSingle();
+            if (prof?.nome) accountName = prof.nome;
+          }
+          const payload = {
+            event: "whatsapp_disconnected",
+            account_name: accountName,
+            instance_name: instRow.name || instanceName,
+            message: `A instância "${instRow.name || instanceName}" da conta ${accountName} foi desconectada do WhatsApp.`,
+            disconnected_at: new Date().toISOString(),
+          };
+          fetch(hookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+            .then((r) => console.log("Disconnect webhook sent, status:", r.status))
+            .catch((e) => console.error("Disconnect webhook failed:", e));
+        } else {
+          console.log("WHATSAPP_DISCONNECT_WEBHOOK_URL not set — skipping disconnect webhook");
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
