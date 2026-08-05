@@ -1266,7 +1266,7 @@ export type Database = {
       meta_daily_ads: {
         Row: {
           ad_account_id: string
-          ad_id: string | null
+          ad_id: string
           ad_name: string
           adset_id: string | null
           adset_name: string
@@ -1293,7 +1293,7 @@ export type Database = {
         }
         Insert: {
           ad_account_id: string
-          ad_id?: string | null
+          ad_id: string
           ad_name: string
           adset_id?: string | null
           adset_name: string
@@ -1320,7 +1320,7 @@ export type Database = {
         }
         Update: {
           ad_account_id?: string
-          ad_id?: string | null
+          ad_id?: string
           ad_name?: string
           adset_id?: string | null
           adset_name?: string
