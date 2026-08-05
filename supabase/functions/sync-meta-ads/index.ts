@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
             campaign_name: row.campaign_name || "(sem nome)",
             adset_id: row.adset_id || null,
             adset_name: row.adset_name || "(sem nome)",
-            ad_id: row.ad_id || null,
+            ad_id: row.ad_id || `name:${row.ad_name || "(sem nome)"}`,
             ad_name: row.ad_name || "(sem nome)",
             spend,
             impressions: Number(row.impressions || 0),
@@ -198,12 +198,12 @@ Deno.serve(async (req) => {
 
         totalFetched += rows.length;
 
-        // Dedupe by conflict key (date, ad_account_id, campaign_name, adset_name, ad_name)
-        // Meta may return multiple rows for the same ad in a day (different action breakdowns),
-        // and ads with the same display name but different IDs collide on the unique index.
+        // Dedupe by conflict key (date, ad_account_id, ad_id).
+        // Identify by Meta IDs (never by names) so renaming a campaign/adset/ad
+        // updates the existing row instead of creating a duplicate.
         const dedupMap = new Map<string, any>();
         for (const r of rows) {
-          const key = `${r.date}|${r.ad_account_id}|${r.campaign_name}|${r.adset_name}|${r.ad_name}`;
+          const key = `${r.date}|${r.ad_account_id}|${r.ad_id}`;
           const prev = dedupMap.get(key);
           if (!prev) { dedupMap.set(key, r); continue; }
           prev.spend += r.spend;
@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
           const batch = dedupedRows.slice(i, i + 50);
           const { error } = await supabase
             .from("meta_daily_ads")
-            .upsert(batch, { onConflict: "date,ad_account_id,campaign_name,adset_name,ad_name" });
+            .upsert(batch, { onConflict: "date,ad_account_id,ad_id" });
           if (error) throw error;
           upserted += batch.length;
         }

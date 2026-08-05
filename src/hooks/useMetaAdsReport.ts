@@ -31,6 +31,22 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
   return useQuery({
     queryKey: ["meta_ads_report", from, to, isAdmin, targetUserId],
     queryFn: async () => {
+      // Resolve the ad account linked to the target profile so rows that are not
+      // linked by client_id still show up for that client.
+      let adAccountIds: string[] | null = null;
+      if (targetUserId) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("meta_ad_account_id")
+          .eq("user_id", targetUserId)
+          .maybeSingle();
+        const acc = prof?.meta_ad_account_id;
+        if (acc) {
+          const bare = acc.startsWith("act_") ? acc.slice(4) : acc;
+          adAccountIds = [bare, `act_${bare}`];
+        }
+      }
+
       const PAGE = 1000;
       const all: MetaAdsRow[] = [];
       let offset = 0;
@@ -41,7 +57,15 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
           .gte("date", from)
           .lte("date", to)
           .range(offset, offset + PAGE - 1);
-        if (targetUserId) q = q.eq("client_id", targetUserId);
+        if (targetUserId) {
+          if (adAccountIds) {
+            q = q.or(
+              `client_id.eq.${targetUserId},ad_account_id.in.(${adAccountIds.join(",")})`,
+            );
+          } else {
+            q = q.eq("client_id", targetUserId);
+          }
+        }
         const { data, error } = await q;
         if (error) throw error;
         if (!data || data.length === 0) break;
