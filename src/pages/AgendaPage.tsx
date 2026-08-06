@@ -18,6 +18,7 @@ import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
 import { useTeamMembers, useEventTeamMembers, useReplaceEventTeam, useAllEventTeams } from "@/hooks/useTeamMembers";
 import TeamMemberModal from "@/components/equipe/TeamMemberModal";
+import EquipeSection from "@/components/equipe/EquipeSection";
 import ServiceModal from "@/components/ServiceModal";
 import { Switch } from "@/components/ui/switch";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
