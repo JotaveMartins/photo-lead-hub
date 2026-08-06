@@ -325,16 +325,16 @@ const AgendaPage = () => {
   };
 
   const tabsBar = (
-    <div className="flex items-center gap-1 mb-6 border-b border-border">
+    <div className="inline-flex items-center gap-1 p-1 mb-6 rounded-lg bg-muted/50 border border-border">
       {(["agenda", "equipe"] as const).map((t) => (
         <button
           key={t}
           onClick={() => setTab(t)}
           className={cn(
-            "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
+            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
             activeTab === t
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-glow"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           {t === "agenda" ? "Agenda" : "Equipe"}
