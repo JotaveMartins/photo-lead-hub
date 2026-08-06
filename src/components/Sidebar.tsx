@@ -58,7 +58,6 @@ const clientesItems: MenuItem[] = [
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'contratos', label: 'Contratos', icon: FileText },
   { id: 'catalogo', label: 'Serviços e Pacotes', icon: Wrench },
-  { id: 'equipe', label: 'Equipe', icon: HardHat },
 ];
 
 const financeiroItems: MenuItem[] = [
