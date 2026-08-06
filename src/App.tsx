@@ -23,7 +23,6 @@ import ClientesPage from "./pages/ClientesPage";
 import ClienteDetailPage from "./pages/ClienteDetailPage";
 import CatalogoPage from "./pages/CatalogoPage";
 import AgendaPage from "./pages/AgendaPage";
-import EquipePage from "./pages/EquipePage";
 import AnunciosPage from "./pages/AnunciosPage";
 import InboxPage from "./pages/InboxPage";
 import ContratosPage from "./pages/ContratosPage";
@@ -91,7 +90,7 @@ const AppRoutes = () => {
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/:id" element={<ClienteDetailPage />} />
         <Route path="/entregas" element={<EntregasPage />} />
-        <Route path="/equipe" element={<EquipePage />} />
+        <Route path="/equipe" element={<Navigate to="/agenda?tab=equipe" replace />} />
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/ia" element={<IAPage />} />
         <Route path="/whatsapp" element={<WhatsAppConfigPage />} />
