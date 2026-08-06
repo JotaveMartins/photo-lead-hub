@@ -18,6 +18,7 @@ import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
 import { useTeamMembers, useEventTeamMembers, useReplaceEventTeam, useAllEventTeams } from "@/hooks/useTeamMembers";
 import TeamMemberModal from "@/components/equipe/TeamMemberModal";
+import EquipeSection from "@/components/equipe/EquipeSection";
 import ServiceModal from "@/components/ServiceModal";
 import { Switch } from "@/components/ui/switch";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
@@ -315,8 +316,45 @@ const AgendaPage = () => {
     deleted_at: (e as any).deleted_at,
   }));
 
+  const activeTab = searchParams.get("tab") === "equipe" ? "equipe" : "agenda";
+  const setTab = (tab: "agenda" | "equipe") => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === "equipe") next.set("tab", "equipe");
+    else next.delete("tab");
+    setSearchParams(next, { replace: true });
+  };
+
+  const tabsBar = (
+    <div className="flex items-center gap-1 mb-6 border-b border-border">
+      {(["agenda", "equipe"] as const).map((t) => (
+        <button
+          key={t}
+          onClick={() => setTab(t)}
+          className={cn(
+            "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
+            activeTab === t
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {t === "agenda" ? "Agenda" : "Equipe"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (activeTab === "equipe") {
+    return (
+      <>
+        {tabsBar}
+        <EquipeSection />
+      </>
+    );
+  }
+
   return (
     <>
+      {tabsBar}
       <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground flex items-center gap-3">

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useTeamMembers, useDeleteTeamMember, type TeamMember } from "@/hooks/useTeamMembers";
 import TeamMemberModal from "@/components/equipe/TeamMemberModal";
 
-const EquipePage = () => {
+const EquipeSection = () => {
   const { data: members = [], isLoading } = useTeamMembers();
   const del = useDeleteTeamMember();
   const [open, setOpen] = useState(false);
@@ -31,10 +31,7 @@ const EquipePage = () => {
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-3">
-            <HardHat className="w-7 h-7 text-primary" />
-            Equipe
-          </h1>
+          <h2 className="text-xl font-display font-bold text-foreground">Equipe</h2>
           <p className="text-sm text-muted-foreground">Profissionais e freelancers cadastrados</p>
         </div>
         <Button onClick={() => { setEditing(null); setOpen(true); }} className="bg-gradient-primary hover:opacity-90 gap-2">
@@ -130,4 +127,4 @@ const EquipePage = () => {
   );
 };
 
-export default EquipePage;
+export default EquipeSection;
