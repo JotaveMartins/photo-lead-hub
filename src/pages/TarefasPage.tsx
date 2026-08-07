@@ -236,8 +236,24 @@ const TarefasPage = () => {
                   <TableHead className="font-medium">Assunto</TableHead>
                   <TableHead className="font-medium">Pessoa de contato</TableHead>
                   <TableHead className="font-medium">Telefone</TableHead>
-                  <TableHead className="font-medium">Data de venc.</TableHead>
-                  <TableHead className="font-medium hidden md:table-cell">Criada em</TableHead>
+                  <TableHead className="font-medium">
+                    <button type="button" onClick={() => toggleSort("due_date")} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      Data de venc.
+                      {sortKey === "due_date" && (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                    </button>
+                  </TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">
+                    <button type="button" onClick={() => toggleSort("created_at")} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      Criada em
+                      {sortKey === "created_at" && (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                    </button>
+                  </TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">
+                    <button type="button" onClick={() => toggleSort("completed_at")} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      Concluída em
+                      {sortKey === "completed_at" && (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                    </button>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,6 +311,13 @@ const TarefasPage = () => {
                     </TableCell>
                     <TableCell className="hidden md:table-cell" onClick={() => handleTaskClick(task)}>
                       <span className="text-xs text-muted-foreground">{new Date(task.created_at).toLocaleDateString("pt-BR")}</span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell" onClick={() => handleTaskClick(task)}>
+                      <span className="text-xs text-muted-foreground">
+                        {task.completed_at
+                          ? new Date(task.completed_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                          : "—"}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
