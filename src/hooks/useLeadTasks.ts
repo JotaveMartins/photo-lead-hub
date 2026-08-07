@@ -179,10 +179,29 @@ export const useCompleteLeadTask = () => {
 
       return { isFollowUp: false, followUpNumber: 0 };
     },
-    onSuccess: () => {
+    onSuccess: (_data, task) => {
       queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Tarefa concluída!");
+      toast.success("Tarefa marcada como concluída", {
+        duration: 4000,
+        position: "bottom-left",
+        action: {
+          label: "Desfazer",
+          onClick: async () => {
+            const { error } = await supabase
+              .from("lead_tasks")
+              .update({ completed: false, completed_at: null })
+              .eq("id", task.id);
+            if (error) {
+              toast.error("Erro ao desfazer: " + error.message);
+              return;
+            }
+            queryClient.invalidateQueries({ queryKey: ["lead_tasks"] });
+            queryClient.invalidateQueries({ queryKey: ["leads"] });
+            toast.success("Tarefa reaberta");
+          },
+        },
+      });
     },
     onError: (error: Error) => {
       toast.error("Erro ao concluir tarefa: " + error.message);

@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import DatePickerField from "@/components/DatePickerField";
 
 import TimePickerField from "@/components/TimePickerField";
-import { CheckSquare, Plus, Calendar as CalendarIcon, Clock, User, Circle, Phone, List } from "lucide-react";
+import { CheckSquare, Plus, Calendar as CalendarIcon, Clock, User, Circle, Phone, List, ArrowUp, ArrowDown } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ import type { Database } from "@/integrations/supabase/types";
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 
 type FilterKey = "todo" | "hoje" | "overdue" | "today" | "this_week" | "future" | "completed";
+
+type SortKey = "due_date" | "created_at" | "completed_at";
 
 const TarefasPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,6 +58,17 @@ const TarefasPage = () => {
   const [newClienteId, setNewClienteId] = useState("");
   const [newTargetType, setNewTargetType] = useState<"lead" | "cliente">("lead");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("due_date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "due_date" ? "asc" : "desc");
+    }
+  };
 
   const today = startOfDay(new Date());
 
@@ -86,8 +99,22 @@ const TarefasPage = () => {
       );
     }
 
-    return tasks;
-  }, [allTasks, filter, today, searchQuery]);
+    const getTime = (t: typeof allTasks[0]) => {
+      if (sortKey === "due_date") return parseLocalDate(t.due_date).getTime();
+      if (sortKey === "created_at") return new Date(t.created_at).getTime();
+      return t.completed_at ? new Date(t.completed_at).getTime() : null;
+    };
+
+    return [...tasks].sort((a, b) => {
+      const ta = getTime(a);
+      const tb = getTime(b);
+      // Sem data vai sempre para o fim
+      if (ta === null && tb === null) return 0;
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      return sortDir === "asc" ? ta - tb : tb - ta;
+    });
+  }, [allTasks, filter, today, searchQuery, sortKey, sortDir]);
 
   const stats = useMemo(() => {
     const pending = allTasks.filter(t => !t.completed);
@@ -209,8 +236,24 @@ const TarefasPage = () => {
                   <TableHead className="font-medium">Assunto</TableHead>
                   <TableHead className="font-medium">Pessoa de contato</TableHead>
                   <TableHead className="font-medium">Telefone</TableHead>
-                  <TableHead className="font-medium">Data de venc.</TableHead>
-                  <TableHead className="font-medium hidden md:table-cell">Criada em</TableHead>
+                  <TableHead className="font-medium">
+                    <button type="button" onClick={() => toggleSort("due_date")} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      Data de venc.
+                      {sortKey === "due_date" && (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                    </button>
+                  </TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">
+                    <button type="button" onClick={() => toggleSort("created_at")} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      Criada em
+                      {sortKey === "created_at" && (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                    </button>
+                  </TableHead>
+                  <TableHead className="font-medium hidden md:table-cell">
+                    <button type="button" onClick={() => toggleSort("completed_at")} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      Concluída em
+                      {sortKey === "completed_at" && (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                    </button>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -268,6 +311,13 @@ const TarefasPage = () => {
                     </TableCell>
                     <TableCell className="hidden md:table-cell" onClick={() => handleTaskClick(task)}>
                       <span className="text-xs text-muted-foreground">{new Date(task.created_at).toLocaleDateString("pt-BR")}</span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell" onClick={() => handleTaskClick(task)}>
+                      <span className="text-xs text-muted-foreground">
+                        {task.completed_at
+                          ? new Date(task.completed_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                          : "—"}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
