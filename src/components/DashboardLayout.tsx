@@ -45,6 +45,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/whatsapp") return "whatsapp";
     if (path === "/inbox") return "inbox";
     if (path === "/integracoes") return "integracoes";
+    if (path === "/estudio" || path.startsWith("/estudio/")) return "estudio";
     return "leads";
   };
 
@@ -67,6 +68,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     whatsapp: "WhatsApp",
     inbox: "Inbox",
     integracoes: "Integrações",
+    estudio: "Estúdio IA",
   };
   const currentTitle = PAGE_TITLES[getActiveItem()] ?? "CRM";
 
@@ -101,6 +103,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       whatsapp: "/whatsapp",
       inbox: "/inbox",
       integracoes: "/integracoes",
+      estudio: "/estudio",
     };
     navigate(routes[item] || "/leads");
   };
