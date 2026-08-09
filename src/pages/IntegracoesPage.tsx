@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIntegrationSettings, useSaveIntegrationSettings } from "@/hooks/useIntegrationSettings";
 import GoogleCalendarCard from "@/components/integracoes/GoogleCalendarCard";
+import InstagramCard from "@/components/integracoes/InstagramCard";
 
 const MaskedInput = ({
   value,
@@ -138,6 +139,7 @@ const IntegracoesPage = () => {
       </form>
 
       <GoogleCalendarCard />
+      <InstagramCard />
     </div>
   );
 };
