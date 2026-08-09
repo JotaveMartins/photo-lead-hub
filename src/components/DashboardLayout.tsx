@@ -45,6 +45,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (path === "/whatsapp") return "whatsapp";
     if (path === "/inbox") return "inbox";
     if (path === "/integracoes") return "integracoes";
+    if (path === "/estudio/calendario") return "estudio/calendario";
     if (path === "/estudio" || path.startsWith("/estudio/")) return "estudio";
     return "leads";
   };
