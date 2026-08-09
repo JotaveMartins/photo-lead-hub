@@ -69,10 +69,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     inbox: "Inbox",
     integracoes: "Integrações",
     estudio: "Estúdio IA",
+    "estudio/calendario": "Calendário de conteúdo",
   };
   const currentTitle = PAGE_TITLES[getActiveItem()] ?? "CRM";
-
-  PAGE_TITLES["estudio/calendario"] = "Calendário de conteúdo";
 
   // Determine page-specific tutorial based on current route
   const { pageTutorial, pageKey } = useMemo(() => {
