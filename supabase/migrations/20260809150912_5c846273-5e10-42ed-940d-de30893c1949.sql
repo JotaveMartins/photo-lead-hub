@@ -1,0 +1,1 @@
+UPDATE public.social_accounts SET status = 'connected' WHERE provider = 'instagram' AND status = 'ativo';

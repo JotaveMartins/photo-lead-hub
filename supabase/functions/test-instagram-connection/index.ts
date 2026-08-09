@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
             profile_picture_url: data.profile_picture_url ?? null,
             access_token: TOKEN,
             token_expires_at: new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString(),
-            status: 'ativo',
+            status: 'connected',
             updated_at: new Date().toISOString(),
           };
           await admin.from('social_accounts').delete()
