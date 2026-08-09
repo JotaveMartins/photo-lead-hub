@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Images, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarClock, Images, Instagram, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import PhotoGallery from "@/components/studio/PhotoGallery";
 import UploadArea from "@/components/studio/UploadArea";
 import CarouselEditor from "@/components/studio/CarouselEditor";
+import ScheduleModal, { ScheduleMode } from "@/components/studio/ScheduleModal";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   useCarousel,
   useDeletePhoto,
@@ -18,6 +21,14 @@ import {
 } from "@/hooks/useStudio";
 import { aiJsonToSlides, buildDemoCarousel, EditorSlide } from "@/lib/carouselSchema";
 import { exportCarousel } from "@/lib/carouselExport";
+import { renderCarouselToStorage } from "@/lib/renderCarouselToStorage";
+import {
+  useCarouselScheduledPost,
+  useInstagramAccount,
+  usePublishPost,
+  useSchedulePost,
+} from "@/hooks/useSocial";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 
 const statusStyles: Record<string, string> = {
   Rascunho: "bg-muted text-muted-foreground",
@@ -48,6 +59,14 @@ const ProjetoPage = () => {
   const [editingAgain, setEditingAgain] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const savedSnapshot = useRef<string>("");
+
+  const userId = useEffectiveUserId();
+  const { data: instagram } = useInstagramAccount();
+  const schedulePost = useSchedulePost();
+  const publishPost = usePublishPost();
+  const activePost = useCarouselScheduledPost(carouselId ?? carousel?.id);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [publishBusy, setPublishBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (carousel && slides === null) {
@@ -136,6 +155,43 @@ const ProjetoPage = () => {
     }
   };
 
+  const handleSchedule = async (mode: ScheduleMode, scheduledAtISO: string | null) => {
+    const cid = carouselId ?? carousel?.id;
+    if (!cid || !slides?.length) return toast.error("Salve o carrossel antes de publicar");
+    if (!instagram?.id) return toast.error("Conecte sua conta do Instagram");
+    if (!userId) return;
+
+    setPublishBusy(mode === "now" ? "publicando" : "agendando");
+    try {
+      const urlById: Record<string, string> = {};
+      photos.forEach((p) => (urlById[p.id] = p.url));
+      await renderCarouselToStorage(slides, urlById, userId, cid, (done, total) =>
+        setPublishBusy(mode === "now" ? "publicando" : "agendando"),
+      );
+
+      const when = mode === "now" ? new Date().toISOString() : scheduledAtISO!;
+      const postId = await schedulePost.mutateAsync({
+        carouselId: cid,
+        socialAccountId: instagram.id,
+        scheduledAt: when,
+      });
+
+      if (mode === "now") {
+        await publishPost.mutateAsync(postId);
+        toast.success("Carrossel publicado no Instagram!");
+      } else {
+        toast.success(
+          `Publicação agendada para ${format(new Date(when), "dd/MM 'às' HH:mm", { locale: ptBR })}`,
+        );
+      }
+      setScheduleOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Não foi possível publicar");
+    } finally {
+      setPublishBusy(null);
+    }
+  };
+
   if (isLoading || !project) {
     return <p className="py-20 text-center text-sm text-muted-foreground">Carregando...</p>;
   }
@@ -217,6 +273,29 @@ const ProjetoPage = () => {
 
       {slides && slides.length > 0 && (
         <section className="border-t border-border/50 pt-8">
+          {readOnly && (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/60 p-4">
+              <div className="flex items-center gap-2.5">
+                <Instagram className="h-4 w-4 text-pink-500" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {activePost
+                      ? `Agendado para ${format(new Date(activePost.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}`
+                      : "Publicar no Instagram"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {instagram?.username
+                      ? `Conta conectada: @${instagram.username}`
+                      : "Conecte sua conta em Configurações → Integrações"}
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => setScheduleOpen(true)} disabled={!!publishBusy}>
+                <CalendarClock className="mr-1.5 h-4 w-4" />
+                {activePost ? "Reagendar / publicar" : "Agendar publicação"}
+              </Button>
+            </div>
+          )}
           <CarouselEditor
             slides={slides}
             caption={caption}
