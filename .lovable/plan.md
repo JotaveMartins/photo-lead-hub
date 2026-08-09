@@ -26,3 +26,19 @@ Pontos que causam essa sensação:
 - `src/components/studio/CarouselEditor.tsx`: props novas (`dirty`, `justSaved`, `readOnly`) para badge de status, spinner nos botões e bloqueio de edição quando aprovado.
 - `src/hooks/useStudio.ts`: manter invalidação de `studio-carousel`, `studio-project` e `studio-projects` (já existente) e retornar o id do carrossel salvo para o chamador.
 - Sem mudanças de banco de dados.
+
+## Download do carrossel aprovado
+
+Depois de aprovar, aparece um botão "Baixar carrossel" que gera as imagens finais de cada slide, no mesmo layout aprovado, e entrega tudo pronto para publicar no Instagram.
+
+- Cada slide vira uma imagem 1080x1350 (4:5), na ordem do carrossel.
+- Vários slides são entregues em um arquivo .zip (`nome-do-projeto.zip`, arquivos `01.jpg`, `02.jpg`, ...); um único slide baixa direto como imagem.
+- Um botão adicional copia a legenda para a área de transferência.
+- Durante a geração, o botão mostra progresso ("Gerando 3/7...") e avisa por toast em caso de erro.
+
+### Detalhes técnicos do download
+
+- Renderização por `canvas`: as fotos são carregadas via URL assinada com `crossOrigin="anonymous"` e desenhadas nos retângulos definidos por `src/lib/carouselLayouts.ts`, respeitando o mesmo enquadramento (cover/centro) usado no preview.
+- Novo módulo `src/lib/carouselExport.ts` com `renderSlideToBlob(slide, photos)` e `exportCarousel(slides, photos, nome)`; empacotamento com `jszip` + `file-saver` (dependências novas).
+- Botão exposto em `CarouselEditor` apenas quando o status é "Aprovado", ligado a um handler em `ProjetoPage.tsx`.
+- Se alguma imagem falhar por CORS na URL assinada, o fallback é baixar as fotos via cliente de storage antes de desenhar.
