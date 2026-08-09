@@ -13,7 +13,7 @@ interface Rect {
   contain?: boolean;
 }
 
-const GAP = 6;
+const GAP = 4;
 
 /** Retângulos (em px do canvas final) para cada slot do layout. */
 export const layoutRects = (layout: LayoutType): Rect[] => {
@@ -26,10 +26,10 @@ export const layoutRects = (layout: LayoutType): Rect[] => {
     return [{ x: pad, y: pad, w: W - pad * 2, h: H - pad * 2, contain: true }];
   }
   if (layout === "grid_2") {
-    const h = (H - g) / 2;
+    const w = (W - g) / 2;
     return [
-      { x: 0, y: 0, w: W, h },
-      { x: 0, y: h + g, w: W, h },
+      { x: 0, y: 0, w, h: H },
+      { x: w + g, y: 0, w, h: H },
     ];
   }
   if (layout === "grid_4") {
