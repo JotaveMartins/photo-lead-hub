@@ -190,16 +190,20 @@ export const useUploadPhotos = (projectId?: string) => {
       files,
       startOrder = 0,
       onProgress,
+      projectId: overrideId,
     }: {
       files: File[];
       startOrder?: number;
       onProgress?: (done: number, total: number) => void;
+      projectId?: string;
     }) => {
+      const pid = overrideId ?? projectId;
+      if (!pid) throw new Error("Projeto não identificado");
       let done = 0;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const ext = file.name.split(".").pop() || "jpg";
-        const path = `${user!.id}/${projectId}/${crypto.randomUUID()}.${ext}`;
+        const path = `${user!.id}/${pid}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
           .upload(path, file, { contentType: file.type, upsert: false });
@@ -208,7 +212,7 @@ export const useUploadPhotos = (projectId?: string) => {
         const orientation =
           width === height ? "square" : width > height ? "landscape" : "portrait";
         const { error } = await supabase.from("photos").insert({
-          project_id: projectId,
+          project_id: pid,
           user_id: user!.id,
           image_url: path,
           storage_path: path,
@@ -224,7 +228,7 @@ export const useUploadPhotos = (projectId?: string) => {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["studio-photos", projectId] });
+      qc.invalidateQueries({ queryKey: ["studio-photos"] });
       qc.invalidateQueries({ queryKey: ["studio-projects"] });
     },
   });

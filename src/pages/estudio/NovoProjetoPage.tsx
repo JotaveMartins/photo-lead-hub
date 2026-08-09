@@ -19,8 +19,7 @@ const NovoProjetoPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const createProject = useCreateProject();
-  const [projectId, setProjectId] = useState<string | undefined>();
-  const uploadPhotos = useUploadPhotos(projectId);
+  const uploadPhotos = useUploadPhotos();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,9 +31,9 @@ const NovoProjetoPage = () => {
         tipo_ensaio: tipo,
         descricao: descricao.trim(),
       });
-      setProjectId(project.id);
       if (files.length) {
         await uploadPhotos.mutateAsync({
+          projectId: project.id,
           files,
           startOrder: 0,
           onProgress: (done, total) => setProgress({ done, total }),
