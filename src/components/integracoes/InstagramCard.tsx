@@ -1,6 +1,8 @@
-import { Instagram, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Instagram, CheckCircle2, AlertCircle, Loader2, Plug } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useInstagramAccount,
   useConnectInstagram,
@@ -11,6 +13,34 @@ const InstagramCard = () => {
   const { data: account, isLoading } = useInstagramAccount();
   const connect = useConnectInstagram();
   const disconnect = useDisconnectInstagram();
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<
+    { ok: true; username: string | null; id: string } | { ok: false; message: string } | null
+  >(null);
+
+  const handleTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-instagram-connection", {
+        body: {},
+      });
+      if (error || data?.status !== "ok") {
+        const message = data?.message ?? "Não foi possível conectar à API do Instagram.";
+        setTestResult({ ok: false, message });
+        toast.error(message);
+        return;
+      }
+      setTestResult({ ok: true, username: data.username, id: data.instagram_user_id });
+      toast.success(`Conexão funcionando — @${data.username}`);
+    } catch {
+      const message = "Erro ao testar a conexão com o Instagram.";
+      setTestResult({ ok: false, message });
+      toast.error(message);
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const expired =
     !!account?.token_expires_at && new Date(account.token_expires_at) < new Date();
@@ -59,6 +89,14 @@ const InstagramCard = () => {
       )}
 
       <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" disabled={testing} onClick={handleTest}>
+          {testing ? (
+            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+          ) : (
+            <Plug className="mr-1.5 h-4 w-4" />
+          )}
+          Testar conexão
+        </Button>
         {isConnected && (
           <Button
             variant="outline"
@@ -87,6 +125,27 @@ const InstagramCard = () => {
           {isConnected ? "Reconectar" : "Conectar Instagram"}
         </Button>
       </div>
+
+      {testResult && (
+        <div
+          className={`rounded-lg border p-3 text-xs ${
+            testResult.ok
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
+          }`}
+        >
+          {testResult.ok ? (
+            <>
+              <p className="font-medium">Conexão funcionando</p>
+              <p className="text-foreground/80 mt-0.5">
+                Conta: @{testResult.username} · ID: {testResult.id}
+              </p>
+            </>
+          ) : (
+            <p className="font-medium">{testResult.message}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
