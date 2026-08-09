@@ -131,6 +131,82 @@ export type Database = {
         }
         Relationships: []
       }
+      carousel_slides: {
+        Row: {
+          carousel_id: string
+          created_at: string
+          id: string
+          layout_type: string
+          slide_order: number
+          user_id: string
+        }
+        Insert: {
+          carousel_id: string
+          created_at?: string
+          id?: string
+          layout_type?: string
+          slide_order?: number
+          user_id: string
+        }
+        Update: {
+          carousel_id?: string
+          created_at?: string
+          id?: string
+          layout_type?: string
+          slide_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carousel_slides_carousel_id_fkey"
+            columns: ["carousel_id"]
+            isOneToOne: false
+            referencedRelation: "carousels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carousels: {
+        Row: {
+          created_at: string
+          id: string
+          legenda: string | null
+          project_id: string
+          status: string
+          titulo: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          legenda?: string | null
+          project_id: string
+          status?: string
+          titulo?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          legenda?: string | null
+          project_id?: string
+          status?: string
+          titulo?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carousels_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           cpf_cnpj: string | null
@@ -1419,6 +1495,56 @@ export type Database = {
         }
         Relationships: []
       }
+      photos: {
+        Row: {
+          created_at: string
+          filename: string | null
+          height: number | null
+          id: string
+          image_url: string
+          orientation: string | null
+          project_id: string
+          storage_path: string | null
+          upload_order: number
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          filename?: string | null
+          height?: number | null
+          id?: string
+          image_url: string
+          orientation?: string | null
+          project_id: string
+          storage_path?: string | null
+          upload_order?: number
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          filename?: string | null
+          height?: number | null
+          id?: string
+          image_url?: string
+          orientation?: string | null
+          project_id?: string
+          storage_path?: string | null
+          upload_order?: number
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           asaas_api_key: string | null
@@ -1473,6 +1599,42 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          status: string
+          tipo_ensaio: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          status?: string
+          tipo_ensaio?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          status?: string
+          tipo_ensaio?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           ativo: boolean
@@ -1514,6 +1676,48 @@ export type Database = {
           valor_base?: number
         }
         Relationships: []
+      }
+      slide_photos: {
+        Row: {
+          created_at: string
+          id: string
+          photo_id: string
+          position: number
+          slide_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          photo_id: string
+          position?: number
+          slide_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          photo_id?: string
+          position?: number
+          slide_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slide_photos_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slide_photos_slide_id_fkey"
+            columns: ["slide_id"]
+            isOneToOne: false
+            referencedRelation: "carousel_slides"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {
