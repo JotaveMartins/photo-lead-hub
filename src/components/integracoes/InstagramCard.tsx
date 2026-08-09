@@ -3,6 +3,7 @@ import { Instagram, CheckCircle2, AlertCircle, Loader2, Plug } from "lucide-reac
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useInstagramAccount,
   useConnectInstagram,
@@ -14,6 +15,7 @@ const InstagramCard = () => {
   const connect = useConnectInstagram();
   const disconnect = useDisconnectInstagram();
   const [testing, setTesting] = useState(false);
+  const queryClient = useQueryClient();
   const [testResult, setTestResult] = useState<
     { ok: true; username: string | null; id: string } | { ok: false; message: string } | null
   >(null);
@@ -32,6 +34,7 @@ const InstagramCard = () => {
         return;
       }
       setTestResult({ ok: true, username: data.username, id: data.instagram_user_id });
+      queryClient.invalidateQueries({ queryKey: ["instagram-account"] });
       toast.success(`Conexão funcionando — @${data.username}`);
     } catch {
       const message = "Erro ao testar a conexão com o Instagram.";
