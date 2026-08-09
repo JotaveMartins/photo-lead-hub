@@ -1,5 +1,16 @@
 import { useMemo, useState } from "react";
-import { GripVertical, Plus, Trash2, RefreshCw, Save, Check } from "lucide-react";
+import {
+  GripVertical,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Save,
+  Check,
+  Loader2,
+  Download,
+  Copy,
+  Pencil,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StudioPhoto } from "@/hooks/useStudio";
@@ -15,14 +26,29 @@ interface CarouselEditorProps {
   photos: StudioPhoto[];
   status: string;
   saving?: boolean;
+  savingLabel?: string;
+  dirty?: boolean;
+  justSaved?: boolean;
+  readOnly?: boolean;
+  exporting?: string | null;
   onChangeSlides: (slides: EditorSlide[]) => void;
   onChangeCaption: (caption: string) => void;
   onSave: () => void;
   onRegenerate: () => void;
   onApprove: () => void;
+  onDownload?: () => void;
+  onCopyCaption?: () => void;
+  onEditAgain?: () => void;
 }
 
 const newKey = () => `slide-${Math.random().toString(36).slice(2, 10)}`;
+
+const statusStyles: Record<string, string> = {
+  Rascunho: "bg-muted text-muted-foreground",
+  "Em edição": "bg-amber-500/15 text-amber-500",
+  Gerado: "bg-sky-500/15 text-sky-400",
+  Aprovado: "bg-emerald-500/15 text-emerald-400",
+};
 
 const CarouselEditor = ({
   slides,
@@ -30,11 +56,19 @@ const CarouselEditor = ({
   photos,
   status,
   saving,
+  savingLabel,
+  dirty,
+  justSaved,
+  readOnly,
+  exporting,
   onChangeSlides,
   onChangeCaption,
   onSave,
   onRegenerate,
   onApprove,
+  onDownload,
+  onCopyCaption,
+  onEditAgain,
 }: CarouselEditorProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [picker, setPicker] = useState<{ slide: number; slot: number } | null>(null);
@@ -49,7 +83,7 @@ const CarouselEditor = ({
     onChangeSlides(slides.map((s, i) => (i === index ? { ...s, ...patch } : s)));
 
   const handleDrop = (target: number) => {
-    if (dragIndex === null || dragIndex === target) return;
+    if (readOnly || dragIndex === null || dragIndex === target) return;
     const next = [...slides];
     const [moved] = next.splice(dragIndex, 1);
     next.splice(target, 0, moved);
@@ -75,21 +109,63 @@ const CarouselEditor = ({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-semibold text-foreground">Carrossel</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-xl font-semibold text-foreground">Carrossel</h2>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                statusStyles[status] ?? statusStyles.Rascunho
+              }`}
+            >
+              {status}
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground">
-            {slides.length} slides · status {status}
+            {slides.length} slides
+            {justSaved ? (
+              <span className="ml-2 text-emerald-400">· salvo</span>
+            ) : dirty ? (
+              <span className="ml-2 text-amber-500">· alterações não salvas</span>
+            ) : null}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={onRegenerate} disabled={saving}>
-            <RefreshCw className="mr-1.5 h-4 w-4" /> Regenerar
-          </Button>
-          <Button variant="outline" size="sm" onClick={onSave} disabled={saving}>
-            <Save className="mr-1.5 h-4 w-4" /> Salvar
-          </Button>
-          <Button size="sm" onClick={onApprove} disabled={saving}>
-            <Check className="mr-1.5 h-4 w-4" /> Aprovar
-          </Button>
+          {readOnly ? (
+            <>
+              <Button variant="outline" size="sm" onClick={onEditAgain}>
+                <Pencil className="mr-1.5 h-4 w-4" /> Editar novamente
+              </Button>
+              <Button variant="outline" size="sm" onClick={onCopyCaption}>
+                <Copy className="mr-1.5 h-4 w-4" /> Copiar legenda
+              </Button>
+              <Button size="sm" onClick={onDownload} disabled={!!exporting}>
+                {exporting ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-1.5 h-4 w-4" />
+                )}
+                {exporting ?? "Baixar carrossel"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={onRegenerate} disabled={saving}>
+                <RefreshCw className="mr-1.5 h-4 w-4" /> Regenerar
+              </Button>
+              <Button variant="outline" size="sm" onClick={onSave} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : justSaved ? (
+                  <Check className="mr-1.5 h-4 w-4 text-emerald-400" />
+                ) : (
+                  <Save className="mr-1.5 h-4 w-4" />
+                )}
+                {saving ? savingLabel ?? "Salvando..." : justSaved ? "Salvo" : "Salvar"}
+              </Button>
+              <Button size="sm" onClick={onApprove} disabled={saving}>
+                <Check className="mr-1.5 h-4 w-4" /> Aprovar
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -97,7 +173,7 @@ const CarouselEditor = ({
         {slides.map((slide, index) => (
           <div
             key={slide.key}
-            draggable
+            draggable={!readOnly}
             onDragStart={() => setDragIndex(index)}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => handleDrop(index)}
@@ -107,15 +183,17 @@ const CarouselEditor = ({
           >
             <div className="mb-2 flex items-center justify-between">
               <span className="inline-flex cursor-grab items-center gap-1 text-xs font-medium text-muted-foreground">
-                <GripVertical className="h-3.5 w-3.5" /> Slide {index + 1}
+                {!readOnly && <GripVertical className="h-3.5 w-3.5" />} Slide {index + 1}
               </span>
-              <button
-                onClick={() => onChangeSlides(slides.filter((_, i) => i !== index))}
-                className="rounded p-1 text-muted-foreground hover:text-destructive"
-                aria-label="Excluir slide"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => onChangeSlides(slides.filter((_, i) => i !== index))}
+                  className="rounded p-1 text-muted-foreground hover:text-destructive"
+                  aria-label="Excluir slide"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
             <div className="aspect-[4/5] overflow-hidden rounded-md border border-border/50">
@@ -123,7 +201,7 @@ const CarouselEditor = ({
                 layout={slide.layout}
                 photoIds={slide.photoIds}
                 photosById={photosById}
-                editable
+                editable={!readOnly}
                 onSlotClick={(slot) => setPicker({ slide: index, slot })}
                 onRemovePhoto={(slot) =>
                   update(index, {
@@ -133,15 +211,18 @@ const CarouselEditor = ({
               />
             </div>
 
-            <div className="mt-3">
-              <LayoutSelector
-                value={slide.layout}
-                onChange={(l) => changeLayout(index, l)}
-              />
-            </div>
+            {!readOnly && (
+              <div className="mt-3">
+                <LayoutSelector
+                  value={slide.layout}
+                  onChange={(l) => changeLayout(index, l)}
+                />
+              </div>
+            )}
           </div>
         ))}
 
+        {!readOnly && (
         <button
           onClick={() =>
             onChangeSlides([
@@ -154,6 +235,7 @@ const CarouselEditor = ({
           <Plus className="h-5 w-5" />
           <span className="text-xs font-medium">Novo slide</span>
         </button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -163,6 +245,7 @@ const CarouselEditor = ({
         <Textarea
           value={caption}
           onChange={(e) => onChangeCaption(e.target.value)}
+          readOnly={readOnly}
           rows={7}
           placeholder="Escreva a legenda do post..."
           className="resize-y bg-muted/40"
