@@ -21,6 +21,7 @@ import {
   Plug,
   Home,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import logo from "@/assets/logo.png";
@@ -74,6 +75,7 @@ const configItems: MenuItem[] = [
 
 const adminMenuItems: MenuItem[] = [
   { id: 'admin', label: 'Clientes', icon: UserCog },
+  { id: 'estudio', label: 'Estúdio IA', icon: Sparkles },
 ];
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
