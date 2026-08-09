@@ -142,7 +142,7 @@ const InstagramCard = () => {
               </p>
             </>
           ) : (
-            <p className="font-medium">{testResult.message}</p>
+            <p className="font-medium">{"message" in testResult ? testResult.message : ""}</p>
           )}
         </div>
       )}
