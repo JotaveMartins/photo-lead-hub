@@ -72,6 +72,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
   const currentTitle = PAGE_TITLES[getActiveItem()] ?? "CRM";
 
+  PAGE_TITLES["estudio/calendario"] = "Calendário de conteúdo";
+
   // Determine page-specific tutorial based on current route
   const { pageTutorial, pageKey } = useMemo(() => {
     const path = location.pathname;
@@ -104,6 +106,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       inbox: "/inbox",
       integracoes: "/integracoes",
       estudio: "/estudio",
+      "estudio/calendario": "/estudio/calendario",
     };
     navigate(routes[item] || "/leads");
   };
