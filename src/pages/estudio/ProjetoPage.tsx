@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Images, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +17,14 @@ import {
   ProjectStatus,
 } from "@/hooks/useStudio";
 import { aiJsonToSlides, buildDemoCarousel, EditorSlide } from "@/lib/carouselSchema";
+import { exportCarousel } from "@/lib/carouselExport";
+
+const statusStyles: Record<string, string> = {
+  Rascunho: "bg-muted text-muted-foreground",
+  "Em edição": "bg-amber-500/15 text-amber-500",
+  Gerado: "bg-sky-500/15 text-sky-400",
+  Aprovado: "bg-emerald-500/15 text-emerald-400",
+};
 
 const ProjetoPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,13 +42,32 @@ const ProjetoPage = () => {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [slides, setSlides] = useState<EditorSlide[] | null>(null);
   const [caption, setCaption] = useState("");
+  const [carouselId, setCarouselId] = useState<string | undefined>();
+  const [justSaved, setJustSaved] = useState(false);
+  const [savingLabel, setSavingLabel] = useState<string>("Salvando...");
+  const [editingAgain, setEditingAgain] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
+  const savedSnapshot = useRef<string>("");
 
   useEffect(() => {
     if (carousel && slides === null) {
       setSlides(carousel.slides);
       setCaption(carousel.legenda ?? "");
+      setCarouselId(carousel.id);
+      savedSnapshot.current = JSON.stringify({
+        s: carousel.slides.map((s) => [s.layout, s.photoIds]),
+        c: carousel.legenda ?? "",
+      });
     }
   }, [carousel, slides]);
+
+  const currentSnapshot = JSON.stringify({
+    s: (slides ?? []).map((s) => [s.layout, s.photoIds]),
+    c: caption,
+  });
+  const dirty = !!slides && currentSnapshot !== savedSnapshot.current;
+
+  const readOnly = project?.status === "Aprovado" && !editingAgain;
 
   const nextOrder = useMemo(
     () => photos.reduce((max, p) => Math.max(max, p.upload_order + 1), 0),
@@ -53,23 +80,59 @@ const ProjetoPage = () => {
     const json = buildDemoCarousel(photos.map((p) => p.id), project);
     setSlides(aiJsonToSlides(json));
     setCaption(json.carousel.caption);
+    setJustSaved(false);
     toast.success("Carrossel de demonstração gerado — revise e salve.");
   };
 
   const persist = async (status: string, projectStatus: ProjectStatus) => {
     if (!slides) return;
+    setSavingLabel(projectStatus === "Aprovado" ? "Aprovando..." : "Salvando...");
     try {
-      await saveCarousel.mutateAsync({
-        carouselId: carousel?.id,
+      const savedId = await saveCarousel.mutateAsync({
+        carouselId: carouselId ?? carousel?.id,
         titulo: project?.nome ?? null,
         legenda: caption,
         status,
         slides,
       });
+      setCarouselId(savedId);
       await updateStatus.mutateAsync({ id: id!, status: projectStatus });
+      savedSnapshot.current = currentSnapshot;
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
+      if (projectStatus === "Aprovado") setEditingAgain(false);
       toast.success(projectStatus === "Aprovado" ? "Conteúdo aprovado!" : "Carrossel salvo");
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao salvar carrossel");
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!slides?.length) return;
+    const urlById: Record<string, string> = {};
+    photos.forEach((p) => (urlById[p.id] = p.url));
+    setExporting("Gerando...");
+    try {
+      const total = await exportCarousel(
+        slides,
+        urlById,
+        project?.nome ?? "carrossel",
+        (done, t) => setExporting(`Gerando ${done}/${t}...`),
+      );
+      toast.success(`${total} imagem(ns) prontas para download`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao gerar as imagens");
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleCopyCaption = async () => {
+    try {
+      await navigator.clipboard.writeText(caption);
+      toast.success("Legenda copiada");
+    } catch {
+      toast.error("Não foi possível copiar a legenda");
     }
   };
 
@@ -99,13 +162,24 @@ const ProjetoPage = () => {
               {project.descricao}
             </p>
           )}
-          <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Images className="h-3.5 w-3.5" /> {photos.length} fotografias · {project.status}
+          <p className="mt-3 inline-flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Images className="h-3.5 w-3.5" /> {photos.length} fotografias
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                statusStyles[project.status] ?? statusStyles.Rascunho
+              }`}
+            >
+              {project.status}
+            </span>
           </p>
         </div>
-        <Button onClick={handleGenerate}>
-          <Sparkles className="mr-1.5 h-4 w-4" /> Gerar Carrossel com IA
-        </Button>
+        {!readOnly && (
+          <Button onClick={handleGenerate}>
+            <Sparkles className="mr-1.5 h-4 w-4" /> Gerar Carrossel com IA
+          </Button>
+        )}
       </header>
 
       <section className="space-y-4">
@@ -149,11 +223,19 @@ const ProjetoPage = () => {
             photos={photos}
             status={project.status}
             saving={saveCarousel.isPending}
+            savingLabel={savingLabel}
+            dirty={dirty}
+            justSaved={justSaved}
+            readOnly={readOnly}
+            exporting={exporting}
             onChangeSlides={setSlides}
             onChangeCaption={setCaption}
             onSave={() => persist("Em edição", "Em edição")}
             onRegenerate={handleGenerate}
             onApprove={() => persist("Aprovado", "Aprovado")}
+            onDownload={handleDownload}
+            onCopyCaption={handleCopyCaption}
+            onEditAgain={() => setEditingAgain(true)}
           />
         </section>
       )}
