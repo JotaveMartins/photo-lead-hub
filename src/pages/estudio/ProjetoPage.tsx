@@ -318,6 +318,16 @@ const ProjetoPage = () => {
           />
         </section>
       )}
+
+      <ScheduleModal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        account={instagram}
+        slideCount={slides?.length ?? 0}
+        caption={caption}
+        busyLabel={publishBusy}
+        onConfirm={handleSchedule}
+      />
     </div>
   );
 };
