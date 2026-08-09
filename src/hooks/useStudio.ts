@@ -228,7 +228,7 @@ export const useUploadPhotos = (projectId?: string) => {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["studio-photos", projectId] });
+      qc.invalidateQueries({ queryKey: ["studio-photos"] });
       qc.invalidateQueries({ queryKey: ["studio-projects"] });
     },
   });
