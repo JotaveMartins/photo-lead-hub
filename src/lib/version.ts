@@ -1,1 +1,1 @@
-export const CRM_VERSION = "3.3.1";
+export const CRM_VERSION = "3.3.2";
