@@ -172,6 +172,7 @@ export type Database = {
           id: string
           legenda: string | null
           project_id: string
+          rendered_slides: Json | null
           status: string
           titulo: string | null
           updated_at: string
@@ -182,6 +183,7 @@ export type Database = {
           id?: string
           legenda?: string | null
           project_id: string
+          rendered_slides?: Json | null
           status?: string
           titulo?: string | null
           updated_at?: string
@@ -192,6 +194,7 @@ export type Database = {
           id?: string
           legenda?: string | null
           project_id?: string
+          rendered_slides?: Json | null
           status?: string
           titulo?: string | null
           updated_at?: string
@@ -1635,6 +1638,69 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_posts: {
+        Row: {
+          attempts: number
+          carousel_id: string
+          created_at: string
+          id: string
+          instagram_media_id: string | null
+          last_error: string | null
+          published_at: string | null
+          scheduled_at: string
+          social_account_id: string | null
+          status: string
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          carousel_id: string
+          created_at?: string
+          id?: string
+          instagram_media_id?: string | null
+          last_error?: string | null
+          published_at?: string | null
+          scheduled_at: string
+          social_account_id?: string | null
+          status?: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          carousel_id?: string
+          created_at?: string
+          id?: string
+          instagram_media_id?: string | null
+          last_error?: string | null
+          published_at?: string | null
+          scheduled_at?: string
+          social_account_id?: string | null
+          status?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_posts_carousel_id_fkey"
+            columns: ["carousel_id"]
+            isOneToOne: false
+            referencedRelation: "carousels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_posts_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           ativo: boolean
@@ -1718,6 +1784,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      social_accounts: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          id: string
+          instagram_user_id: string | null
+          profile_picture_url: string | null
+          provider: string
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          instagram_user_id?: string | null
+          profile_picture_url?: string | null
+          provider?: string
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          instagram_user_id?: string | null
+          profile_picture_url?: string | null
+          provider?: string
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
       }
       team_members: {
         Row: {
