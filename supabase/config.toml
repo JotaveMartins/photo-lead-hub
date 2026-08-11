@@ -32,5 +32,3 @@ verify_jwt = false
 
 [functions.run-scheduled-posts]
 verify_jwt = false
-[functions.create-meta-tester]
-verify_jwt = false
