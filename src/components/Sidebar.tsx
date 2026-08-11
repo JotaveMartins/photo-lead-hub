@@ -81,7 +81,7 @@ const adminMenuItems: MenuItem[] = [
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
-  const { isAdmin, isTester } = useUserRole();
+  const { isAdmin, isTester, hasEstudio } = useUserRole();
   const { isImpersonating } = useImpersonation();
   const { data: clienteTasksToday = [] } = useTodayClienteTasks();
   const { data: allPending = [] } = useAllPendingTasks();
@@ -262,7 +262,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
 
       <div className="p-4 border-t border-sidebar-border space-y-1">
         {/* Admin items - at the bottom */}
-        {isAdmin && adminMenuItems.map((item) => {
+        {(isAdmin ? adminMenuItems : !isTester && hasEstudio ? adminMenuItems.filter((i) => i.id !== 'admin') : []).map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
           return (
