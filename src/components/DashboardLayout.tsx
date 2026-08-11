@@ -1,6 +1,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import Sidebar from "@/components/Sidebar";
 import { TutorialModal, HelpButton } from "@/components/TutorialModal";
 import VersionAnnouncementModal from "@/components/VersionAnnouncementModal";
@@ -21,6 +22,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { isImpersonating, impersonatedUserName, stopImpersonation } = useImpersonation();
+  const { isTester } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -158,9 +160,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-glow pointer-events-none opacity-50" />
         {children}
       </main>
-      <TutorialModal />
-      <VersionAnnouncementModal />
-      <HelpButton pageTutorial={pageTutorial} pageKey={pageKey} key={location.pathname} />
+      {!isTester && (
+        <>
+          <TutorialModal />
+          <VersionAnnouncementModal />
+          <HelpButton pageTutorial={pageTutorial} pageKey={pageKey} key={location.pathname} />
+        </>
+      )}
     </div>
   );
 };
