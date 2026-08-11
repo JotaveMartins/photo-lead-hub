@@ -294,9 +294,15 @@ const ProjetoPage = () => {
                 onProgress: (done, total) => setProgress({ done, total }),
               } as any,
               {
-                onSuccess: () => {
+                onSuccess: (res: any) => {
                   setProgress(null);
-                  toast.success("Fotografias enviadas");
+                  if (res?.skipped > 0) {
+                    toast.warning(
+                      `Você selecionou ${res.selected} fotos. Utilizamos ${res.uploaded}, respeitando o limite de ${MAX_PHOTOS_PER_PROJECT} por projeto.`,
+                    );
+                  } else {
+                    toast.success("Fotografias enviadas");
+                  }
                 },
                 onError: (e: any) => toast.error(e?.message ?? "Erro no upload"),
               },
