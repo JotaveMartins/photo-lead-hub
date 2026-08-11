@@ -5,6 +5,13 @@ import { EditorSlide } from "./carouselSchema";
 export const EXPORT_W = 1080;
 export const EXPORT_H = 1350;
 
+/** Qualidade JPEG destinada à publicação (Instagram). */
+export const PUBLISH_QUALITY = 0.88;
+/** Dimensões usadas apenas para pré-visualização na interface. */
+export const PREVIEW_W = 540;
+export const PREVIEW_H = 675;
+export const PREVIEW_QUALITY = 0.72;
+
 interface Rect {
   x: number;
   y: number;
@@ -16,10 +23,12 @@ interface Rect {
 const GAP = 4;
 
 /** Retângulos (em px do canvas final) para cada slot do layout. */
-export const layoutRects = (layout: LayoutType): Rect[] => {
-  const W = EXPORT_W;
-  const H = EXPORT_H;
-  const g = GAP;
+export const layoutRects = (
+  layout: LayoutType,
+  W: number = EXPORT_W,
+  H: number = EXPORT_H,
+): Rect[] => {
+  const g = Math.max(1, Math.round((GAP * W) / EXPORT_W));
 
   if (layout === "single_frame") {
     const pad = Math.round(W * 0.1);
