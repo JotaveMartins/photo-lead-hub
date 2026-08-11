@@ -15,6 +15,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { StudioPhoto } from "@/hooks/useStudio";
 import { EditorSlide } from "@/lib/carouselSchema";
 import { LayoutType, layoutCapacity } from "@/lib/carouselLayouts";
@@ -43,6 +53,7 @@ interface CarouselEditorProps {
   onEditAgain?: () => void;
   onGenerateCaption?: () => void;
   generatingCaption?: boolean;
+  captionEdited?: boolean;
   onPreviewPost?: () => void;
 }
 
@@ -76,10 +87,17 @@ const CarouselEditor = ({
   onEditAgain,
   onGenerateCaption,
   generatingCaption,
+  captionEdited,
   onPreviewPost,
 }: CarouselEditorProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [picker, setPicker] = useState<{ slide: number; slot: number } | null>(null);
+  const [confirmCaption, setConfirmCaption] = useState(false);
+
+  const requestCaption = () => {
+    if (captionEdited && caption.trim()) setConfirmCaption(true);
+    else onGenerateCaption?.();
+  };
 
   const photosById = useMemo(() => {
     const map: Record<string, StudioPhoto> = {};
@@ -163,7 +181,7 @@ const CarouselEditor = ({
                 <Eye className="mr-1.5 h-4 w-4" /> Pré-visualizar publicação
               </Button>
               <Button variant="outline" size="sm" onClick={onRegenerate} disabled={saving}>
-                <RefreshCw className="mr-1.5 h-4 w-4" /> Regenerar
+                <RefreshCw className="mr-1.5 h-4 w-4" /> Regenerar carrossel
               </Button>
               <Button variant="outline" size="sm" onClick={onSave} disabled={saving}>
                 {saving ? (
@@ -261,7 +279,7 @@ const CarouselEditor = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={onGenerateCaption}
+              onClick={requestCaption}
               disabled={generatingCaption || !slides.length}
             >
               {generatingCaption ? (
@@ -269,7 +287,11 @@ const CarouselEditor = ({
               ) : (
                 <Sparkles className="mr-1.5 h-4 w-4" />
               )}
-              {generatingCaption ? "Analisando fotos..." : "Gerar legenda com IA"}
+              {generatingCaption
+                ? "Gerando nova legenda..."
+                : caption.trim()
+                  ? "Regenerar legenda"
+                  : "Gerar legenda com IA"}
             </Button>
           )}
         </div>
@@ -289,6 +311,25 @@ const CarouselEditor = ({
         onClose={() => setPicker(null)}
         onSelect={(p) => handlePick(p.id)}
       />
+
+      <AlertDialog open={confirmCaption} onOpenChange={setConfirmCaption}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Sua legenda atual será substituída. Deseja gerar uma nova legenda?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              As fotografias, slides e templates do carrossel não serão alterados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onGenerateCaption?.()}>
+              Gerar nova legenda
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -61,6 +61,7 @@ const ProjetoPage = () => {
   const [savingLabel, setSavingLabel] = useState<string>("Salvando...");
   const [editingAgain, setEditingAgain] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
+  const [captionEdited, setCaptionEdited] = useState(false);
   const savedSnapshot = useRef<string>("");
 
   const userId = useEffectiveUserId();
@@ -98,16 +99,20 @@ const ProjetoPage = () => {
     [photos],
   );
 
+  /** Regenera SOMENTE o carrossel. A legenda existente permanece intacta. */
   const handleGenerate = async () => {
     if (!project) return;
     if (photos.length < 1) return toast.error("Envie fotografias primeiro");
     const json = buildDemoCarousel(photos.map((p) => p.id), project);
     const newSlides = aiJsonToSlides(json);
     setSlides(newSlides);
-    setCaption(json.carousel.caption);
     setJustSaved(false);
-    toast.success("Carrossel gerado. Criando legenda com IA...");
-    await runCaptionGeneration(newSlides);
+    if (!caption.trim()) {
+      toast.success("Carrossel gerado. Criando legenda com IA...");
+      await runCaptionGeneration(newSlides);
+    } else {
+      toast.success("Carrossel regenerado. A legenda foi mantida.");
+    }
   };
 
   const persist = async (status: string, projectStatus: ProjectStatus) => {
@@ -180,6 +185,7 @@ const ProjetoPage = () => {
         },
       });
       setCaption(res.caption);
+      setCaptionEdited(false);
       setJustSaved(false);
       toast.success(`Legenda gerada (${res.analysis?.category ?? "análise concluída"})`);
     } catch (err: any) {
@@ -344,7 +350,10 @@ const ProjetoPage = () => {
             readOnly={readOnly}
             exporting={exporting}
             onChangeSlides={setSlides}
-            onChangeCaption={setCaption}
+            onChangeCaption={(c) => {
+              setCaption(c);
+              setCaptionEdited(true);
+            }}
             onSave={() => persist("Em edição", "Em edição")}
             onRegenerate={handleGenerate}
             onApprove={() => persist("Aprovado", "Aprovado")}
@@ -353,6 +362,7 @@ const ProjetoPage = () => {
             onEditAgain={() => setEditingAgain(true)}
             onGenerateCaption={handleGenerateCaption}
             generatingCaption={generateCaption.isPending}
+            captionEdited={captionEdited}
             onPreviewPost={() => setPreviewOpen(true)}
           />
         </section>
