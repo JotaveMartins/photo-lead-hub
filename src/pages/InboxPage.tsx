@@ -34,6 +34,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useQuickReplies, useCreateQuickReply, useDeleteQuickReply } from "@/hooks/useQuickReplies";
 import { dedupeMessages } from "@/lib/dedupeMessages";
+import { isUnresolvedLid, displayContactNumber } from "@/lib/lidContact";
 import { messageDayKey, formatMessageDayLabel } from "@/lib/formatMessageDay";
 import { QuickRepliesModal } from "@/components/chat/QuickRepliesModal";
 import { EmojiPickerButton } from "@/components/chat/EmojiPickerButton";
@@ -393,8 +394,24 @@ const InboxPage = () => {
     toast.success("Atendimento reaberto.");
   };
 
-  const handleCreateLead = () => {
+  const handleCreateLead = async () => {
     if (!selectedConv) return;
+    if (isUnresolvedLid(selectedConv as any)) {
+      try {
+        const { data } = await supabase.functions.invoke("resolve-lid-contacts", {
+          body: { conversation_id: selectedConv.id },
+        });
+        const resolved = data?.results?.[0]?.status === "resolvido";
+        if (resolved) {
+          await queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+          toast.success("Número do contato identificado.");
+        } else {
+          toast.warning("Número deste contato não está disponível — preencha manualmente.");
+        }
+      } catch {
+        toast.warning("Não foi possível identificar o número — preencha manualmente.");
+      }
+    }
     setShowCreateLeadModal(true);
   };
 
@@ -533,7 +550,7 @@ const InboxPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
                     <h3 className="font-semibold text-foreground truncate text-sm max-w-[140px]">
-                      {conv.contact_name || conv.contact_number}
+                      {conv.contact_name || displayContactNumber(conv as any)}
                     </h3>
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-1">
                       {formatConvDate(conv.updated_at)}
@@ -646,9 +663,9 @@ const InboxPage = () => {
               </Avatar>
               <div className="min-w-0">
                 <h2 className="font-bold text-foreground text-sm leading-tight truncate">
-                  {selectedConv.contact_name || selectedConv.contact_number}
+                  {selectedConv.contact_name || displayContactNumber(selectedConv as any)}
                 </h2>
-                <p className="text-[11px] text-muted-foreground">{selectedConv.contact_number}</p>
+                <p className="text-[11px] text-muted-foreground">{displayContactNumber(selectedConv as any)}</p>
               </div>
             </div>
 
@@ -805,7 +822,7 @@ const InboxPage = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Número</p>
-                  <p className="font-medium text-foreground">{selectedConv.contact_number}</p>
+                  <p className="font-medium text-foreground">{displayContactNumber(selectedConv as any)}</p>
                 </div>
               </div>
               {selectedConv.lead_id && (
