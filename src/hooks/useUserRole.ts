@@ -18,5 +18,22 @@ export const useUserRole = () => {
     enabled: !!user,
   });
 
-  return { isAdmin: !!isAdmin, isLoading };
+  const { data: isTester, isLoading: isTesterLoading } = useQuery({
+    queryKey: ["user-role-tester", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "tester" as any,
+      });
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
+  return {
+    isAdmin: !!isAdmin,
+    isTester: !!isTester && !isAdmin,
+    isLoading: isLoading || isTesterLoading,
+  };
 };
