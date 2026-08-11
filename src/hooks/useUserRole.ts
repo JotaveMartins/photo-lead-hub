@@ -31,9 +31,23 @@ export const useUserRole = () => {
     enabled: !!user,
   });
 
+  const { data: hasEstudio, isLoading: isEstudioLoading } = useQuery({
+    queryKey: ["user-role-estudio", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "estudio" as any,
+      });
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
   return {
     isAdmin: !!isAdmin,
     isTester: !!isTester && !isAdmin,
-    isLoading: isLoading || isTesterLoading,
+    hasEstudio: !!isAdmin || !!isTester || !!hasEstudio,
+    isLoading: isLoading || isTesterLoading || isEstudioLoading,
   };
 };

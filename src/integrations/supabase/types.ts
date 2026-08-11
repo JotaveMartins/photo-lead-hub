@@ -1965,7 +1965,7 @@ export type Database = {
       whatsapp_match_key: { Args: { raw: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "user" | "tester"
+      app_role: "admin" | "user" | "tester" | "estudio"
       cobranca_status: "aguardando" | "paga" | "vencida"
       cobranca_tipo: "unica" | "parcela" | "recorrente"
       despesa_status: "paga" | "prevista"
@@ -2113,7 +2113,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "tester"],
+      app_role: ["admin", "user", "tester", "estudio"],
       cobranca_status: ["aguardando", "paga", "vencida"],
       cobranca_tipo: ["unica", "parcela", "recorrente"],
       despesa_status: ["paga", "prevista"],
