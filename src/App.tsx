@@ -5,7 +5,7 @@ import IntegracoesPage from "./pages/IntegracoesPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
@@ -49,13 +49,36 @@ const WhatsAppDisconnectWatcher = () => {
 
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
+  const { isTester, isLoading: isRoleLoading } = useUserRole();
+  const location = useLocation();
 
-  if (loading) return <LoadingScreen />;
+  if (loading || (user && isRoleLoading)) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (isTester && !isTesterAllowed(location.pathname)) {
+    return <Navigate to="/estudio" replace />;
+  }
 
   return (
     <DashboardLayout>
       <WhatsAppDisconnectWatcher />
+      <Outlet />
+    </DashboardLayout>
+  );
+};
+
+const isTesterAllowed = (pathname: string) =>
+  pathname.startsWith("/estudio") || pathname === "/integracoes";
+
+const EstudioProtectedLayout = () => {
+  const { user, loading } = useAuth();
+  const { isAdmin, isTester, isLoading: isRoleLoading } = useUserRole();
+
+  if (loading || isRoleLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isAdmin && !isTester) return <Navigate to="/leads" replace />;
+
+  return (
+    <DashboardLayout>
       <Outlet />
     </DashboardLayout>
   );
@@ -108,6 +131,9 @@ const AppRoutes = () => {
 
       <Route element={<AdminProtectedLayout />}>
         <Route path="/anuncios" element={<AnunciosPage />} />
+      </Route>
+
+      <Route element={<EstudioProtectedLayout />}>
         <Route path="/estudio" element={<EstudioPage />} />
         <Route path="/estudio/novo" element={<NovoProjetoPage />} />
         <Route path="/estudio/calendario" element={<CalendarioPage />} />
