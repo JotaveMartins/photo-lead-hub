@@ -98,14 +98,16 @@ const ProjetoPage = () => {
     [photos],
   );
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!project) return;
     if (photos.length < 1) return toast.error("Envie fotografias primeiro");
     const json = buildDemoCarousel(photos.map((p) => p.id), project);
-    setSlides(aiJsonToSlides(json));
+    const newSlides = aiJsonToSlides(json);
+    setSlides(newSlides);
     setCaption(json.carousel.caption);
     setJustSaved(false);
-    toast.success("Carrossel de demonstração gerado — revise e salve.");
+    toast.success("Carrossel gerado. Criando legenda com IA...");
+    await runCaptionGeneration(newSlides);
   };
 
   const persist = async (status: string, projectStatus: ProjectStatus) => {
@@ -160,9 +162,10 @@ const ProjetoPage = () => {
     }
   };
 
-  const handleGenerateCaption = async () => {
-    if (!project || !slides?.length) return;
-    const photoIds = slides.flatMap((s) => s.photoIds).filter(Boolean);
+  const runCaptionGeneration = async (target?: EditorSlide[] | null) => {
+    const source = target ?? slides;
+    if (!project || !source?.length) return;
+    const photoIds = source.flatMap((s) => s.photoIds).filter(Boolean);
     if (!photoIds.length) return toast.error("Adicione fotografias aos slides primeiro");
     try {
       const res = await generateCaption.mutateAsync({
@@ -183,6 +186,8 @@ const ProjetoPage = () => {
       toast.error(err?.message ?? "Não foi possível gerar a legenda");
     }
   };
+
+  const handleGenerateCaption = () => runCaptionGeneration();
 
   const handleSchedule = async (mode: ScheduleMode, scheduledAtISO: string | null) => {
     const cid = carouselId ?? carousel?.id;
