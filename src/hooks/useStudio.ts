@@ -332,15 +332,15 @@ export const useUploadPhotos = (projectId?: string) => {
     }) => {
       const pid = overrideId ?? projectId;
       if (!pid) throw new Error("Projeto não identificado");
-      const totalAfterUpload = startOrder + files.length;
-      if (totalAfterUpload > MAX_PHOTOS_PER_PROJECT) {
-        throw new Error(
-          `Limite de ${MAX_PHOTOS_PER_PROJECT} fotos por projeto atingido. Você pode enviar no máximo ${Math.max(0, MAX_PHOTOS_PER_PROJECT - startOrder)} foto(s) a mais.`,
-        );
-      }
+      // Nunca ultrapassa o limite: as fotos excedentes são simplesmente ignoradas.
+      const remaining = Math.max(0, MAX_PHOTOS_PER_PROJECT - startOrder);
+      const selected = files.length;
+      const accepted = files.slice(0, remaining);
+      const skipped = selected - accepted.length;
+      if (!accepted.length) return { uploaded: 0, skipped, selected };
       let done = 0;
-      for (let i = 0; i < files.length; i++) {
-        const original = files[i];
+      for (let i = 0; i < accepted.length; i++) {
+        const original = accepted[i];
         const optimized = await optimizeImageFile(original);
         const file = optimized.file;
         const ext = file.name.split(".").pop() || "jpg";
@@ -368,8 +368,9 @@ export const useUploadPhotos = (projectId?: string) => {
         } as any);
         if (error) throw error;
         done++;
-        onProgress?.(done, files.length);
+        onProgress?.(done, accepted.length);
       }
+      return { uploaded: accepted.length, skipped, selected };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["studio-photos"] });
