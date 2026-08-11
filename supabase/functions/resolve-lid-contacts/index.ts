@@ -182,6 +182,24 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      if (body.debug) {
+        const lidJid = `${lid}@lid`;
+        const msgs = await evoPost(baseUrl, apiKey, `chat/findMessages/${inst.name}`, {
+          where: { key: { remoteJid: lidJid } }, take: 10, skip: 0,
+        });
+        const recs: any[] = (Array.isArray(msgs) && msgs) || msgs?.messages?.records || msgs?.records || [];
+        const chats = await evoPost(baseUrl, apiKey, `chat/findChats/${inst.name}`, {
+          where: { remoteJid: lidJid },
+        });
+        const chatArr: any[] = (Array.isArray(chats) && chats) || chats?.records || [];
+        results.push({
+          id: conv.id, lid, status: "debug",
+          msgKeys: recs.slice(0, 6).map((r) => ({ ...(r?.key || {}), pushName: r?.pushName, participant: r?.participant })),
+          chats: chatArr.slice(0, 3),
+        });
+        continue;
+      }
+
       const { phone, name } = await resolveLid(baseUrl, apiKey, inst.name, lid, inst.owner);
       if (!phone) {
         results.push({ id: conv.id, lid, status: "nao_resolvido", name: name || null });
