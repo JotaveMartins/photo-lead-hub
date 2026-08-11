@@ -18,6 +18,7 @@ import {
   useUpdateProjectStatus,
   useUploadPhotos,
   ProjectStatus,
+  MAX_PHOTOS_PER_PROJECT,
 } from "@/hooks/useStudio";
 import { aiJsonToSlides, buildDemoCarousel, EditorSlide } from "@/lib/carouselSchema";
 import { exportCarousel } from "@/lib/carouselExport";
@@ -268,6 +269,8 @@ const ProjetoPage = () => {
         <h2 className="font-display text-xl font-semibold text-foreground">Galeria</h2>
         <UploadArea
           compact
+          photoCount={photos.length}
+          maxPhotos={MAX_PHOTOS_PER_PROJECT}
           uploading={uploadPhotos.isPending}
           progress={progress}
           onFiles={(files) =>
