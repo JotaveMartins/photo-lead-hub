@@ -7,6 +7,7 @@ import PhotoGallery from "@/components/studio/PhotoGallery";
 import UploadArea from "@/components/studio/UploadArea";
 import CarouselEditor from "@/components/studio/CarouselEditor";
 import ScheduleModal, { ScheduleMode } from "@/components/studio/ScheduleModal";
+import PostPreviewModal from "@/components/studio/PostPreviewModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -68,6 +69,7 @@ const ProjetoPage = () => {
   const publishPost = usePublishPost();
   const activePost = useCarouselScheduledPost(carouselId ?? carousel?.id);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [publishBusy, setPublishBusy] = useState<string | null>(null);
   const generateCaption = useGenerateCaption();
 
@@ -346,9 +348,19 @@ const ProjetoPage = () => {
             onEditAgain={() => setEditingAgain(true)}
             onGenerateCaption={handleGenerateCaption}
             generatingCaption={generateCaption.isPending}
+            onPreviewPost={() => setPreviewOpen(true)}
           />
         </section>
       )}
+
+      <PostPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        slides={slides ?? []}
+        caption={caption}
+        photos={photos}
+        account={instagram}
+      />
 
       <ScheduleModal
         open={scheduleOpen}
