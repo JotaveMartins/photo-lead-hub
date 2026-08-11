@@ -37,3 +37,12 @@ export const displayContactName = (
   if (digits && digits === name && lid && digits === lid) return null;
   return name;
 };
+
+// Um lead criado a partir de uma conversa ainda não identificada fica com o LID
+// (15 dígitos) no nome e/ou no WhatsApp. Telefone real tem no máximo 13 dígitos.
+export const isLidLikeValue = (value?: string | null): boolean => {
+  const raw = (value || "").trim();
+  if (!raw) return false;
+  const d = raw.replace(/\D/g, "");
+  return d.length >= 14 && d === raw.replace(/[\s\-()+]/g, "");
+};
