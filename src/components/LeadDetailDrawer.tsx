@@ -715,7 +715,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   return (
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[60vw] bg-card border-border flex flex-col overflow-hidden p-0">
+      <SheetContent className={`w-full sm:max-w-[60vw] bg-card border-border flex flex-col overflow-hidden p-0 ${isImpersonating ? "top-8 bottom-0" : ""}`}>
         {/* Header */}
         <div className="p-6 border-b border-border">
           <SheetHeader>
@@ -724,6 +724,21 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                 {lead.nome.charAt(0).toUpperCase()}
               </div>
               <InlineName value={lead.nome} onSave={(v) => handleFieldSave("nome", v)} />
+              {lidUnresolved && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-medium text-yellow-500 cursor-help">
+                        <AlertTriangle className="w-3 h-3" /> Número não identificado
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[260px] text-xs">
+                      O WhatsApp não enviou o número deste contato (privacidade). Ele será preenchido
+                      automaticamente quando a pessoa responder, ou você pode editar manualmente.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto text-muted-foreground hover:text-destructive"
                 onClick={() => setDeleteLeadConfirmOpen(true)}>
                 <Trash2 className="w-4 h-4" />
