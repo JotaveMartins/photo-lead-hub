@@ -434,6 +434,7 @@ const EditableSystemField = ({
 
 const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDrawerProps) => {
   const queryClient = useQueryClient();
+  const { isImpersonating } = useImpersonation();
   // Always use fresh data from the query cache instead of stale prop
   const { data: allLeads = [] } = useLeads();
   const lead = leadProp ? (allLeads.find(l => l.id === leadProp.id) || leadProp) : null;
