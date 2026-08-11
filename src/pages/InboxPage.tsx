@@ -34,7 +34,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useQuickReplies, useCreateQuickReply, useDeleteQuickReply } from "@/hooks/useQuickReplies";
 import { dedupeMessages } from "@/lib/dedupeMessages";
-import { isUnresolvedLid, displayContactNumber } from "@/lib/lidContact";
+import { isUnresolvedLid, displayContactNumber, displayContactName } from "@/lib/lidContact";
 import { messageDayKey, formatMessageDayLabel } from "@/lib/formatMessageDay";
 import { QuickRepliesModal } from "@/components/chat/QuickRepliesModal";
 import { EmojiPickerButton } from "@/components/chat/EmojiPickerButton";
@@ -550,7 +550,7 @@ const InboxPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
                     <h3 className="font-semibold text-foreground truncate text-sm max-w-[140px]">
-                      {conv.contact_name || displayContactNumber(conv as any)}
+                      {displayContactName(conv as any) || displayContactNumber(conv as any)}
                     </h3>
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-1">
                       {formatConvDate(conv.updated_at)}
@@ -663,7 +663,7 @@ const InboxPage = () => {
               </Avatar>
               <div className="min-w-0">
                 <h2 className="font-bold text-foreground text-sm leading-tight truncate">
-                  {selectedConv.contact_name || displayContactNumber(selectedConv as any)}
+                  {displayContactName(selectedConv as any) || displayContactNumber(selectedConv as any)}
                 </h2>
                 <p className="text-[11px] text-muted-foreground">{displayContactNumber(selectedConv as any)}</p>
               </div>
@@ -818,7 +818,7 @@ const InboxPage = () => {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-muted-foreground">Nome</p>
-                  <p className="font-medium text-foreground">{selectedConv.contact_name || "—"}</p>
+                  <p className="font-medium text-foreground">{displayContactName(selectedConv as any) || "—"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Número</p>
@@ -1017,8 +1017,15 @@ const InboxPage = () => {
       <LeadModal
         open={showCreateLeadModal}
         onOpenChange={setShowCreateLeadModal}
-        prefillNome={selectedConv?.contact_name || (selectedConv?.contact_number ? `Contato ${selectedConv.contact_number}` : "")}
-        prefillWhatsapp={selectedConv?.contact_number || ""}
+        prefillNome={
+          displayContactName(selectedConv as any) ||
+          (selectedConv && !isUnresolvedLid(selectedConv as any) && selectedConv.contact_number
+            ? `Contato ${selectedConv.contact_number}`
+            : "")
+        }
+        prefillWhatsapp={
+          selectedConv && !isUnresolvedLid(selectedConv as any) ? selectedConv.contact_number || "" : ""
+        }
         onCreated={handleLeadCreated}
       />
     </>
