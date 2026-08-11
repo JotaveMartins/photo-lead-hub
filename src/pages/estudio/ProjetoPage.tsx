@@ -268,6 +268,8 @@ const ProjetoPage = () => {
         <h2 className="font-display text-xl font-semibold text-foreground">Galeria</h2>
         <UploadArea
           compact
+          photoCount={photos.length}
+          maxPhotos={MAX_PHOTOS_PER_PROJECT}
           uploading={uploadPhotos.isPending}
           progress={progress}
           onFiles={(files) =>
