@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, RefreshCw, CheckCircle, AlertCircle, Plus, Trash2,
   Power, ArrowRightLeft, Activity, MessageCircle, Clock, AlertTriangle,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useInstanceStats } from "@/hooks/useInstanceStats";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
