@@ -81,7 +81,7 @@ const adminMenuItems: MenuItem[] = [
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { signOut } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isTester } = useUserRole();
   const { isImpersonating } = useImpersonation();
   const { data: clienteTasksToday = [] } = useTodayClienteTasks();
   const { data: allPending = [] } = useAllPendingTasks();
@@ -246,8 +246,18 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
         </div>
 
        <nav className="flex-1 p-3 overflow-y-auto">
-          {renderItem({ id: 'inicio', label: 'Início', icon: Home })}
-          {sections.map((s) => renderCollapsibleSection(s.key, s.title, s.items))}
+          {isTester ? (
+            <div className="space-y-0.5">
+              {renderItem({ id: 'estudio', label: 'Estúdio IA', icon: Sparkles })}
+              {renderItem({ id: 'estudio/calendario', label: 'Calendário', icon: Calendar })}
+              {renderItem({ id: 'integracoes', label: 'Integrações', icon: Plug })}
+            </div>
+          ) : (
+            <>
+              {renderItem({ id: 'inicio', label: 'Início', icon: Home })}
+              {sections.map((s) => renderCollapsibleSection(s.key, s.title, s.items))}
+            </>
+          )}
        </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-1">
