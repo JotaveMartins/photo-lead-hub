@@ -29,6 +29,7 @@ import {
   useSchedulePost,
 } from "@/hooks/useSocial";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import { useGenerateCaption } from "@/hooks/useCaptionAi";
 
 const statusStyles: Record<string, string> = {
   Rascunho: "bg-muted text-muted-foreground",
@@ -67,6 +68,7 @@ const ProjetoPage = () => {
   const activePost = useCarouselScheduledPost(carouselId ?? carousel?.id);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [publishBusy, setPublishBusy] = useState<string | null>(null);
+  const generateCaption = useGenerateCaption();
 
   useEffect(() => {
     if (carousel && slides === null) {
@@ -152,6 +154,30 @@ const ProjetoPage = () => {
       toast.success("Legenda copiada");
     } catch {
       toast.error("Não foi possível copiar a legenda");
+    }
+  };
+
+  const handleGenerateCaption = async () => {
+    if (!project || !slides?.length) return;
+    const photoIds = slides.flatMap((s) => s.photoIds).filter(Boolean);
+    if (!photoIds.length) return toast.error("Adicione fotografias aos slides primeiro");
+    try {
+      const res = await generateCaption.mutateAsync({
+        projectId: project.id,
+        photoIds,
+        projectContext: {
+          event_type: project.tipo_ensaio ?? "",
+          people_names: "",
+          location: "",
+          story: project.descricao ?? "",
+          additional_information: project.nome ?? "",
+        },
+      });
+      setCaption(res.caption);
+      setJustSaved(false);
+      toast.success(`Legenda gerada (${res.analysis?.category ?? "análise concluída"})`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Não foi possível gerar a legenda");
     }
   };
 
@@ -315,6 +341,8 @@ const ProjetoPage = () => {
             onDownload={handleDownload}
             onCopyCaption={handleCopyCaption}
             onEditAgain={() => setEditingAgain(true)}
+            onGenerateCaption={handleGenerateCaption}
+            generatingCaption={generateCaption.isPending}
           />
         </section>
       )}
