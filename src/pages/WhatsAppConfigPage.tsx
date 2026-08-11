@@ -281,6 +281,7 @@ const WhatsAppConfigPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="rounded-lg border border-status-warning/20 bg-status-warning/10 p-4 text-sm text-status-warning flex gap-3">
