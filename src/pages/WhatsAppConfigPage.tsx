@@ -41,6 +41,8 @@ type Instance = {
 
 const WhatsAppConfigPage = () => {
   const effectiveUserId = useEffectiveUserId();
+  const { isAdmin } = useUserRole();
+  const [resolvingContacts, setResolvingContacts] = useState(false);
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
@@ -53,6 +55,27 @@ const WhatsAppConfigPage = () => {
   qrCodesRef.current = qrCodes;
 
   const { data: instanceStats = [] } = useInstanceStats();
+
+  const handleResolveContacts = async () => {
+    if (!effectiveUserId) return;
+    setResolvingContacts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resolve-lid-contacts", {
+        body: { user_id: effectiveUserId, limit: 30 },
+      });
+      if (error) throw error;
+      const updated = data?.updated ?? 0;
+      toast.success(
+        updated > 0
+          ? `${updated} contato(s) atualizados com o número real.`
+          : "Nenhum número novo foi identificado.",
+      );
+    } catch (e: any) {
+      toast.error("Erro ao atualizar contatos: " + (e?.message || "tente novamente"));
+    } finally {
+      setResolvingContacts(false);
+    }
+  };
 
   const fetchInstances = async () => {
     if (!effectiveUserId) return;
