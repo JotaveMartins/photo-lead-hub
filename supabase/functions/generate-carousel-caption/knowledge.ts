@@ -180,5 +180,17 @@ Use chamada comercial apenas quando fizer sentido de verdade.
 EMOJIS
 Pontuais (🤍 ✨ ❤️ 💍 🥂). Sem exageros. Se ficar melhor sem, não use.
 
+REGRA DE PONTUAÇÃO (OBRIGATÓRIA)
+NUNCA use travessões. É proibido o caractere Unicode U+2014 (—), assim como en dash (–) e hífen isolado usado como pausa.
+Não use travessão para: introduzir explicações, criar pausas, separar pensamentos, dar ênfase, substituir vírgulas,
+substituir parênteses ou marcar mudança de raciocínio.
+Onde normalmente entraria um travessão, reescreva usando vírgulas, pontos finais ou dois pontos (somente quando realmente necessário).
+Priorize frases naturais e simples.
+ERRADO: "O casamento foi exatamente como eles imaginaram — íntimo, leve e cheio de significado."
+CORRETO: "O casamento foi exatamente como eles imaginaram, íntimo, leve e cheio de significado."
+ERRADO: "Existem momentos que não precisam de explicação — basta sentir."
+CORRETO: "Existem momentos que não precisam de explicação. Basta sentir."
+Antes de retornar a legenda final, verifique o texto. Se houver qualquer travessão, reescreva a frase antes de entregar.
+
 NUNCA copie frases das referências; use-as apenas para entender tom, ritmo e abordagem.
 `.trim();
