@@ -116,19 +116,31 @@ const drawContain = (
   ctx.drawImage(img, r.x + (r.w - w) / 2, r.y + (r.h - h) / 2, w, h);
 };
 
+export interface RenderOptions {
+  width?: number;
+  height?: number;
+  quality?: number;
+}
+
 export const renderSlideToBlob = async (
   slide: EditorSlide,
   urlById: Record<string, string>,
+  options: RenderOptions = {},
 ): Promise<Blob> => {
+  const W = options.width ?? EXPORT_W;
+  const H = options.height ?? EXPORT_H;
+  const quality = options.quality ?? 0.92;
+
   const canvas = document.createElement("canvas");
-  canvas.width = EXPORT_W;
-  canvas.height = EXPORT_H;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingQuality = "high";
 
   ctx.fillStyle = slide.layout === "single_frame" ? "#ffffff" : "#0b0b0c";
-  ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
+  ctx.fillRect(0, 0, W, H);
 
-  const rects = layoutRects(slide.layout);
+  const rects = layoutRects(slide.layout, W, H);
   const capacity = layoutCapacity(slide.layout);
 
   for (let i = 0; i < capacity; i++) {
@@ -144,7 +156,7 @@ export const renderSlideToBlob = async (
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar imagem"))),
       "image/jpeg",
-      0.92,
+      quality,
     ),
   );
 };
