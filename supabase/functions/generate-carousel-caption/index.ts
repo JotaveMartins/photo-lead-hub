@@ -124,16 +124,38 @@ Deno.serve(async (req) => {
     const paths = selected.map((p) => p.storage_path).filter(Boolean);
     const signedMap: Record<string, string> = {};
     if (paths.length) {
+      // Versão reduzida (transformação de imagem) para caber no limite do modelo.
       const { data: signed } = await admin.storage
         .from("project-photos")
-        .createSignedUrls(paths, 60 * 30);
+        .createSignedUrls(paths, 60 * 30, {
+          transform: { width: 768, height: 768, resize: "contain", quality: 65 },
+        } as any);
       (signed ?? []).forEach((s: any) => {
         if (s?.path && s?.signedUrl) signedMap[s.path] = s.signedUrl;
       });
     }
-    const imageUrls = selected
+    const signedUrls = selected
       .map((p) => (p.storage_path ? signedMap[p.storage_path] : null) ?? p.image_url)
-      .filter(Boolean);
+      .filter(Boolean) as string[];
+
+    // Inline em base64 (garante tamanho pequeno e evita o fetch remoto do provedor).
+    const imageUrls: string[] = [];
+    for (const url of signedUrls) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const buf = new Uint8Array(await r.arrayBuffer());
+        if (buf.byteLength > 3_500_000) continue;
+        const mime = r.headers.get("content-type") ?? "image/jpeg";
+        let bin = "";
+        for (let i = 0; i < buf.length; i += 8192) {
+          bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+        }
+        imageUrls.push(`data:${mime};base64,${btoa(bin)}`);
+      } catch (e) {
+        console.error("image fetch failed", e);
+      }
+    }
 
     if (!imageUrls.length) return json({ error: "Nenhuma imagem disponível para análise" }, 400);
 
