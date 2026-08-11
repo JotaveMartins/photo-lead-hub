@@ -18,6 +18,7 @@ import {
   useUpdateProjectStatus,
   useUploadPhotos,
   ProjectStatus,
+  MAX_PHOTOS_PER_PROJECT,
 } from "@/hooks/useStudio";
 import { aiJsonToSlides, buildDemoCarousel, EditorSlide } from "@/lib/carouselSchema";
 import { exportCarousel } from "@/lib/carouselExport";
