@@ -71,11 +71,11 @@ const isTesterAllowed = (pathname: string) =>
 
 const EstudioProtectedLayout = () => {
   const { user, loading } = useAuth();
-  const { isAdmin, isTester, isLoading: isRoleLoading } = useUserRole();
+  const { hasEstudio, isLoading: isRoleLoading } = useUserRole();
 
   if (loading || isRoleLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin && !isTester) return <Navigate to="/leads" replace />;
+  if (!hasEstudio) return <Navigate to="/leads" replace />;
 
   return (
     <DashboardLayout>
