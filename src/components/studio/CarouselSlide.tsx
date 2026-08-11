@@ -23,8 +23,10 @@ const Slot = ({
   <div className={`group/slot relative overflow-hidden bg-muted ${className}`}>
     {photo ? (
       <img
-        src={photo.url}
+        src={photo.thumbUrl ?? photo.url}
         alt={photo.filename ?? "Foto do slide"}
+        loading="lazy"
+        decoding="async"
         className={`h-full w-full ${frame ? "object-contain" : "object-cover"}`}
       />
     ) : (

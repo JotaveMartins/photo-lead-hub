@@ -5,6 +5,13 @@ import { EditorSlide } from "./carouselSchema";
 export const EXPORT_W = 1080;
 export const EXPORT_H = 1350;
 
+/** Qualidade JPEG destinada à publicação (Instagram). */
+export const PUBLISH_QUALITY = 0.88;
+/** Dimensões usadas apenas para pré-visualização na interface. */
+export const PREVIEW_W = 540;
+export const PREVIEW_H = 675;
+export const PREVIEW_QUALITY = 0.72;
+
 interface Rect {
   x: number;
   y: number;
@@ -16,10 +23,12 @@ interface Rect {
 const GAP = 4;
 
 /** Retângulos (em px do canvas final) para cada slot do layout. */
-export const layoutRects = (layout: LayoutType): Rect[] => {
-  const W = EXPORT_W;
-  const H = EXPORT_H;
-  const g = GAP;
+export const layoutRects = (
+  layout: LayoutType,
+  W: number = EXPORT_W,
+  H: number = EXPORT_H,
+): Rect[] => {
+  const g = Math.max(1, Math.round((GAP * W) / EXPORT_W));
 
   if (layout === "single_frame") {
     const pad = Math.round(W * 0.1);
@@ -107,19 +116,31 @@ const drawContain = (
   ctx.drawImage(img, r.x + (r.w - w) / 2, r.y + (r.h - h) / 2, w, h);
 };
 
+export interface RenderOptions {
+  width?: number;
+  height?: number;
+  quality?: number;
+}
+
 export const renderSlideToBlob = async (
   slide: EditorSlide,
   urlById: Record<string, string>,
+  options: RenderOptions = {},
 ): Promise<Blob> => {
+  const W = options.width ?? EXPORT_W;
+  const H = options.height ?? EXPORT_H;
+  const quality = options.quality ?? 0.92;
+
   const canvas = document.createElement("canvas");
-  canvas.width = EXPORT_W;
-  canvas.height = EXPORT_H;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingQuality = "high";
 
   ctx.fillStyle = slide.layout === "single_frame" ? "#ffffff" : "#0b0b0c";
-  ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
+  ctx.fillRect(0, 0, W, H);
 
-  const rects = layoutRects(slide.layout);
+  const rects = layoutRects(slide.layout, W, H);
   const capacity = layoutCapacity(slide.layout);
 
   for (let i = 0; i < capacity; i++) {
@@ -135,7 +156,7 @@ export const renderSlideToBlob = async (
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar imagem"))),
       "image/jpeg",
-      0.92,
+      quality,
     ),
   );
 };

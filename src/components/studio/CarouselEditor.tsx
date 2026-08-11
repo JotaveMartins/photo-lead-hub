@@ -11,6 +11,7 @@ import {
   Copy,
   Pencil,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +43,7 @@ interface CarouselEditorProps {
   onEditAgain?: () => void;
   onGenerateCaption?: () => void;
   generatingCaption?: boolean;
+  onPreviewPost?: () => void;
 }
 
 const newKey = () => `slide-${Math.random().toString(36).slice(2, 10)}`;
@@ -74,6 +76,7 @@ const CarouselEditor = ({
   onEditAgain,
   onGenerateCaption,
   generatingCaption,
+  onPreviewPost,
 }: CarouselEditorProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [picker, setPicker] = useState<{ slide: number; slot: number } | null>(null);
@@ -136,6 +139,9 @@ const CarouselEditor = ({
         <div className="flex flex-wrap gap-2">
           {readOnly ? (
             <>
+              <Button variant="outline" size="sm" onClick={onPreviewPost}>
+                <Eye className="mr-1.5 h-4 w-4" /> Pré-visualizar publicação
+              </Button>
               <Button variant="outline" size="sm" onClick={onEditAgain}>
                 <Pencil className="mr-1.5 h-4 w-4" /> Editar novamente
               </Button>
@@ -153,6 +159,9 @@ const CarouselEditor = ({
             </>
           ) : (
             <>
+              <Button variant="outline" size="sm" onClick={onPreviewPost}>
+                <Eye className="mr-1.5 h-4 w-4" /> Pré-visualizar publicação
+              </Button>
               <Button variant="outline" size="sm" onClick={onRegenerate} disabled={saving}>
                 <RefreshCw className="mr-1.5 h-4 w-4" /> Regenerar
               </Button>

@@ -172,6 +172,7 @@ export type Database = {
           id: string
           legenda: string | null
           project_id: string
+          rendered_meta: Json | null
           rendered_slides: Json | null
           status: string
           titulo: string | null
@@ -183,6 +184,7 @@ export type Database = {
           id?: string
           legenda?: string | null
           project_id: string
+          rendered_meta?: Json | null
           rendered_slides?: Json | null
           status?: string
           titulo?: string | null
@@ -194,6 +196,7 @@ export type Database = {
           id?: string
           legenda?: string | null
           project_id?: string
+          rendered_meta?: Json | null
           rendered_slides?: Json | null
           status?: string
           titulo?: string | null

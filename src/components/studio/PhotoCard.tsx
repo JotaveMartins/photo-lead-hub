@@ -18,9 +18,10 @@ const PhotoCard = ({ photo, onDelete, onOpen, selected, onClick }: PhotoCardProp
       onClick={onClick ? () => onClick(photo) : undefined}
     >
       <img
-        src={photo.url}
+        src={photo.thumbUrl ?? photo.url}
         alt={photo.filename ?? "Fotografia do projeto"}
         loading="lazy"
+        decoding="async"
         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
