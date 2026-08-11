@@ -18,6 +18,7 @@ export interface StudioProject {
   status: ProjectStatus;
   created_at: string;
   photo_count?: number;
+  deleted_at?: string | null;
 }
 
 export interface StudioPhoto {
@@ -159,6 +160,23 @@ export const useCreateProject = () => {
   });
 };
 
+export const useUpdateProject = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...patch
+    }: { id: string } & Partial<Pick<StudioProject, "nome" | "descricao" | "tipo_ensaio" | "status">>) => {
+      const { error } = await supabase.from("projects").update(patch as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["studio-projects"] });
+      qc.invalidateQueries({ queryKey: ["studio-project"] });
+    },
+  });
+};
+
 export const useUpdateProjectStatus = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -178,15 +196,107 @@ export const useUpdateProjectStatus = () => {
 
 export const useDeleteProject = () => {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("projects")
-        .update({ deleted_at: new Date().toISOString() } as any)
+        .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id ?? null } as any)
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["studio-projects"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["studio-projects"] });
+      qc.invalidateQueries({ queryKey: ["studio-projects-trash"] });
+    },
+  });
+};
+
+/** Projetos na lixeira (soft delete). */
+export const useDeletedProjects = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["studio-projects-trash", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<StudioProject[]> => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+      if (error) throw error;
+      const projects = (data ?? []) as any[];
+      if (!projects.length) return [];
+      const { data: photos } = await supabase.from("photos").select("id, project_id");
+      const counts: Record<string, number> = {};
+      (photos ?? []).forEach((p: any) => {
+        counts[p.project_id] = (counts[p.project_id] ?? 0) + 1;
+      });
+      return projects.map((p) => ({ ...p, photo_count: counts[p.id] ?? 0 }));
+    },
+  });
+};
+
+export const useRestoreProject = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("projects")
+        .update({ deleted_at: null, deleted_by: null } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["studio-projects"] });
+      qc.invalidateQueries({ queryKey: ["studio-projects-trash"] });
+    },
+  });
+};
+
+/** Exclusão definitiva: carrosséis, slides, fotos e arquivos deste projeto. */
+export const usePurgeProject = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data: carousels } = await supabase
+        .from("carousels")
+        .select("id")
+        .eq("project_id", id);
+      const carouselIds = (carousels ?? []).map((c: any) => c.id);
+
+      if (carouselIds.length) {
+        const { data: slideRows } = await supabase
+          .from("carousel_slides")
+          .select("id")
+          .in("carousel_id", carouselIds);
+        const slideIds = (slideRows ?? []).map((s: any) => s.id);
+        if (slideIds.length) {
+          await supabase.from("slide_photos").delete().in("slide_id", slideIds);
+          await supabase.from("carousel_slides").delete().in("id", slideIds);
+        }
+        await supabase.from("scheduled_posts").delete().in("carousel_id", carouselIds);
+        await supabase.from("carousels").delete().in("id", carouselIds);
+      }
+
+      // Somente arquivos deste projeto (o caminho inclui o id do projeto).
+      const { data: photoRows } = await supabase
+        .from("photos")
+        .select("id, storage_path")
+        .eq("project_id", id);
+      const paths = (photoRows ?? [])
+        .map((p: any) => p.storage_path)
+        .filter((p: string | null): p is string => !!p && p.includes(`/${id}/`));
+      if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
+      await supabase.from("photos").delete().eq("project_id", id);
+
+      const { error } = await supabase.from("projects").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["studio-projects"] });
+      qc.invalidateQueries({ queryKey: ["studio-projects-trash"] });
+    },
   });
 };
 
