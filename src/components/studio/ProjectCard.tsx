@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Images } from "lucide-react";
+import { Images, Trash2 } from "lucide-react";
 import { StudioProject } from "@/hooks/useStudio";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -13,13 +13,30 @@ const STATUS_STYLES: Record<string, string> = {
 interface ProjectCardProps {
   project: StudioProject;
   onClick: (project: StudioProject) => void;
+  onDelete?: (project: StudioProject) => void;
 }
 
-const ProjectCard = ({ project, onClick }: ProjectCardProps) => (
-  <button
+const ProjectCard = ({ project, onClick, onDelete }: ProjectCardProps) => (
+  <div
+    role="button"
+    tabIndex={0}
     onClick={() => onClick(project)}
-    className="group flex w-full flex-col gap-4 rounded-xl border border-border/60 bg-card/60 p-5 text-left transition-all hover:border-primary/40 hover:bg-card"
+    onKeyDown={(e) => e.key === "Enter" && onClick(project)}
+    className="group relative flex w-full cursor-pointer flex-col gap-4 rounded-xl border border-border/60 bg-card/60 p-5 text-left transition-all hover:border-primary/40 hover:bg-card"
   >
+    {onDelete && (
+      <button
+        type="button"
+        aria-label="Excluir projeto"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(project);
+        }}
+        className="absolute right-2 top-2 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    )}
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <h3 className="truncate font-display text-lg font-semibold text-foreground">
@@ -51,7 +68,7 @@ const ProjectCard = ({ project, onClick }: ProjectCardProps) => (
         {format(new Date(project.created_at), "dd MMM yyyy", { locale: ptBR })}
       </span>
     </div>
-  </button>
+  </div>
 );
 
 export default ProjectCard;
