@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
 
     const paths = selected.map((p) => p.storage_path).filter(Boolean);
     const signedMap: Record<string, string> = {};
+    const plainMap: Record<string, string> = {};
     if (paths.length) {
       // Versão reduzida (transformação de imagem) para caber no limite do modelo.
       const { data: signed } = await admin.storage
@@ -133,27 +134,44 @@ Deno.serve(async (req) => {
       (signed ?? []).forEach((s: any) => {
         if (s?.path && s?.signedUrl) signedMap[s.path] = s.signedUrl;
       });
+      const { data: plain } = await admin.storage
+        .from("project-photos")
+        .createSignedUrls(paths, 60 * 30);
+      (plain ?? []).forEach((s: any) => {
+        if (s?.path && s?.signedUrl) plainMap[s.path] = s.signedUrl;
+      });
     }
-    const signedUrls = selected
-      .map((p) => (p.storage_path ? signedMap[p.storage_path] : null) ?? p.image_url)
-      .filter(Boolean) as string[];
+    const candidates = selected.map((p) => ({
+      small: (p.storage_path ? signedMap[p.storage_path] : null) ?? null,
+      full: (p.storage_path ? plainMap[p.storage_path] : null) ?? p.image_url ?? null,
+    }));
 
     // Inline em base64 (garante tamanho pequeno e evita o fetch remoto do provedor).
     const imageUrls: string[] = [];
-    for (const url of signedUrls) {
-      try {
-        const r = await fetch(url);
-        if (!r.ok) continue;
-        const buf = new Uint8Array(await r.arrayBuffer());
-        if (buf.byteLength > 3_500_000) continue;
-        const mime = r.headers.get("content-type") ?? "image/jpeg";
-        let bin = "";
-        for (let i = 0; i < buf.length; i += 8192) {
-          bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+    for (const c of candidates) {
+      for (const url of [c.small, c.full]) {
+        if (!url) continue;
+        try {
+          const r = await fetch(url);
+          if (!r.ok) {
+            console.error("image fetch status", r.status, url.slice(0, 120));
+            continue;
+          }
+          const buf = new Uint8Array(await r.arrayBuffer());
+          if (buf.byteLength > 4_000_000) {
+            console.error("image too large", buf.byteLength);
+            continue;
+          }
+          const mime = r.headers.get("content-type") ?? "image/jpeg";
+          let bin = "";
+          for (let i = 0; i < buf.length; i += 8192) {
+            bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+          }
+          imageUrls.push(`data:${mime};base64,${btoa(bin)}`);
+          break;
+        } catch (e) {
+          console.error("image fetch failed", e);
         }
-        imageUrls.push(`data:${mime};base64,${btoa(bin)}`);
-      } catch (e) {
-        console.error("image fetch failed", e);
       }
     }
 
