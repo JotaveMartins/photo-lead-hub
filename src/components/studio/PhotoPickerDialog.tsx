@@ -21,7 +21,13 @@ const PhotoPickerDialog = ({ open, photos, onSelect, onClose }: PhotoPickerDialo
             onClick={() => onSelect(p)}
             className="aspect-[4/5] overflow-hidden rounded-md border border-border/60 transition-all hover:border-primary"
           >
-            <img src={p.url} alt={p.filename ?? "Foto"} className="h-full w-full object-cover" />
+            <img
+              src={p.thumbUrl ?? p.url}
+              alt={p.filename ?? "Foto"}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
           </button>
         ))}
         {!photos.length && (
