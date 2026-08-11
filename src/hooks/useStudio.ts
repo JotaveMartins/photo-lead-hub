@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { EditorSlide } from "@/lib/carouselSchema";
+import { optimizeImageFile } from "@/lib/imageOptimize";
 
 const BUCKET = "project-photos";
 
@@ -30,6 +31,7 @@ export interface StudioPhoto {
   orientation: string | null;
   upload_order: number;
   url: string; // signed url pronta para uso
+  thumbUrl: string; // versão leve para uso na interface
 }
 
 export const TIPOS_ENSAIO = [
@@ -43,16 +45,30 @@ export const TIPOS_ENSAIO = [
   "Outro",
 ];
 
-const signPaths = async (paths: string[]): Promise<Record<string, string>> => {
+const signPaths = async (
+  paths: string[],
+  transform?: { width: number; height: number; quality: number },
+): Promise<Record<string, string>> => {
   if (!paths.length) return {};
   const { data } = await supabase.storage
     .from(BUCKET)
-    .createSignedUrls(paths, 60 * 60 * 12);
+    .createSignedUrls(paths, 60 * 60 * 12, transform ? ({ transform } as any) : undefined);
   const map: Record<string, string> = {};
   (data ?? []).forEach((d: any) => {
     if (d?.path && d?.signedUrl) map[d.path] = d.signedUrl;
   });
   return map;
+};
+
+/** Miniaturas via Supabase Image Transformations, com fallback para a URL completa. */
+const signThumbs = async (paths: string[]): Promise<Record<string, string>> => {
+  try {
+    const map = await signPaths(paths, { width: 540, height: 675, quality: 72 });
+    if (Object.keys(map).length) return map;
+  } catch {
+    /* transformações indisponíveis no projeto */
+  }
+  return {};
 };
 
 export const useProjects = () => {
@@ -109,10 +125,15 @@ export const useProjectPhotos = (projectId?: string) => {
         .order("upload_order", { ascending: true });
       if (error) throw error;
       const rows = (data ?? []) as any[];
-      const map = await signPaths(
-        rows.map((r) => r.storage_path).filter(Boolean),
-      );
-      return rows.map((r) => ({ ...r, url: map[r.storage_path] ?? r.image_url }));
+      const storagePaths = rows.map((r) => r.storage_path).filter(Boolean);
+      const [map, thumbs] = await Promise.all([
+        signPaths(storagePaths),
+        signThumbs(storagePaths),
+      ]);
+      return rows.map((r) => {
+        const url = map[r.storage_path] ?? r.image_url;
+        return { ...r, url, thumbUrl: thumbs[r.storage_path] ?? url };
+      });
     },
   });
 };
