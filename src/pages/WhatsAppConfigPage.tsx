@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, RefreshCw, CheckCircle, AlertCircle, Plus, Trash2,
   Power, ArrowRightLeft, Activity, MessageCircle, Clock, AlertTriangle,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useInstanceStats } from "@/hooks/useInstanceStats";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,6 +41,8 @@ type Instance = {
 
 const WhatsAppConfigPage = () => {
   const effectiveUserId = useEffectiveUserId();
+  const { isAdmin } = useUserRole();
+  const [resolvingContacts, setResolvingContacts] = useState(false);
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
@@ -51,6 +55,27 @@ const WhatsAppConfigPage = () => {
   qrCodesRef.current = qrCodes;
 
   const { data: instanceStats = [] } = useInstanceStats();
+
+  const handleResolveContacts = async () => {
+    if (!effectiveUserId) return;
+    setResolvingContacts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("resolve-lid-contacts", {
+        body: { user_id: effectiveUserId, limit: 30 },
+      });
+      if (error) throw error;
+      const updated = data?.updated ?? 0;
+      toast.success(
+        updated > 0
+          ? `${updated} contato(s) atualizados com o número real.`
+          : "Nenhum número novo foi identificado.",
+      );
+    } catch (e: any) {
+      toast.error("Erro ao atualizar contatos: " + (e?.message || "tente novamente"));
+    } finally {
+      setResolvingContacts(false);
+    }
+  };
 
   const fetchInstances = async () => {
     if (!effectiveUserId) return;
@@ -223,6 +248,13 @@ const WhatsAppConfigPage = () => {
           </h1>
           <p className="text-muted-foreground mt-1">Conecte um ou mais números para automatizar o atendimento.</p>
         </div>
+        <div className="flex items-center gap-2">
+        {isAdmin && (
+          <Button variant="outline" className="gap-2" onClick={handleResolveContacts} disabled={resolvingContacts}>
+            {resolvingContacts ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+            Atualizar contatos
+          </Button>
+        )}
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="w-4 h-4" /> Novo canal</Button>
@@ -249,6 +281,7 @@ const WhatsAppConfigPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="rounded-lg border border-status-warning/20 bg-status-warning/10 p-4 text-sm text-status-warning flex gap-3">
