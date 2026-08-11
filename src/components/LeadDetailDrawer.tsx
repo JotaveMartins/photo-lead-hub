@@ -712,6 +712,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     { label: "Follow-up 5", value: lead.follow_up_5, field: "follow_up_5", isTimestamp: false },
   ];
 
+  const lidUnresolved = isLidLikeValue(lead.whatsapp) || isLidLikeValue(lead.nome);
+
   return (
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
