@@ -5,6 +5,8 @@ import { EditorSlide } from "@/lib/carouselSchema";
 
 const BUCKET = "project-photos";
 
+export const MAX_PHOTOS_PER_PROJECT = 30;
+
 export type ProjectStatus = "Rascunho" | "Gerado" | "Em edição" | "Aprovado";
 
 export interface StudioProject {
