@@ -248,6 +248,13 @@ const WhatsAppConfigPage = () => {
           </h1>
           <p className="text-muted-foreground mt-1">Conecte um ou mais números para automatizar o atendimento.</p>
         </div>
+        <div className="flex items-center gap-2">
+        {isAdmin && (
+          <Button variant="outline" className="gap-2" onClick={handleResolveContacts} disabled={resolvingContacts}>
+            {resolvingContacts ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+            Atualizar contatos
+          </Button>
+        )}
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="w-4 h-4" /> Novo canal</Button>
