@@ -60,6 +60,10 @@ async function callGateway(messages: unknown[], apiKey: string, jsonMode: boolea
 }
 
 function parseJsonLoose(raw: string): any {
+  return parseJsonLooseImpl(raw);
+}
+
+function parseJsonLooseImpl(raw: string): any {
   try {
     return JSON.parse(raw);
   } catch {
@@ -71,6 +75,25 @@ function parseJsonLoose(raw: string): any {
     }
     return null;
   }
+}
+
+/**
+ * Rede de segurança: remove travessões (U+2014 / U+2013 / U+2015) da legenda,
+ * convertendo a pausa em vírgula ou ponto conforme o contexto.
+ */
+function stripEmDashes(text: string): string {
+  let out = text
+    // " — palavra" no meio da frase vira vírgula
+    .replace(/\s*[\u2014\u2013\u2015]\s*/g, ", ")
+    // limpa pontuação duplicada gerada pela troca
+    .replace(/,\s*,/g, ",")
+    .replace(/([.,;:!?])\s*,\s*/g, "$1 ")
+    .replace(/\s+,/g, ",")
+    .replace(/,\s*$/gm, ".")
+    .replace(/[ \t]{2,}/g, " ");
+  // capitaliza depois de ponto quando a troca gerou frase nova
+  out = out.replace(/([.!?])\s+([a-zà-ú])/g, (_m, p, c) => `${p} ${c.toUpperCase()}`);
+  return out.trim();
 }
 
 Deno.serve(async (req) => {
@@ -310,7 +333,7 @@ Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de 
     );
 
     const captionJson = parseJsonLoose(captionRaw);
-    const caption = (captionJson?.caption ?? "").toString().trim();
+    const caption = stripEmDashes((captionJson?.caption ?? "").toString().trim());
     if (!caption) return json({ error: "A IA não retornou uma legenda" }, 502);
 
     return json({
