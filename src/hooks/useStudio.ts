@@ -201,6 +201,12 @@ export const useUploadPhotos = (projectId?: string) => {
     }) => {
       const pid = overrideId ?? projectId;
       if (!pid) throw new Error("Projeto não identificado");
+      const totalAfterUpload = startOrder + files.length;
+      if (totalAfterUpload > MAX_PHOTOS_PER_PROJECT) {
+        throw new Error(
+          `Limite de ${MAX_PHOTOS_PER_PROJECT} fotos por projeto atingido. Você pode enviar no máximo ${Math.max(0, MAX_PHOTOS_PER_PROJECT - startOrder)} foto(s) a mais.`,
+        );
+      }
       let done = 0;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
