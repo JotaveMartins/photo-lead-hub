@@ -10,6 +10,7 @@ import {
   Download,
   Copy,
   Pencil,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,8 @@ interface CarouselEditorProps {
   onDownload?: () => void;
   onCopyCaption?: () => void;
   onEditAgain?: () => void;
+  onGenerateCaption?: () => void;
+  generatingCaption?: boolean;
 }
 
 const newKey = () => `slide-${Math.random().toString(36).slice(2, 10)}`;
@@ -69,6 +72,8 @@ const CarouselEditor = ({
   onDownload,
   onCopyCaption,
   onEditAgain,
+  onGenerateCaption,
+  generatingCaption,
 }: CarouselEditorProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [picker, setPicker] = useState<{ slide: number; slot: number } | null>(null);
@@ -239,9 +244,26 @@ const CarouselEditor = ({
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Legenda do Instagram
-        </label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Legenda do Instagram
+          </label>
+          {!readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGenerateCaption}
+              disabled={generatingCaption || !slides.length}
+            >
+              {generatingCaption ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-1.5 h-4 w-4" />
+              )}
+              {generatingCaption ? "Analisando fotos..." : "Gerar legenda com IA"}
+            </Button>
+          )}
+        </div>
         <Textarea
           value={caption}
           onChange={(e) => onChangeCaption(e.target.value)}
