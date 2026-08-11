@@ -230,14 +230,19 @@ export const useUploadPhotos = (projectId?: string) => {
       }
       let done = 0;
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        const original = files[i];
+        const optimized = await optimizeImageFile(original);
+        const file = optimized.file;
         const ext = file.name.split(".").pop() || "jpg";
         const path = `${user!.id}/${pid}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
           .upload(path, file, { contentType: file.type, upsert: false });
         if (upErr) throw upErr;
-        const { width, height } = await readImageSize(file);
+        const { width, height } =
+          optimized.width && optimized.height
+            ? { width: optimized.width, height: optimized.height }
+            : await readImageSize(file);
         const orientation =
           width === height ? "square" : width > height ? "landscape" : "portrait";
         const { error } = await supabase.from("photos").insert({
@@ -245,7 +250,7 @@ export const useUploadPhotos = (projectId?: string) => {
           user_id: user!.id,
           image_url: path,
           storage_path: path,
-          filename: file.name,
+          filename: original.name,
           width,
           height,
           orientation,
