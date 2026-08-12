@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { EditorSlide } from "@/lib/carouselSchema";
 import { optimizeImageFile } from "@/lib/imageOptimize";
 
@@ -73,14 +74,15 @@ const signThumbs = async (paths: string[]): Promise<Record<string, string>> => {
 };
 
 export const useProjects = () => {
-  const { user } = useAuth();
+  const userId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["studio-projects", user?.id],
-    enabled: !!user,
+    queryKey: ["studio-projects", userId],
+    enabled: !!userId,
     queryFn: async (): Promise<StudioProject[]> => {
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .eq("user_id", userId!)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -88,7 +90,8 @@ export const useProjects = () => {
       if (!projects.length) return [];
       const { data: photos } = await supabase
         .from("photos")
-        .select("id, project_id");
+        .select("id, project_id")
+        .eq("user_id", userId!);
       const counts: Record<string, number> = {};
       (photos ?? []).forEach((p: any) => {
         counts[p.project_id] = (counts[p.project_id] ?? 0) + 1;
@@ -214,20 +217,24 @@ export const useDeleteProject = () => {
 
 /** Projetos na lixeira (soft delete). */
 export const useDeletedProjects = () => {
-  const { user } = useAuth();
+  const userId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["studio-projects-trash", user?.id],
-    enabled: !!user,
+    queryKey: ["studio-projects-trash", userId],
+    enabled: !!userId,
     queryFn: async (): Promise<StudioProject[]> => {
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .eq("user_id", userId!)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false });
       if (error) throw error;
       const projects = (data ?? []) as any[];
       if (!projects.length) return [];
-      const { data: photos } = await supabase.from("photos").select("id, project_id");
+      const { data: photos } = await supabase
+        .from("photos")
+        .select("id, project_id")
+        .eq("user_id", userId!);
       const counts: Record<string, number> = {};
       (photos ?? []).forEach((p: any) => {
         counts[p.project_id] = (counts[p.project_id] ?? 0) + 1;
