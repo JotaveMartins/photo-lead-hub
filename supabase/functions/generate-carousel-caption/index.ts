@@ -2,9 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   CATEGORIES,
+  CAPTION_STRUCTURE,
   CATEGORY_GUIDE,
+  DEFAULT_SEGMENT_GUIDE,
   NARRATIVE_ANGLES,
   REFERENCE_CAPTIONS,
+  SEGMENT_GUIDE,
   STYLE_RULES,
 } from "./knowledge.ts";
 
@@ -214,9 +217,16 @@ Deno.serve(async (req) => {
       { type: "image_url", image_url: { url } },
     ]).flat();
 
+    const segment = (projectContext.event_type ?? "").toString().trim() || "Outro";
+    const segmentGuide = SEGMENT_GUIDE[segment] ?? DEFAULT_SEGMENT_GUIDE;
+
     // ===== ETAPA 1 — ANÁLISE EDITORIAL =====
-    const analysisSystem = `Você é um diretor editorial de fotografia de casamentos.
+    const analysisSystem = `Você é um diretor editorial de fotografia profissional.
 Sua tarefa é analisar o CONJUNTO de fotografias de um carrossel do Instagram (não apenas a primeira) e produzir uma análise editorial.
+
+SEGMENTO DO ENSAIO: ${segment}
+${segmentGuide}
+Interprete as imagens dentro desse segmento. Não use vocabulário ou suposições de casamento quando o segmento for outro.
 
 Observe: o que está acontecendo, qual momento do evento é retratado, quem aparece, ambiente, atmosfera,
 elementos recorrentes (vestido, terno, alianças, buquê, maquiagem, cabelo, sapatos, acessórios, convites, decoração,
@@ -225,7 +235,7 @@ risadas, poses), quantidade de pessoas, interação entre elas e a sequência da
 
 Nunca classifique por uma única fotografia isolada — interprete o conjunto.
 
-Categorias possíveis: ${CATEGORIES.join(", ")}.
+Categorias possíveis (use GENERICO quando o segmento não for de casamento e nenhuma categoria couber): ${CATEGORIES.join(", ")}.
 Ângulos narrativos possíveis (1 a 3): ${NARRATIVE_ANGLES.join(", ")}.
 
 Responda SOMENTE com JSON no formato:
@@ -288,6 +298,11 @@ Responda SOMENTE com JSON no formato:
     // ===== ETAPA 2 — GERAÇÃO DA LEGENDA =====
     const captionSystem = `Você escreve legendas de Instagram como o próprio fotógrafo que esteve presente no momento.
 
+SEGMENTO DO ENSAIO: ${segment}
+${segmentGuide}
+
+${CAPTION_STRUCTURE}
+
 ${STYLE_RULES}
 
 ORIENTAÇÃO PARA A CATEGORIA ${category}:
@@ -299,7 +314,7 @@ PREFERÊNCIAS DO FOTÓGRAFO:
 - Uso de emojis: ${preferences.emojis ?? "Pouco"}
 - Uso de CTA comercial: ${preferences.cta ?? (analysis.commercial_cta ? "Às vezes" : "Nunca")}
 
-REFERÊNCIAS DE ESCRITA (apenas tom e ritmo — NUNCA copie frases):
+REFERÊNCIAS DE ESCRITA (apenas tom e ritmo, NUNCA copie frases; várias são de casamento, adapte ao segmento atual):
 ${REFERENCE_CAPTIONS}
 ${
   preferences.style_examples?.length
@@ -321,7 +336,7 @@ Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de 
               content_analysis: { ...analysis, category },
               project_context: projectContext,
               instrucao:
-                "Escreva a legenda usando o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais ou histórias.",
+                `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
             },
             null,
             2,
