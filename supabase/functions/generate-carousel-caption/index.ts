@@ -235,7 +235,7 @@ risadas, poses), quantidade de pessoas, interação entre elas e a sequência da
 
 Nunca classifique por uma única fotografia isolada — interprete o conjunto.
 
-Categorias possíveis: ${CATEGORIES.join(", ")}.
+Categorias possíveis (use GENERICO quando o segmento não for de casamento e nenhuma categoria couber): ${CATEGORIES.join(", ")}.
 Ângulos narrativos possíveis (1 a 3): ${NARRATIVE_ANGLES.join(", ")}.
 
 Responda SOMENTE com JSON no formato:
@@ -298,6 +298,11 @@ Responda SOMENTE com JSON no formato:
     // ===== ETAPA 2 — GERAÇÃO DA LEGENDA =====
     const captionSystem = `Você escreve legendas de Instagram como o próprio fotógrafo que esteve presente no momento.
 
+SEGMENTO DO ENSAIO: ${segment}
+${segmentGuide}
+
+${CAPTION_STRUCTURE}
+
 ${STYLE_RULES}
 
 ORIENTAÇÃO PARA A CATEGORIA ${category}:
@@ -309,7 +314,7 @@ PREFERÊNCIAS DO FOTÓGRAFO:
 - Uso de emojis: ${preferences.emojis ?? "Pouco"}
 - Uso de CTA comercial: ${preferences.cta ?? (analysis.commercial_cta ? "Às vezes" : "Nunca")}
 
-REFERÊNCIAS DE ESCRITA (apenas tom e ritmo — NUNCA copie frases):
+REFERÊNCIAS DE ESCRITA (apenas tom e ritmo, NUNCA copie frases; várias são de casamento, adapte ao segmento atual):
 ${REFERENCE_CAPTIONS}
 ${
   preferences.style_examples?.length
