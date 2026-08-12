@@ -336,7 +336,7 @@ Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de 
               content_analysis: { ...analysis, category },
               project_context: projectContext,
               instrucao:
-                "Escreva a legenda usando o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais ou histórias.",
+                `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
             },
             null,
             2,
