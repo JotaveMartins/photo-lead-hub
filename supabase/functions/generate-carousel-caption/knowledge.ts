@@ -208,6 +208,7 @@ ESTILO DE ESCRITA
 - Parecer escrita pelo próprio fotógrafo que esteve lá.
 
 EVITAR CLICHÊS (nunca como base do texto): "eternizar momentos", "registrar cada detalhe", "amor em cada clique",
+"registrar histórias", "cada detalhe", "capturar sua essência", "mais do que uma foto",
 "memórias inesquecíveis", "momento mágico", "conto de fadas", "o grande dia", "cada clique conta uma história",
 "transformar momentos em memórias".
 
