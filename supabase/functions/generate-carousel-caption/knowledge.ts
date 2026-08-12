@@ -42,6 +42,55 @@ export const NARRATIVE_ANGLES = [
   "MEMORIAS",
 ] as const;
 
+/**
+ * Orientação por SEGMENTO (campo "Tipo de ensaio" do projeto).
+ * Define objetivo da publicação, ideia central e vocabulário adequado,
+ * evitando que ensaios não relacionados a casamento herdem linguagem de casamento.
+ */
+export const SEGMENT_GUIDE: Record<string, string> = {
+  Casamento:
+    "Público: casais prestes a casar. Ideia central: o casamento como história, escolha e emoção compartilhada. A legenda pode falar do que fica depois que o dia passa, das pessoas presentes e do significado das escolhas do casal. Vocabulário: presença, escolha, celebração, família, emoção real.",
+  "Pré-Wedding":
+    "Público: casais noivos. Ideia central: o ensaio como um momento a dois, uma pausa antes do casamento, não uma sessão de poses. Vocabulário: leveza, conexão, espontaneidade, expectativa.",
+  Gestante:
+    "Público: mulheres grávidas e casais esperando um filho. Ideia central: uma fase que passa rápido e não se repete igual, transição, expectativa, corpo e vínculo em formação. Tom respeitoso, delicado e nada piegas. Nunca comente aparência de forma superficial nem invente semanas de gestação, nome ou sexo do bebê.",
+  Família:
+    "Público: famílias. Ideia central: vínculo, convivência e a passagem do tempo entre pessoas que crescem juntas. Vocabulário: rotina, colo, bagunça boa, gerações. Nunca invente parentesco, idades ou histórias.",
+  Corporativo:
+    "Público: profissionais, empresários e pessoas que precisam comunicar credibilidade. Ideia central: a relação entre imagem, presença profissional e percepção. A pessoa não precisa apenas ser vista: a imagem que ela apresenta ao mercado comunica como deseja ser percebida. Contextualize o uso prático dos retratos em Instagram, LinkedIn, site, materiais profissionais e posicionamento de marca pessoal. Tom sofisticado, direto e seguro. Nunca invente profissão, especialidade, clientes, empresa ou trajetória que não estejam no contexto informado.",
+  Debutante:
+    "Público: adolescentes de 15 anos e suas famílias. Ideia central: passagem, identidade e o começo de uma nova fase, com personalidade da aniversariante em primeiro plano. Tom leve e respeitoso, nunca adultizado.",
+  Formatura:
+    "Público: formandos. Ideia central: conquista, esforço acumulado e o encerramento de um ciclo que começa outro. Vocabulário: percurso, dedicação, orgulho, começo profissional. Nunca invente curso, instituição ou planos.",
+  Outro:
+    "Segmento não especificado. Trabalhe somente o que é visível nas fotografias e o que estiver no contexto informado pelo fotógrafo. Seja sóbrio e mais curto do que o normal.",
+};
+
+export const DEFAULT_SEGMENT_GUIDE = SEGMENT_GUIDE.Outro;
+
+/**
+ * Estrutura editorial única aplicada a qualquer segmento.
+ */
+export const CAPTION_STRUCTURE = `
+OBJETIVO DA PUBLICAÇÃO
+A publicação funciona como portfólio do fotógrafo, mas a legenda NÃO deve descrever as fotografias.
+Ela deve ajudar o público daquele segmento a entender o valor de um ensaio profissional para o contexto dele.
+
+ESTRUTURA
+1. Comece com uma ideia que desperte identificação ou reflexão sobre o tema do segmento.
+2. Conecte essa ideia ao ensaio realizado (usando somente dados reais informados pelo fotógrafo).
+3. Finalize reforçando o trabalho do fotógrafo de forma natural, sem virar propaganda direta.
+4. Se fizer sentido, encerre com uma chamada sutil para pessoas que também precisam desse tipo de ensaio.
+
+DIREÇÃO DE ESCRITA
+Humana, direta, sofisticada, natural e segura. Sem linguagem excessivamente comercial.
+Não use hashtags genéricas em excesso (o ideal é nenhuma).
+
+NÃO INVENTAR (reforço)
+Nunca invente informações sobre a pessoa fotografada: carreira, cargo, especialidade, clientes, empresa,
+trajetória, relacionamento, histórico familiar ou planos. Se não estiver nas imagens nem no contexto informado, não mencione.
+`.trim();
+
 export const CATEGORY_GUIDE: Record<string, string> = {
   MAKING_OF_NOIVA:
     "Expectativa, silêncio antes do casamento, preparação, pequenos gestos, detalhes, cuidado, ansiedade positiva, pessoas próximas, transformação, respirar antes de tudo começar, momentos que acontecem antes de todos verem. Tom delicado, contemplativo e intimista. Não fale de festa ou cerimônia se não aparecem no carrossel.",
