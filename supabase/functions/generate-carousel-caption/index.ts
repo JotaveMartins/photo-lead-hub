@@ -2,9 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   CATEGORIES,
+  CAPTION_STRUCTURE,
   CATEGORY_GUIDE,
+  DEFAULT_SEGMENT_GUIDE,
   NARRATIVE_ANGLES,
   REFERENCE_CAPTIONS,
+  SEGMENT_GUIDE,
   STYLE_RULES,
 } from "./knowledge.ts";
 
@@ -214,9 +217,16 @@ Deno.serve(async (req) => {
       { type: "image_url", image_url: { url } },
     ]).flat();
 
+    const segment = (projectContext.event_type ?? "").toString().trim() || "Outro";
+    const segmentGuide = SEGMENT_GUIDE[segment] ?? DEFAULT_SEGMENT_GUIDE;
+
     // ===== ETAPA 1 — ANÁLISE EDITORIAL =====
-    const analysisSystem = `Você é um diretor editorial de fotografia de casamentos.
+    const analysisSystem = `Você é um diretor editorial de fotografia profissional.
 Sua tarefa é analisar o CONJUNTO de fotografias de um carrossel do Instagram (não apenas a primeira) e produzir uma análise editorial.
+
+SEGMENTO DO ENSAIO: ${segment}
+${segmentGuide}
+Interprete as imagens dentro desse segmento. Não use vocabulário ou suposições de casamento quando o segmento for outro.
 
 Observe: o que está acontecendo, qual momento do evento é retratado, quem aparece, ambiente, atmosfera,
 elementos recorrentes (vestido, terno, alianças, buquê, maquiagem, cabelo, sapatos, acessórios, convites, decoração,
