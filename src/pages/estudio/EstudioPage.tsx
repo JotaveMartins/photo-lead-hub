@@ -24,6 +24,7 @@ import {
   useRestoreProject,
 } from "@/hooks/useStudio";
 import ProjectCard from "@/components/studio/ProjectCard";
+import CalendarioPage from "./CalendarioPage";
 
 const EstudioPage = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const EstudioPage = () => {
   const restoreProject = useRestoreProject();
   const purgeProject = usePurgeProject();
 
-  const [tab, setTab] = useState<"projetos" | "lixeira">("projetos");
+  const [tab, setTab] = useState<"projetos" | "calendario" | "lixeira">("projetos");
   const [toDelete, setToDelete] = useState<StudioProject | null>(null);
   const [toPurge, setToPurge] = useState<StudioProject | null>(null);
 
@@ -57,7 +58,7 @@ const EstudioPage = () => {
       </header>
 
       <div className="inline-flex rounded-full border border-border/60 bg-muted/30 p-1">
-        {(["projetos", "lixeira"] as const).map((t) => (
+        {(["projetos", "calendario", "lixeira"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -67,12 +68,18 @@ const EstudioPage = () => {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "projetos" ? "Projetos" : `Lixeira${trash.length ? ` (${trash.length})` : ""}`}
+            {t === "projetos"
+              ? "Projetos"
+              : t === "calendario"
+                ? "Calendário"
+                : `Lixeira${trash.length ? ` (${trash.length})` : ""}`}
           </button>
         ))}
       </div>
 
-      {tab === "lixeira" ? (
+      {tab === "calendario" ? (
+        <CalendarioPage />
+      ) : tab === "lixeira" ? (
         trash.length === 0 ? (
           <p className="py-20 text-center text-sm text-muted-foreground">
             A lixeira está vazia.
