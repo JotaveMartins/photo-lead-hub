@@ -75,7 +75,10 @@ const configItems: MenuItem[] = [
 
 const adminMenuItems: MenuItem[] = [
   { id: 'admin', label: 'Clientes', icon: UserCog },
-  { id: 'estudio', label: 'Estúdio IA', icon: Sparkles },
+];
+
+const estudioItems: MenuItem[] = [
+  { id: 'estudio', label: 'Projetos', icon: Sparkles },
   { id: 'estudio/calendario', label: 'Calendário', icon: Calendar },
 ];
 
