@@ -34,6 +34,8 @@ interface ReportFiltersProps {
   profiles: ReportProfile[];
 }
 
+export const ALL_CLIENTS = "__all__";
+
 const periodLabels: Record<PeriodOption, string> = {
   today: "Hoje",
   yesterday: "Ontem",
@@ -151,9 +153,12 @@ const ReportFilters = (props: ReportFiltersProps) => {
           <SearchSelect
             value={props.clienteUserId}
             onChange={props.onClienteChange}
-            options={props.profiles.map((p) => ({ value: p.user_id, label: p.nome || p.email || "Sem nome" }))}
-            placeholder="Todos os clientes"
-            emptyLabel="Todos os clientes"
+            options={[
+              { value: ALL_CLIENTS, label: "Todos os clientes (consolidado)" },
+              ...props.profiles.map((p) => ({ value: p.user_id, label: p.nome || p.email || "Sem nome" })),
+            ]}
+            placeholder="Sem filtro"
+            emptyLabel="Sem filtro"
             allowEmpty
           />
         </div>
