@@ -13,6 +13,8 @@ interface UseReportDataParams {
   clienteUserId?: string;
 }
 
+export const ALL_CLIENTS = "__all__";
+
 export const useReportData = (params: UseReportDataParams = {}) => {
   const { user } = useAuth();
   const effectiveUserId = useEffectiveUserId();
@@ -23,8 +25,10 @@ export const useReportData = (params: UseReportDataParams = {}) => {
     queryFn: async () => {
       let query = supabase.from("leads").select("*");
 
-      // If admin with a specific client filter from report filters, use that
-      if (isAdmin && params.clienteUserId) {
+      // Admin: "__all__" = consolidated (no user filter); specific id = that client
+      if (isAdmin && params.clienteUserId === ALL_CLIENTS) {
+        // no filter
+      } else if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
       } else {
         // Otherwise use effective user id (handles impersonation)
@@ -43,7 +47,9 @@ export const useReportData = (params: UseReportDataParams = {}) => {
     queryFn: async () => {
       let query = supabase.from("lead_tasks").select("*");
 
-      if (isAdmin && params.clienteUserId) {
+      if (isAdmin && params.clienteUserId === ALL_CLIENTS) {
+        // no filter
+      } else if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
       } else {
         query = query.eq("user_id", effectiveUserId!);

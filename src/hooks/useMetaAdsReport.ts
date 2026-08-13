@@ -26,7 +26,12 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
   const effectiveUserId = useEffectiveUserId();
   const { isAdmin } = useUserRole();
 
-  const targetUserId = isAdmin ? (clienteUserId || null) : effectiveUserId;
+  // Admin: "__all__" = consolidado (sem filtro); vazio = dados da própria conta
+  const targetUserId = isAdmin
+    ? clienteUserId === "__all__"
+      ? null
+      : clienteUserId || effectiveUserId
+    : effectiveUserId;
 
   return useQuery({
     queryKey: ["meta_ads_report", from, to, isAdmin, targetUserId],
