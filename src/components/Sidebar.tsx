@@ -75,11 +75,7 @@ const configItems: MenuItem[] = [
 
 const adminMenuItems: MenuItem[] = [
   { id: 'admin', label: 'Clientes', icon: UserCog },
-];
-
-const estudioItems: MenuItem[] = [
-  { id: 'estudio', label: 'Projetos', icon: Sparkles },
-  { id: 'estudio/calendario', label: 'Calendário', icon: Calendar },
+  { id: 'estudio', label: 'Estúdio IA', icon: Sparkles },
 ];
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
@@ -164,8 +160,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
 
   // Auto-open section containing active route
   useEffect(() => {
-    const allSections = [...sections, { key: 'estudio', title: 'Estúdio IA', items: estudioItems }];
-    const activeSection = allSections.find((s) => s.items.some((i) => i.id === activeItem));
+    const activeSection = sections.find((s) => s.items.some((i) => i.id === activeItem));
     if (activeSection && !openSections[activeSection.key]) {
       setOpenSections((prev) => ({ ...prev, [activeSection.key]: true }));
     }
@@ -252,7 +247,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
        <nav className="flex-1 p-3 overflow-y-auto">
           {isTester ? (
             <div className="space-y-0.5">
-              {renderCollapsibleSection('estudio', 'Estúdio IA', estudioItems)}
+              {renderItem({ id: 'estudio', label: 'Estúdio IA', icon: Sparkles })}
               {renderItem({ id: 'integracoes', label: 'Integrações', icon: Plug })}
             </div>
           ) : (
@@ -264,14 +259,8 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
        </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-1">
-        {/* Estúdio IA group */}
-        {(isAdmin || hasEstudio) && !isTester && (
-          <div className="pb-1">
-            {renderCollapsibleSection('estudio', 'Estúdio IA', estudioItems)}
-          </div>
-        )}
         {/* Admin items - at the bottom */}
-        {(isAdmin ? adminMenuItems : []).map((item) => {
+        {(isAdmin ? adminMenuItems : !isTester && hasEstudio ? adminMenuItems.filter((i) => i.id !== 'admin') : []).map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
           return (
