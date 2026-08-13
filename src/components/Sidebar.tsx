@@ -251,8 +251,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
        <nav className="flex-1 p-3 overflow-y-auto">
           {isTester ? (
             <div className="space-y-0.5">
-              {renderItem({ id: 'estudio', label: 'Estúdio IA', icon: Sparkles })}
-              {renderItem({ id: 'estudio/calendario', label: 'Calendário', icon: Calendar })}
+              {renderCollapsibleSection('estudio', 'Estúdio IA', estudioItems)}
               {renderItem({ id: 'integracoes', label: 'Integrações', icon: Plug })}
             </div>
           ) : (
@@ -264,8 +263,14 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
        </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-1">
+        {/* Estúdio IA group */}
+        {(isAdmin || hasEstudio) && !isTester && (
+          <div className="pb-1">
+            {renderCollapsibleSection('estudio', 'Estúdio IA', estudioItems)}
+          </div>
+        )}
         {/* Admin items - at the bottom */}
-        {(isAdmin ? adminMenuItems : !isTester && hasEstudio ? adminMenuItems.filter((i) => i.id !== 'admin') : []).map((item) => {
+        {(isAdmin ? adminMenuItems : []).map((item) => {
           const Icon = item.icon;
           const isActive = activeItem === item.id;
           return (
