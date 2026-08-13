@@ -52,9 +52,11 @@ const EstudioPage = () => {
             Transforme suas galerias em carrosséis prontos para o Instagram.
           </p>
         </div>
-        <Button onClick={() => navigate("/estudio/novo")}>
-          <Plus className="mr-1.5 h-4 w-4" /> Novo projeto
-        </Button>
+        {tab !== "calendario" && (
+          <Button onClick={() => navigate("/estudio/novo")}>
+            <Plus className="mr-1.5 h-4 w-4" /> Novo projeto
+          </Button>
+        )}
       </header>
 
       <div className="inline-flex rounded-full border border-border/60 bg-muted/30 p-1">
