@@ -164,7 +164,8 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
 
   // Auto-open section containing active route
   useEffect(() => {
-    const activeSection = sections.find((s) => s.items.some((i) => i.id === activeItem));
+    const allSections = [...sections, { key: 'estudio', title: 'Estúdio IA', items: estudioItems }];
+    const activeSection = allSections.find((s) => s.items.some((i) => i.id === activeItem));
     if (activeSection && !openSections[activeSection.key]) {
       setOpenSections((prev) => ({ ...prev, [activeSection.key]: true }));
     }
