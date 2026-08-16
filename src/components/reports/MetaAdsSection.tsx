@@ -176,7 +176,17 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
 
           {/* Campaigns table */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-2">Campanhas</h3>
+            <button
+              type="button"
+              onClick={() => setCampanhasOpen((v) => !v)}
+              className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2 hover:text-primary transition-colors"
+              aria-expanded={campanhasOpen}
+            >
+              {campanhasOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              Campanhas
+              <span className="text-xs font-normal text-muted-foreground">({campanhas.length})</span>
+            </button>
+            {campanhasOpen && (
             <div className="overflow-x-auto border border-border rounded-lg">
               <table className="w-full text-sm">
                 <thead>
@@ -205,6 +215,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
                 </tbody>
               </table>
             </div>
+            )}
           </div>
           <MetaAdsDetailsModal
             open={detailsOpen}
