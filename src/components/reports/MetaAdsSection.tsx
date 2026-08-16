@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Megaphone, DollarSign, MessageSquare, MousePointerClick, Percent, Users, HelpCircle, TrendingUp, Target, Maximize2 } from "lucide-react";
+import { Megaphone, DollarSign, MessageSquare, MousePointerClick, Percent, Users, HelpCircle, TrendingUp, Target, Maximize2, ChevronDown, ChevronRight } from "lucide-react";
 import { useMetaAdsReport } from "@/hooks/useMetaAdsReport";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
@@ -45,6 +45,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
 
   const { data: rows = [], isLoading } = useMetaAdsReport(fromStr, toStr, clienteUserId);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [campanhasOpen, setCampanhasOpen] = useState(true);
 
   const totals = useMemo(() => {
     const t = { spend: 0, conversas: 0, clicks: 0, impressions: 0 };
