@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Megaphone, DollarSign, MessageSquare, MousePointerClick, Percent, Users, HelpCircle, TrendingUp, Target, Maximize2 } from "lucide-react";
+import { Megaphone, DollarSign, MessageSquare, MousePointerClick, Percent, Users, HelpCircle, TrendingUp, Target, Maximize2, ChevronDown, ChevronRight } from "lucide-react";
 import { useMetaAdsReport } from "@/hooks/useMetaAdsReport";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
@@ -45,6 +45,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
 
   const { data: rows = [], isLoading } = useMetaAdsReport(fromStr, toStr, clienteUserId);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [campanhasOpen, setCampanhasOpen] = useState(true);
 
   const totals = useMemo(() => {
     const t = { spend: 0, conversas: 0, clicks: 0, impressions: 0 };
@@ -176,7 +177,17 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
 
           {/* Campaigns table */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-2">Campanhas</h3>
+            <button
+              type="button"
+              onClick={() => setCampanhasOpen((v) => !v)}
+              className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2 hover:text-primary transition-colors"
+              aria-expanded={campanhasOpen}
+            >
+              {campanhasOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              Campanhas
+              <span className="text-xs font-normal text-muted-foreground">({campanhas.length})</span>
+            </button>
+            {campanhasOpen && (
             <div className="overflow-x-auto border border-border rounded-lg">
               <table className="w-full text-sm">
                 <thead>
@@ -205,6 +216,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
                 </tbody>
               </table>
             </div>
+            )}
           </div>
           <MetaAdsDetailsModal
             open={detailsOpen}
