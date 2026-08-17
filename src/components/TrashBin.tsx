@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneInternational } from "@/lib/formatters";
 
 const TrashBin = () => {
   const { data: deletedLeads = [] } = useDeletedLeads();
