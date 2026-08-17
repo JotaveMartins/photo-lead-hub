@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneInternational } from "@/lib/formatters";
 
 const TrashBin = () => {
   const { data: deletedLeads = [] } = useDeletedLeads();
@@ -86,11 +87,7 @@ const TrashBin = () => {
               </p>
             ) : (
               filteredLeads.map((lead) => {
-                const raw = lead.whatsapp?.replace(/\D/g, "");
-                const formatted =
-                  raw.length >= 11
-                    ? `+${raw.slice(0, 2)} (${raw.slice(2, 4)}) ${raw.slice(4, 9)}-${raw.slice(9)}`
-                    : lead.whatsapp;
+                const formatted = formatPhoneInternational(lead.whatsapp);
 
                 return (
                   <div
