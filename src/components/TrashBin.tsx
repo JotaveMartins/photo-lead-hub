@@ -85,43 +85,52 @@ const TrashBin = () => {
                 {searchTerm ? "Nenhum lead encontrado" : "A lixeira está vazia"}
               </p>
             ) : (
-              filteredLeads.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-semibold text-sm shrink-0">
-                    {lead.nome.charAt(0).toUpperCase()}
+              filteredLeads.map((lead) => {
+                const raw = lead.whatsapp?.replace(/\D/g, "");
+                const formatted =
+                  raw.length >= 11
+                    ? `+${raw.slice(0, 2)} (${raw.slice(2, 4)}) ${raw.slice(4, 9)}-${raw.slice(9)}`
+                    : lead.whatsapp;
+
+                return (
+                  <div
+                    key={lead.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-semibold text-sm shrink-0">
+                      {lead.nome.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
+                      <p className="text-[11px] text-foreground/80 truncate">{formatted}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Excluído {formatDistanceToNow(new Date(lead.deleted_at), { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-primary hover:text-primary"
+                        onClick={() => restoreLead.mutate(lead.id)}
+                        disabled={restoreLead.isPending}
+                        title="Restaurar"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeletingId(lead.id)}
+                        title="Excluir permanentemente"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Excluído {formatDistanceToNow(new Date(lead.deleted_at), { addSuffix: true, locale: ptBR })}
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-primary hover:text-primary"
-                      onClick={() => restoreLead.mutate(lead.id)}
-                      disabled={restoreLead.isPending}
-                      title="Restaurar"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => setDeletingId(lead.id)}
-                      title="Excluir permanentemente"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </SheetContent>
