@@ -73,13 +73,19 @@ const TrashBin = () => {
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mt-4 space-y-2 overflow-y-auto max-h-[calc(100vh-120px)]">
-            {deletedLeads.length === 0 ? (
+          <div className="mt-4 space-y-3 overflow-y-auto max-h-[calc(100vh-120px)]">
+            <SearchInput
+              value={searchTerm}
+              onValueChange={setSearchTerm}
+              placeholder="Buscar por nome ou WhatsApp..."
+              containerClassName="shrink-0"
+            />
+            {filteredLeads.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-12">
-                A lixeira está vazia
+                {searchTerm ? "Nenhum lead encontrado" : "A lixeira está vazia"}
               </p>
             ) : (
-              deletedLeads.map((lead) => (
+              filteredLeads.map((lead) => (
                 <div
                   key={lead.id}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors"
