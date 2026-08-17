@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Trash2, RotateCcw, X, AlertTriangle } from "lucide-react";
 import { useDeletedLeads, useRestoreLead, usePermanentDeleteLead } from "@/hooks/useLeads";
 import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Sheet,
   SheetContent,
