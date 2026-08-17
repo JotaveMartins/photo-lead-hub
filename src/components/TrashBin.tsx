@@ -28,6 +28,17 @@ const TrashBin = () => {
   const restoreLead = useRestoreLead();
   const permanentDelete = usePermanentDeleteLead();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredLeads = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return deletedLeads;
+    return deletedLeads.filter(
+      (lead) =>
+        lead.nome.toLowerCase().includes(term) ||
+        lead.whatsapp.toLowerCase().includes(term)
+    );
+  }, [deletedLeads, searchTerm]);
 
   const handlePermanentDelete = async () => {
     if (deletingId) {
