@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import CreateUserModal from "@/components/CreateUserModal";
 import EditAdminUserModal from "@/components/admin/EditAdminUserModal";
 import { usePrivacyMode, maskName, maskEmail } from "@/hooks/usePrivacyMode";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AdminPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -27,6 +29,20 @@ const AdminPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { enabled: privacy, toggle: togglePrivacy } = usePrivacyMode();
+  const queryClient = useQueryClient();
+
+  const toggleBlock = async (userId: string, block: boolean) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ bloqueado: block, bloqueado_at: block ? new Date().toISOString() : null } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Erro ao atualizar conta", description: error.message, variant: "destructive" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    toast({ title: block ? "Conta bloqueada" : "Conta desbloqueada" });
+  };
 
   const SUPER_ADMIN_EMAIL = "avanzosolucoesdigitais@gmail.com";
   const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
