@@ -30,6 +30,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [metaAdAccount, setMetaAdAccount] = useState("");
+  const [nome, setNome] = useState("");
   const [cplBom, setCplBom] = useState("");
   const [cplAlerta, setCplAlerta] = useState("");
   const [asaasKey, setAsaasKey] = useState("");
@@ -39,6 +40,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
 
   useEffect(() => {
     if (user) {
+      setNome(user.nome || "");
       setMetaAdAccount(user.meta_ad_account_id || "");
       setCplBom(user.cpl_limite_bom != null ? String(user.cpl_limite_bom) : "");
       setCplAlerta(user.cpl_limite_alerta != null ? String(user.cpl_limite_alerta) : "");
@@ -55,6 +57,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
       const { error } = await supabase
         .from("profiles")
         .update({
+          nome: nome.trim() || user.nome,
           meta_ad_account_id: metaAdAccount.trim() || null,
           cpl_limite_bom: cplBom.trim() ? Number(cplBom.replace(",", ".")) : null,
           cpl_limite_alerta: cplAlerta.trim() ? Number(cplAlerta.replace(",", ".")) : null,
@@ -90,6 +93,15 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
           onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
           className="space-y-4"
         >
+          <div>
+            <Label>Nome da conta</Label>
+            <Input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Nome do cliente"
+            />
+          </div>
+
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
             <div className="space-y-0.5">
               <Label htmlFor="edit-plano-basico" className="cursor-pointer">Plano Básico</Label>
