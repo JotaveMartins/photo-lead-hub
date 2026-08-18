@@ -17,6 +17,7 @@ interface AdminUser {
   asaas_api_key?: string | null;
   autentique_token?: string | null;
   plano_basico?: boolean | null;
+  bloqueado?: boolean | null;
 }
 
 interface Props {
@@ -34,6 +35,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
   const [asaasKey, setAsaasKey] = useState("");
   const [autentiqueToken, setAutentiqueToken] = useState("");
   const [planoBasico, setPlanoBasico] = useState(false);
+  const [bloqueado, setBloqueado] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -43,6 +45,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
       setAsaasKey(user.asaas_api_key || "");
       setAutentiqueToken(user.autentique_token || "");
       setPlanoBasico(!!user.plano_basico);
+      setBloqueado(!!user.bloqueado);
     }
   }, [user]);
 
@@ -58,6 +61,8 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
           asaas_api_key: asaasKey.trim() || null,
           autentique_token: autentiqueToken.trim() || null,
           plano_basico: planoBasico,
+          bloqueado,
+          bloqueado_at: bloqueado ? ((user as any).bloqueado_at || new Date().toISOString()) : null,
         } as any)
         .eq("user_id", user.user_id);
       if (error) throw error;
@@ -93,6 +98,16 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
               </p>
             </div>
             <Switch id="edit-plano-basico" checked={planoBasico} onCheckedChange={setPlanoBasico} />
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="edit-bloqueado" className="cursor-pointer">Bloquear conta</Label>
+              <p className="text-xs text-muted-foreground">
+                Trava o acesso sem apagar os dados. O cliente vê um aviso para falar com a equipe e reativar a assinatura.
+              </p>
+            </div>
+            <Switch id="edit-bloqueado" checked={bloqueado} onCheckedChange={setBloqueado} />
           </div>
 
           <div>

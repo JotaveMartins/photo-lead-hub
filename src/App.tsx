@@ -8,6 +8,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAccountBlocked } from "@/hooks/useAccountBlocked";
+import ContaBloqueadaPage from "@/pages/ContaBloqueadaPage";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
@@ -49,11 +51,13 @@ const WhatsAppDisconnectWatcher = () => {
 
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
-  const { isTester, isLoading: isRoleLoading } = useUserRole();
+  const { isTester, isAdmin, isLoading: isRoleLoading } = useUserRole();
+  const { isBlocked, isLoading: isBlockedLoading } = useAccountBlocked();
   const location = useLocation();
 
-  if (loading || (user && isRoleLoading)) return <LoadingScreen />;
+  if (loading || (user && (isRoleLoading || isBlockedLoading))) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (isBlocked && !isAdmin) return <ContaBloqueadaPage />;
   if (isTester && !isTesterAllowed(location.pathname)) {
     return <Navigate to="/estudio" replace />;
   }
@@ -71,10 +75,12 @@ const isTesterAllowed = (pathname: string) =>
 
 const EstudioProtectedLayout = () => {
   const { user, loading } = useAuth();
-  const { hasEstudio, isLoading: isRoleLoading } = useUserRole();
+  const { hasEstudio, isAdmin, isLoading: isRoleLoading } = useUserRole();
+  const { isBlocked, isLoading: isBlockedLoading } = useAccountBlocked();
 
-  if (loading || isRoleLoading) return <LoadingScreen />;
+  if (loading || isRoleLoading || isBlockedLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (isBlocked && !isAdmin) return <ContaBloqueadaPage />;
   if (!hasEstudio) return <Navigate to="/leads" replace />;
 
   return (

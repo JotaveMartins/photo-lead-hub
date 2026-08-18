@@ -1556,6 +1556,8 @@ export type Database = {
           asaas_api_key: string | null
           autentique_token: string | null
           avatar_url: string | null
+          bloqueado: boolean
+          bloqueado_at: string | null
           cpl_limite_alerta: number | null
           cpl_limite_bom: number | null
           created_at: string
@@ -1573,6 +1575,8 @@ export type Database = {
           asaas_api_key?: string | null
           autentique_token?: string | null
           avatar_url?: string | null
+          bloqueado?: boolean
+          bloqueado_at?: string | null
           cpl_limite_alerta?: number | null
           cpl_limite_bom?: number | null
           created_at?: string
@@ -1590,6 +1594,8 @@ export type Database = {
           asaas_api_key?: string | null
           autentique_token?: string | null
           avatar_url?: string | null
+          bloqueado?: boolean
+          bloqueado_at?: string | null
           cpl_limite_alerta?: number | null
           cpl_limite_bom?: number | null
           created_at?: string
