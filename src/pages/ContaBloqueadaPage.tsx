@@ -27,23 +27,12 @@ const ContaBloqueadaPage = () => {
           Para voltar a usar o sistema, fale com a nossa equipe e reative seu plano.
         </p>
 
-        <div className="mt-6 space-y-2">
-          <Button asChild className="w-full gap-2">
-            <a href={SUPPORT_WHATSAPP} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="w-4 h-4" />
-              Falar com a equipe no WhatsApp
-            </a>
-          </Button>
-          <Button asChild variant="outline" className="w-full gap-2">
-            <a href={`mailto:${SUPPORT_EMAIL}`}>
-              <Mail className="w-4 h-4" />
-              {SUPPORT_EMAIL}
-            </a>
-          </Button>
+        <div className="mt-6">
           <Button variant="ghost" className="w-full text-muted-foreground" onClick={signOut}>
             Sair
           </Button>
         </div>
+
       </div>
     </div>
   );
