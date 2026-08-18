@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { UserPlus, Trash2, Copy, Check, LogIn, Settings, Eye, EyeOff } from "lucide-react";
+import { UserPlus, Trash2, Copy, Check, LogIn, Settings, Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EvolutionSettingsCard from "@/components/admin/EvolutionSettingsCard";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,16 @@ const AdminPage = () => {
                 const displayEmail = privacy ? maskEmail() : user.email;
                 return (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{displayName}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{displayName}</span>
+                      {(user as any).bloqueado && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-500 border border-amber-500/30">
+                          Bloqueada
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{displayEmail}</TableCell>
                   <TableCell>
                     {(user as any).senha ? (
@@ -159,6 +168,16 @@ const AdminPage = () => {
                    </TableCell>
                    <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell>
+                    <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={(user as any).bloqueado ? "Desbloquear conta" : "Bloquear conta"}
+                      onClick={() => toggleBlock(user.user_id, !(user as any).bloqueado)}
+                      className={(user as any).bloqueado ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}
+                    >
+                      {(user as any).bloqueado ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    </Button>
                     {user.user_id !== currentUser?.id && (
                       <Button
                         variant="ghost"
@@ -169,6 +188,7 @@ const AdminPage = () => {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
+                    </div>
                   </TableCell>
                 </TableRow>
                 );
