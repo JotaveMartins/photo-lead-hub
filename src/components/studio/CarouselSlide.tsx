@@ -83,7 +83,7 @@ const CarouselSlide = ({
 
   if (layout === "grid_2") {
     return (
-      <div className="grid h-full w-full grid-cols-2 gap-[3px] bg-background">
+      <div className="grid h-full w-full grid-cols-2 gap-0 bg-background">
         {slots.map((p, i) => (
           <Slot key={i} {...common} photo={p} index={i} />
         ))}
@@ -93,7 +93,7 @@ const CarouselSlide = ({
 
   if (layout === "grid_4") {
     return (
-      <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-[3px] bg-background">
+      <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-0 bg-background">
         {slots.map((p, i) => (
           <Slot key={i} {...common} photo={p} index={i} />
         ))}
@@ -103,8 +103,32 @@ const CarouselSlide = ({
 
   if (layout === "editorial_2") {
     return (
-      <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-[3px] bg-background">
+      <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-0 bg-background">
         <Slot {...common} photo={slots[0]} index={0} className="col-span-2 row-span-2" />
+        <Slot {...common} photo={slots[1]} index={1} />
+        <Slot {...common} photo={slots[2]} index={2} />
+      </div>
+    );
+  }
+
+  if (layout === "strip_2" || layout === "strip_3") {
+    return (
+      <div
+        className={`grid h-full w-full gap-0 bg-background ${
+          layout === "strip_2" ? "grid-rows-2" : "grid-rows-3"
+        }`}
+      >
+        {slots.map((p, i) => (
+          <Slot key={i} {...common} photo={p} index={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (layout === "strip_plus_2") {
+    return (
+      <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-0 bg-background">
+        <Slot {...common} photo={slots[0]} index={0} className="col-span-2" />
         <Slot {...common} photo={slots[1]} index={1} />
         <Slot {...common} photo={slots[2]} index={2} />
       </div>
