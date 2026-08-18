@@ -30,6 +30,29 @@ const Preview = ({ id }: { id: LayoutType }) => {
         <div className={cell} />
       </div>
     );
+  if (id === "strip_2")
+    return (
+      <div className="grid h-full w-full grid-rows-2 gap-[2px]">
+        <div className={cell} />
+        <div className={cell} />
+      </div>
+    );
+  if (id === "strip_3")
+    return (
+      <div className="grid h-full w-full grid-rows-3 gap-[2px]">
+        <div className={cell} />
+        <div className={cell} />
+        <div className={cell} />
+      </div>
+    );
+  if (id === "strip_plus_2")
+    return (
+      <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-[2px]">
+        <div className={`col-span-2 ${cell}`} />
+        <div className={cell} />
+        <div className={cell} />
+      </div>
+    );
   return (
     <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-[2px]">
       <div className={`col-span-2 row-span-2 ${cell}`} />

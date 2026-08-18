@@ -128,11 +128,17 @@ const NovoProjetoPage = () => {
       });
 
       setStep(1);
-      const json = buildDemoCarousel(photos.map((p) => p.id), {
+      const json = buildDemoCarousel(
+        photos.map((p) => ({
+          id: p.id,
+          shape: (p.orientation as "landscape" | "portrait" | "square") ?? "portrait",
+        })),
+        {
         nome: nome.trim(),
         tipo_ensaio: tipo,
         descricao: descricao.trim(),
-      });
+        },
+      );
       const slides = aiJsonToSlides(json);
 
       setStep(2);

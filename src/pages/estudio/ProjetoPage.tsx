@@ -103,7 +103,13 @@ const ProjetoPage = () => {
   const handleGenerate = async () => {
     if (!project) return;
     if (photos.length < 1) return toast.error("Envie fotografias primeiro");
-    const json = buildDemoCarousel(photos.map((p) => p.id), project);
+    const json = buildDemoCarousel(
+      photos.map((p) => ({
+        id: p.id,
+        shape: (p.orientation as "landscape" | "portrait" | "square") ?? "portrait",
+      })),
+      project,
+    );
     const newSlides = aiJsonToSlides(json);
     setSlides(newSlides);
     setJustSaved(false);
