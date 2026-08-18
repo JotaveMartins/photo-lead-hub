@@ -20,7 +20,7 @@ interface Rect {
   contain?: boolean;
 }
 
-const GAP = 4;
+const GAP = 0;
 
 /** Retângulos (em px do canvas final) para cada slot do layout. */
 export const layoutRects = (
@@ -59,6 +59,31 @@ export const layoutRects = (
       { x: 0, y: 0, w: big, h: H },
       { x: big + g, y: 0, w: small, h },
       { x: big + g, y: h + g, w: small, h },
+    ];
+  }
+  if (layout === "strip_2") {
+    const h = (H - g) / 2;
+    return [
+      { x: 0, y: 0, w: W, h },
+      { x: 0, y: h + g, w: W, h },
+    ];
+  }
+  if (layout === "strip_3") {
+    const h = (H - g * 2) / 3;
+    return [
+      { x: 0, y: 0, w: W, h },
+      { x: 0, y: h + g, w: W, h },
+      { x: 0, y: (h + g) * 2, w: W, h },
+    ];
+  }
+  if (layout === "strip_plus_2") {
+    const top = (H - g) / 2;
+    const bottom = H - g - top;
+    const w = (W - g) / 2;
+    return [
+      { x: 0, y: 0, w: W, h: top },
+      { x: 0, y: top + g, w, h: bottom },
+      { x: w + g, y: top + g, w, h: bottom },
     ];
   }
   return [{ x: 0, y: 0, w: W, h: H }];
