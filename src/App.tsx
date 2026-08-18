@@ -8,6 +8,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAccountBlocked } from "@/hooks/useAccountBlocked";
+import ContaBloqueadaPage from "@/pages/ContaBloqueadaPage";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
