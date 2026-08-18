@@ -1,10 +1,8 @@
-import { Lock, MessageCircle, Mail } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
 
-const SUPPORT_WHATSAPP = "https://wa.me/5561992590318";
-const SUPPORT_EMAIL = "contato@avanzodigital.com.br";
 
 const ContaBloqueadaPage = () => {
   const { signOut } = useAuth();
