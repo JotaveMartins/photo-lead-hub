@@ -145,6 +145,18 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
 
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
             <div className="space-y-0.5">
+              <Label htmlFor="edit-estudio" className="cursor-pointer">Acesso ao Estúdio IA</Label>
+              <p className="text-xs text-muted-foreground">
+                Libera o menu Estúdio IA e a integração com o Instagram para esta conta.
+              </p>
+            </div>
+            <Switch id="edit-estudio" checked={estudio} onCheckedChange={setEstudio} />
+          </div>
+
+
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+            <div className="space-y-0.5">
               <Label htmlFor="edit-plano-basico" className="cursor-pointer">Plano Básico</Label>
               <p className="text-xs text-muted-foreground">
                 Cliente pontual — esconde o menu IA e a seção Meta Ads em Relatórios.
