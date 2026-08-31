@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAdminAccounts } from "@/hooks/useAdminAccounts";
 
 export interface MetaAdsRow {
   date: string;
@@ -25,6 +26,7 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
   const { user } = useAuth();
   const effectiveUserId = useEffectiveUserId();
   const { isAdmin } = useUserRole();
+  const { adminUserIds, adminAdAccountIds, isReady: adminAccountsReady } = useAdminAccounts();
 
   // Admin: "__all__" = consolidado (sem filtro); vazio = dados da própria conta
   const targetUserId = isAdmin
@@ -34,7 +36,7 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
     : effectiveUserId;
 
   return useQuery({
-    queryKey: ["meta_ads_report", from, to, isAdmin, targetUserId],
+    queryKey: ["meta_ads_report", from, to, isAdmin, targetUserId, adminUserIds],
     queryFn: async () => {
       // Resolve the ad account linked to the target profile so rows that are not
       // linked by client_id still show up for that client.
@@ -78,8 +80,16 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
         if (data.length < PAGE) break;
         offset += PAGE;
       }
+      // Consolidado (sem cliente selecionado): remove contas de administrador (dados fictícios)
+      if (!targetUserId && (adminUserIds.length > 0 || adminAdAccountIds.length > 0)) {
+        return all.filter(
+          (r) =>
+            !(r.client_id && adminUserIds.includes(r.client_id)) &&
+            !(r.ad_account_id && adminAdAccountIds.includes(r.ad_account_id)),
+        );
+      }
       return all;
     },
-    enabled: !!user && (isAdmin || !!effectiveUserId),
+    enabled: !!user && (isAdmin || !!effectiveUserId) && (!!targetUserId || adminAccountsReady),
   });
 }
