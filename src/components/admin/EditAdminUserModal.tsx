@@ -91,13 +91,32 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
         } as any)
         .eq("user_id", user.user_id);
       if (error) throw error;
+
+      if (estudio !== !!hasEstudioRole) {
+        if (estudio) {
+          const { error: roleErr } = await supabase
+            .from("user_roles")
+            .insert({ user_id: user.user_id, role: "estudio" as any });
+          if (roleErr) throw roleErr;
+        } else {
+          const { error: roleErr } = await supabase
+            .from("user_roles")
+            .delete()
+            .eq("user_id", user.user_id)
+            .eq("role", "estudio" as any);
+          if (roleErr) throw roleErr;
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["profiles-meta"] });
+      qc.invalidateQueries({ queryKey: ["admin-user-estudio-role"] });
+      qc.invalidateQueries({ queryKey: ["user-role-estudio"] });
       toast({ title: "Configurações atualizadas" });
       onClose();
     },
+
     onError: (e: any) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
   });
 
