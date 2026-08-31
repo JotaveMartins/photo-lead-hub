@@ -38,6 +38,26 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
   const [autentiqueToken, setAutentiqueToken] = useState("");
   const [planoBasico, setPlanoBasico] = useState(false);
   const [bloqueado, setBloqueado] = useState(false);
+  const [estudio, setEstudio] = useState(false);
+
+  const { data: hasEstudioRole } = useQuery({
+    queryKey: ["admin-user-estudio-role", user?.user_id],
+    enabled: !!user?.user_id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user!.user_id)
+        .eq("role", "estudio" as any)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
+
+  useEffect(() => {
+    setEstudio(!!hasEstudioRole);
+  }, [hasEstudioRole, user?.user_id]);
 
   useEffect(() => {
     if (user) {
@@ -51,6 +71,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
       setBloqueado(!!user.bloqueado);
     }
   }, [user]);
+
 
   const save = useMutation({
     mutationFn: async () => {
