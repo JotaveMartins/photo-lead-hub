@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAdminAccounts } from "@/hooks/useAdminAccounts";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type ReportLead = Tables<"leads">;
@@ -19,15 +20,20 @@ export const useReportData = (params: UseReportDataParams = {}) => {
   const { user } = useAuth();
   const effectiveUserId = useEffectiveUserId();
   const { isAdmin } = useUserRole();
+  const { adminUserIds, isReady: adminAccountsReady } = useAdminAccounts();
+
+  const isConsolidated = isAdmin && params.clienteUserId === ALL_CLIENTS;
 
   const leadsQuery = useQuery({
-    queryKey: ["report-leads", effectiveUserId, isAdmin, params.clienteUserId],
+    queryKey: ["report-leads", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
     queryFn: async () => {
       let query = supabase.from("leads").select("*");
 
-      // Admin: "__all__" = consolidated (no user filter); specific id = that client
-      if (isAdmin && params.clienteUserId === ALL_CLIENTS) {
-        // no filter
+      // Admin: "__all__" = consolidado (exclui contas de administrador — dados fictícios)
+      if (isConsolidated) {
+        if (adminUserIds.length > 0) {
+          query = query.not("user_id", "in", `(${adminUserIds.join(",")})`);
+        }
       } else if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
       } else {
@@ -39,16 +45,18 @@ export const useReportData = (params: UseReportDataParams = {}) => {
       if (error) throw error;
       return data as ReportLead[];
     },
-    enabled: !!effectiveUserId,
+    enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
   });
 
   const tasksQuery = useQuery({
-    queryKey: ["report-tasks", effectiveUserId, isAdmin, params.clienteUserId],
+    queryKey: ["report-tasks", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
     queryFn: async () => {
       let query = supabase.from("lead_tasks").select("*");
 
-      if (isAdmin && params.clienteUserId === ALL_CLIENTS) {
-        // no filter
+      if (isConsolidated) {
+        if (adminUserIds.length > 0) {
+          query = query.not("user_id", "in", `(${adminUserIds.join(",")})`);
+        }
       } else if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
       } else {
@@ -59,8 +67,9 @@ export const useReportData = (params: UseReportDataParams = {}) => {
       if (error) throw error;
       return data as ReportTask[];
     },
-    enabled: !!effectiveUserId,
+    enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
   });
+
 
   const profilesQuery = useQuery({
     queryKey: ["report-profiles", user?.id, isAdmin],
