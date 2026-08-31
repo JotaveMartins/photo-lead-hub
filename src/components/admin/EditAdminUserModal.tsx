@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+
 
 interface AdminUser {
   user_id: string;
@@ -37,6 +38,26 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
   const [autentiqueToken, setAutentiqueToken] = useState("");
   const [planoBasico, setPlanoBasico] = useState(false);
   const [bloqueado, setBloqueado] = useState(false);
+  const [estudio, setEstudio] = useState(false);
+
+  const { data: hasEstudioRole } = useQuery({
+    queryKey: ["admin-user-estudio-role", user?.user_id],
+    enabled: !!user?.user_id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user!.user_id)
+        .eq("role", "estudio" as any)
+        .maybeSingle();
+      if (error) throw error;
+      return !!data;
+    },
+  });
+
+  useEffect(() => {
+    setEstudio(!!hasEstudioRole);
+  }, [hasEstudioRole, user?.user_id]);
 
   useEffect(() => {
     if (user) {
@@ -50,6 +71,7 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
       setBloqueado(!!user.bloqueado);
     }
   }, [user]);
+
 
   const save = useMutation({
     mutationFn: async () => {
@@ -69,13 +91,32 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
         } as any)
         .eq("user_id", user.user_id);
       if (error) throw error;
+
+      if (estudio !== !!hasEstudioRole) {
+        if (estudio) {
+          const { error: roleErr } = await supabase
+            .from("user_roles")
+            .insert({ user_id: user.user_id, role: "estudio" as any });
+          if (roleErr) throw roleErr;
+        } else {
+          const { error: roleErr } = await supabase
+            .from("user_roles")
+            .delete()
+            .eq("user_id", user.user_id)
+            .eq("role", "estudio" as any);
+          if (roleErr) throw roleErr;
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["profiles-meta"] });
+      qc.invalidateQueries({ queryKey: ["admin-user-estudio-role"] });
+      qc.invalidateQueries({ queryKey: ["user-role-estudio"] });
       toast({ title: "Configurações atualizadas" });
       onClose();
     },
+
     onError: (e: any) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
   });
 
@@ -101,6 +142,18 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
               placeholder="Nome do cliente"
             />
           </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="edit-estudio" className="cursor-pointer">Acesso ao Estúdio IA</Label>
+              <p className="text-xs text-muted-foreground">
+                Libera o menu Estúdio IA e a integração com o Instagram para esta conta.
+              </p>
+            </div>
+            <Switch id="edit-estudio" checked={estudio} onCheckedChange={setEstudio} />
+          </div>
+
+
 
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
             <div className="space-y-0.5">
