@@ -243,10 +243,14 @@ const AdminPage = () => {
       <Tabs defaultValue="clientes" className="w-full">
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="uso">Uso</TabsTrigger>
           {isSuperAdmin && <TabsTrigger value="configuracoes">Configurações</TabsTrigger>}
         </TabsList>
         <TabsContent value="clientes" className="mt-6">
           {clientesContent}
+        </TabsContent>
+        <TabsContent value="uso" className="mt-6">
+          <UsageTab />
         </TabsContent>
         {isSuperAdmin && (
           <TabsContent value="configuracoes" className="mt-6 space-y-6">
