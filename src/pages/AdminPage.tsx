@@ -177,6 +177,13 @@ const AdminPage = () => {
                     </Button>
                   </TableCell>
                    <TableCell>
+                     {usageScores.has(user.user_id) ? (
+                       <span className="text-sm font-semibold text-foreground">{usageScores.get(user.user_id)}</span>
+                     ) : (
+                       <span className="text-muted-foreground text-sm">—</span>
+                     )}
+                   </TableCell>
+                   <TableCell>
                      {(user as any).ultimo_acesso ? (
                        <span className="text-sm">{format(new Date((user as any).ultimo_acesso), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
                      ) : (
