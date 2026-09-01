@@ -17,6 +17,8 @@ import EditAdminUserModal from "@/components/admin/EditAdminUserModal";
 import { usePrivacyMode, maskName, maskEmail } from "@/hooks/usePrivacyMode";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import UsageTab from "@/components/admin/UsageTab";
+import { useUsageMetrics } from "@/hooks/useUsageMetrics";
 
 const AdminPage = () => {
   const [showModal, setShowModal] = useState(false);
