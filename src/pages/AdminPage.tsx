@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +17,8 @@ import EditAdminUserModal from "@/components/admin/EditAdminUserModal";
 import { usePrivacyMode, maskName, maskEmail } from "@/hooks/usePrivacyMode";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import UsageTab from "@/components/admin/UsageTab";
+import { useUsageMetrics } from "@/hooks/useUsageMetrics";
 
 const AdminPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -30,6 +32,18 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const { enabled: privacy, toggle: togglePrivacy } = usePrivacyMode();
   const queryClient = useQueryClient();
+
+  const lastMonth = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  }, []);
+  const { accounts: usageAccounts } = useUsageMetrics(lastMonth);
+  const usageScores = useMemo(
+    () => new Map(usageAccounts.map((a) => [a.row.user_id, a.score])),
+    [usageAccounts],
+  );
+
+
 
   const toggleBlock = async (userId: string, block: boolean) => {
     const { error } = await supabase
@@ -101,6 +115,7 @@ const AdminPage = () => {
               <TableHead>Senha</TableHead>
               <TableHead>Acessar</TableHead>
               <TableHead>Meta / CPL</TableHead>
+              <TableHead>Uso (mês ant.)</TableHead>
               <TableHead>Último acesso</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="w-16"></TableHead>
@@ -109,11 +124,11 @@ const AdminPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : users?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
               </TableRow>
             ) : (
               users?.map((user, idx) => {
@@ -176,6 +191,13 @@ const AdminPage = () => {
                     </Button>
                   </TableCell>
                    <TableCell>
+                     {usageScores.has(user.user_id) ? (
+                       <span className="text-sm font-semibold text-foreground">{usageScores.get(user.user_id)}</span>
+                     ) : (
+                       <span className="text-muted-foreground text-sm">—</span>
+                     )}
+                   </TableCell>
+                   <TableCell>
                      {(user as any).ultimo_acesso ? (
                        <span className="text-sm">{format(new Date((user as any).ultimo_acesso), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
                      ) : (
@@ -221,10 +243,14 @@ const AdminPage = () => {
       <Tabs defaultValue="clientes" className="w-full">
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="uso">Uso</TabsTrigger>
           {isSuperAdmin && <TabsTrigger value="configuracoes">Configurações</TabsTrigger>}
         </TabsList>
         <TabsContent value="clientes" className="mt-6">
           {clientesContent}
+        </TabsContent>
+        <TabsContent value="uso" className="mt-6">
+          <UsageTab />
         </TabsContent>
         {isSuperAdmin && (
           <TabsContent value="configuracoes" className="mt-6 space-y-6">

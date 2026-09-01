@@ -1967,6 +1967,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_usage_metrics: {
+        Args: { month_start: string }
+        Returns: {
+          acessou_no_mes: boolean
+          agenda: number
+          clientes: number
+          contratos: number
+          email: string
+          entregas: number
+          estudio: number
+          financeiro: number
+          inbox: number
+          leads: number
+          nome: string
+          pipeline: number
+          tarefas: number
+          ultimo_acesso: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
