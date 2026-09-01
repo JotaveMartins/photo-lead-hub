@@ -33,6 +33,18 @@ const AdminPage = () => {
   const { enabled: privacy, toggle: togglePrivacy } = usePrivacyMode();
   const queryClient = useQueryClient();
 
+  const lastMonth = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  }, []);
+  const { accounts: usageAccounts } = useUsageMetrics(lastMonth);
+  const usageScores = useMemo(
+    () => new Map(usageAccounts.map((a) => [a.row.user_id, a.score])),
+    [usageAccounts],
+  );
+
+
+
   const toggleBlock = async (userId: string, block: boolean) => {
     const { error } = await supabase
       .from("profiles")
