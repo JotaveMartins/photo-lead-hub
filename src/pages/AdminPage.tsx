@@ -101,6 +101,7 @@ const AdminPage = () => {
               <TableHead>Senha</TableHead>
               <TableHead>Acessar</TableHead>
               <TableHead>Meta / CPL</TableHead>
+              <TableHead>Uso (mês ant.)</TableHead>
               <TableHead>Último acesso</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="w-16"></TableHead>
