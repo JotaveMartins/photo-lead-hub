@@ -110,11 +110,11 @@ const AdminPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : users?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
               </TableRow>
             ) : (
               users?.map((user, idx) => {
