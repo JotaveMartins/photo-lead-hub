@@ -442,13 +442,19 @@ export const useCarousel = (projectId?: string) => {
           .order("position", { ascending: true });
         slidePhotos = sp ?? [];
       }
-      const slides: EditorSlide[] = (slideRows ?? []).map((s: any) => ({
-        key: s.id,
-        layout: s.layout_type,
-        photoIds: slidePhotos
-          .filter((p) => p.slide_id === s.id)
-          .map((p) => p.photo_id),
-      }));
+      const slides: EditorSlide[] = (slideRows ?? []).map((s: any) => {
+        const rows = slidePhotos.filter((p) => p.slide_id === s.id);
+        return {
+          key: s.id,
+          layout: s.layout_type,
+          photoIds: rows.map((p) => p.photo_id),
+          focus: rows.map((p) => ({
+            x: Number(p.focus_x ?? 50),
+            y: Number(p.focus_y ?? 50),
+          })),
+        };
+      });
+
       return { ...carousel, slides };
     },
   });
