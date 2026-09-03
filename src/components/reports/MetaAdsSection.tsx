@@ -4,10 +4,12 @@ import { useMetaAdsReport } from "@/hooks/useMetaAdsReport";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import MetaAdsDetailsModal from "./MetaAdsDetailsModal";
+import { usePortfolioRoas, type RoasProfile, type RoasWonLead } from "@/hooks/usePortfolioRoas";
 
 const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (v: number) => v.toLocaleString("pt-BR");
 const fmtPct = (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`);
+const fmtRoas = (v: number | null) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`);
 
 interface MetaAdsSectionProps {
   from: Date;
@@ -18,6 +20,11 @@ interface MetaAdsSectionProps {
   ganhosTrafegoPago?: number;
   faturamento: number;
   faturamentoTrafegoPago?: number;
+  /** Leads ganhos no período (para ROAS por cliente no consolidado) */
+  wonLeads?: RoasWonLead[];
+  profiles?: RoasProfile[];
+  /** Admin sem cliente selecionado */
+  isConsolidated?: boolean;
 }
 
 function Hint({ text }: { text: string }) {
@@ -37,7 +44,7 @@ function Hint({ text }: { text: string }) {
   );
 }
 
-export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, ganhos, ganhosTrafegoPago, faturamento, faturamentoTrafegoPago }: MetaAdsSectionProps) {
+export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, ganhos, ganhosTrafegoPago, faturamento, faturamentoTrafegoPago, wonLeads = [], profiles = [], isConsolidated = false }: MetaAdsSectionProps) {
   // to is exclusive end — convert to inclusive for date column
   const fromStr = format(from, "yyyy-MM-dd");
   const toIncl = new Date(to.getTime() - 86400000);
@@ -64,6 +71,11 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
   const custoPorLead = leadsCriados > 0 ? totals.spend / leadsCriados : null;
   const vendasParaCAC = ganhosTrafegoPago ?? ganhos;
   const custoPorVenda = vendasParaCAC > 0 ? totals.spend / vendasParaCAC : null;
+  const receitaTrafegoPago = faturamentoTrafegoPago ?? 0;
+  const roas = totals.spend > 0 ? receitaTrafegoPago / totals.spend : null;
+
+  const portfolio = usePortfolioRoas(rows, wonLeads, profiles);
+  const [roasClientesOpen, setRoasClientesOpen] = useState(false);
 
   const aproveitColor =
     aproveitamento == null
@@ -102,6 +114,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
     { label: "Custo por lead", value: custoPorLead == null ? "—" : fmtBRL(custoPorLead), hint: "Investimento dividido pelo número de leads cadastrados no CRM." },
     { label: "Custo por venda", value: custoPorVenda == null ? "—" : fmtBRL(custoPorVenda), hint: "Investimento dividido pelo número de vendas fechadas com origem em Tráfego Pago." },
     { label: "Aproveitamento do CRM", value: fmtPct(aproveitamento), hint: "Percentual das conversas geradas pelos anúncios que viraram leads no CRM." },
+    { label: "ROAS (Tráfego Pago)", value: fmtRoas(roas), hint: "Receita das vendas ganhas com origem Tráfego Pago dividida pelo investimento em anúncios no período." },
   ];
 
   return (
@@ -163,7 +176,7 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
           </div>
 
           {/* Integrated metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             {integrCards.map((c) => (
               <div key={c.label} className="bg-background border border-border rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
@@ -174,6 +187,63 @@ export default function MetaAdsSection({ from, to, clienteUserId, leadsCriados, 
               </div>
             ))}
           </div>
+
+          {/* Portfolio ROAS (consolidado) */}
+          {isConsolidated && (
+            <div className="mb-5">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 mb-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  <p className="text-xs text-muted-foreground">ROAS Mediano da Carteira</p>
+                  <Hint text="Mediana do ROAS individual dos clientes elegíveis: receita de vendas ganhas com origem Tráfego Pago dividida pelo investimento. Clientes sem investimento no período ou em implantação (conta com menos de 30 dias) ficam de fora." />
+                </div>
+                <p className="text-2xl font-bold text-foreground">{fmtRoas(portfolio.median)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {portfolio.clientes.length} cliente(s) elegível(is)
+                  {portfolio.emImplantacao > 0 && ` · ${portfolio.emImplantacao} em implantação (excluído(s))`}
+                </p>
+              </div>
+
+              {portfolio.clientes.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setRoasClientesOpen((v) => !v)}
+                    className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2 hover:text-primary transition-colors"
+                    aria-expanded={roasClientesOpen}
+                  >
+                    {roasClientesOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    ROAS por cliente
+                    <span className="text-xs font-normal text-muted-foreground">({portfolio.clientes.length})</span>
+                  </button>
+                  {roasClientesOpen && (
+                    <div className="overflow-x-auto border border-border rounded-lg">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase text-muted-foreground">
+                            <th className="py-2 px-3">Cliente</th>
+                            <th className="py-2 px-3 text-right">Investimento</th>
+                            <th className="py-2 px-3 text-right">Receita (Tráfego Pago)</th>
+                            <th className="py-2 px-3 text-right">ROAS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {portfolio.clientes.map((c) => (
+                            <tr key={c.userId} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
+                              <td className="py-2 px-3 text-foreground max-w-[280px] truncate" title={c.nome}>{c.nome}</td>
+                              <td className="py-2 px-3 text-right text-foreground">{fmtBRL(c.spend)}</td>
+                              <td className="py-2 px-3 text-right text-foreground">{fmtBRL(c.receita)}</td>
+                              <td className="py-2 px-3 text-right font-semibold text-foreground">{fmtRoas(c.roas)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* Campaigns table */}
           <div>
