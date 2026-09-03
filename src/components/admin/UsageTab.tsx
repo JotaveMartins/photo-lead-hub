@@ -27,6 +27,25 @@ const ScoreDelta = ({ current, prev }: { current: number; prev?: number }) => {
   );
 };
 
+type AdocaoStatus = "Engajado" | "Uso parcial" | "Inativo";
+
+const adocaoStatus = (a: ScoredAccount): AdocaoStatus => {
+  if (!a.row.acessou_no_mes) return "Inativo";
+  return a.score >= 10 ? "Engajado" : "Uso parcial";
+};
+
+const STATUS_CLASS: Record<AdocaoStatus, string> = {
+  Engajado: "bg-green-500/10 text-green-500 border-green-500/30",
+  "Uso parcial": "bg-amber-500/10 text-amber-500 border-amber-500/30",
+  Inativo: "bg-destructive/10 text-destructive border-destructive/30",
+};
+
+const StatusBadge = ({ status }: { status: AdocaoStatus }) => (
+  <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-[11px] font-medium border ${STATUS_CLASS[status]}`}>
+    {status}
+  </span>
+);
+
 const UsageTab = () => {
   const [month, setMonth] = useState<Date>(lastClosedMonth());
   const [selected, setSelected] = useState<ScoredAccount | null>(null);
@@ -41,6 +60,12 @@ const UsageTab = () => {
     [accounts],
   );
   const semAcesso = accounts.filter((a) => !a.row.acessou_no_mes).length;
+  const taxaAdocao = useMemo(() => {
+    if (!accounts.length) return 0;
+    const engajados = accounts.filter((a) => adocaoStatus(a) === "Engajado").length;
+    return Math.round((engajados / accounts.length) * 100);
+  }, [accounts]);
+
 
   const exportCsv = () => {
     const header = ["Conta", "Email", "Score", "Score mês anterior", "Acessou no mês", ...PILLARS.map((p) => p.label)];
@@ -93,10 +118,14 @@ const UsageTab = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Contas analisadas</p>
           <p className="text-2xl font-bold text-foreground">{accounts.length}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Taxa de adoção</p>
+          <p className="text-2xl font-bold text-foreground">{taxaAdocao}%</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Score médio</p>
@@ -108,12 +137,15 @@ const UsageTab = () => {
         </div>
       </div>
 
+
       <div className="rounded-lg border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Conta</TableHead>
               <TableHead className="w-24">Score</TableHead>
+              <TableHead className="whitespace-nowrap">Status de adoção</TableHead>
+
               {PILLARS.map((p) => (
                 <TableHead key={p.key} className="text-center whitespace-nowrap">{p.label}</TableHead>
               ))}
@@ -123,11 +155,11 @@ const UsageTab = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={PILLARS.length + 3} className="text-center text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={PILLARS.length + 4} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : accounts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={PILLARS.length + 3} className="text-center text-muted-foreground">Nenhuma conta no período</TableCell>
+                <TableCell colSpan={PILLARS.length + 4} className="text-center text-muted-foreground">Nenhuma conta no período</TableCell>
               </TableRow>
             ) : (
               accounts.map((a, idx) => (
@@ -144,6 +176,10 @@ const UsageTab = () => {
                       <ScoreDelta current={a.score} prev={previousByUser.get(a.row.user_id)?.score} />
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <StatusBadge status={adocaoStatus(a)} />
+                  </TableCell>
+
                   {PILLARS.map((p) => {
                     const n = Number(a.row[p.key] ?? 0);
                     return (
