@@ -176,6 +176,10 @@ const UsageTab = () => {
                       <ScoreDelta current={a.score} prev={previousByUser.get(a.row.user_id)?.score} />
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <StatusBadge status={adocaoStatus(a)} />
+                  </TableCell>
+
                   {PILLARS.map((p) => {
                     const n = Number(a.row[p.key] ?? 0);
                     return (
