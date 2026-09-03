@@ -72,7 +72,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .update({ ultimo_acesso: new Date().toISOString() } as any)
           .eq("user_id", session.user.id)
           .then();
+        // Record daily access history (idempotent per day, local SP date)
+        const dia = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+        const uid = session.user.id;
+        (supabase.from("user_access_log" as any) as any)
+          .select("id, hits")
+          .eq("user_id", uid)
+          .eq("dia", dia)
+          .maybeSingle()
+          .then(({ data }: any) => {
+            if (data?.id) {
+              (supabase.from("user_access_log" as any) as any)
+                .update({ hits: (data.hits ?? 0) + 1 })
+                .eq("id", data.id)
+                .then();
+            } else {
+              (supabase.from("user_access_log" as any) as any)
+                .insert({ user_id: uid, dia, hits: 1 })
+                .then();
+            }
+          });
       }
+
     });
 
     return () => subscription.unsubscribe();
