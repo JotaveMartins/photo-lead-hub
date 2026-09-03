@@ -155,11 +155,11 @@ const UsageTab = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={PILLARS.length + 3} className="text-center text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={PILLARS.length + 4} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : accounts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={PILLARS.length + 3} className="text-center text-muted-foreground">Nenhuma conta no período</TableCell>
+                <TableCell colSpan={PILLARS.length + 4} className="text-center text-muted-foreground">Nenhuma conta no período</TableCell>
               </TableRow>
             ) : (
               accounts.map((a, idx) => (
