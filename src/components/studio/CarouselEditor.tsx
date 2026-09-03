@@ -232,16 +232,24 @@ const CarouselEditor = ({
               <CarouselSlide
                 layout={slide.layout}
                 photoIds={slide.photoIds}
+                focus={slide.focus}
                 photosById={photosById}
                 editable={!readOnly}
                 onSlotClick={(slot) => setPicker({ slide: index, slot })}
+                onFocusChange={(slot, f) => {
+                  const next = [...(slide.focus ?? [])];
+                  next[slot] = f;
+                  update(index, { focus: next });
+                }}
                 onRemovePhoto={(slot) =>
                   update(index, {
                     photoIds: slide.photoIds.filter((_, i) => i !== slot),
+                    focus: (slide.focus ?? []).filter((_, i) => i !== slot),
                   })
                 }
               />
             </div>
+
 
             {!readOnly && (
               <div className="mt-3">
