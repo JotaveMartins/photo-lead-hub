@@ -79,7 +79,7 @@ export const useReportData = (params: UseReportDataParams = {}) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, nome, email")
+        .select("user_id, nome, email, created_at, meta_ad_account_id")
         .order("nome");
       if (error) throw error;
       return data as ReportProfile[];
