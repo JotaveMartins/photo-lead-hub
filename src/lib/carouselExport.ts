@@ -178,8 +178,9 @@ export const renderSlideToBlob = async (
     if (!url || !rect) continue;
     const img = await loadImageSafe(url);
     if (rect.contain) drawContain(ctx, img, rect);
-    else drawCover(ctx, img, rect);
+    else drawCover(ctx, img, rect, slide.focus?.[i] ?? null);
   }
+
 
   return await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob(
