@@ -8,7 +8,10 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type ReportLead = Tables<"leads">;
 export type ReportTask = Tables<"lead_tasks">;
-export type ReportProfile = Pick<Tables<"profiles">, "user_id" | "nome" | "email">;
+export type ReportProfile = Pick<
+  Tables<"profiles">,
+  "user_id" | "nome" | "email" | "created_at" | "meta_ad_account_id"
+>;
 
 interface UseReportDataParams {
   clienteUserId?: string;
@@ -76,7 +79,7 @@ export const useReportData = (params: UseReportDataParams = {}) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, nome, email")
+        .select("user_id, nome, email, created_at, meta_ad_account_id")
         .order("nome");
       if (error) throw error;
       return data as ReportProfile[];
