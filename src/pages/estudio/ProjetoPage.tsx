@@ -80,14 +80,14 @@ const ProjetoPage = () => {
       setCaption(carousel.legenda ?? "");
       setCarouselId(carousel.id);
       savedSnapshot.current = JSON.stringify({
-        s: carousel.slides.map((s) => [s.layout, s.photoIds]),
+        s: carousel.slides.map((s) => [s.layout, s.photoIds, s.focus ?? []]),
         c: carousel.legenda ?? "",
       });
     }
   }, [carousel, slides]);
 
   const currentSnapshot = JSON.stringify({
-    s: (slides ?? []).map((s) => [s.layout, s.photoIds]),
+    s: (slides ?? []).map((s) => [s.layout, s.photoIds, s.focus ?? []]),
     c: caption,
   });
   const dirty = !!slides && currentSnapshot !== savedSnapshot.current;
