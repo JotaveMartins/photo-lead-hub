@@ -8,7 +8,10 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type ReportLead = Tables<"leads">;
 export type ReportTask = Tables<"lead_tasks">;
-export type ReportProfile = Pick<Tables<"profiles">, "user_id" | "nome" | "email">;
+export type ReportProfile = Pick<
+  Tables<"profiles">,
+  "user_id" | "nome" | "email" | "created_at" | "meta_ad_account_id"
+>;
 
 interface UseReportDataParams {
   clienteUserId?: string;
