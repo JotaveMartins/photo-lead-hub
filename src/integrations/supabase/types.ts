@@ -1758,6 +1758,8 @@ export type Database = {
       slide_photos: {
         Row: {
           created_at: string
+          focus_x: number
+          focus_y: number
           id: string
           photo_id: string
           position: number
@@ -1766,6 +1768,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          focus_x?: number
+          focus_y?: number
           id?: string
           photo_id: string
           position?: number
@@ -1774,6 +1778,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          focus_x?: number
+          focus_y?: number
           id?: string
           photo_id?: string
           position?: number
