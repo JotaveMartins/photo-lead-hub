@@ -24,11 +24,19 @@ export interface AiCarouselJson {
   };
 }
 
+export interface SlideFocus {
+  x: number;
+  y: number;
+}
+
 export interface EditorSlide {
   key: string;
   layout: LayoutType;
   photoIds: string[];
+  /** Enquadramento (0-100) de cada foto dentro do seu espaço. */
+  focus?: (SlideFocus | null)[];
 }
+
 
 export const aiJsonToSlides = (json: AiCarouselJson): EditorSlide[] =>
   [...json.carousel.slides]
