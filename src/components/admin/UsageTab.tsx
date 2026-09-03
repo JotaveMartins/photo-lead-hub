@@ -118,10 +118,14 @@ const UsageTab = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Contas analisadas</p>
           <p className="text-2xl font-bold text-foreground">{accounts.length}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Taxa de adoção</p>
+          <p className="text-2xl font-bold text-foreground">{taxaAdocao}%</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Score médio</p>
@@ -132,6 +136,7 @@ const UsageTab = () => {
           <p className="text-2xl font-bold text-foreground">{semAcesso}</p>
         </div>
       </div>
+
 
       <div className="rounded-lg border bg-card overflow-x-auto">
         <Table>
