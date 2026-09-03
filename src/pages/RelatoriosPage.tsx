@@ -391,7 +391,7 @@ const RelatoriosPage = () => {
               .reduce((s: number, l: any) => s + (l.valor || 0), 0)}
             wonLeads={leadSets.ganhos.map((l: any) => ({ user_id: l.user_id, valor: l.valor, origem: l.origem }))}
             profiles={profiles}
-            isConsolidated={isAdmin && !clienteUserId}
+            isConsolidated={isAdmin && clienteUserId === "__all__"}
           />
         </div>
       )}
