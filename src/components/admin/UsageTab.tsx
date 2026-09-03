@@ -68,15 +68,18 @@ const UsageTab = () => {
 
 
   const exportCsv = () => {
-    const header = ["Conta", "Email", "Score", "Score mês anterior", "Acessou no mês", ...PILLARS.map((p) => p.label)];
+    const header = ["Conta", "Email", "Score", "Status de adoção", "Score mês anterior", "Acessou no mês", "Dias ativos", ...PILLARS.map((p) => p.label)];
     const lines = accounts.map((a) => [
       a.row.nome ?? "",
       a.row.email ?? "",
       a.score,
+      adocaoStatus(a),
       previousByUser.get(a.row.user_id)?.score ?? "",
       a.row.acessou_no_mes ? "Sim" : "Não",
+      Number(a.row.dias_ativos ?? 0),
       ...PILLARS.map((p) => Number(a.row[p.key] ?? 0)),
     ]);
+
     const csv = [header, ...lines]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
       .join("\n");

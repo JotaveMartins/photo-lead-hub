@@ -60,6 +60,12 @@ const UsageDetailDrawer = ({ open, onOpenChange, account, previous, monthLabel }
               <p className={`text-xs ${row.acessou_no_mes ? "text-green-500" : "text-destructive"}`}>
                 {row.acessou_no_mes ? "Acessou no mês" : "Sem acesso no mês"}
               </p>
+              <p className="text-xs text-muted-foreground">
+                {Number(row.dias_ativos ?? 0) > 0
+                  ? `${Number(row.dias_ativos)} dia(s) ativo(s) no mês`
+                  : "Sem histórico de dias"}
+              </p>
+
             </div>
           </div>
 
