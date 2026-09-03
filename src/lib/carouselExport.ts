@@ -6,7 +6,9 @@ export const EXPORT_W = 1080;
 export const EXPORT_H = 1350;
 
 /** Qualidade JPEG destinada à publicação (Instagram). */
-export const PUBLISH_QUALITY = 0.88;
+export const PUBLISH_QUALITY = 0.93;
+/** Fator de supersampling: renderiza maior e reduz com suavização (nitidez melhor). */
+export const SUPERSAMPLE = 2;
 /** Dimensões usadas apenas para pré-visualização na interface. */
 export const PREVIEW_W = 540;
 export const PREVIEW_H = 675;
@@ -149,6 +151,7 @@ export interface RenderOptions {
   width?: number;
   height?: number;
   quality?: number;
+  supersample?: number;
 }
 
 export const renderSlideToBlob = async (
@@ -158,18 +161,23 @@ export const renderSlideToBlob = async (
 ): Promise<Blob> => {
   const W = options.width ?? EXPORT_W;
   const H = options.height ?? EXPORT_H;
-  const quality = options.quality ?? 0.92;
+  const quality = options.quality ?? 0.95;
+  const ss = options.supersample ?? SUPERSAMPLE;
+
+  const RW = Math.round(W * ss);
+  const RH = Math.round(H * ss);
 
   const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = RW;
+  canvas.height = RH;
   const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
   ctx.fillStyle = slide.layout === "single_frame" ? "#ffffff" : "#0b0b0c";
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, RW, RH);
 
-  const rects = layoutRects(slide.layout, W, H);
+  const rects = layoutRects(slide.layout, RW, RH);
   const capacity = layoutCapacity(slide.layout);
 
   for (let i = 0; i < capacity; i++) {
@@ -182,8 +190,20 @@ export const renderSlideToBlob = async (
   }
 
 
+  // Reduz para a resolução final com suavização de alta qualidade.
+  let out: HTMLCanvasElement = canvas;
+  if (ss !== 1) {
+    out = document.createElement("canvas");
+    out.width = W;
+    out.height = H;
+    const octx = out.getContext("2d")!;
+    octx.imageSmoothingEnabled = true;
+    octx.imageSmoothingQuality = "high";
+    octx.drawImage(canvas, 0, 0, W, H);
+  }
+
   return await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob(
+    out.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar imagem"))),
       "image/jpeg",
       quality,

@@ -18,7 +18,7 @@ export interface RenderedSlideMeta {
 }
 
 /** Acima disso tentamos uma compressão extra suave (sem perda visual perceptível). */
-const HEAVY_SLIDE_BYTES = 900_000;
+const HEAVY_SLIDE_BYTES = 2_500_000;
 
 /**
  * Renderiza cada slide em 1080x1350 JPEG e envia para o bucket privado.
@@ -51,7 +51,7 @@ export const renderCarouselToStorage = async (
       const lighter = await renderSlideToBlob(usable[i], urlById, {
         width: EXPORT_W,
         height: EXPORT_H,
-        quality: 0.82,
+        quality: 0.88,
       });
       if (lighter.size < blob.size) blob = lighter;
     }

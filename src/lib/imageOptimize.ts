@@ -3,8 +3,8 @@
  * Reduz apenas resolução/peso — não altera cor, contraste, crop ou enquadramento.
  */
 
-export const MAX_UPLOAD_SIDE = 2500;
-export const UPLOAD_QUALITY = 0.88;
+export const MAX_UPLOAD_SIDE = 3200;
+export const UPLOAD_QUALITY = 0.95;
 
 const canUseCanvas = () =>
   typeof document !== "undefined" && typeof HTMLCanvasElement !== "undefined";
@@ -67,7 +67,7 @@ export const optimizeImageFile = async (
 
   const longest = Math.max(width, height);
   const needsResize = longest > maxSide;
-  const heavy = file.size > 1_500_000;
+  const heavy = file.size > 8_000_000;
 
   // Nunca aumentar imagens menores; só reprocessa quando há ganho real.
   if (!needsResize && !heavy) {
@@ -91,7 +91,7 @@ export const optimizeImageFile = async (
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/jpeg", quality),
   );
-  if (!blob || blob.size >= file.size) {
+  if (!blob || blob.size >= file.size * 0.9) {
     return { file, width, height, optimized: false };
   }
 
