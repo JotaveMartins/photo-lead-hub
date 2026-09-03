@@ -1881,6 +1881,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_access_log: {
+        Row: {
+          created_at: string
+          dia: string
+          hits: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dia: string
+          hits?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dia?: string
+          hits?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1980,6 +2007,7 @@ export type Database = {
           agenda: number
           clientes: number
           contratos: number
+          dias_ativos: number
           email: string
           entregas: number
           estudio: number
