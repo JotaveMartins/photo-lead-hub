@@ -27,6 +27,25 @@ const ScoreDelta = ({ current, prev }: { current: number; prev?: number }) => {
   );
 };
 
+type AdocaoStatus = "Engajado" | "Uso parcial" | "Inativo";
+
+const adocaoStatus = (a: ScoredAccount): AdocaoStatus => {
+  if (!a.row.acessou_no_mes) return "Inativo";
+  return a.score >= 10 ? "Engajado" : "Uso parcial";
+};
+
+const STATUS_CLASS: Record<AdocaoStatus, string> = {
+  Engajado: "bg-green-500/10 text-green-500 border-green-500/30",
+  "Uso parcial": "bg-amber-500/10 text-amber-500 border-amber-500/30",
+  Inativo: "bg-destructive/10 text-destructive border-destructive/30",
+};
+
+const StatusBadge = ({ status }: { status: AdocaoStatus }) => (
+  <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-[11px] font-medium border ${STATUS_CLASS[status]}`}>
+    {status}
+  </span>
+);
+
 const UsageTab = () => {
   const [month, setMonth] = useState<Date>(lastClosedMonth());
   const [selected, setSelected] = useState<ScoredAccount | null>(null);
@@ -41,6 +60,12 @@ const UsageTab = () => {
     [accounts],
   );
   const semAcesso = accounts.filter((a) => !a.row.acessou_no_mes).length;
+  const taxaAdocao = useMemo(() => {
+    if (!accounts.length) return 0;
+    const engajados = accounts.filter((a) => adocaoStatus(a) === "Engajado").length;
+    return Math.round((engajados / accounts.length) * 100);
+  }, [accounts]);
+
 
   const exportCsv = () => {
     const header = ["Conta", "Email", "Score", "Score mês anterior", "Acessou no mês", ...PILLARS.map((p) => p.label)];
