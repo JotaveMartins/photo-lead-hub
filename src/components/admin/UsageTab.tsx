@@ -144,6 +144,8 @@ const UsageTab = () => {
             <TableRow>
               <TableHead>Conta</TableHead>
               <TableHead className="w-24">Score</TableHead>
+              <TableHead className="whitespace-nowrap">Status de adoção</TableHead>
+
               {PILLARS.map((p) => (
                 <TableHead key={p.key} className="text-center whitespace-nowrap">{p.label}</TableHead>
               ))}
