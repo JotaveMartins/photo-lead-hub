@@ -13,7 +13,9 @@ export interface UsageRow {
   contratos: number;
   estudio: number;
   ultimo_acesso: string | null;
+  dias_ativos?: number;
   acessou_no_mes: boolean;
+
 }
 
 export type PillarKey =
