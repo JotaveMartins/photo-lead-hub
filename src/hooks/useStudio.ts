@@ -519,7 +519,10 @@ export const useSaveCarousel = (projectId?: string) => {
           photo_id: photoId,
           user_id: user!.id,
           position,
+          focus_x: slide.focus?.[position]?.x ?? 50,
+          focus_y: slide.focus?.[position]?.y ?? 50,
         }));
+
         if (rows.length) {
           const { error: spErr } = await supabase
             .from("slide_photos")
