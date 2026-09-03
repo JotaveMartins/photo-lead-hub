@@ -1,0 +1,3 @@
+ALTER TABLE public.slide_photos
+  ADD COLUMN IF NOT EXISTS focus_x numeric NOT NULL DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS focus_y numeric NOT NULL DEFAULT 50;

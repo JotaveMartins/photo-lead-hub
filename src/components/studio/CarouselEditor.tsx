@@ -119,7 +119,11 @@ const CarouselEditor = ({
 
   const changeLayout = (index: number, layout: LayoutType) => {
     const cap = layoutCapacity(layout);
-    update(index, { layout, photoIds: slides[index].photoIds.slice(0, cap) });
+    update(index, {
+      layout,
+      photoIds: slides[index].photoIds.slice(0, cap),
+      focus: (slides[index].focus ?? []).slice(0, cap),
+    });
   };
 
   const handlePick = (photoId: string) => {
@@ -127,9 +131,12 @@ const CarouselEditor = ({
     const slide = slides[picker.slide];
     const ids = [...slide.photoIds];
     ids[picker.slot] = photoId;
-    update(picker.slide, { photoIds: ids });
+    const focus = [...(slide.focus ?? [])];
+    focus[picker.slot] = { x: 50, y: 50 };
+    update(picker.slide, { photoIds: ids, focus });
     setPicker(null);
   };
+
 
   return (
     <div className="space-y-6">
@@ -232,16 +239,24 @@ const CarouselEditor = ({
               <CarouselSlide
                 layout={slide.layout}
                 photoIds={slide.photoIds}
+                focus={slide.focus}
                 photosById={photosById}
                 editable={!readOnly}
                 onSlotClick={(slot) => setPicker({ slide: index, slot })}
+                onFocusChange={(slot, f) => {
+                  const next = [...(slide.focus ?? [])];
+                  next[slot] = f;
+                  update(index, { focus: next });
+                }}
                 onRemovePhoto={(slot) =>
                   update(index, {
                     photoIds: slide.photoIds.filter((_, i) => i !== slot),
+                    focus: (slide.focus ?? []).filter((_, i) => i !== slot),
                   })
                 }
               />
             </div>
+
 
             {!readOnly && (
               <div className="mt-3">

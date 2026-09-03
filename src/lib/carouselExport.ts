@@ -118,17 +118,21 @@ const drawCover = (
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   r: Rect,
+  focus?: { x: number; y: number } | null,
 ) => {
   const scale = Math.max(r.w / img.width, r.h / img.height);
   const w = img.width * scale;
   const h = img.height * scale;
+  const fx = (focus?.x ?? 50) / 100;
+  const fy = (focus?.y ?? 50) / 100;
   ctx.save();
   ctx.beginPath();
   ctx.rect(r.x, r.y, r.w, r.h);
   ctx.clip();
-  ctx.drawImage(img, r.x + (r.w - w) / 2, r.y + (r.h - h) / 2, w, h);
+  ctx.drawImage(img, r.x + (r.w - w) * fx, r.y + (r.h - h) * fy, w, h);
   ctx.restore();
 };
+
 
 const drawContain = (
   ctx: CanvasRenderingContext2D,
@@ -174,8 +178,9 @@ export const renderSlideToBlob = async (
     if (!url || !rect) continue;
     const img = await loadImageSafe(url);
     if (rect.contain) drawContain(ctx, img, rect);
-    else drawCover(ctx, img, rect);
+    else drawCover(ctx, img, rect, slide.focus?.[i] ?? null);
   }
+
 
   return await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob(
