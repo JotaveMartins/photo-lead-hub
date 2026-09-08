@@ -9,6 +9,7 @@ import {
   REFERENCE_CAPTIONS,
   SEGMENT_GUIDE,
   STYLE_RULES,
+  WEDDING_CAPTION_DIRECTIVE,
 } from "./knowledge.ts";
 
 const corsHeaders = {
