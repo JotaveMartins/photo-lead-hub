@@ -1,4 +1,5 @@
 import {
+  LAYOUTS,
   LayoutType,
   PhotoShape,
   layoutCapacity,
