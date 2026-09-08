@@ -311,12 +311,14 @@ ${CATEGORY_GUIDE[category]}
 
 PREFERÊNCIAS DO FOTÓGRAFO:
 - Tom de voz: ${preferences.tone ?? "Automático (escolha o mais adequado às imagens)"}
-- Tamanho alvo: ${desiredLength}
-- Uso de emojis: ${preferences.emojis ?? "Pouco"}
-- Uso de CTA comercial: ${preferences.cta ?? (analysis.commercial_cta ? "Às vezes" : "Nunca")}
-
-REFERÊNCIAS DE ESCRITA (apenas tom e ritmo, NUNCA copie frases; várias são de casamento, adapte ao segmento atual):
-${REFERENCE_CAPTIONS}
+- Tamanho alvo: ${isWedding ? "livre, conforme a riqueza do contexto (3 a 7 pequenos parágrafos)" : desiredLength}
+- Uso de emojis: ${isWedding ? "no máximo um emoji discreto no final" : (preferences.emojis ?? "Pouco")}
+- Uso de CTA comercial: ${isWedding ? "Nunca" : (preferences.cta ?? (analysis.commercial_cta ? "Às vezes" : "Nunca"))}
+${
+  isWedding
+    ? ""
+    : `\nREFERÊNCIAS DE ESCRITA (apenas tom e ritmo, NUNCA copie frases; várias são de casamento, adapte ao segmento atual):\n${REFERENCE_CAPTIONS}`
+}
 ${
   preferences.style_examples?.length
     ? `\nEXEMPLOS DO PRÓPRIO FOTÓGRAFO (prioridade máxima de estilo):\n${preferences.style_examples
