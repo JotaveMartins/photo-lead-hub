@@ -338,8 +338,9 @@ Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de 
             {
               content_analysis: { ...analysis, category },
               project_context: projectContext,
-              instrucao:
-                `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
+              instrucao: isWedding
+                ? `Escolha internamente o elemento mais interessante do contexto informado e use-o como fio condutor de uma pequena narrativa sobre este casamento. Varie a forma de começar e o tamanho em relação a legendas anteriores. Não resuma o briefing, não use hashtags, CTA comercial nem travessões, e nunca invente fatos que não estejam no contexto.`
+                : `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
             },
             null,
             2,
