@@ -21,7 +21,12 @@ import {
   ProjectStatus,
   MAX_PHOTOS_PER_PROJECT,
 } from "@/hooks/useStudio";
-import { aiJsonToSlides, buildDemoCarousel, EditorSlide } from "@/lib/carouselSchema";
+import {
+  aiJsonToSlides,
+  buildDemoCarousel,
+  EditorSlide,
+  MAX_SLIDES,
+} from "@/lib/carouselSchema";
 import { exportCarousel } from "@/lib/carouselExport";
 import { renderCarouselToStorage } from "@/lib/renderCarouselToStorage";
 import {
@@ -109,10 +114,16 @@ const ProjetoPage = () => {
         shape: (p.orientation as "landscape" | "portrait" | "square") ?? "portrait",
       })),
       project,
+      { slideCount, photoCount: photoCount ?? photos.length },
     );
     const newSlides = aiJsonToSlides(json);
     setSlides(newSlides);
     setJustSaved(false);
+    if (newSlides.length < slideCount) {
+      toast.warning(
+        `Montamos ${newSlides.length} slide(s). As fotografias disponíveis não permitiram chegar a ${slideCount}.`,
+      );
+    }
     if (!caption.trim()) {
       toast.success("Carrossel gerado. Criando legenda com IA...");
       await runCaptionGeneration(newSlides);
