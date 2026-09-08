@@ -297,14 +297,14 @@ Responda SOMENTE com JSON no formato:
           : "CURTA";
 
     // ===== ETAPA 2 — GERAÇÃO DA LEGENDA =====
+    const isWedding = segment === "Casamento";
     const captionSystem = `Você escreve legendas de Instagram como o próprio fotógrafo que esteve presente no momento.
 
 SEGMENTO DO ENSAIO: ${segment}
 ${segmentGuide}
 
-${CAPTION_STRUCTURE}
+${isWedding ? WEDDING_CAPTION_DIRECTIVE : `${CAPTION_STRUCTURE}\n\n${STYLE_RULES}`}
 
-${STYLE_RULES}
 
 ORIENTAÇÃO PARA A CATEGORIA ${category}:
 ${CATEGORY_GUIDE[category]}
