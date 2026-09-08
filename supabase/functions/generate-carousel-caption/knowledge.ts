@@ -244,3 +244,66 @@ Antes de retornar a legenda final, verifique o texto. Se houver qualquer travess
 
 NUNCA copie frases das referências; use-as apenas para entender tom, ritmo e abordagem.
 `.trim();
+
+/**
+ * Diretriz exclusiva do segmento CASAMENTO.
+ * Substitui CAPTION_STRUCTURE e as referências gerais quando o projeto é de casamento.
+ */
+export const WEDDING_CAPTION_DIRECTIVE = `
+OBJETIVO
+Transforme o contexto fornecido pelo fotógrafo em uma pequena narrativa sobre aquele casamento.
+A legenda não deve apenas resumir o briefing.
+Antes de escrever, identifique internamente qual é o elemento mais interessante daquele contexto:
+família, personalidade do casal, fé, um momento marcante, uma situação inesperada, um gesto,
+uma emoção, um detalhe da cerimônia, a história do casal ou o ambiente do casamento.
+Use esse elemento como fio condutor. A legenda precisa parecer específica daquele casal e daquele casamento.
+
+ESTILO
+Escrita humana, sensível, contemplativa e natural. Pode ter leve caráter poético, sem exagerar.
+Misture frases curtas e frases mais desenvolvidas.
+Use detalhes reais fornecidos pelo fotógrafo sempre que possível.
+Prefira observações e cenas a frases genéricas sobre amor.
+Não transforme todos os parágrafos em frases de efeito.
+Não é obrigatório mencionar fotografia ou o trabalho do fotógrafo.
+O nome do casal pode aparecer no começo, no meio ou no final.
+
+VARIAÇÃO
+Não use sempre a mesma estrutura. Varie a forma de começar: uma cena do casamento, um pequeno detalhe,
+uma observação sobre o casal, uma sensação, uma reflexão ligada ao contexto, uma frase curta ou um momento daquele dia.
+Varie também o tamanho: contextos simples geram legendas menores, contextos ricos geram legendas mais desenvolvidas.
+Nunca alongue o texto apenas para preencher espaço.
+
+REGRAS IMPORTANTES
+Nunca invente informações que não estejam no contexto: como o casal se conheceu, familiares, religião,
+sentimentos específicos, locais ou acontecimentos. É permitido interpretar emocionalmente os fatos fornecidos,
+mas nunca criar novos fatos.
+
+EVITE COMPLETAMENTE estruturas típicas de IA:
+"não é sobre X, é sobre Y", "mais do que X, Y", "não foi apenas X", "cada detalhe conta uma história",
+"um dia para ficar para sempre na memória", "o amor estava em cada detalhe", "duas almas que se encontraram",
+"um amor que transcende o tempo", "um capítulo que começa", "uma nova jornada", "um sonho que se tornou realidade".
+
+EVITE TAMBÉM: clichês de casamento, frases que serviriam para qualquer casal, excesso das palavras
+amor, conexão, essência, jornada, eternidade, cumplicidade e sonhos, perguntas retóricas em excesso,
+listas artificiais de emoções, tom publicitário, CTA comercial, hashtags e travessões.
+Nunca utilize travessão em nenhuma legenda.
+
+FORMATO
+Entregue somente a legenda final, sem título e sem explicação.
+Use de 3 a 7 pequenos parágrafos, conforme a quantidade de informações disponíveis.
+Pode usar um emoji discreto no final, como 🤍, quando combinar com o texto.
+
+REFERÊNCIAS DE ESTILO (apenas sensibilidade, ritmo e profundidade; nunca copie frases nem repita a estrutura)
+Referência 1:
+"Encontros que encontraram o seu lugar no mundo desde o primeiro olhar.
+Dia em que tudo desacelera para lembrar o que realmente importa: escolher um ao outro, mais uma vez.
+Que a vida seja feita de manhãs tranquilas, de risadas que atravessem os anos e de um amor que continue crescendo nos detalhes, mesmo quando o tempo passar depressa.
+Que este dia seja apenas o primeiro de muitos que mereçam ser lembrados.
+Harumi & Leonardo. 🤍"
+
+Referência 2:
+"Entre olhares que se encontravam antes mesmo das palavras, sorrisos que escapavam sem aviso e abraços que demoravam mais do que o esperado, tudo ali carregava significado.
+Família por perto, amigos que fazem parte da história e uma fé abundante sustentando cada passo.
+Deus estava nos detalhes. No vento leve, na luz da tarde, na forma como eles se olhavam como quem já sabe que escolheu certo.
+Juliane e Arthur"
+`.trim();
