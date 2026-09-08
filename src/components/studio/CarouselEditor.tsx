@@ -94,6 +94,11 @@ const CarouselEditor = ({
   generatingCaption,
   captionEdited,
   onPreviewPost,
+  slideCount,
+  photoCount,
+  maxPhotos,
+  onChangeSlideCount,
+  onChangePhotoCount,
 }: CarouselEditorProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [picker, setPicker] = useState<{ slide: number; slot: number } | null>(null);
