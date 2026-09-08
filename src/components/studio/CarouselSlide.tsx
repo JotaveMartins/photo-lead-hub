@@ -167,6 +167,16 @@ const CarouselSlide = ({
     );
   }
 
+  if (layout === "grid_9") {
+    return (
+      <div className="grid h-full w-full grid-cols-3 grid-rows-3 gap-0 bg-background">
+        {slots.map((p, i) => (
+          <Slot key={i} {...common} photo={p} focus={f(i)} index={i} />
+        ))}
+      </div>
+    );
+  }
+
   if (layout === "editorial_2") {
     return (
       <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-0 bg-background">

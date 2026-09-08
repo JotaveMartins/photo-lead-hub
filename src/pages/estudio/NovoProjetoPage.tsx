@@ -18,7 +18,8 @@ import {
   useUpdateProject,
   useUploadPhotos,
 } from "@/hooks/useStudio";
-import { aiJsonToSlides, buildDemoCarousel } from "@/lib/carouselSchema";
+import { aiJsonToSlides, buildDemoCarousel, MAX_SLIDES } from "@/lib/carouselSchema";
+import GenerationControls from "@/components/studio/GenerationControls";
 import { useGenerateCaption } from "@/hooks/useCaptionAi";
 
 const GENERATION_STEPS = [
@@ -37,6 +38,8 @@ const NovoProjetoPage = () => {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState<number | null>(null);
+  const [slideCount, setSlideCount] = useState(7);
+  const [photoCount, setPhotoCount] = useState<number | null>(null);
   const creatingDraft = useRef<Promise<string> | null>(null);
 
   const createProject = useCreateProject();
@@ -138,8 +141,14 @@ const NovoProjetoPage = () => {
         tipo_ensaio: tipo,
         descricao: descricao.trim(),
         },
+        { slideCount, photoCount: photoCount ?? photos.length },
       );
       const slides = aiJsonToSlides(json);
+      if (slides.length < slideCount) {
+        toast.warning(
+          `Montamos ${slides.length} slide(s). As fotografias enviadas não permitiram chegar a ${slideCount}.`,
+        );
+      }
 
       setStep(2);
       let legenda = json.carousel.caption;
@@ -309,6 +318,20 @@ const NovoProjetoPage = () => {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-4">
+          <GenerationControls
+            slideCount={slideCount}
+            photoCount={photoCount ?? photos.length}
+            maxPhotos={photos.length}
+            onChangeSlideCount={(v) => setSlideCount(Math.min(MAX_SLIDES, v))}
+            onChangePhotoCount={setPhotoCount}
+          />
+          <p className="text-xs text-muted-foreground">
+            O sistema distribui as fotografias escolhidas entre os slides, montando as
+            molduras automaticamente.
+          </p>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

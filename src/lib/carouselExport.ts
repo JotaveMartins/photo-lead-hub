@@ -53,6 +53,15 @@ export const layoutRects = (
       { x: w + g, y: h + g, w, h },
     ];
   }
+  if (layout === "grid_9") {
+    const w = (W - g * 2) / 3;
+    const h = (H - g * 2) / 3;
+    const rects: Rect[] = [];
+    for (let r = 0; r < 3; r++)
+      for (let c = 0; c < 3; c++)
+        rects.push({ x: (w + g) * c, y: (h + g) * r, w, h });
+    return rects;
+  }
   if (layout === "editorial_2") {
     const big = Math.round((W - g) * (2 / 3));
     const small = W - g - big;

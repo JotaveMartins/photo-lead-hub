@@ -21,7 +21,12 @@ import {
   ProjectStatus,
   MAX_PHOTOS_PER_PROJECT,
 } from "@/hooks/useStudio";
-import { aiJsonToSlides, buildDemoCarousel, EditorSlide } from "@/lib/carouselSchema";
+import {
+  aiJsonToSlides,
+  buildDemoCarousel,
+  EditorSlide,
+  MAX_SLIDES,
+} from "@/lib/carouselSchema";
 import { exportCarousel } from "@/lib/carouselExport";
 import { renderCarouselToStorage } from "@/lib/renderCarouselToStorage";
 import {
@@ -62,6 +67,8 @@ const ProjetoPage = () => {
   const [editingAgain, setEditingAgain] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [captionEdited, setCaptionEdited] = useState(false);
+  const [slideCount, setSlideCount] = useState(7);
+  const [photoCount, setPhotoCount] = useState<number | null>(null);
   const savedSnapshot = useRef<string>("");
 
   const userId = useEffectiveUserId();
@@ -109,10 +116,16 @@ const ProjetoPage = () => {
         shape: (p.orientation as "landscape" | "portrait" | "square") ?? "portrait",
       })),
       project,
+      { slideCount, photoCount: photoCount ?? photos.length },
     );
     const newSlides = aiJsonToSlides(json);
     setSlides(newSlides);
     setJustSaved(false);
+    if (newSlides.length < slideCount) {
+      toast.warning(
+        `Montamos ${newSlides.length} slide(s). As fotografias disponíveis não permitiram chegar a ${slideCount}.`,
+      );
+    }
     if (!caption.trim()) {
       toast.success("Carrossel gerado. Criando legenda com IA...");
       await runCaptionGeneration(newSlides);
@@ -376,6 +389,11 @@ const ProjetoPage = () => {
             generatingCaption={generateCaption.isPending}
             captionEdited={captionEdited}
             onPreviewPost={() => setPreviewOpen(true)}
+            slideCount={slideCount}
+            photoCount={photoCount ?? photos.length}
+            maxPhotos={photos.length}
+            onChangeSlideCount={(v) => setSlideCount(Math.min(MAX_SLIDES, v))}
+            onChangePhotoCount={setPhotoCount}
           />
         </section>
       )}
