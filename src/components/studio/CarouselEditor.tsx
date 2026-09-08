@@ -31,6 +31,7 @@ import { LayoutType, layoutCapacity } from "@/lib/carouselLayouts";
 import CarouselSlide from "./CarouselSlide";
 import LayoutSelector from "./LayoutSelector";
 import PhotoPickerDialog from "./PhotoPickerDialog";
+import GenerationControls from "./GenerationControls";
 
 interface CarouselEditorProps {
   slides: EditorSlide[];
@@ -217,6 +218,22 @@ const CarouselEditor = ({
           )}
         </div>
       </div>
+
+      {!readOnly && onChangeSlideCount && onChangePhotoCount ? (
+        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-4">
+          <GenerationControls
+            slideCount={slideCount ?? 7}
+            photoCount={photoCount ?? photos.length}
+            maxPhotos={maxPhotos ?? photos.length}
+            onChangeSlideCount={onChangeSlideCount}
+            onChangePhotoCount={onChangePhotoCount}
+            disabled={saving}
+          />
+          <p className="text-xs text-muted-foreground">
+            Escolha a quantidade e clique em "Regenerar carrossel" para montar de novo.
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {slides.map((slide, index) => (
