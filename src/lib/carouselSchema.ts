@@ -96,58 +96,117 @@ const fillLayout = (layout: LayoutType, pool: PhotoInput[]): string[] | null => 
   return chosen;
 };
 
+export interface BuildOptions {
+  /** Quantidade de slides desejada (1 a 10). */
+  slideCount?: number;
+  /** Quantidade de fotos que devem ser utilizadas. */
+  photoCount?: number;
+}
+
+export const MAX_SLIDES = 10;
+
+/** Capacidades disponíveis nos templates. */
+const CAPACITIES = [1, 2, 3, 4, 9];
+
+/** Seleciona um subconjunto de fotos preservando variedade de formatos. */
+const selectPhotos = (pool: PhotoInput[], count: number): PhotoInput[] => {
+  if (count >= pool.length) return pool;
+  const groups: Record<string, PhotoInput[]> = {
+    portrait: pool.filter((p) => p.shape === "portrait"),
+    landscape: pool.filter((p) => p.shape === "landscape"),
+    square: pool.filter((p) => p.shape === "square"),
+  };
+  const keys = Object.keys(groups).filter((k) => groups[k].length > 0);
+  const out: PhotoInput[] = [];
+  let i = 0;
+  while (out.length < count && keys.length) {
+    const key = keys[i % keys.length];
+    const g = groups[key];
+    if (g.length) out.push(g.shift()!);
+    else keys.splice(i % keys.length, 1);
+    i++;
+  }
+  return shuffle(out);
+};
+
+/** Divide o total de fotos entre a quantidade de slides usando capacidades válidas. */
+const distribute = (total: number, slideCount: number): number[] => {
+  const sizes: number[] = [];
+  let remaining = total;
+  for (let s = slideCount; s > 0; s--) {
+    const others = s - 1;
+    const min = Math.max(1, remaining - others * 9);
+    const max = remaining - others * 1;
+    const feasible = CAPACITIES.filter((c) => c >= min && c <= max);
+    if (!feasible.length) break;
+    const target = remaining / s;
+    let best = feasible[0];
+    let bestDiff = Infinity;
+    for (const c of feasible) {
+      const diff = Math.abs(c - target);
+      if (diff < bestDiff - 0.001) {
+        best = c;
+        bestDiff = diff;
+      }
+    }
+    // Pequena variação para evitar carrosséis repetitivos.
+    const near = feasible.filter((c) => Math.abs(c - target) <= bestDiff + 1);
+    const chosen = near.length > 1 && Math.random() < 0.4 ? pick(near) : best;
+    sizes.push(chosen);
+    remaining -= chosen;
+  }
+  return sizes;
+};
+
 export const buildDemoCarousel = (
   photos: (string | PhotoInput)[],
   context: { nome: string; tipo_ensaio: string; descricao?: string | null },
+  options: BuildOptions = {},
 ): AiCarouselJson => {
   const all = toPhotoInputs(photos);
-  const pool = shuffle(all);
-  const landscapes = pool.filter((p) => p.shape === "landscape").length;
-  const manyWide = landscapes >= Math.max(2, Math.ceil(pool.length * 0.4));
+  const shuffled = shuffle(all);
+  const wanted = Math.min(
+    Math.max(1, Math.round(options.photoCount ?? shuffled.length)),
+    shuffled.length,
+  );
+  const pool = selectPhotos(shuffled, wanted);
+  const slideCount = Math.min(
+    MAX_SLIDES,
+    Math.max(1, Math.round(options.slideCount ?? 7)),
+  );
   const slides: AiSlideJson[] = [];
-  const portraitPlans: LayoutType[][] = [
-    ["single_frame", "single_full", "grid_2", "single_full", "editorial_2", "grid_4", "single_full"],
-    ["single_full", "grid_2", "single_frame", "grid_4", "single_full", "editorial_2", "single_full"],
-    ["single_frame", "grid_4", "single_full", "editorial_2", "grid_2", "single_full", "single_full"],
-    ["single_full", "editorial_2", "single_full", "grid_2", "single_frame", "single_full", "grid_4"],
-  ];
-  const widePlans: LayoutType[][] = [
-    ["single_frame", "strip_3", "single_full", "strip_2", "grid_2", "strip_plus_2", "single_full"],
-    ["strip_2", "single_full", "strip_3", "grid_2", "single_frame", "strip_plus_2", "single_full"],
-    ["single_full", "strip_plus_2", "strip_3", "single_frame", "strip_2", "grid_4", "single_full"],
-  ];
-  const plan = pick(manyWide ? widePlans : portraitPlans);
-  /** Alternativas quando o layout planejado não encontra fotos compatíveis. */
-  const fallbacks: LayoutType[] = [
-    "single_full",
-    "single_frame",
-    "strip_2",
-    "strip_3",
-    "grid_2",
-    "grid_4",
-    "editorial_2",
-    "strip_plus_2",
-  ];
+  const sizes = distribute(pool.length, slideCount);
 
-  for (const layout of plan) {
+  let previous: LayoutType | null = null;
+  for (const size of sizes) {
     if (!pool.length) break;
-    let used: LayoutType = layout;
-    let chosen = fillLayout(layout, pool);
-    if (!chosen) {
-      for (const alt of fallbacks) {
-        if (alt === layout) continue;
-        if (pool.length < layoutCapacity(alt)) continue;
-        const attempt = fillLayout(alt, pool);
-        if (attempt) {
-          used = alt;
-          chosen = attempt;
-          break;
-        }
+    const sameCapacity = shuffle(
+      LAYOUTS.filter((l) => l.capacity === size).map((l) => l.id),
+    );
+    const ordered = [
+      ...sameCapacity.filter((id) => id !== previous),
+      ...sameCapacity.filter((id) => id === previous),
+    ];
+    const fallbacks = shuffle(
+      LAYOUTS.filter((l) => l.capacity !== size && l.capacity <= pool.length).map(
+        (l) => l.id,
+      ),
+    ).sort((a, b) => layoutCapacity(b) - layoutCapacity(a));
+
+    let used: LayoutType | null = null;
+    let chosen: string[] | null = null;
+    for (const id of [...ordered, ...fallbacks]) {
+      if (pool.length < layoutCapacity(id)) continue;
+      const attempt = fillLayout(id, pool);
+      if (attempt) {
+        used = id;
+        chosen = attempt;
+        break;
       }
     }
-    if (!chosen) continue;
+    if (!chosen || !used) continue;
+    previous = used;
     slides.push({ order: slides.length + 1, layout: used, photos: chosen });
-    if (slides.length >= 7) break;
   }
 
   if (slides.length === 0 && all.length > 0) {
