@@ -9,6 +9,7 @@ import {
   REFERENCE_CAPTIONS,
   SEGMENT_GUIDE,
   STYLE_RULES,
+  WEDDING_CAPTION_DIRECTIVE,
 } from "./knowledge.ts";
 
 const corsHeaders = {
@@ -296,26 +297,28 @@ Responda SOMENTE com JSON no formato:
           : "CURTA";
 
     // ===== ETAPA 2 — GERAÇÃO DA LEGENDA =====
+    const isWedding = segment === "Casamento";
     const captionSystem = `Você escreve legendas de Instagram como o próprio fotógrafo que esteve presente no momento.
 
 SEGMENTO DO ENSAIO: ${segment}
 ${segmentGuide}
 
-${CAPTION_STRUCTURE}
+${isWedding ? WEDDING_CAPTION_DIRECTIVE : `${CAPTION_STRUCTURE}\n\n${STYLE_RULES}`}
 
-${STYLE_RULES}
 
 ORIENTAÇÃO PARA A CATEGORIA ${category}:
 ${CATEGORY_GUIDE[category]}
 
 PREFERÊNCIAS DO FOTÓGRAFO:
 - Tom de voz: ${preferences.tone ?? "Automático (escolha o mais adequado às imagens)"}
-- Tamanho alvo: ${desiredLength}
-- Uso de emojis: ${preferences.emojis ?? "Pouco"}
-- Uso de CTA comercial: ${preferences.cta ?? (analysis.commercial_cta ? "Às vezes" : "Nunca")}
-
-REFERÊNCIAS DE ESCRITA (apenas tom e ritmo, NUNCA copie frases; várias são de casamento, adapte ao segmento atual):
-${REFERENCE_CAPTIONS}
+- Tamanho alvo: ${isWedding ? "livre, conforme a riqueza do contexto (3 a 7 pequenos parágrafos)" : desiredLength}
+- Uso de emojis: ${isWedding ? "no máximo um emoji discreto no final" : (preferences.emojis ?? "Pouco")}
+- Uso de CTA comercial: ${isWedding ? "Nunca" : (preferences.cta ?? (analysis.commercial_cta ? "Às vezes" : "Nunca"))}
+${
+  isWedding
+    ? ""
+    : `\nREFERÊNCIAS DE ESCRITA (apenas tom e ritmo, NUNCA copie frases; várias são de casamento, adapte ao segmento atual):\n${REFERENCE_CAPTIONS}`
+}
 ${
   preferences.style_examples?.length
     ? `\nEXEMPLOS DO PRÓPRIO FOTÓGRAFO (prioridade máxima de estilo):\n${preferences.style_examples
@@ -335,8 +338,9 @@ Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de 
             {
               content_analysis: { ...analysis, category },
               project_context: projectContext,
-              instrucao:
-                `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
+              instrucao: isWedding
+                ? `Escolha internamente o elemento mais interessante do contexto informado e use-o como fio condutor de uma pequena narrativa sobre este casamento. Varie a forma de começar e o tamanho em relação a legendas anteriores. Não resuma o briefing, não use hashtags, CTA comercial nem travessões, e nunca invente fatos que não estejam no contexto.`
+                : `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
             },
             null,
             2,
