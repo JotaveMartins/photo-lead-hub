@@ -67,6 +67,8 @@ const ProjetoPage = () => {
   const [editingAgain, setEditingAgain] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [captionEdited, setCaptionEdited] = useState(false);
+  const [slideCount, setSlideCount] = useState(7);
+  const [photoCount, setPhotoCount] = useState<number | null>(null);
   const savedSnapshot = useRef<string>("");
 
   const userId = useEffectiveUserId();
@@ -387,6 +389,11 @@ const ProjetoPage = () => {
             generatingCaption={generateCaption.isPending}
             captionEdited={captionEdited}
             onPreviewPost={() => setPreviewOpen(true)}
+            slideCount={slideCount}
+            photoCount={photoCount ?? photos.length}
+            maxPhotos={photos.length}
+            onChangeSlideCount={(v) => setSlideCount(Math.min(MAX_SLIDES, v))}
+            onChangePhotoCount={setPhotoCount}
           />
         </section>
       )}
