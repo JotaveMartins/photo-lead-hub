@@ -45,6 +45,14 @@ const Preview = ({ id }: { id: LayoutType }) => {
         <div className={cell} />
       </div>
     );
+  if (id === "grid_9")
+    return (
+      <div className="grid h-full w-full grid-cols-3 grid-rows-3 gap-[1px]">
+        {Array.from({ length: 9 }, (_, i) => (
+          <div key={i} className={cell} />
+        ))}
+      </div>
+    );
   if (id === "strip_plus_2")
     return (
       <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-[2px]">

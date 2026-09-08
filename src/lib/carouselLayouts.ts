@@ -6,7 +6,8 @@ export type LayoutType =
   | "editorial_2"
   | "strip_2"
   | "strip_3"
-  | "strip_plus_2";
+  | "strip_plus_2"
+  | "grid_9";
 
 /** Formato esperado de cada espaço do template. */
 export type SlotShape = "tall" | "wide" | "any";
@@ -75,6 +76,13 @@ export const LAYOUTS: LayoutDef[] = [
     description: "Uma foto horizontal em cima e duas verticais embaixo",
     capacity: 3,
     slots: ["wide", "tall", "tall"],
+  },
+  {
+    id: "grid_9",
+    label: "Grade 9",
+    description: "Nove fotos em três linhas de três",
+    capacity: 9,
+    slots: ["any", "any", "any", "any", "any", "any", "any", "any", "any"],
   },
 ];
 
