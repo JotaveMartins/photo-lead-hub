@@ -245,13 +245,25 @@ const NovoProjetoPage = () => {
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Contexto do ensaio
           </label>
+          <p className="text-xs text-muted-foreground">
+            Quanto mais detalhes reais você escrever aqui, melhor fica a legenda. A
+            inteligência artificial nunca inventa nada que não esteja neste texto.
+          </p>
           <Textarea
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
-            rows={4}
-            placeholder="Ensaio pré-wedding de Amanda e Rafael realizado na praia durante o pôr do sol."
+            rows={5}
+            placeholder="Casamento da Juliane e do Arthur, na fazenda da família dela. Cerimônia ao ar livre no fim da tarde, com a irmã dela lendo uma carta e o avô emocionado na entrada. Muita gente próxima, clima leve e fé presente o dia todo."
             className="bg-muted/40"
           />
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+            <li>Nomes das pessoas</li>
+            <li>Local e tipo de cerimônia</li>
+            <li>Quem estava presente e o que essas pessoas representam</li>
+            <li>Algo marcante do dia, um gesto, um imprevisto, uma emoção</li>
+            <li>A personalidade do casal ou da pessoa fotografada</li>
+            <li>Detalhes escolhidos por eles que tenham significado</li>
+          </ul>
         </div>
 
         <div className="space-y-2">
