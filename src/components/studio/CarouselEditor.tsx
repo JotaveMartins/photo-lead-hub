@@ -55,6 +55,11 @@ interface CarouselEditorProps {
   generatingCaption?: boolean;
   captionEdited?: boolean;
   onPreviewPost?: () => void;
+  slideCount?: number;
+  photoCount?: number;
+  maxPhotos?: number;
+  onChangeSlideCount?: (value: number) => void;
+  onChangePhotoCount?: (value: number) => void;
 }
 
 const newKey = () => `slide-${Math.random().toString(36).slice(2, 10)}`;
