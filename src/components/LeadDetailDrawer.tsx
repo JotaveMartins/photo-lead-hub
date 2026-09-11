@@ -386,6 +386,8 @@ const EditableSystemField = ({
         const [y, m, d] = draftDate.split("-").map(Number);
         const local = new Date(y, m - 1, d, 12, 0, 0, 0);
         onSave(local.toISOString());
+      } else {
+        onSave(null);
       }
     } else {
       onSave(draftDate);
