@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -57,6 +57,18 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
           initialFocus
           className="p-3 pointer-events-auto"
         />
+        <div className="flex justify-end border-t border-border p-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => { onChange(""); setOpen(false); }}
+          >
+            <X className="mr-1 h-3 w-3" />
+            Limpar data
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );
