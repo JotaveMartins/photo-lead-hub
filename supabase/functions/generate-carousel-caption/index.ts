@@ -174,14 +174,14 @@ Deno.serve(async (req) => {
     }));
 
     // Inline em base64 (garante tamanho pequeno e evita o fetch remoto do provedor).
-    const imageUrls: string[] = [];
-    for (const c of candidates) {
+    // Downloads em paralelo para não estourar o tempo limite da função.
+    const fetchInline = async (c: { small: string | null; full: string | null }) => {
       for (const url of [c.small, c.full]) {
         if (!url) continue;
         try {
           const r = await fetch(url);
           if (!r.ok) {
-            console.error("image fetch status", r.status, url.slice(0, 120));
+            console.error("image fetch status", r.status);
             continue;
           }
           const buf = new Uint8Array(await r.arrayBuffer());
@@ -194,13 +194,17 @@ Deno.serve(async (req) => {
           for (let i = 0; i < buf.length; i += 8192) {
             bin += String.fromCharCode(...buf.subarray(i, i + 8192));
           }
-          imageUrls.push(`data:${mime};base64,${btoa(bin)}`);
-          break;
+          return `data:${mime};base64,${btoa(bin)}`;
         } catch (e) {
           console.error("image fetch failed", e);
         }
       }
-    }
+      return null;
+    };
+
+    const settled = await Promise.all(candidates.map(fetchInline));
+    const imageUrls: string[] = settled.filter((u): u is string => !!u);
+
 
     if (!imageUrls.length) return json({ error: "Nenhuma imagem disponível para análise" }, 400);
 
