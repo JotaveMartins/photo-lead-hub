@@ -339,7 +339,7 @@ const EditableTaskRow = ({
 const EditableSystemField = ({
   label, value, isTimestamp, onSave,
 }: {
-  label: string; value: string | null; isTimestamp: boolean; onSave: (v: string) => void;
+  label: string; value: string | null; isTimestamp: boolean; onSave: (v: string | null) => void;
 }) => {
   const [showWarning, setShowWarning] = useState(false);
   const [editing, setEditing] = useState(false);
