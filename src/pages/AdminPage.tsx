@@ -260,6 +260,7 @@ const AdminPage = () => {
               <p className="text-muted-foreground">Configurações globais do sistema (super admin).</p>
             </div>
             <EvolutionSettingsCard />
+            <CaptionAiSettingsCard />
           </TabsContent>
         )}
       </Tabs>
