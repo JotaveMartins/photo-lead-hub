@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { UserPlus, Trash2, Copy, Check, LogIn, Settings, Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EvolutionSettingsCard from "@/components/admin/EvolutionSettingsCard";
+import CaptionAiSettingsCard from "@/components/admin/CaptionAiSettingsCard";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
