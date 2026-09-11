@@ -157,12 +157,12 @@ export const buildDemoCarousel = (
   options: BuildOptions = {},
 ): AiCarouselJson => {
   const all = toPhotoInputs(photos);
-  const shuffled = shuffle(all);
   const wanted = Math.min(
-    Math.max(1, Math.round(options.photoCount ?? shuffled.length)),
-    shuffled.length,
+    Math.max(1, Math.round(options.photoCount ?? all.length)),
+    all.length,
   );
-  const pool = selectPhotos(shuffled, wanted);
+  const pool = selectPhotos(all, wanted);
+
   const slideCount = Math.min(
     MAX_SLIDES,
     Math.max(1, Math.round(options.slideCount ?? 7)),
