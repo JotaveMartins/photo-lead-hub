@@ -109,26 +109,18 @@ export const MAX_SLIDES = 10;
 /** Capacidades disponíveis nos templates. */
 const CAPACITIES = [1, 2, 3, 4, 9];
 
-/** Seleciona um subconjunto de fotos preservando variedade de formatos. */
+/** Seleciona um subconjunto de fotos preservando a ordem cronológica recebida. */
 const selectPhotos = (pool: PhotoInput[], count: number): PhotoInput[] => {
   if (count >= pool.length) return pool;
-  const groups: Record<string, PhotoInput[]> = {
-    portrait: pool.filter((p) => p.shape === "portrait"),
-    landscape: pool.filter((p) => p.shape === "landscape"),
-    square: pool.filter((p) => p.shape === "square"),
-  };
-  const keys = Object.keys(groups).filter((k) => groups[k].length > 0);
+  // Amostragem uniforme ao longo da sequência, mantendo a ordem original.
   const out: PhotoInput[] = [];
-  let i = 0;
-  while (out.length < count && keys.length) {
-    const key = keys[i % keys.length];
-    const g = groups[key];
-    if (g.length) out.push(g.shift()!);
-    else keys.splice(i % keys.length, 1);
-    i++;
+  const stepSize = pool.length / count;
+  for (let i = 0; i < count; i++) {
+    out.push(pool[Math.min(pool.length - 1, Math.floor(i * stepSize))]);
   }
-  return shuffle(out);
+  return out;
 };
+
 
 /** Divide o total de fotos entre a quantidade de slides usando capacidades válidas. */
 const distribute = (total: number, slideCount: number): number[] => {
@@ -165,12 +157,12 @@ export const buildDemoCarousel = (
   options: BuildOptions = {},
 ): AiCarouselJson => {
   const all = toPhotoInputs(photos);
-  const shuffled = shuffle(all);
   const wanted = Math.min(
-    Math.max(1, Math.round(options.photoCount ?? shuffled.length)),
-    shuffled.length,
+    Math.max(1, Math.round(options.photoCount ?? all.length)),
+    all.length,
   );
-  const pool = selectPhotos(shuffled, wanted);
+  const pool = selectPhotos(all, wanted);
+
   const slideCount = Math.min(
     MAX_SLIDES,
     Math.max(1, Math.round(options.slideCount ?? 7)),

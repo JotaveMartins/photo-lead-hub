@@ -128,7 +128,13 @@ export const useProjectPhotos = (projectId?: string) => {
         .eq("project_id", projectId!)
         .order("upload_order", { ascending: true });
       if (error) throw error;
-      const rows = (data ?? []) as any[];
+      // Ordem cronológica: nome do arquivo (numeração natural) e, em empate, ordem de envio.
+      const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+      const rows = ((data ?? []) as any[]).sort((a, b) => {
+        const byName = collator.compare(a.filename ?? "", b.filename ?? "");
+        return byName !== 0 ? byName : (a.upload_order ?? 0) - (b.upload_order ?? 0);
+      });
+
       const storagePaths = rows.map((r) => r.storage_path).filter(Boolean);
       const [map, thumbs] = await Promise.all([
         signPaths(storagePaths),
