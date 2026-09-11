@@ -418,6 +418,8 @@ Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de 
       caption,
       analysis: { ...analysis, category, suggested_caption_length: desiredLength },
       images_analyzed: imageUrls.length,
+      caption_provider: captionProvider,
+      caption_fallback_reason: captionFallbackReason,
     });
   } catch (err) {
     console.error("generate-carousel-caption error:", err);
