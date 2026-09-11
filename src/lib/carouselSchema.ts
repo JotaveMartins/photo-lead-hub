@@ -109,17 +109,8 @@ export const MAX_SLIDES = 10;
 /** Capacidades disponíveis nos templates. */
 const CAPACITIES = [1, 2, 3, 4, 9];
 
-/** Seleciona um subconjunto de fotos preservando a ordem cronológica recebida. */
-const selectPhotos = (pool: PhotoInput[], count: number): PhotoInput[] => {
-  if (count >= pool.length) return pool;
-  // Amostragem uniforme ao longo da sequência, mantendo a ordem original.
-  const out: PhotoInput[] = [];
-  const stepSize = pool.length / count;
-  for (let i = 0; i < count; i++) {
-    out.push(pool[Math.min(pool.length - 1, Math.floor(i * stepSize))]);
-  }
-  return out;
-};
+
+
 
 
 /** Divide o total de fotos entre a quantidade de slides usando capacidades válidas. */
