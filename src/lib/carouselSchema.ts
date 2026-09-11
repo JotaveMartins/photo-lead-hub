@@ -161,18 +161,38 @@ export const buildDemoCarousel = (
     Math.max(1, Math.round(options.photoCount ?? all.length)),
     all.length,
   );
-  const pool = selectPhotos(all, wanted);
 
   const slideCount = Math.min(
     MAX_SLIDES,
     Math.max(1, Math.round(options.slideCount ?? 7)),
   );
   const slides: AiSlideJson[] = [];
-  const sizes = distribute(pool.length, slideCount);
+  const sizes = distribute(wanted, slideCount);
+
+  // Cada slide recebe fotografias VIZINHAS na sequência (mesmo look/momento),
+  // evitando misturar roupas ou cenários diferentes dentro da mesma moldura.
+  const segments: PhotoInput[][] = [];
+  const totalSize = sizes.reduce((a, b) => a + b, 0) || 1;
+  let cursor = 0;
+  sizes.forEach((size, i) => {
+    const remainingSizes = sizes.slice(i).reduce((a, b) => a + b, 0);
+    const available = all.length - cursor;
+    // Fatia proporcional da sequência reservada para este slide.
+    const span = Math.max(
+      size,
+      Math.min(
+        available - (remainingSizes - size),
+        Math.round((size / totalSize) * all.length),
+      ),
+    );
+    segments.push(all.slice(cursor, cursor + span));
+    cursor += span;
+  });
 
   let previous: LayoutType | null = null;
-  for (const size of sizes) {
-    if (!pool.length) break;
+  sizes.forEach((size, i) => {
+    const segment = segments[i] ?? [];
+    if (!segment.length) return;
     const sameCapacity = shuffle(
       LAYOUTS.filter((l) => l.capacity === size).map((l) => l.id),
     );
@@ -181,26 +201,27 @@ export const buildDemoCarousel = (
       ...sameCapacity.filter((id) => id === previous),
     ];
     const fallbacks = shuffle(
-      LAYOUTS.filter((l) => l.capacity !== size && l.capacity <= pool.length).map(
-        (l) => l.id,
-      ),
+      LAYOUTS.filter(
+        (l) => l.capacity !== size && l.capacity <= segment.length,
+      ).map((l) => l.id),
     ).sort((a, b) => layoutCapacity(b) - layoutCapacity(a));
 
     let used: LayoutType | null = null;
     let chosen: string[] | null = null;
     for (const id of [...ordered, ...fallbacks]) {
-      if (pool.length < layoutCapacity(id)) continue;
-      const attempt = fillLayout(id, pool);
+      if (segment.length < layoutCapacity(id)) continue;
+      const attempt = fillLayout(id, [...segment]);
       if (attempt) {
         used = id;
         chosen = attempt;
         break;
       }
     }
-    if (!chosen || !used) continue;
+    if (!chosen || !used) return;
     previous = used;
     slides.push({ order: slides.length + 1, layout: used, photos: chosen });
-  }
+  });
+
 
   if (slides.length === 0 && all.length > 0) {
     const first = all[0];
