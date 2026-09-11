@@ -38,7 +38,15 @@ export const useGenerateCaption = () =>
       projectContext?: CaptionProjectContext;
       preferences?: CaptionPreferences;
     }): Promise<{ caption: string; analysis: CaptionAnalysis }> => {
+      const { data: sessionData, error: sessionError } = await supabase.auth.refreshSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (sessionError || !accessToken) {
+        throw new Error("Sua sessão expirou. Entre novamente no CRM para gerar a legenda.");
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-carousel-caption", {
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: {
           project_id: input.projectId,
           photo_ids: input.photoIds,
