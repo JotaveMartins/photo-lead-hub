@@ -63,6 +63,42 @@ async function callGateway(messages: unknown[], apiKey: string, jsonMode: boolea
   return (data?.choices?.[0]?.message?.content ?? "").toString();
 }
 
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+
+/** Etapa 2 (escrita da legenda) usando a chave da OpenAI do próprio estúdio. */
+async function callOpenAI(messages: unknown[], apiKey: string, model: string) {
+  const resp = await fetch(OPENAI_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      messages,
+      response_format: { type: "json_object" },
+    }),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`OpenAI (${resp.status}): ${text.slice(0, 300)}`);
+  }
+  const data = await resp.json();
+  return (data?.choices?.[0]?.message?.content ?? "").toString();
+}
+
+/** Configuração global da IA de legendas (definida pelo super admin). */
+async function loadCaptionAiConfig(admin: any) {
+  const { data } = await admin
+    .from("app_settings")
+    .select("value")
+    .eq("key", "caption_ai")
+    .maybeSingle();
+  const v: any = data?.value ?? {};
+  return {
+    provider: v.provider === "openai" ? "openai" : "lovable",
+    model: (v.openai_model ?? "gpt-4o").toString(),
+  };
+}
+
+
 function parseJsonLoose(raw: string): any {
   return parseJsonLooseImpl(raw);
 }
@@ -333,27 +369,46 @@ ${
 
 Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de linha"}`;
 
-    const captionRaw = await callGateway(
-      [
-        { role: "system", content: captionSystem },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              content_analysis: { ...analysis, category },
-              project_context: projectContext,
-              instrucao: isWedding
-                ? `Escolha internamente o elemento mais interessante do contexto informado e use-o como fio condutor de uma pequena narrativa sobre este casamento. Varie a forma de começar e o tamanho em relação a legendas anteriores. Não resuma o briefing, não use hashtags, CTA comercial nem travessões, e nunca invente fatos que não estejam no contexto.`
-                : `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-      apiKey,
-      true,
-    );
+    const captionMessages = [
+      { role: "system", content: captionSystem },
+      {
+        role: "user",
+        content: JSON.stringify(
+          {
+            content_analysis: { ...analysis, category },
+            project_context: projectContext,
+            instrucao: isWedding
+              ? `Escolha internamente o elemento mais interessante do contexto informado e use-o como fio condutor de uma pequena narrativa sobre este casamento. Varie a forma de começar e o tamanho em relação a legendas anteriores. Não resuma o briefing, não use hashtags, CTA comercial nem travessões, e nunca invente fatos que não estejam no contexto.`
+              : `Escreva a legenda para o segmento "${segment}", seguindo a estrutura definida (identificação/reflexão, conexão com o ensaio, fechamento natural). Use o contexto visual identificado e apenas os dados reais informados pelo fotógrafo. Nunca invente nomes, locais, profissões ou histórias.`,
+          },
+          null,
+          2,
+        ),
+      },
+    ];
+
+    const captionConfig = await loadCaptionAiConfig(admin);
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    let captionRaw = "";
+    let captionProvider = "lovable";
+    let captionFallbackReason: string | null = null;
+
+    if (captionConfig.provider === "openai" && openaiKey) {
+      try {
+        captionRaw = await callOpenAI(captionMessages, openaiKey, captionConfig.model);
+        captionProvider = `openai:${captionConfig.model}`;
+      } catch (e) {
+        captionFallbackReason = (e as Error)?.message ?? "Falha na OpenAI";
+        console.error("openai caption failed, falling back:", captionFallbackReason);
+      }
+    } else if (captionConfig.provider === "openai" && !openaiKey) {
+      captionFallbackReason = "OPENAI_API_KEY não configurada";
+    }
+
+    if (!captionRaw) {
+      captionRaw = await callGateway(captionMessages, apiKey, true);
+    }
+
 
     const captionJson = parseJsonLoose(captionRaw);
     const caption = stripEmDashes((captionJson?.caption ?? "").toString().trim());
@@ -363,6 +418,8 @@ Responda SOMENTE com JSON: {"caption":"texto completo da legenda com quebras de 
       caption,
       analysis: { ...analysis, category, suggested_caption_length: desiredLength },
       images_analyzed: imageUrls.length,
+      caption_provider: captionProvider,
+      caption_fallback_reason: captionFallbackReason,
     });
   } catch (err) {
     console.error("generate-carousel-caption error:", err);
