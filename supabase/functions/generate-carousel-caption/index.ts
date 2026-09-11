@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
       const { data: signed } = await admin.storage
         .from("project-photos")
         .createSignedUrls(paths, 60 * 30, {
-          transform: { width: 768, height: 768, resize: "contain", quality: 65 },
+          transform: { width: 640, height: 640, resize: "contain", quality: 60 },
         } as any);
       (signed ?? []).forEach((s: any) => {
         if (s?.path && s?.signedUrl) signedMap[s.path] = s.signedUrl;
