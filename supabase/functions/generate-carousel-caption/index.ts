@@ -63,6 +63,42 @@ async function callGateway(messages: unknown[], apiKey: string, jsonMode: boolea
   return (data?.choices?.[0]?.message?.content ?? "").toString();
 }
 
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+
+/** Etapa 2 (escrita da legenda) usando a chave da OpenAI do próprio estúdio. */
+async function callOpenAI(messages: unknown[], apiKey: string, model: string) {
+  const resp = await fetch(OPENAI_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      messages,
+      response_format: { type: "json_object" },
+    }),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`OpenAI (${resp.status}): ${text.slice(0, 300)}`);
+  }
+  const data = await resp.json();
+  return (data?.choices?.[0]?.message?.content ?? "").toString();
+}
+
+/** Configuração global da IA de legendas (definida pelo super admin). */
+async function loadCaptionAiConfig(admin: any) {
+  const { data } = await admin
+    .from("app_settings")
+    .select("value")
+    .eq("key", "caption_ai")
+    .maybeSingle();
+  const v: any = data?.value ?? {};
+  return {
+    provider: v.provider === "openai" ? "openai" : "lovable",
+    model: (v.openai_model ?? "gpt-4o").toString(),
+  };
+}
+
+
 function parseJsonLoose(raw: string): any {
   return parseJsonLooseImpl(raw);
 }
