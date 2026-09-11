@@ -19,7 +19,7 @@ const corsHeaders = {
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3.6-flash";
-const MAX_IMAGES = 12;
+const MAX_IMAGES = 10;
 
 type Preferences = {
   tone?: string; // Emocional | Editorial | Leve | Direto | Poético | Descontraído | Automático
