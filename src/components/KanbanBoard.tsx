@@ -470,7 +470,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                          </div>
                        )}
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {canTagLeads && leadTags[lead.id] && (
+                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tagColorClass(leadTags[lead.id])}`} />
+                          )}
+                          <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
+                        </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {(unreadByLead[lead.id] || 0) > 0 && (
                             <Tooltip>
