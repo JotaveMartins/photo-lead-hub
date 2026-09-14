@@ -21,6 +21,8 @@ import { isBefore, isToday, startOfDay } from "date-fns";
 import { parseLocalDate, normalizeText } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import LeadColorTagPicker from "@/components/LeadColorTagPicker";
+import { useLeadAdminTags, tagColorClass } from "@/hooks/useLeadAdminTags";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
@@ -74,6 +76,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: interesseOptions = [] } = useInteresseOptions();
   const { data: aiActive = false } = useAiActive();
   const { data: unreadByLead = {} } = useLeadUnreadCounts();
+  const { isAdmin: canTagLeads, tags: leadTags } = useLeadAdminTags();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
@@ -467,7 +470,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                          </div>
                        )}
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {canTagLeads && leadTags[lead.id] && (
+                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${tagColorClass(leadTags[lead.id])}`} />
+                          )}
+                          <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
+                        </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {(unreadByLead[lead.id] || 0) > 0 && (
                             <Tooltip>
@@ -500,6 +508,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                                  <p className="text-xs font-bold">IA Pausada</p>
                                </TooltipContent>
                              </Tooltip>
+                           )}
+                           {canTagLeads && (
+                             <div onClick={(e) => e.stopPropagation()}>
+                               <LeadColorTagPicker leadId={lead.id} compact />
+                             </div>
                            )}
                            <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
                         </div>
