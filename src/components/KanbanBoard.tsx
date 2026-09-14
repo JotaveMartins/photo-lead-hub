@@ -509,6 +509,11 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                                </TooltipContent>
                              </Tooltip>
                            )}
+                           {canTagLeads && (
+                             <div onClick={(e) => e.stopPropagation()}>
+                               <LeadColorTagPicker leadId={lead.id} compact />
+                             </div>
+                           )}
                            <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
                         </div>
                       </div>
