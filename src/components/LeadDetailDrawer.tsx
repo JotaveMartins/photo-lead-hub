@@ -18,6 +18,7 @@ import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAiActive } from "@/hooks/useAiActive";
 import { useAiGlobalActive } from "@/hooks/useAiGlobalActive";
 import { useQueryClient } from "@tanstack/react-query";
+import LeadColorTagPicker from "@/components/LeadColorTagPicker";
 import { supabase } from "@/integrations/supabase/client";
 import RequiredFieldsModal from "@/components/RequiredFieldsModal";
 import LeadToClienteFlow from "@/components/LeadToClienteFlow";
