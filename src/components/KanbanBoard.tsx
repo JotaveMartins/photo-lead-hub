@@ -21,6 +21,8 @@ import { isBefore, isToday, startOfDay } from "date-fns";
 import { parseLocalDate, normalizeText } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import LeadColorTagPicker from "@/components/LeadColorTagPicker";
+import { useLeadAdminTags, tagColorClass } from "@/hooks/useLeadAdminTags";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];

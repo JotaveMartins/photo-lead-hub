@@ -744,7 +744,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto text-muted-foreground hover:text-destructive"
+              <div className="ml-auto flex items-center gap-1">
+                <LeadColorTagPicker leadId={lead.id} />
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={() => setDeleteLeadConfirmOpen(true)}>
                 <Trash2 className="w-4 h-4" />
               </Button>
