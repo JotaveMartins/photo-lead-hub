@@ -76,6 +76,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: interesseOptions = [] } = useInteresseOptions();
   const { data: aiActive = false } = useAiActive();
   const { data: unreadByLead = {} } = useLeadUnreadCounts();
+  const { isAdmin: canTagLeads, tags: leadTags } = useLeadAdminTags();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createFollowUp = useCreateFollowUpTask();
