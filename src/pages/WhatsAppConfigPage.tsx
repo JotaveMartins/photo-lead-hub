@@ -37,7 +37,15 @@ type Instance = {
   status: string | null;
   phone_number: string | null;
   user_id: string;
+  qr_code: string | null;
+  qr_code_updated_at: string | null;
 };
+
+// Baileys/WhatsApp QR codes rotate roughly every 20-60s. We refresh a bit
+// ahead of that so the code on screen is (almost) never expired — Evolution
+// also pushes fresh codes via the QRCODE_UPDATED webhook in real time, this
+// timer is just the guaranteed fallback when that event doesn't arrive.
+const QR_REFRESH_MS = 25_000;
 
 const WhatsAppConfigPage = () => {
   const effectiveUserId = useEffectiveUserId();
@@ -45,16 +53,25 @@ const WhatsAppConfigPage = () => {
   const [resolvingContacts, setResolvingContacts] = useState(false);
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [transferFrom, setTransferFrom] = useState<Instance | null>(null);
   const [transferTarget, setTransferTarget] = useState<string>("");
-  const qrCodesRef = useRef(qrCodes);
-  qrCodesRef.current = qrCodes;
+  const instancesRef = useRef(instances);
+  instancesRef.current = instances;
+  const [now, setNow] = useState(() => Date.now());
 
   const { data: instanceStats = [] } = useInstanceStats();
+
+  // Ticks once a second, only while a QR is actually on screen, to drive the
+  // "novo QR em Xs" countdown under the image.
+  const hasVisibleQr = instances.some((i) => i.status === "connecting" && i.qr_code);
+  useEffect(() => {
+    if (!hasVisibleQr) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [hasVisibleQr]);
 
   const handleResolveContacts = async () => {
     if (!effectiveUserId) return;
@@ -99,28 +116,50 @@ const WhatsAppConfigPage = () => {
     }
   }, [effectiveUserId]);
 
-  // Poll for QR connection — stable interval, reads ref to avoid stale closure
+  // Poll connection status while a QR is pending — realtime (via the
+  // CONNECTION_UPDATE webhook) is the primary path, this is the fallback for
+  // when the webhook doesn't arrive.
+  const connectingKey = instances.filter((i) => i.status === "connecting").map((i) => i.id).join(",");
   useEffect(() => {
-    const pending = Object.keys(qrCodes);
+    const pending = instancesRef.current.filter((i) => i.status === "connecting");
     if (pending.length === 0) return;
     const interval = setInterval(async () => {
-      for (const id of Object.keys(qrCodesRef.current)) {
-        const inst = instances.find((i) => i.id === id);
-        if (!inst) continue;
+      for (const inst of instancesRef.current.filter((i) => i.status === "connecting")) {
         try {
           const { data } = await supabase.functions.invoke("manage-evolution", {
             body: { action: "check-status", instanceName: inst.name, instanceId: inst.id },
           });
           if (data?.status === "connected") {
-            setQrCodes((prev) => { const n = { ...prev }; delete n[id]; return n; });
             toast.success(`WhatsApp conectado: +${data.phoneNumber || ""}`);
             fetchInstances();
           }
         } catch (_) { /* ignore poll errors */ }
       }
-    }, 3000);
+    }, 5000);
     return () => clearInterval(interval);
-  }, [Object.keys(qrCodes).join(",")]);
+  }, [connectingKey]);
+
+  // Auto-refresh the QR image itself before it expires, regardless of
+  // whether Evolution's QRCODE_UPDATED webhook actually arrives — this is
+  // what fixes QR scans failing "only inside the tool" (a stale, expired
+  // code stuck on screen with no auto-refresh).
+  const qrRefreshKey = instances
+    .filter((i) => i.status === "connecting")
+    .map((i) => `${i.id}:${i.qr_code_updated_at}`)
+    .join(",");
+  useEffect(() => {
+    const connecting = instancesRef.current.filter((i) => i.status === "connecting");
+    if (connecting.length === 0) return;
+    const timers = connecting.map((inst) => {
+      const age = inst.qr_code_updated_at ? Date.now() - new Date(inst.qr_code_updated_at).getTime() : Infinity;
+      const delay = Math.max(QR_REFRESH_MS - age, 1000);
+      return setTimeout(() => {
+        const current = instancesRef.current.find((i) => i.id === inst.id);
+        if (current?.status === "connecting") handleConnect(current, { silent: true });
+      }, delay);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [qrRefreshKey]);
 
   const handleAdd = async () => {
     if (!newName.trim()) { toast.error("Informe um nome"); return; }
@@ -134,26 +173,34 @@ const WhatsAppConfigPage = () => {
     fetchInstances();
   };
 
-  const handleConnect = async (inst: Instance) => {
-    setBusy((b) => ({ ...b, [inst.id]: true }));
+  const handleConnect = async (inst: Instance, opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+    if (!silent) setBusy((b) => ({ ...b, [inst.id]: true }));
     try {
       const { data, error } = await supabase.functions.invoke("manage-evolution", {
         body: { action: "create-or-get-qr", instanceName: inst.name, instanceId: inst.id },
       });
       if (error) throw error;
       if (data.status === "connected") {
-        toast.success("Já está conectado!"); fetchInstances();
+        if (!silent) toast.success("Já está conectado!");
+        fetchInstances();
       } else if (data.qrcode) {
         const qr = data.qrcode.startsWith("data:") ? data.qrcode : `data:image/png;base64,${data.qrcode}`;
-        setQrCodes((prev) => ({ ...prev, [inst.id]: qr }));
-        toast.success("QR Code gerado! Escaneie no WhatsApp.");
-      } else {
+        // Optimistic local update so the (possibly just-regenerated) QR shows
+        // instantly, without waiting on a realtime round-trip.
+        setInstances((prev) => prev.map((i) => (
+          i.id === inst.id
+            ? { ...i, status: "connecting", qr_code: qr, qr_code_updated_at: new Date().toISOString() }
+            : i
+        )));
+        if (!silent) toast.success("QR Code gerado! Escaneie no WhatsApp.");
+      } else if (!silent) {
         toast.error("Não foi possível gerar o QR Code.");
       }
     } catch (err: any) {
-      toast.error(err.message || "Erro ao conectar");
+      if (!silent) toast.error(err.message || "Erro ao conectar");
     } finally {
-      setBusy((b) => ({ ...b, [inst.id]: false }));
+      if (!silent) setBusy((b) => ({ ...b, [inst.id]: false }));
     }
   };
 
@@ -163,7 +210,6 @@ const WhatsAppConfigPage = () => {
       await supabase.functions.invoke("manage-evolution", {
         body: { action: "disconnect", instanceName: inst.name, instanceId: inst.id },
       });
-      setQrCodes((prev) => { const n = { ...prev }; delete n[inst.id]; return n; });
       toast.success("Número desconectado.");
       fetchInstances();
     } catch (err: any) {
@@ -306,9 +352,12 @@ const WhatsAppConfigPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {instances.map((inst) => {
-            const qr = qrCodes[inst.id];
+            const qr = inst.status === "connecting" ? inst.qr_code : null;
             const connected = inst.status === "connected";
             const stat = instanceStats.find((s) => s.instance_id === inst.id);
+            const secondsToRefresh = qr && inst.qr_code_updated_at
+              ? Math.max(0, Math.ceil((QR_REFRESH_MS - (now - new Date(inst.qr_code_updated_at).getTime())) / 1000))
+              : null;
 
             return (
               <Card key={inst.id} className="bg-card border-border">
@@ -363,8 +412,15 @@ const WhatsAppConfigPage = () => {
                       </div>
                     </div>
                   ) : qr ? (
-                    <div className="bg-white p-3 rounded-lg shadow-inner">
-                      <img src={qr} alt="QR Code" className="w-44 h-44" />
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="bg-white p-3 rounded-lg shadow-inner">
+                        <img src={qr} alt="QR Code" className="w-44 h-44" />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {secondsToRefresh !== null && secondsToRefresh > 0
+                          ? `Novo QR Code em ${secondsToRefresh}s`
+                          : "Gerando novo QR Code..."}
+                      </p>
                     </div>
                   ) : (
                     <div className="w-44 h-44 bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-border text-muted-foreground text-center p-4">

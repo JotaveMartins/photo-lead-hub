@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildQrDataUrl } from "../_shared/qrcode.ts";
+
+const WEBHOOK_EVENTS = ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE", "QRCODE_UPDATED"];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,7 +84,10 @@ Deno.serve(async (req) => {
         }
 
         const createData = await createResp.json();
-        qrcode = createData?.qrcode?.base64 || createData?.base64;
+        qrcode = await buildQrDataUrl(
+          createData?.qrcode?.base64 || createData?.base64,
+          createData?.qrcode?.code || createData?.code,
+        );
       } else {
         const stateData = await stateResp.json();
         if (stateData?.instance?.state === "open") {
@@ -93,12 +99,14 @@ Deno.serve(async (req) => {
           headers: { apikey: apiKey },
         });
         const connectData = await connectResp.json();
-        qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code;
+        qrcode = await buildQrDataUrl(
+          connectData?.base64 || connectData?.qrcode?.base64,
+          connectData?.code || connectData?.qrcode?.code,
+        );
       }
 
       // Always (re)configure webhook — covers instances created before webhook code existed
       const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-webhook`;
-      const events = ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"];
       // Evolution API v2 expects payload wrapped in { webhook: {...} }
       const whResp = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
         method: "POST",
@@ -109,7 +117,7 @@ Deno.serve(async (req) => {
             url: webhookUrl,
             webhookByEvents: false,
             webhookBase64: true,
-            events,
+            events: WEBHOOK_EVENTS,
           }
         })
       });
@@ -118,13 +126,18 @@ Deno.serve(async (req) => {
         await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "apikey": apiKey },
-          body: JSON.stringify({ url: webhookUrl, enabled: true, events })
+          body: JSON.stringify({ url: webhookUrl, enabled: true, events: WEBHOOK_EVENTS })
         });
       }
       console.log("Webhook configured for", instanceName, "→", webhookUrl, "status:", whResp.status);
 
       const updateQuery = supabase.from("whatsapp_instances")
-        .update({ instance_key: instanceName, status: "connecting" });
+        .update({
+          instance_key: instanceName,
+          status: "connecting",
+          qr_code: qrcode,
+          qr_code_updated_at: qrcode ? new Date().toISOString() : null,
+        });
       if (instanceId) updateQuery.eq("id", instanceId);
       else updateQuery.eq("user_id", user.id).eq("name", instanceName);
       await updateQuery;
@@ -157,7 +170,7 @@ Deno.serve(async (req) => {
           if (ownerJid) phoneNumber = String(ownerJid).split("@")[0];
         } catch (_) { /* ignore */ }
         const upd = supabase.from("whatsapp_instances")
-          .update({ status: "connected", phone_number: phoneNumber, instance_key: instanceName });
+          .update({ status: "connected", phone_number: phoneNumber, instance_key: instanceName, qr_code: null, qr_code_updated_at: null });
         if (instanceId) upd.eq("id", instanceId);
         else upd.eq("user_id", user.id).eq("name", instanceName);
         await upd;
@@ -175,7 +188,7 @@ Deno.serve(async (req) => {
         });
       } catch (_) { /* ignore */ }
       const upd = supabase.from("whatsapp_instances")
-        .update({ status: "disconnected", phone_number: null });
+        .update({ status: "disconnected", phone_number: null, qr_code: null, qr_code_updated_at: null });
       if (instanceId) upd.eq("id", instanceId);
       else upd.eq("user_id", user.id).eq("name", instanceName);
       await upd;
@@ -231,12 +244,11 @@ Deno.serve(async (req) => {
 
     if (action === "set-webhook") {
       const webhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/evolution-webhook`;
-      const events = ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "MESSAGES_UPDATE", "SEND_MESSAGE"];
       const whResp = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": apiKey },
         body: JSON.stringify({
-          webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events }
+          webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS }
         })
       });
       let body = await whResp.text();
@@ -244,7 +256,7 @@ Deno.serve(async (req) => {
         const fallback = await fetch(`${baseUrl}/webhook/set/${instanceName}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "apikey": apiKey },
-          body: JSON.stringify({ url: webhookUrl, enabled: true, events })
+          body: JSON.stringify({ url: webhookUrl, enabled: true, events: WEBHOOK_EVENTS })
         });
         body = await fallback.text();
         if (!fallback.ok) throw new Error(`Webhook set failed: ${body}`);

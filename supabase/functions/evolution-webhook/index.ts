@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildQrDataUrl } from "../_shared/qrcode.ts";
 
 const normalizeWhatsApp = (value: string | null | undefined) => String(value || "").replace(/\D/g, "");
 
@@ -665,6 +666,23 @@ Deno.serve(async (req) => {
           }
         }
       }
+    } else if (event === "qrcode.updated") {
+      // Evolution rotates the QR every ~20-60s and pushes each new one here —
+      // this keeps the connect screen showing a code that hasn't expired yet.
+      const qrPayload = data?.qrcode || data || payload?.qrcode || {};
+      const qrDataUrl = await buildQrDataUrl(
+        qrPayload?.base64 ?? data?.base64,
+        qrPayload?.code ?? data?.code,
+      );
+      if (qrDataUrl) {
+        await supabase
+          .from("whatsapp_instances")
+          .update({ qr_code: qrDataUrl, qr_code_updated_at: new Date().toISOString(), status: "connecting" })
+          .eq("name", instanceName);
+        console.log(`QR code refreshed for ${instanceName}`);
+      } else {
+        console.error(`qrcode.updated event for ${instanceName} carried no usable QR data`);
+      }
     } else if (event === "connection.update") {
       const state = data.state;
       // "connecting" is a transient state (reconnect blips) — não é desconexão
@@ -679,7 +697,10 @@ Deno.serve(async (req) => {
 
       await supabase
         .from("whatsapp_instances")
-        .update({ status: newStatus })
+        .update({
+          status: newStatus,
+          ...(newStatus === "connected" ? { qr_code: null, qr_code_updated_at: null } : {}),
+        })
         .eq("name", instanceName);
 
       // Fire disconnect webhook only on connected -> disconnected transition
