@@ -2000,6 +2000,8 @@ export type Database = {
           instance_key: string | null
           name: string
           phone_number: string | null
+          qr_code: string | null
+          qr_code_updated_at: string | null
           status: string | null
           updated_at: string | null
           user_id: string | null
@@ -2012,6 +2014,8 @@ export type Database = {
           instance_key?: string | null
           name: string
           phone_number?: string | null
+          qr_code?: string | null
+          qr_code_updated_at?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -2024,6 +2028,8 @@ export type Database = {
           instance_key?: string | null
           name?: string
           phone_number?: string | null
+          qr_code?: string | null
+          qr_code_updated_at?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
