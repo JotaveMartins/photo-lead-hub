@@ -87,6 +87,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [interesseFilter, setInteresseFilter] = useState<string>("all");
+  const [tarefaFilter, setTarefaFilter] = useState<"all" | "overdue" | "none">("all");
+
   const [statusFilter, setStatusFilter] = useState<"open" | "won" | "lost">("open");
   const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
   const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
@@ -192,9 +194,15 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         normalizeText(lead.whatsapp).includes(q);
       const matchesOrigem = origemFilter === "all" || lead.origem === origemFilter;
       const matchesInteresse = interesseFilter === "all" || lead.interesse === interesseFilter;
-      return matchesSearch && matchesOrigem && matchesInteresse;
+      let matchesTarefa = true;
+      if (tarefaFilter !== "all") {
+        const st = getLeadTaskStatus(lead.id, pendingTasks);
+        matchesTarefa = tarefaFilter === "overdue" ? st === "overdue" : st === "none";
+      }
+      return matchesSearch && matchesOrigem && matchesInteresse && matchesTarefa;
     });
-  }, [leads, searchQuery, origemFilter, interesseFilter]);
+  }, [leads, searchQuery, origemFilter, interesseFilter, tarefaFilter, pendingTasks]);
+
 
   const getColumnValue = (status: LeadStatus) => {
     return filteredLeads
@@ -370,6 +378,20 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
             allowEmpty
           />
         </div>
+        <div className="w-[190px]">
+          <SearchSelect
+            value={tarefaFilter === "all" ? "" : tarefaFilter}
+            onChange={(v) => setTarefaFilter((v || "all") as "all" | "overdue" | "none")}
+            options={[
+              { value: "overdue", label: "Com tarefas atrasadas" },
+              { value: "none", label: "Sem tarefas" },
+            ]}
+            placeholder="Todas as tarefas"
+            emptyLabel="Todas as tarefas"
+            allowEmpty
+          />
+        </div>
+
 
         {/* Status filter — pinned to the right */}
         <div className="sm:ml-auto flex bg-muted rounded-lg p-1 h-9">
