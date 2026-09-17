@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import DatePickerField from "@/components/DatePickerField";
+import SearchSelect from "@/components/SearchSelect";
+import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 
 import TimePickerField from "@/components/TimePickerField";
 import { CheckSquare, Plus, Calendar as CalendarIcon, Clock, User, Circle, Phone, List, ArrowUp, ArrowDown } from "lucide-react";
@@ -60,6 +62,11 @@ const TarefasPage = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("due_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const leadOptions = useMemo(
+    () => leads.map((lead) => ({ value: lead.id, label: lead.nome, hint: lead.whatsapp })),
+    [leads]
+  );
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -412,27 +419,39 @@ const TarefasPage = () => {
             <div className="space-y-2">
               <Label>Vincular a</Label>
               <div className="flex gap-2 mb-2">
-                <button type="button" onClick={() => setNewTargetType("lead")}
+                <button type="button" onClick={() => { setNewTargetType("lead"); setNewClienteId(""); }}
                   className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${newTargetType === "lead" ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground"}`}>
                   Lead
                 </button>
-                <button type="button" onClick={() => setNewTargetType("cliente")}
+                <button type="button" onClick={() => { setNewTargetType("cliente"); setNewLeadId(""); }}
                   className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${newTargetType === "cliente" ? "bg-primary text-primary-foreground border-primary" : "bg-muted border-border text-muted-foreground"}`}>
                   Cliente
                 </button>
               </div>
               {newTargetType === "lead" ? (
-                <select value={newLeadId} onChange={(e) => setNewLeadId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                  <option value="">Selecione um lead</option>
-                  {leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.nome}</option>)}
-                </select>
+                <SearchSelect
+                  options={leadOptions}
+                  value={newLeadId}
+                  onChange={setNewLeadId}
+                  placeholder="Selecione um lead"
+                  searchPlaceholder="Buscar por nome ou telefone..."
+                  allowEmpty={false}
+                />
               ) : (
-                <select value={newClienteId} onChange={(e) => setNewClienteId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                  <option value="">Selecione um cliente</option>
-                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                </select>
+                <ClienteSearchSelect
+                  clientes={clientes.map((cliente) => ({
+                    id: cliente.id,
+                    nome: cliente.nome,
+                    whatsapp: cliente.whatsapp,
+                  }))}
+                  value={newClienteId}
+                  onChange={setNewClienteId}
+                  label=""
+                  placeholder="Buscar por nome ou telefone..."
+                  emptyLabel="Selecione um cliente"
+                  allowEmpty={false}
+                  allowCreate={false}
+                />
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -447,7 +466,9 @@ const TarefasPage = () => {
             </div>
             <div className="flex gap-3 justify-end pt-4">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate} disabled={!newTitle.trim() || (newTargetType === "lead" ? !newLeadId : !newClienteId)} className="bg-gradient-primary hover:opacity-90">Criar atividade</Button>
+              <Button onClick={handleCreate} disabled={createTask.isPending || !newTitle.trim() || (newTargetType === "lead" ? !newLeadId : !newClienteId)} className="bg-gradient-primary hover:opacity-90">
+                {createTask.isPending ? "Criando..." : "Criar atividade"}
+              </Button>
             </div>
           </div>
         </DialogContent>
