@@ -378,6 +378,20 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
             allowEmpty
           />
         </div>
+        <div className="w-[190px]">
+          <SearchSelect
+            value={tarefaFilter === "all" ? "" : tarefaFilter}
+            onChange={(v) => setTarefaFilter((v || "all") as "all" | "overdue" | "none")}
+            options={[
+              { value: "overdue", label: "Com tarefas atrasadas" },
+              { value: "none", label: "Sem tarefas" },
+            ]}
+            placeholder="Todas as tarefas"
+            emptyLabel="Todas as tarefas"
+            allowEmpty
+          />
+        </div>
+
 
         {/* Status filter — pinned to the right */}
         <div className="sm:ml-auto flex bg-muted rounded-lg p-1 h-9">
