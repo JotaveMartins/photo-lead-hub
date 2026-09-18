@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.run-scheduled-posts]
 verify_jwt = false
+
+[functions.create-user-api]
+verify_jwt = false
