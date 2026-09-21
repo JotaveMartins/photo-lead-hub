@@ -2,6 +2,7 @@ import DatePickerField from "@/components/DatePickerField";
 import { Label } from "@/components/ui/label";
 import { ReportProfile } from "@/hooks/useReportData";
 import SearchSelect from "@/components/SearchSelect";
+import MultiSearchSelect from "@/components/MultiSearchSelect";
 
 export type PeriodOption =
   | "today"
@@ -21,11 +22,11 @@ interface ReportFiltersProps {
   customEnd: string;
   onCustomStartChange: (v: string) => void;
   onCustomEndChange: (v: string) => void;
-  origem: string;
-  onOrigemChange: (v: string) => void;
+  origem: string[];
+  onOrigemChange: (v: string[]) => void;
   origens: string[];
-  interesse: string;
-  onInteresseChange: (v: string) => void;
+  interesse: string[];
+  onInteresseChange: (v: string[]) => void;
   interesses: string[];
   // admin only
   isAdmin: boolean;
