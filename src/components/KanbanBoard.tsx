@@ -247,6 +247,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       });
     } else if (newStatus === "Fechado Ganho") {
       // Cria um contrato mínimo a partir dos dados do lead e abre o fluxo
+      setGanhoContratoId(null);
       createContrato.mutateAsync({
         lead_id: lead.id,
         nome_cliente: lead.nome,
@@ -254,7 +255,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         data_evento: lead.data_evento || null,
         tipo_servico: lead.interesse || null,
         valor: lead.valor || null,
-      }).catch(() => {});
+      }).then((c: any) => { if (c?.id) setGanhoContratoId(c.id); }).catch(() => {});
+      setGanhoPrevStatus(lead.status as LeadStatus);
       setLeadToClienteExtraFields(extraFields || {});
       updateLead.mutate({ id: lead.id, status: "Fechado Ganho" as LeadStatus, ...(extraFields || {}) }, {
         onSuccess: () => setLeadToClienteLead(lead),
