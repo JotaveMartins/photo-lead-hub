@@ -30,6 +30,8 @@ import InboxPage from "./pages/InboxPage";
 import ContratosPage from "./pages/ContratosPage";
 import InicioPage from "./pages/InicioPage";
 import EntregasPage from "./pages/EntregasPage";
+import GaleriasPage from "./pages/GaleriasPage";
+import GaleriaDetailPage from "./pages/GaleriaDetailPage";
 import EstudioPage from "./pages/estudio/EstudioPage";
 import NovoProjetoPage from "./pages/estudio/NovoProjetoPage";
 import ProjetoPage from "./pages/estudio/ProjetoPage";
@@ -123,6 +125,8 @@ const AppRoutes = () => {
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/:id" element={<ClienteDetailPage />} />
         <Route path="/entregas" element={<EntregasPage />} />
+        <Route path="/galerias" element={<GaleriasPage />} />
+        <Route path="/galerias/:id" element={<GaleriaDetailPage />} />
         <Route path="/equipe" element={<Navigate to="/agenda?tab=equipe" replace />} />
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/ia" element={<IAPage />} />
