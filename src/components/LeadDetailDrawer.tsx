@@ -457,6 +457,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
   // Lead to cliente flow state
    const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
+   const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
    const [activeTab, setActiveTab] = useState<"historico" | "conversa">("historico");
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
