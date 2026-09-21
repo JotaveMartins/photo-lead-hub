@@ -127,7 +127,8 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
     goToConfirmacao();
   };
 
-  const handleClose = () => {
+  const handleClose = (cancelled = false) => {
+    if (cancelled && !createdClienteId) onCancel?.();
     setStep("cliente");
     setCreatedClienteId(null);
     setCreatedClienteNome("");
