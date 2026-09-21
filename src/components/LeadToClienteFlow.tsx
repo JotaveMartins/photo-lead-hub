@@ -45,7 +45,7 @@ const COBRANCA_LABELS: Record<CobrancaType, string> = {
   entrada_parcelas: "Entrada + Parcelas",
 };
 
-const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
+const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowProps) => {
   const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "evento" | "confirmacao">("cliente");
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [createdClienteNome, setCreatedClienteNome] = useState<string>("");
