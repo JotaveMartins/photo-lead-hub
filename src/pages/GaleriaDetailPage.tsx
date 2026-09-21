@@ -80,8 +80,8 @@ const GaleriaDetailPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <button onClick={() => navigate("/galerias")} className="hover:text-foreground">
-          Galerias
+        <button onClick={() => navigate("/entregas")} className="hover:text-foreground">
+          Entregas
         </button>
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground">{gallery.name}</span>
@@ -214,7 +214,7 @@ const GaleriaDetailPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteGallery.mutate(gallery.id, { onSuccess: () => navigate("/galerias") })}
+              onClick={() => deleteGallery.mutate(gallery.id, { onSuccess: () => navigate("/entregas") })}
             >
               Excluir
             </AlertDialogAction>

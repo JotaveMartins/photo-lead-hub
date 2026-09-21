@@ -22,7 +22,6 @@ import {
   Home,
   ChevronDown,
   Sparkles,
-  Images,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import logo from "@/assets/logo.png";
@@ -57,7 +56,6 @@ const vendasItems: MenuItem[] = [
 const clientesItems: MenuItem[] = [
   { id: 'clientes', label: 'Clientes', icon: UserCheck },
   { id: 'entregas', label: 'Entregas', icon: Package },
-  { id: 'galerias', label: 'Galerias', icon: Images },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
   { id: 'contratos', label: 'Contratos', icon: FileText },
   { id: 'catalogo', label: 'Serviços e Pacotes', icon: Wrench },

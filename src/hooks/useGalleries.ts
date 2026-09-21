@@ -11,6 +11,7 @@ export interface Gallery {
   user_id: string;
   cliente_id: string | null;
   lead_id: string | null;
+  entrega_id: string | null;
   name: string;
   slug: string;
   gallery_type: GalleryType;
@@ -135,10 +136,28 @@ export const useGalleryMedia = (galleryId?: string) =>
     },
   });
 
+/** Galeria vinculada a uma entrega (uma por entrega). */
+export const useGalleryByEntrega = (entregaId?: string | null) =>
+  useQuery({
+    queryKey: ["gallery-by-entrega", entregaId],
+    enabled: !!entregaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("galleries")
+        .select("*, clientes(nome)")
+        .eq("entrega_id", entregaId!)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as unknown as Gallery | null;
+    },
+  });
+
 export interface NewGalleryInput {
   name: string;
   cliente_id?: string | null;
   lead_id?: string | null;
+  entrega_id?: string | null;
   event_date?: string | null;
   password?: string | null;
   expires_in_days: number;
@@ -167,6 +186,7 @@ export const useCreateGallery = () => {
           slug,
           cliente_id: input.cliente_id || null,
           lead_id: input.lead_id || null,
+          entrega_id: input.entrega_id || null,
           event_date: input.event_date || null,
           expires_at,
           download_enabled: input.download_enabled,
@@ -188,6 +208,7 @@ export const useCreateGallery = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["galleries"] });
+      qc.invalidateQueries({ queryKey: ["gallery-by-entrega"] });
       toast.success("Galeria criada!");
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao criar galeria"),
@@ -221,6 +242,7 @@ export const useDeleteGallery = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["galleries"] });
+      qc.invalidateQueries({ queryKey: ["gallery-by-entrega"] });
       toast.success("Galeria excluída!");
     },
   });
