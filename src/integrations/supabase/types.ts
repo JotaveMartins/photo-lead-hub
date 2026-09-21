@@ -751,6 +751,7 @@ export type Database = {
           deleted_at: string | null
           download_enabled: boolean
           download_quality: string
+          entrega_id: string | null
           event_date: string | null
           expires_at: string | null
           gallery_type: Database["public"]["Enums"]["gallery_type"]
@@ -775,6 +776,7 @@ export type Database = {
           deleted_at?: string | null
           download_enabled?: boolean
           download_quality?: string
+          entrega_id?: string | null
           event_date?: string | null
           expires_at?: string | null
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
@@ -799,6 +801,7 @@ export type Database = {
           deleted_at?: string | null
           download_enabled?: boolean
           download_quality?: string
+          entrega_id?: string | null
           event_date?: string | null
           expires_at?: string | null
           gallery_type?: Database["public"]["Enums"]["gallery_type"]
@@ -820,6 +823,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "galleries_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
             referencedColumns: ["id"]
           },
           {
