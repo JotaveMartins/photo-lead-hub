@@ -35,6 +35,8 @@ interface LeadToClienteFlowProps {
   lead: Lead | null;
   open: boolean;
   onClose: () => void;
+  /** Chamado quando o usuário cancela antes de cadastrar o cliente (desfaz o "ganho"). */
+  onCancel?: () => void;
 }
 
 const COBRANCA_LABELS: Record<CobrancaType, string> = {
