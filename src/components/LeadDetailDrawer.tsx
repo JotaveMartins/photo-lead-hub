@@ -570,6 +570,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       return;
     }
     if (status === "Fechado Ganho") {
+      setGanhoPrevStatus(lead.status as LeadStatus);
       await updateLead.mutateAsync({ id: lead.id, status });
       setLeadToClienteFlowOpen(true);
       return;
