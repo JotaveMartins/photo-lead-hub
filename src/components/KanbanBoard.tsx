@@ -706,7 +706,19 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       <LeadToClienteFlow
         lead={leadToClienteLead}
         open={!!leadToClienteLead}
-        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); }}
+        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStatus(null); setGanhoContratoId(null); }}
+        onCancel={async () => {
+          const lead = leadToClienteLead;
+          const prev = ganhoPrevStatus;
+          const contratoId = ganhoContratoId;
+          if (lead && prev) {
+            updateLead.mutate({ id: lead.id, status: prev, data_entrada_fechado_ganho: null } as any);
+          }
+          if (contratoId) {
+            await supabase.from("contratos").update({ deleted_at: new Date().toISOString() }).eq("id", contratoId);
+            queryClient.invalidateQueries({ queryKey: ["contratos"] });
+          }
+        }}
       />
     </div>
   );
