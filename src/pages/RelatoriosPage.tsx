@@ -27,8 +27,8 @@ const RelatoriosPage = () => {
   const [period, setPeriod] = useState<PeriodOption>("this_month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const [origem, setOrigem] = useState("");
-  const [interesse, setInteresse] = useState("");
+  const [origem, setOrigem] = useState<string[]>([]);
+  const [interesse, setInteresse] = useState<string[]>([]);
   const [clienteUserId, setClienteUserId] = useState("");
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
   const [conversionDrill, setConversionDrill] = useState<{
@@ -61,8 +61,8 @@ const RelatoriosPage = () => {
   // Apply origem/interesse filters client-side so changing them does not collapse the dropdown options
   const leads = useMemo(() => {
     return allLeads.filter((l) => {
-      if (origem && l.origem !== origem) return false;
-      if (interesse && l.interesse !== interesse) return false;
+      if (origem.length && (!l.origem || !origem.includes(l.origem))) return false;
+      if (interesse.length && (!l.interesse || !interesse.includes(l.interesse))) return false;
       return true;
     });
   }, [allLeads, origem, interesse]);

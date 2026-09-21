@@ -2,6 +2,7 @@ import DatePickerField from "@/components/DatePickerField";
 import { Label } from "@/components/ui/label";
 import { ReportProfile } from "@/hooks/useReportData";
 import SearchSelect from "@/components/SearchSelect";
+import MultiSearchSelect from "@/components/MultiSearchSelect";
 
 export type PeriodOption =
   | "today"
@@ -21,11 +22,11 @@ interface ReportFiltersProps {
   customEnd: string;
   onCustomStartChange: (v: string) => void;
   onCustomEndChange: (v: string) => void;
-  origem: string;
-  onOrigemChange: (v: string) => void;
+  origem: string[];
+  onOrigemChange: (v: string[]) => void;
   origens: string[];
-  interesse: string;
-  onInteresseChange: (v: string) => void;
+  interesse: string[];
+  onInteresseChange: (v: string[]) => void;
   interesses: string[];
   // admin only
   isAdmin: boolean;
@@ -125,25 +126,23 @@ const ReportFilters = (props: ReportFiltersProps) => {
 
       <div className="flex flex-col gap-1.5 min-w-[180px]">
         <Label className="text-xs text-muted-foreground">Origem</Label>
-        <SearchSelect
-          value={props.origem}
+        <MultiSearchSelect
+          values={props.origem}
           onChange={props.onOrigemChange}
           options={props.origens.map((o) => ({ value: o, label: o }))}
           placeholder="Todas"
-          emptyLabel="Todas"
-          allowEmpty
+          allLabel="Todas"
         />
       </div>
 
       <div className="flex flex-col gap-1.5 min-w-[180px]">
         <Label className="text-xs text-muted-foreground">Interesse</Label>
-        <SearchSelect
-          value={props.interesse}
+        <MultiSearchSelect
+          values={props.interesse}
           onChange={props.onInteresseChange}
           options={props.interesses.map((i) => ({ value: i, label: i }))}
           placeholder="Todos"
-          emptyLabel="Todos"
-          allowEmpty
+          allLabel="Todos"
         />
       </div>
 
