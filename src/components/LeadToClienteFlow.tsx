@@ -180,7 +180,7 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
       {step === "cliente" && (
         <NovoClienteModal
           open={true}
-          onClose={handleClose}
+          onClose={() => handleClose(true)}
           initialData={{
             nome: lead.nome,
             whatsapp: lead.whatsapp || "",
@@ -444,7 +444,7 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
             </div>
 
             <AlertDialogFooter>
-              <Button className="w-full bg-gradient-primary hover:opacity-90 gap-2" onClick={handleClose}>
+              <Button className="w-full bg-gradient-primary hover:opacity-90 gap-2" onClick={() => handleClose(false)}>
                 <Check className="w-4 h-4" /> Confirmar e Concluir
               </Button>
             </AlertDialogFooter>
