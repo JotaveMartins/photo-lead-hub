@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import SearchSelect from "@/components/SearchSelect";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import DatePickerField from "@/components/DatePickerField";
-import { Loader2, Trash2, ExternalLink } from "lucide-react";
+import { Loader2, Trash2, ExternalLink, Images } from "lucide-react";
+import { useGalleryByEntrega, useCreateGallery, formatBytes } from "@/hooks/useGalleries";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useClientes } from "@/hooks/useClientes";
@@ -35,6 +36,8 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   const createEntrega = useCreateEntrega();
   const updateEntrega = useUpdateEntrega();
   const deleteEntrega = useDeleteEntrega();
+  const { data: galeria } = useGalleryByEntrega(entrega?.id);
+  const createGallery = useCreateGallery();
 
   const [titulo, setTitulo] = useState("");
   const [etapa, setEtapa] = useState<EntregaEtapa>("Ensaio Agendado");
@@ -176,9 +179,56 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
           </div>
 
           <div className="space-y-2">
-            <Label>Link da galeria</Label>
+            <Label>Link da galeria (externo)</Label>
             <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." className="bg-muted border-border" />
           </div>
+
+          {entrega && (
+            <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Images className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Galeria de fotos</span>
+              </div>
+              {galeria ? (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    {galeria.media_count} fotos · {formatBytes(galeria.storage_bytes)} ·{" "}
+                    {galeria.status === "published" ? "Publicada" : "Rascunho"}
+                  </p>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate(`/galerias/${galeria.id}`)}>
+                    <ExternalLink className="w-3.5 h-3.5" /> Abrir galeria
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Crie a galeria desta entrega para enviar as fotos ao cliente.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    disabled={createGallery.isPending}
+                    onClick={async () => {
+                      const g = await createGallery.mutateAsync({
+                        name: entrega.titulo,
+                        cliente_id: entrega.cliente_id ?? null,
+                        lead_id: entrega.lead_id ?? null,
+                        entrega_id: entrega.id,
+                        event_date: entrega.data_ensaio ?? null,
+                        expires_in_days: 0,
+                        download_enabled: true,
+                      });
+                      navigate(`/galerias/${g.id}`);
+                    }}
+                  >
+                    <Images className="w-3.5 h-3.5" />
+                    {createGallery.isPending ? "Criando..." : "Criar galeria"}
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Observações</Label>
