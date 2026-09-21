@@ -457,6 +457,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
   // Lead to cliente flow state
    const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
+   const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
    const [activeTab, setActiveTab] = useState<"historico" | "conversa">("historico");
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
@@ -569,6 +570,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       return;
     }
     if (status === "Fechado Ganho") {
+      setGanhoPrevStatus(lead.status as LeadStatus);
       await updateLead.mutateAsync({ id: lead.id, status });
       setLeadToClienteFlowOpen(true);
       return;
@@ -608,6 +610,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       return;
     }
     if (pendingStatus === "Fechado Ganho") {
+      setGanhoPrevStatus(lead.status as LeadStatus);
       await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
       setRequiredFieldsOpen(false);
       setPendingStatus(null);
@@ -1168,7 +1171,12 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     <LeadToClienteFlow
       lead={lead}
       open={leadToClienteFlowOpen}
-      onClose={() => setLeadToClienteFlowOpen(false)}
+      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStatus(null); }}
+      onCancel={() => {
+        if (lead && ganhoPrevStatus) {
+          updateLead.mutate({ id: lead.id, status: ganhoPrevStatus, data_entrada_fechado_ganho: null } as any);
+        }
+      }}
     />
     </>
   );

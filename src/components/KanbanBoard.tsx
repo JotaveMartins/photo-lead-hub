@@ -104,6 +104,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   // Lead to cliente flow state
   const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
   const [leadToClienteExtraFields, setLeadToClienteExtraFields] = useState<Record<string, any>>({});
+  const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
+  const [ganhoContratoId, setGanhoContratoId] = useState<string | null>(null);
   const createContrato = useCreateContrato();
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
@@ -245,6 +247,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       });
     } else if (newStatus === "Fechado Ganho") {
       // Cria um contrato mínimo a partir dos dados do lead e abre o fluxo
+      setGanhoContratoId(null);
       createContrato.mutateAsync({
         lead_id: lead.id,
         nome_cliente: lead.nome,
@@ -252,7 +255,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         data_evento: lead.data_evento || null,
         tipo_servico: lead.interesse || null,
         valor: lead.valor || null,
-      }).catch(() => {});
+      }).then((c: any) => { if (c?.id) setGanhoContratoId(c.id); }).catch(() => {});
+      setGanhoPrevStatus(lead.status as LeadStatus);
       setLeadToClienteExtraFields(extraFields || {});
       updateLead.mutate({ id: lead.id, status: "Fechado Ganho" as LeadStatus, ...(extraFields || {}) }, {
         onSuccess: () => setLeadToClienteLead(lead),
@@ -702,7 +706,19 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       <LeadToClienteFlow
         lead={leadToClienteLead}
         open={!!leadToClienteLead}
-        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); }}
+        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStatus(null); setGanhoContratoId(null); }}
+        onCancel={async () => {
+          const lead = leadToClienteLead;
+          const prev = ganhoPrevStatus;
+          const contratoId = ganhoContratoId;
+          if (lead && prev) {
+            updateLead.mutate({ id: lead.id, status: prev, data_entrada_fechado_ganho: null } as any);
+          }
+          if (contratoId) {
+            await supabase.from("contratos").update({ deleted_at: new Date().toISOString() }).eq("id", contratoId);
+            queryClient.invalidateQueries({ queryKey: ["contratos"] });
+          }
+        }}
       />
     </div>
   );

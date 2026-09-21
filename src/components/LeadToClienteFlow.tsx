@@ -35,6 +35,8 @@ interface LeadToClienteFlowProps {
   lead: Lead | null;
   open: boolean;
   onClose: () => void;
+  /** Chamado quando o usuário cancela antes de cadastrar o cliente (desfaz o "ganho"). */
+  onCancel?: () => void;
 }
 
 const COBRANCA_LABELS: Record<CobrancaType, string> = {
@@ -43,7 +45,7 @@ const COBRANCA_LABELS: Record<CobrancaType, string> = {
   entrada_parcelas: "Entrada + Parcelas",
 };
 
-const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
+const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowProps) => {
   const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "evento" | "confirmacao">("cliente");
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [createdClienteNome, setCreatedClienteNome] = useState<string>("");
@@ -125,7 +127,8 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
     goToConfirmacao();
   };
 
-  const handleClose = () => {
+  const handleClose = (cancelled = false) => {
+    if (cancelled && !createdClienteId) onCancel?.();
     setStep("cliente");
     setCreatedClienteId(null);
     setCreatedClienteNome("");
@@ -177,7 +180,7 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
       {step === "cliente" && (
         <NovoClienteModal
           open={true}
-          onClose={handleClose}
+          onClose={() => handleClose(true)}
           initialData={{
             nome: lead.nome,
             whatsapp: lead.whatsapp || "",
@@ -441,7 +444,7 @@ const LeadToClienteFlow = ({ lead, open, onClose }: LeadToClienteFlowProps) => {
             </div>
 
             <AlertDialogFooter>
-              <Button className="w-full bg-gradient-primary hover:opacity-90 gap-2" onClick={handleClose}>
+              <Button className="w-full bg-gradient-primary hover:opacity-90 gap-2" onClick={() => handleClose(false)}>
                 <Check className="w-4 h-4" /> Confirmar e Concluir
               </Button>
             </AlertDialogFooter>
