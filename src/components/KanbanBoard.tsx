@@ -104,6 +104,8 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   // Lead to cliente flow state
   const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
   const [leadToClienteExtraFields, setLeadToClienteExtraFields] = useState<Record<string, any>>({});
+  const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
+  const [ganhoContratoId, setGanhoContratoId] = useState<string | null>(null);
   const createContrato = useCreateContrato();
 
   const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
