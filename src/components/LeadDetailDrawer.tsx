@@ -1169,7 +1169,12 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     <LeadToClienteFlow
       lead={lead}
       open={leadToClienteFlowOpen}
-      onClose={() => setLeadToClienteFlowOpen(false)}
+      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStatus(null); }}
+      onCancel={() => {
+        if (lead && ganhoPrevStatus) {
+          updateLead.mutate({ id: lead.id, status: ganhoPrevStatus, data_entrada_fechado_ganho: null } as any);
+        }
+      }}
     />
     </>
   );
