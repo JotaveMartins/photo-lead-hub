@@ -22,7 +22,6 @@ import {
   Home,
   ChevronDown,
   Sparkles,
-  Images,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import logo from "@/assets/logo.png";
