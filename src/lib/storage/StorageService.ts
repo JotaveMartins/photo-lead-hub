@@ -42,7 +42,8 @@ const call = async <T>(action: string, payload: Record<string, unknown>): Promis
 
 export const StorageService = {
   /** URL assinada para o navegador enviar o arquivo direto ao bucket. */
-  createUploadUrl: (req: UploadUrlRequest) => call<UploadUrlResponse>("create-upload-url", req),
+  createUploadUrl: (req: UploadUrlRequest) =>
+    call<UploadUrlResponse>("create-upload-url", { ...req }),
 
   deleteObject: (key: string) => call<{ ok: true }>("delete-object", { key }),
 
