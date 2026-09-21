@@ -741,6 +741,218 @@ export type Database = {
           },
         ]
       }
+      galleries: {
+        Row: {
+          cliente_id: string | null
+          cover_media_id: string | null
+          cover_position_x: number
+          cover_position_y: number
+          created_at: string
+          deleted_at: string | null
+          download_enabled: boolean
+          download_quality: string
+          event_date: string | null
+          expires_at: string | null
+          gallery_type: Database["public"]["Enums"]["gallery_type"]
+          id: string
+          lead_id: string | null
+          media_count: number
+          name: string
+          password_hash: string | null
+          published_at: string | null
+          slug: string
+          status: Database["public"]["Enums"]["gallery_status"]
+          storage_bytes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          cover_media_id?: string | null
+          cover_position_x?: number
+          cover_position_y?: number
+          created_at?: string
+          deleted_at?: string | null
+          download_enabled?: boolean
+          download_quality?: string
+          event_date?: string | null
+          expires_at?: string | null
+          gallery_type?: Database["public"]["Enums"]["gallery_type"]
+          id?: string
+          lead_id?: string | null
+          media_count?: number
+          name: string
+          password_hash?: string | null
+          published_at?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["gallery_status"]
+          storage_bytes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string | null
+          cover_media_id?: string | null
+          cover_position_x?: number
+          cover_position_y?: number
+          created_at?: string
+          deleted_at?: string | null
+          download_enabled?: boolean
+          download_quality?: string
+          event_date?: string | null
+          expires_at?: string | null
+          gallery_type?: Database["public"]["Enums"]["gallery_type"]
+          id?: string
+          lead_id?: string | null
+          media_count?: number
+          name?: string
+          password_hash?: string | null
+          published_at?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["gallery_status"]
+          storage_bytes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "galleries_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "galleries_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_media: {
+        Row: {
+          captured_at: string | null
+          created_at: string
+          filename: string
+          gallery_id: string
+          height: number | null
+          id: string
+          is_cover: boolean
+          is_disabled: boolean
+          media_type: string
+          original_key: string | null
+          preview_key: string | null
+          processing_error: string | null
+          processing_status: Database["public"]["Enums"]["gallery_media_status"]
+          section_id: string | null
+          size_bytes: number
+          sort_order: number
+          thumbnail_key: string | null
+          updated_at: string
+          uploaded_at: string | null
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          captured_at?: string | null
+          created_at?: string
+          filename: string
+          gallery_id: string
+          height?: number | null
+          id?: string
+          is_cover?: boolean
+          is_disabled?: boolean
+          media_type?: string
+          original_key?: string | null
+          preview_key?: string | null
+          processing_error?: string | null
+          processing_status?: Database["public"]["Enums"]["gallery_media_status"]
+          section_id?: string | null
+          size_bytes?: number
+          sort_order?: number
+          thumbnail_key?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          captured_at?: string | null
+          created_at?: string
+          filename?: string
+          gallery_id?: string
+          height?: number | null
+          id?: string
+          is_cover?: boolean
+          is_disabled?: boolean
+          media_type?: string
+          original_key?: string | null
+          preview_key?: string | null
+          processing_error?: string | null
+          processing_status?: Database["public"]["Enums"]["gallery_media_status"]
+          section_id?: string | null
+          size_bytes?: number
+          sort_order?: number
+          thumbnail_key?: string | null
+          updated_at?: string
+          uploaded_at?: string | null
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_media_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_media_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_sections: {
+        Row: {
+          created_at: string
+          gallery_id: string
+          id: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gallery_id: string
+          id?: string
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gallery_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_sections_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_connections: {
         Row: {
           access_token: string
@@ -1602,6 +1814,8 @@ export type Database = {
           nome: string
           plano_basico: boolean
           senha: string | null
+          storage_limit_bytes: number
+          storage_used_bytes: number
           ultimo_acesso: string | null
           updated_at: string
           user_id: string
@@ -1621,6 +1835,8 @@ export type Database = {
           nome: string
           plano_basico?: boolean
           senha?: string | null
+          storage_limit_bytes?: number
+          storage_used_bytes?: number
           ultimo_acesso?: string | null
           updated_at?: string
           user_id: string
@@ -1640,6 +1856,8 @@ export type Database = {
           nome?: string
           plano_basico?: boolean
           senha?: string | null
+          storage_limit_bytes?: number
+          storage_used_bytes?: number
           ultimo_acesso?: string | null
           updated_at?: string
           user_id?: string
@@ -2069,6 +2287,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_gallery_password: {
+        Args: { _gallery_id: string; _password: string }
+        Returns: undefined
+      }
+      verify_gallery_password: {
+        Args: { _gallery_id: string; _password: string }
+        Returns: boolean
+      }
       whatsapp_match_key: { Args: { raw: string }; Returns: string }
     }
     Enums: {
@@ -2082,6 +2308,9 @@ export type Database = {
         | "Prévia enviada"
         | "Em edição"
         | "Entregue"
+      gallery_media_status: "pending" | "processing" | "ready" | "failed"
+      gallery_status: "draft" | "published" | "expired" | "archived"
+      gallery_type: "delivery" | "selection"
       inbox_status: "pending_ai" | "open" | "closed"
       lead_status:
         | "Novo Lead"
@@ -2231,6 +2460,9 @@ export const Constants = {
         "Em edição",
         "Entregue",
       ],
+      gallery_media_status: ["pending", "processing", "ready", "failed"],
+      gallery_status: ["draft", "published", "expired", "archived"],
+      gallery_type: ["delivery", "selection"],
       inbox_status: ["pending_ai", "open", "closed"],
       lead_status: [
         "Novo Lead",
