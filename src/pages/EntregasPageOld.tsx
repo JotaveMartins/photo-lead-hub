@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Camera, CalendarDays, AlertTriangle, Package, Pencil, Images } from "lucide-react";
+import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
