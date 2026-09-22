@@ -76,7 +76,15 @@ export const StorageService = {
 
   getGalleryMediaUrls: (galleryId: string, mediaIds?: string[]) =>
     call<{ urls: MediaUrls }>("get-media-urls", { galleryId, mediaIds }),
+
+  /** Capas de todas as galerias do usuário (uma chamada só). */
+  getCoverUrls: () =>
+    call<{
+      galleries: { id: string; entrega_id: string | null; media_count: number; status: string }[];
+      covers: Record<string, string | null>;
+    }>("get-cover-urls", {}),
 };
+
 
 /** Envia o arquivo direto ao R2 com progresso. */
 export const putToR2 = (url: string, file: Blob, onProgress?: (pct: number) => void) =>

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { StorageService } from "@/lib/storage/StorageService";
+
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 
@@ -136,7 +138,31 @@ export const useGalleryMedia = (galleryId?: string) =>
     },
   });
 
+/** Capa e galeria de cada entrega, em uma única chamada (para os cards do funil). */
+export const useEntregaCovers = () => {
+  const userId = useEffectiveUserId();
+  return useQuery({
+    queryKey: ["entrega-covers", userId],
+    enabled: !!userId,
+    staleTime: 50 * 60 * 1000,
+    queryFn: async () => {
+      const { galleries, covers } = await StorageService.getCoverUrls();
+      const map: Record<string, { galleryId: string; coverUrl: string | null; mediaCount: number }> = {};
+      for (const g of galleries) {
+        if (!g.entrega_id) continue;
+        map[g.entrega_id] = {
+          galleryId: g.id,
+          coverUrl: covers[g.id] ?? null,
+          mediaCount: g.media_count ?? 0,
+        };
+      }
+      return map;
+    },
+  });
+};
+
 /** Galeria vinculada a uma entrega (uma por entrega). */
+
 export const useGalleryByEntrega = (entregaId?: string | null) =>
   useQuery({
     queryKey: ["gallery-by-entrega", entregaId],

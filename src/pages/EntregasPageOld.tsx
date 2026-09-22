@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { Plus, Camera, CalendarDays, AlertTriangle, Package } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Camera, CalendarDays, AlertTriangle, Package, Pencil, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
 import { ENTREGA_ETAPAS, useEntregas, useUpdateEntrega, type Entrega, type EntregaEtapa } from "@/hooks/useEntregas";
+import { useEntregaCovers, useCreateGallery } from "@/hooks/useGalleries";
 import { parseLocalDate } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
 import { toast } from "sonner";
@@ -12,11 +14,15 @@ const fmtDate = (d: string | null) => (d ? format(parseLocalDate(d), "dd/MM/yyyy
 
 const EntregasPage = () => {
   const { data: entregas = [], isLoading } = useEntregas();
+  const { data: covers = {} } = useEntregaCovers();
+  const createGallery = useCreateGallery();
   const updateEntrega = useUpdateEntrega();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<Entrega | null>(null);
   const [dragOver, setDragOver] = useState<EntregaEtapa | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -41,9 +47,31 @@ const EntregasPage = () => {
   };
 
   const openNew = () => { setSelected(null); setDrawerOpen(true); };
-  const openEntrega = (e: Entrega) => { setSelected(e); setDrawerOpen(true); };
+  const editEntrega = (e: Entrega) => { setSelected(e); setDrawerOpen(true); };
+
+  /** Clicar no card abre direto as fotos da entrega (cria a galeria se ainda não existir). */
+  const openFotos = async (e: Entrega) => {
+    const existing = covers[e.id]?.galleryId;
+    if (existing) { navigate(`/galerias/${existing}`); return; }
+    setOpening(e.id);
+    try {
+      const gallery = await createGallery.mutateAsync({
+        name: e.titulo,
+        cliente_id: e.cliente_id,
+        lead_id: e.lead_id,
+        entrega_id: e.id,
+        event_date: e.data_ensaio,
+        expires_in_days: 0,
+        download_enabled: true,
+      });
+      navigate(`/galerias/${gallery.id}`);
+    } finally {
+      setOpening(null);
+    }
+  };
 
   const today = startOfDay(new Date());
+
 
   return (
     <div className="space-y-5">
@@ -98,37 +126,72 @@ const EntregasPage = () => {
                   {items.map((e) => {
                     const prevista = e.data_entrega_prevista ? parseLocalDate(e.data_entrega_prevista) : null;
                     const atrasada = !!prevista && e.etapa !== "Entregue" && isBefore(prevista, today);
+                    const info = covers[e.id];
                     return (
-                      <button
+                      <div
                         key={e.id}
                         draggable
                         onDragStart={(ev) => ev.dataTransfer.setData("text/plain", e.id)}
-                        onClick={() => openEntrega(e)}
-                        className="w-full text-left bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg p-2.5 transition-colors cursor-grab active:cursor-grabbing"
+                        onClick={() => openFotos(e)}
+                        className="relative w-full text-left bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg overflow-hidden transition-colors cursor-grab active:cursor-grabbing"
                       >
-                        <p className="text-sm font-medium text-foreground truncate">{e.titulo}</p>
-                        {e.clientes?.nome && (
-                          <p className="text-xs text-muted-foreground truncate">{e.clientes.nome}</p>
-                        )}
-                        {e.services?.nome && (
-                          <p className="text-[11px] text-muted-foreground/80 truncate">{e.services.nome}</p>
-                        )}
-                        <div className="flex flex-col gap-1 mt-2">
-                          {e.data_ensaio && (
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <Camera className="w-3 h-3" /> Ensaio {fmtDate(e.data_ensaio)}
-                            </span>
+                        <div className="relative aspect-[16/9] w-full bg-muted/60">
+                          {info?.coverUrl ? (
+                            <img
+                              src={info.coverUrl}
+                              alt=""
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Images className="h-5 w-5 text-muted-foreground/60" />
+                            </div>
                           )}
-                          {e.data_entrega_prevista && (
-                            <span className={`text-[11px] flex items-center gap-1 ${atrasada ? "text-status-danger" : "text-muted-foreground"}`}>
-                              {atrasada ? <AlertTriangle className="w-3 h-3" /> : <CalendarDays className="w-3 h-3" />}
-                              Entrega {fmtDate(e.data_entrega_prevista)}
+                          {!!info?.mediaCount && (
+                            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-foreground">
+                              {info.mediaCount} fotos
                             </span>
                           )}
                         </div>
-                      </button>
+
+                        <button
+                          type="button"
+                          title="Editar entrega"
+                          onClick={(ev) => { ev.stopPropagation(); editEntrega(e); }}
+                          className="absolute right-1.5 top-1.5 rounded-md bg-background/80 p-1.5 text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+
+                        <div className="p-2.5">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {opening === e.id ? "Abrindo fotos..." : e.titulo}
+                          </p>
+                          {e.clientes?.nome && (
+                            <p className="text-xs text-muted-foreground truncate">{e.clientes.nome}</p>
+                          )}
+                          {e.services?.nome && (
+                            <p className="text-[11px] text-muted-foreground/80 truncate">{e.services.nome}</p>
+                          )}
+                          <div className="flex flex-col gap-1 mt-2">
+                            {e.data_ensaio && (
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <Camera className="w-3 h-3" /> Ensaio {fmtDate(e.data_ensaio)}
+                              </span>
+                            )}
+                            {e.data_entrega_prevista && (
+                              <span className={`text-[11px] flex items-center gap-1 ${atrasada ? "text-status-danger" : "text-muted-foreground"}`}>
+                                {atrasada ? <AlertTriangle className="w-3 h-3" /> : <CalendarDays className="w-3 h-3" />}
+                                Entrega {fmtDate(e.data_entrega_prevista)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
+
                 </div>
               </div>
             );
