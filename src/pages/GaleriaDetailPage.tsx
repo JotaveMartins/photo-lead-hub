@@ -315,8 +315,11 @@ const GaleriaDetailPage = () => {
                 <GalleryPhotoCard
                   key={m.id}
                   media={m}
+                  thumbUrl={mediaUrls?.[m.id]?.thumb ?? null}
                   isCover={gallery.cover_media_id === m.id}
                   deleting={deletingId === m.id}
+                  onOpen={() => setPreviewId(m.id)}
+                  onRefresh={refreshMedia}
                   onSetCover={() => {
                     setCoverId(m.id);
                     updateGallery.mutate(
@@ -338,6 +341,7 @@ const GaleriaDetailPage = () => {
                   }}
                 />
               ))}
+
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
