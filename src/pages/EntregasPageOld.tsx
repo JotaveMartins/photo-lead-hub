@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { Plus, Camera, CalendarDays, AlertTriangle, Package } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Camera, CalendarDays, AlertTriangle, Package, Pencil, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
 import { ENTREGA_ETAPAS, useEntregas, useUpdateEntrega, type Entrega, type EntregaEtapa } from "@/hooks/useEntregas";
+import { useEntregaCovers, useCreateGallery } from "@/hooks/useGalleries";
 import { parseLocalDate } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
 import { toast } from "sonner";
@@ -12,11 +14,15 @@ const fmtDate = (d: string | null) => (d ? format(parseLocalDate(d), "dd/MM/yyyy
 
 const EntregasPage = () => {
   const { data: entregas = [], isLoading } = useEntregas();
+  const { data: covers = {} } = useEntregaCovers();
+  const createGallery = useCreateGallery();
   const updateEntrega = useUpdateEntrega();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<Entrega | null>(null);
   const [dragOver, setDragOver] = useState<EntregaEtapa | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -41,9 +47,31 @@ const EntregasPage = () => {
   };
 
   const openNew = () => { setSelected(null); setDrawerOpen(true); };
-  const openEntrega = (e: Entrega) => { setSelected(e); setDrawerOpen(true); };
+  const editEntrega = (e: Entrega) => { setSelected(e); setDrawerOpen(true); };
+
+  /** Clicar no card abre direto as fotos da entrega (cria a galeria se ainda não existir). */
+  const openFotos = async (e: Entrega) => {
+    const existing = covers[e.id]?.galleryId;
+    if (existing) { navigate(`/galerias/${existing}`); return; }
+    setOpening(e.id);
+    try {
+      const gallery = await createGallery.mutateAsync({
+        name: e.titulo,
+        cliente_id: e.cliente_id,
+        lead_id: e.lead_id,
+        entrega_id: e.id,
+        event_date: e.data_ensaio,
+        expires_in_days: 0,
+        download_enabled: true,
+      });
+      navigate(`/galerias/${gallery.id}`);
+    } finally {
+      setOpening(null);
+    }
+  };
 
   const today = startOfDay(new Date());
+
 
   return (
     <div className="space-y-5">
