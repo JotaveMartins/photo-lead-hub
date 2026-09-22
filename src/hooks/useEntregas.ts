@@ -11,12 +11,26 @@ export type Entrega = Database["public"]["Tables"]["entregas"]["Row"] & {
 };
 
 export const ENTREGA_ETAPAS: { etapa: EntregaEtapa; label: string; color: string }[] = [
-  { etapa: "Ensaio Agendado", label: "Ensaio Agendado", color: "bg-[hsl(var(--delivery-1))]" },
   { etapa: "Ensaio Realizado", label: "Ensaio Realizado", color: "bg-[hsl(var(--delivery-2))]" },
-  { etapa: "Prévia enviada", label: "Prévia enviada", color: "bg-[hsl(var(--delivery-3))]" },
-  { etapa: "Em edição", label: "Em edição", color: "bg-[hsl(var(--delivery-4))]" },
+  { etapa: "Em edição", label: "Em edição", color: "bg-[hsl(var(--delivery-3))]" },
+  { etapa: "Pronto para entrega", label: "Pronto para entrega", color: "bg-[hsl(var(--delivery-4))]" },
   { etapa: "Entregue", label: "Entregue", color: "bg-[hsl(var(--delivery-5))]" },
 ];
+
+export const useEntrega = (id?: string | null) =>
+  useQuery({
+    queryKey: ["entrega", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("entregas")
+        .select(SELECT)
+        .eq("id", id!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as unknown as Entrega | null;
+    },
+  });
 
 const SELECT = "*, clientes(nome, whatsapp), services(nome)";
 
