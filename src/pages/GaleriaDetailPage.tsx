@@ -25,8 +25,12 @@ import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   useGallery, useGallerySections, useGalleryMedia, useUpdateGallery, useDeleteGallery,
-  useCreateSection, useUpdateSection, useDeleteSection, formatBytes,
+  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, formatBytes,
 } from "@/hooks/useGalleries";
+import GalleryUploader from "@/components/galerias/GalleryUploader";
+import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
+import { StorageService } from "@/lib/storage/StorageService";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -46,6 +50,15 @@ const GaleriaDetailPage = () => {
   const createSection = useCreateSection();
   const updateSection = useUpdateSection();
   const deleteSection = useDeleteSection();
+
+  const { data: storage } = useStorageUsage();
+  const qc = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const refreshMedia = () => {
+    qc.invalidateQueries({ queryKey: ["gallery-media", id] });
+    qc.invalidateQueries({ queryKey: ["gallery", id] });
+    qc.invalidateQueries({ queryKey: ["storage-usage"] });
+  };
 
   const [tab, setTab] = useState("fotos");
   const [activeSection, setActiveSection] = useState<string>("all");
@@ -175,6 +188,12 @@ const GaleriaDetailPage = () => {
           </div>
           <p className="text-sm text-muted-foreground">
             {gallery.media_count} fotos · {formatBytes(gallery.storage_bytes)}
+            {storage && (
+              <>
+                {" · "}Armazenamento: {formatBytes(storage.used)} de {formatBytes(storage.limit)} ·{" "}
+                {formatBytes(Math.max(0, storage.limit - storage.used))} livres
+              </>
+            )}
           </p>
         </div>
 
@@ -284,25 +303,40 @@ const GaleriaDetailPage = () => {
             )}
           </div>
 
-          <Card className="flex flex-col items-center justify-center gap-3 border-dashed py-14 text-center">
-            <UploadCloud className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm font-medium text-foreground">Arraste suas fotos aqui</p>
-            <p className="text-xs text-muted-foreground">JPG, JPEG ou PNG</p>
-            <div className="flex gap-2">
-              <Button variant="outline" disabled title="Disponível após configurar o armazenamento">Selecionar arquivos</Button>
-              <Button variant="outline" disabled title="Disponível após configurar o armazenamento">Selecionar pasta</Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              O envio será habilitado assim que o armazenamento de fotos estiver conectado.
-            </p>
-          </Card>
+          <GalleryUploader
+            galleryId={gallery.id}
+            sectionId={activeSection === "all" ? null : activeSection}
+            onUploaded={refreshMedia}
+          />
 
           {visibleMedia.length ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
               {visibleMedia.map((m) => (
-                <Card key={m.id} className="flex aspect-square items-center justify-center bg-muted/40">
-                  <span className="px-2 text-center text-[11px] text-muted-foreground line-clamp-2">{m.filename}</span>
-                </Card>
+                <GalleryPhotoCard
+                  key={m.id}
+                  media={m}
+                  isCover={gallery.cover_media_id === m.id}
+                  deleting={deletingId === m.id}
+                  onSetCover={() => {
+                    setCoverId(m.id);
+                    updateGallery.mutate(
+                      { id: gallery.id, cover_media_id: m.id },
+                      { onSuccess: () => toast.success("Capa definida") },
+                    );
+                  }}
+                  onDelete={async () => {
+                    setDeletingId(m.id);
+                    try {
+                      await StorageService.deleteMedia(m.id);
+                      refreshMedia();
+                      toast.success("Foto excluída");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Erro ao excluir a foto");
+                    } finally {
+                      setDeletingId(null);
+                    }
+                  }}
+                />
               ))}
             </div>
           ) : (

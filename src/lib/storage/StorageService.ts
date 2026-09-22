@@ -1,56 +1,72 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Camada isolada de armazenamento das galerias.
+ * Camada isolada de armazenamento das galerias (Cloudflare R2).
  *
- * Nenhuma credencial do provedor (Cloudflare R2) vive no frontend: toda operação
- * privada é delegada à edge function `gallery-storage`, que valida usuário,
- * galeria e espaço disponível antes de gerar URLs assinadas temporárias.
+ * Nenhuma credencial do provedor vive no frontend: toda operação é delegada à
+ * edge function `gallery-storage`, que valida usuário, galeria e espaço
+ * disponível antes de gerar URLs assinadas temporárias.
  */
-
-export type MediaKeyKind = "originals" | "previews" | "thumbs";
-
-export const buildMediaKey = (
-  userId: string,
-  galleryId: string,
-  mediaId: string,
-  kind: MediaKeyKind,
-  ext: string,
-) => `galleries/${userId}/${galleryId}/${kind}/${mediaId}.${ext}`;
 
 export interface UploadUrlRequest {
   galleryId: string;
   filename: string;
   contentType: string;
-  sizeBytes: number;
+  fileSize: number;
+  sectionId?: string | null;
 }
 
 export interface UploadUrlResponse {
-  uploadUrl: string;
-  originalKey: string;
   mediaId: string;
+  uploadUrl: string;
+  objectKey: string;
+  expiresAt: string;
 }
 
 const call = async <T>(action: string, payload: Record<string, unknown>): Promise<T> => {
   const { data, error } = await supabase.functions.invoke("gallery-storage", {
     body: { action, ...payload },
   });
-  if (error) throw error;
+  if (error) {
+    // Erros HTTP trazem o corpo em context.
+    let msg = error.message;
+    try {
+      const ctx = (error as any).context;
+      if (ctx?.json) msg = (await ctx.json())?.error ?? msg;
+      else if (ctx?.text) msg = JSON.parse(await ctx.text())?.error ?? msg;
+    } catch { /* ignora */ }
+    throw new Error(msg);
+  }
   if ((data as any)?.error) throw new Error((data as any).error);
   return data as T;
 };
 
 export const StorageService = {
-  /** URL assinada para o navegador enviar o arquivo direto ao bucket. */
-  createUploadUrl: (req: UploadUrlRequest) =>
-    call<UploadUrlResponse>("create-upload-url", { ...req }),
+  createUploadUrl: (req: UploadUrlRequest) => call<UploadUrlResponse>("create-upload-url", { ...req }),
 
-  deleteObject: (key: string) => call<{ ok: true }>("delete-object", { key }),
+  confirmUpload: (mediaId: string) =>
+    call<{ ok: true; sizeBytes: number; storageUsedBytes: number }>("confirm-upload", { mediaId }),
 
-  getDownloadUrl: (key: string) => call<{ url: string }>("get-download-url", { key }),
+  deleteMedia: (mediaId: string) => call<{ ok: true }>("delete-media", { mediaId }),
 
-  /** Previews/thumbs podem ser públicos via R2_PUBLIC_BASE_URL. */
-  getPreviewUrl: (key: string) => call<{ url: string }>("get-preview-url", { key }),
+  getViewUrl: (mediaId: string) => call<{ url: string }>("get-view-url", { mediaId }),
 };
+
+/** Envia o arquivo direto ao R2 com progresso. */
+export const putToR2 = (url: string, file: File, onProgress?: (pct: number) => void) =>
+  new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Falha no envio (${xhr.status})`));
+    xhr.onerror = () => reject(new Error("Falha de rede ao enviar a foto"));
+    xhr.send(file);
+  });
 
 export default StorageService;
