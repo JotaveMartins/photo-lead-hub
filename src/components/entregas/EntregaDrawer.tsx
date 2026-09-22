@@ -187,7 +187,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
             <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Images className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">Galeria de fotos</span>
+                <span className="text-sm font-medium text-foreground">Fotos da entrega</span>
               </div>
               {galeria ? (
                 <>
@@ -196,13 +196,13 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
                     {galeria.status === "published" ? "Publicada" : "Rascunho"}
                   </p>
                   <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate(`/galerias/${galeria.id}`)}>
-                    <ExternalLink className="w-3.5 h-3.5" /> Abrir galeria
+                    <ExternalLink className="w-3.5 h-3.5" /> Gerenciar fotos
                   </Button>
                 </>
               ) : (
                 <>
                   <p className="text-xs text-muted-foreground">
-                    Crie a galeria desta entrega para enviar as fotos ao cliente.
+                    Crie o espaço de fotos desta entrega para enviar ao cliente.
                   </p>
                   <Button
                     size="sm"
@@ -223,7 +223,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
                     }}
                   >
                     <Images className="w-3.5 h-3.5" />
-                    {createGallery.isPending ? "Criando..." : "Criar galeria"}
+                    {createGallery.isPending ? "Criando..." : "Criar espaço de fotos"}
                   </Button>
                 </>
               )}

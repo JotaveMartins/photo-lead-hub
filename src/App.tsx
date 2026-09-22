@@ -31,6 +31,7 @@ import ContratosPage from "./pages/ContratosPage";
 import InicioPage from "./pages/InicioPage";
 import EntregasPage from "./pages/EntregasPage";
 import GaleriaDetailPage from "./pages/GaleriaDetailPage";
+import GaleriaPublicaPage from "./pages/GaleriaPublicaPage";
 import EstudioPage from "./pages/estudio/EstudioPage";
 import NovoProjetoPage from "./pages/estudio/NovoProjetoPage";
 import ProjetoPage from "./pages/estudio/ProjetoPage";
@@ -110,6 +111,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/g/:slug" element={<GaleriaPublicaPage />} />
       <Route path="/" element={<Navigate to="/inicio" replace />} />
 
       <Route element={<ProtectedLayout />}>
