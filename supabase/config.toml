@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.create-user-api]
 verify_jwt = false
+
+[functions.gallery-public]
+verify_jwt = false
