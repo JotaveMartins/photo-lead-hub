@@ -284,53 +284,73 @@ const GaleriaPublicaPage = () => {
         {!!g.media_count && <p className="mt-2 text-xs text-[#a8a29e]">{g.media_count} fotografias</p>}
       </div>
 
-      {/* Seções */}
-      {sections.length > 0 && (
-        <div className="mx-auto mb-8 flex max-w-5xl flex-wrap justify-center gap-x-6 gap-y-3 px-6">
-          {[{ id: "all", name: "Todas" }, ...sections].map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setActiveSection(s.id)}
-              className={`pb-1 text-xs uppercase tracking-[0.2em] transition-colors ${
-                activeSection === s.id
-                  ? "border-b border-[#1c1917] text-[#1c1917]"
-                  : "border-b border-transparent text-[#a8a29e] hover:text-[#1c1917]"
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
+      {/* Seções + favoritas */}
+      <div className="mx-auto mb-8 flex max-w-5xl flex-wrap justify-center gap-x-6 gap-y-3 px-6">
+        {[
+          { id: "all", name: "Todas" },
+          { id: "favorites", name: `Favoritas ${favorites.size || ""}`.trim() },
+          ...sections,
+        ].map((s) => (
+          <button
+            key={s.id}
+            onClick={() => { setActiveSection(s.id); setLightbox(null); }}
+            className={`pb-1 text-xs uppercase tracking-[0.2em] transition-colors ${
+              activeSection === s.id
+                ? "border-b border-[#1c1917] text-[#1c1917]"
+                : "border-b border-transparent text-[#a8a29e] hover:text-[#1c1917]"
+            }`}
+          >
+            {s.name}
+          </button>
+        ))}
+      </div>
+
+      {favError && (
+        <p className="mb-4 text-center text-xs text-[#b91c1c]">{favError}</p>
       )}
 
       {/* Grade */}
       {photos.length ? (
         <div className="mx-auto max-w-[1600px] px-2 pb-20 sm:px-4">
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4">
-            {photos.map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => setLightbox(i)}
-                className="group relative aspect-[4/5] overflow-hidden bg-[#f5f5f4]"
-              >
-                {p.thumbnail_url && !broken[p.id] ? (
-                  <img
-                    src={p.thumbnail_url}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    onError={() => setBroken((b) => ({ ...b, [p.id]: true }))}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <ImageOff className="h-5 w-5 text-[#d6d3d1]" />
-                  </div>
-                )}
-              </button>
-            ))}
+            {photos.map((p, i) => {
+              const fav = favorites.has(p.id);
+              return (
+                <div key={p.id} className="group relative aspect-[4/5] overflow-hidden bg-[#f5f5f4]">
+                  <button onClick={() => setLightbox(i)} className="block h-full w-full">
+                    {p.thumbnail_url && !broken[p.id] ? (
+                      <img
+                        src={p.thumbnail_url}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        onError={() => setBroken((b) => ({ ...b, [p.id]: true }))}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ImageOff className="h-5 w-5 text-[#d6d3d1]" />
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={fav ? "Remover das favoritas" : "Adicionar às favoritas"}
+                    aria-pressed={fav}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(p.id); }}
+                    className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-black/20"
+                  >
+                    <Heart
+                      className={`h-5 w-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${fav ? "fill-white text-white" : ""}`}
+                    />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
+      ) : activeSection === "favorites" ? (
+        <p className="pb-24 text-center text-sm text-[#a8a29e]">Você ainda não adicionou fotos às favoritas.</p>
       ) : (
         <p className="pb-24 text-center text-sm text-[#a8a29e]">Esta galeria ainda não possui fotografias.</p>
       )}
