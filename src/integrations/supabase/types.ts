@@ -857,12 +857,14 @@ export type Database = {
           media_type: string
           original_key: string | null
           preview_key: string | null
+          preview_size_bytes: number
           processing_error: string | null
           processing_status: Database["public"]["Enums"]["gallery_media_status"]
           section_id: string | null
           size_bytes: number
           sort_order: number
           thumbnail_key: string | null
+          thumbnail_size_bytes: number
           updated_at: string
           uploaded_at: string | null
           user_id: string
@@ -880,12 +882,14 @@ export type Database = {
           media_type?: string
           original_key?: string | null
           preview_key?: string | null
+          preview_size_bytes?: number
           processing_error?: string | null
           processing_status?: Database["public"]["Enums"]["gallery_media_status"]
           section_id?: string | null
           size_bytes?: number
           sort_order?: number
           thumbnail_key?: string | null
+          thumbnail_size_bytes?: number
           updated_at?: string
           uploaded_at?: string | null
           user_id: string
@@ -903,12 +907,14 @@ export type Database = {
           media_type?: string
           original_key?: string | null
           preview_key?: string | null
+          preview_size_bytes?: number
           processing_error?: string | null
           processing_status?: Database["public"]["Enums"]["gallery_media_status"]
           section_id?: string | null
           size_bytes?: number
           sort_order?: number
           thumbnail_key?: string | null
+          thumbnail_size_bytes?: number
           updated_at?: string
           uploaded_at?: string | null
           user_id?: string
