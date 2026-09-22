@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -403,7 +403,11 @@ const GaleriaPublicaPage = () => {
               </button>
             </div>
           </div>
-          <div className="relative flex flex-1 items-center justify-center overflow-hidden px-2 pb-6">
+          <div
+            className="relative flex flex-1 items-center justify-center overflow-hidden px-2 pb-6"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          >
             <button
               onClick={() => move(-1)}
               aria-label="Anterior"
