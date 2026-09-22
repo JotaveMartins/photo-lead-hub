@@ -188,6 +188,12 @@ const GaleriaDetailPage = () => {
           </div>
           <p className="text-sm text-muted-foreground">
             {gallery.media_count} fotos · {formatBytes(gallery.storage_bytes)}
+            {storage && (
+              <>
+                {" · "}Armazenamento: {formatBytes(storage.used)} de {formatBytes(storage.limit)} ·{" "}
+                {formatBytes(Math.max(0, storage.limit - storage.used))} livres
+              </>
+            )}
           </p>
         </div>
 
