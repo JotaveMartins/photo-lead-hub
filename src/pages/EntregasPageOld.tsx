@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Camera, CalendarDays, AlertTriangle, Package, Pencil, Images } from "lucide-react";
+import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
@@ -47,7 +47,6 @@ const EntregasPage = () => {
   };
 
   const openNew = () => { setSelected(null); setDrawerOpen(true); };
-  const editEntrega = (e: Entrega) => { setSelected(e); setDrawerOpen(true); };
 
   /** Clicar no card abre direto as fotos da entrega (cria a galeria se ainda não existir). */
   const openFotos = async (e: Entrega) => {
@@ -155,14 +154,6 @@ const EntregasPage = () => {
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          title="Editar entrega"
-                          onClick={(ev) => { ev.stopPropagation(); editEntrega(e); }}
-                          className="absolute right-1.5 top-1.5 rounded-md bg-background/80 p-1.5 text-muted-foreground hover:text-foreground"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
 
                         <div className="p-2.5">
                           <p className="text-sm font-medium text-foreground truncate">

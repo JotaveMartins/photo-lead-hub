@@ -19,8 +19,11 @@ import {
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import SearchSelect from "@/components/SearchSelect";
 import DatePickerField from "@/components/DatePickerField";
+import { Textarea } from "@/components/ui/textarea";
 import { useClientes } from "@/hooks/useClientes";
-import { useEntrega, useUpdateEntrega } from "@/hooks/useEntregas";
+import { useServices } from "@/hooks/useServices";
+import { ENTREGA_ETAPAS, useEntrega, useUpdateEntrega, type EntregaEtapa } from "@/hooks/useEntregas";
+
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
@@ -84,6 +87,16 @@ const GaleriaDetailPage = () => {
   const [senha, setSenha] = useState("");
   const [coverId, setCoverId] = useState("");
 
+  // Dados da entrega
+  const { data: services = [] } = useServices();
+  const [etapa, setEtapa] = useState<EntregaEtapa | "">("");
+  const [serviceId, setServiceId] = useState("");
+  const [dataEnsaio, setDataEnsaio] = useState("");
+  const [dataPrevia, setDataPrevia] = useState("");
+  const [dataPrevista, setDataPrevista] = useState("");
+  const [dataFinal, setDataFinal] = useState("");
+  const [obs, setObs] = useState("");
+
   useEffect(() => {
     if (!gallery) return;
     setName(gallery.name);
@@ -97,6 +110,18 @@ const GaleriaDetailPage = () => {
         : "0",
     );
   }, [gallery]);
+
+  useEffect(() => {
+    if (!entrega) return;
+    setEtapa(entrega.etapa as EntregaEtapa);
+    setServiceId(entrega.service_id ?? "");
+    setDataEnsaio(entrega.data_ensaio ?? "");
+    setDataPrevia(entrega.data_previa_prevista ?? "");
+    setDataPrevista(entrega.data_entrega_prevista ?? "");
+    setDataFinal(entrega.data_entrega_final ?? "");
+    setObs(entrega.observacoes ?? "");
+  }, [entrega]);
+
 
   if (isLoading) {
     return <p className="py-20 text-center text-sm text-muted-foreground animate-pulse">Carregando...</p>;
@@ -136,6 +161,22 @@ const GaleriaDetailPage = () => {
       cover_media_id: coverId || null,
       expires_at,
     });
+
+    if (entrega) {
+      await updateEntrega.mutateAsync({
+        id: entrega.id,
+        titulo: name.trim() || entrega.titulo,
+        etapa: (etapa || entrega.etapa) as EntregaEtapa,
+        cliente_id: clienteId || null,
+        service_id: serviceId || null,
+        data_ensaio: dataEnsaio || null,
+        data_previa_prevista: dataPrevia || null,
+        data_entrega_prevista: dataPrevista || null,
+        data_entrega_final: dataFinal || null,
+        observacoes: obs.trim() || null,
+      });
+    }
+
     if (senha.trim()) {
       if (senha.trim().length < 4) {
         toast.error("A senha precisa ter ao menos 4 caracteres");
@@ -419,6 +460,63 @@ const GaleriaDetailPage = () => {
               </div>
               <Switch checked={download} onCheckedChange={setDownload} />
             </div>
+
+            {entrega && (
+              <div className="space-y-4 border-t border-border pt-4">
+                <p className="text-sm font-medium text-foreground">Dados da entrega</p>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <SearchSelect
+                    label="Etapa"
+                    options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
+                    value={etapa}
+                    onChange={(v) => v && setEtapa(v as EntregaEtapa)}
+                    allowEmpty={false}
+                    placeholder="Selecione a etapa"
+                    searchPlaceholder="Buscar etapa..."
+                  />
+                  <SearchSelect
+                    label="Serviço"
+                    options={(services as any[]).filter((s) => s.ativo).map((s) => ({ value: s.id, label: s.nome }))}
+                    value={serviceId}
+                    onChange={setServiceId}
+                    placeholder="Sem serviço"
+                    emptyLabel="Sem serviço"
+                    searchPlaceholder="Buscar serviço..."
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Data do ensaio</Label>
+                    <DatePickerField value={dataEnsaio} onChange={setDataEnsaio} placeholder="Data do ensaio" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Prévia prevista</Label>
+                    <DatePickerField value={dataPrevia} onChange={setDataPrevia} placeholder="Prévia prevista" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Entrega prevista</Label>
+                    <DatePickerField value={dataPrevista} onChange={setDataPrevista} placeholder="Entrega prevista" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Entrega final</Label>
+                    <DatePickerField value={dataFinal} onChange={setDataFinal} placeholder="Entrega final" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Observações</Label>
+                  <Textarea
+                    value={obs}
+                    onChange={(e) => setObs(e.target.value)}
+                    rows={3}
+                    className="resize-none bg-muted border-border"
+                  />
+                </div>
+              </div>
+            )}
+
 
             <div className="flex justify-end">
               <Button onClick={handleSaveSettings} disabled={updateGallery.isPending}>Salvar configurações</Button>
