@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StorageService, putToR2 } from "@/lib/storage/StorageService";
+import { generateDerivatives, createLimiter } from "@/lib/imageDerivatives";
 import { toast } from "sonner";
 
 type ItemStatus = "queued" | "uploading" | "done" | "error";
@@ -19,6 +20,9 @@ interface QueueItem {
 const ACCEPT = ["image/jpeg", "image/jpg", "image/png"];
 const MAX = 50 * 1024 * 1024;
 const CONCURRENCY = 4;
+
+// Processamento de imagem é pesado: no máximo 2 fotos por vez no navegador.
+const processLimit = createLimiter(2);
 
 interface Props {
   galleryId: string;
@@ -39,20 +43,39 @@ const GalleryUploader = ({ galleryId, sectionId, onUploaded }: Props) => {
   const uploadOne = async (item: QueueItem) => {
     update(item.id, { status: "uploading", progress: 0, error: undefined });
     try {
+      // 1. Gera miniatura e visualização localmente (fila de 2 por vez).
+      const derived = await processLimit(() => generateDerivatives(item.file));
+
+      // 2. Backend valida e devolve as três URLs temporárias.
       const res = await StorageService.createUploadUrl({
         galleryId,
         filename: item.file.name,
         contentType: item.file.type,
         fileSize: item.file.size,
         sectionId: sectionId ?? null,
+        width: derived.width,
+        height: derived.height,
       });
-      await putToR2(res.uploadUrl, item.file, (p) => update(item.id, { progress: p }));
-      await StorageService.confirmUpload(res.mediaId);
+
+      // 3. Envia original, preview e miniatura direto ao R2.
+      await putToR2(res.original.uploadUrl, item.file, (p) =>
+        update(item.id, { progress: Math.round(p * 0.85) }),
+      );
+      await putToR2(res.preview.uploadUrl, derived.preview);
+      update(item.id, { progress: 95 });
+      await putToR2(res.thumbnail.uploadUrl, derived.thumbnail);
+
+      // 4. Backend confere os três objetos no R2 e marca como pronta.
+      await StorageService.confirmUpload(res.mediaId, {
+        width: derived.width,
+        height: derived.height,
+      });
       update(item.id, { status: "done", progress: 100 });
     } catch (e: any) {
       update(item.id, { status: "error", error: e?.message ?? "Erro no envio" });
     }
   };
+
 
   const runQueue = async (queue: QueueItem[]) => {
     setRunning(true);

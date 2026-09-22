@@ -30,6 +30,8 @@ import {
 import GalleryUploader from "@/components/galerias/GalleryUploader";
 import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
 import { StorageService } from "@/lib/storage/StorageService";
+import { useGalleryMediaUrls } from "@/hooks/useGalleryMediaUrls";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -54,11 +56,15 @@ const GaleriaDetailPage = () => {
   const { data: storage } = useStorageUsage();
   const qc = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const { data: mediaUrls } = useGalleryMediaUrls(id, media.length);
   const refreshMedia = () => {
     qc.invalidateQueries({ queryKey: ["gallery-media", id] });
     qc.invalidateQueries({ queryKey: ["gallery", id] });
+    qc.invalidateQueries({ queryKey: ["gallery-media-urls", id] });
     qc.invalidateQueries({ queryKey: ["storage-usage"] });
   };
+
 
   const [tab, setTab] = useState("fotos");
   const [activeSection, setActiveSection] = useState<string>("all");
@@ -315,8 +321,11 @@ const GaleriaDetailPage = () => {
                 <GalleryPhotoCard
                   key={m.id}
                   media={m}
+                  thumbUrl={mediaUrls?.[m.id]?.thumb ?? null}
                   isCover={gallery.cover_media_id === m.id}
                   deleting={deletingId === m.id}
+                  onOpen={() => setPreviewId(m.id)}
+                  onRefresh={refreshMedia}
                   onSetCover={() => {
                     setCoverId(m.id);
                     updateGallery.mutate(
@@ -338,6 +347,7 @@ const GaleriaDetailPage = () => {
                   }}
                 />
               ))}
+
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
@@ -455,8 +465,27 @@ const GaleriaDetailPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={!!previewId} onOpenChange={(o) => !o && setPreviewId(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="truncate">
+              {media.find((m) => m.id === previewId)?.filename ?? "Foto"}
+            </DialogTitle>
+          </DialogHeader>
+          {previewId && mediaUrls?.[previewId]?.preview ? (
+            <img
+              src={mediaUrls[previewId]!.preview!}
+              alt="Visualização da foto"
+              className="max-h-[75vh] w-full rounded-md object-contain"
+            />
+          ) : (
+            <p className="py-10 text-center text-sm text-muted-foreground">Processando...</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default GaleriaDetailPage;

@@ -14,13 +14,27 @@ export interface UploadUrlRequest {
   contentType: string;
   fileSize: number;
   sectionId?: string | null;
+  width?: number;
+  height?: number;
+}
+
+export interface UploadTarget {
+  key: string;
+  uploadUrl: string;
 }
 
 export interface UploadUrlResponse {
   mediaId: string;
   uploadUrl: string;
   objectKey: string;
+  original: UploadTarget;
+  preview: UploadTarget;
+  thumbnail: UploadTarget;
   expiresAt: string;
+}
+
+export interface MediaUrls {
+  [mediaId: string]: { thumb: string | null; preview: string | null };
 }
 
 const call = async <T>(action: string, payload: Record<string, unknown>): Promise<T> => {
@@ -44,16 +58,28 @@ const call = async <T>(action: string, payload: Record<string, unknown>): Promis
 export const StorageService = {
   createUploadUrl: (req: UploadUrlRequest) => call<UploadUrlResponse>("create-upload-url", { ...req }),
 
-  confirmUpload: (mediaId: string) =>
-    call<{ ok: true; sizeBytes: number; storageUsedBytes: number }>("confirm-upload", { mediaId }),
+  retryDerivativesUrl: (mediaId: string) =>
+    call<{ mediaId: string; preview: UploadTarget; thumbnail: UploadTarget }>(
+      "retry-derivatives-url",
+      { mediaId },
+    ),
+
+  confirmUpload: (mediaId: string, dims?: { width?: number; height?: number }) =>
+    call<{ ok: boolean; status: string; sizeBytes: number; storageUsedBytes: number }>(
+      "confirm-upload",
+      { mediaId, ...dims },
+    ),
 
   deleteMedia: (mediaId: string) => call<{ ok: true }>("delete-media", { mediaId }),
 
   getViewUrl: (mediaId: string) => call<{ url: string }>("get-view-url", { mediaId }),
+
+  getGalleryMediaUrls: (galleryId: string, mediaIds?: string[]) =>
+    call<{ urls: MediaUrls }>("get-media-urls", { galleryId, mediaIds }),
 };
 
 /** Envia o arquivo direto ao R2 com progresso. */
-export const putToR2 = (url: string, file: File, onProgress?: (pct: number) => void) =>
+export const putToR2 = (url: string, file: Blob, onProgress?: (pct: number) => void) =>
   new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", url, true);
