@@ -844,6 +844,45 @@ export type Database = {
           },
         ]
       }
+      gallery_favorites: {
+        Row: {
+          created_at: string
+          gallery_id: string
+          id: string
+          media_id: string
+          visitor_session_id: string
+        }
+        Insert: {
+          created_at?: string
+          gallery_id: string
+          id?: string
+          media_id: string
+          visitor_session_id: string
+        }
+        Update: {
+          created_at?: string
+          gallery_id?: string
+          id?: string
+          media_id?: string
+          visitor_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_favorites_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_favorites_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gallery_media: {
         Row: {
           captured_at: string | null
