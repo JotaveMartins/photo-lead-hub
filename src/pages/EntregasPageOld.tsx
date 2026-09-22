@@ -126,37 +126,72 @@ const EntregasPage = () => {
                   {items.map((e) => {
                     const prevista = e.data_entrega_prevista ? parseLocalDate(e.data_entrega_prevista) : null;
                     const atrasada = !!prevista && e.etapa !== "Entregue" && isBefore(prevista, today);
+                    const info = covers[e.id];
                     return (
-                      <button
+                      <div
                         key={e.id}
                         draggable
                         onDragStart={(ev) => ev.dataTransfer.setData("text/plain", e.id)}
-                        onClick={() => openEntrega(e)}
-                        className="w-full text-left bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg p-2.5 transition-colors cursor-grab active:cursor-grabbing"
+                        onClick={() => openFotos(e)}
+                        className="relative w-full text-left bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg overflow-hidden transition-colors cursor-grab active:cursor-grabbing"
                       >
-                        <p className="text-sm font-medium text-foreground truncate">{e.titulo}</p>
-                        {e.clientes?.nome && (
-                          <p className="text-xs text-muted-foreground truncate">{e.clientes.nome}</p>
-                        )}
-                        {e.services?.nome && (
-                          <p className="text-[11px] text-muted-foreground/80 truncate">{e.services.nome}</p>
-                        )}
-                        <div className="flex flex-col gap-1 mt-2">
-                          {e.data_ensaio && (
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <Camera className="w-3 h-3" /> Ensaio {fmtDate(e.data_ensaio)}
-                            </span>
+                        <div className="relative aspect-[16/9] w-full bg-muted/60">
+                          {info?.coverUrl ? (
+                            <img
+                              src={info.coverUrl}
+                              alt=""
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Images className="h-5 w-5 text-muted-foreground/60" />
+                            </div>
                           )}
-                          {e.data_entrega_prevista && (
-                            <span className={`text-[11px] flex items-center gap-1 ${atrasada ? "text-status-danger" : "text-muted-foreground"}`}>
-                              {atrasada ? <AlertTriangle className="w-3 h-3" /> : <CalendarDays className="w-3 h-3" />}
-                              Entrega {fmtDate(e.data_entrega_prevista)}
+                          {!!info?.mediaCount && (
+                            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-foreground">
+                              {info.mediaCount} fotos
                             </span>
                           )}
                         </div>
-                      </button>
+
+                        <button
+                          type="button"
+                          title="Editar entrega"
+                          onClick={(ev) => { ev.stopPropagation(); editEntrega(e); }}
+                          className="absolute right-1.5 top-1.5 rounded-md bg-background/80 p-1.5 text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+
+                        <div className="p-2.5">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {opening === e.id ? "Abrindo fotos..." : e.titulo}
+                          </p>
+                          {e.clientes?.nome && (
+                            <p className="text-xs text-muted-foreground truncate">{e.clientes.nome}</p>
+                          )}
+                          {e.services?.nome && (
+                            <p className="text-[11px] text-muted-foreground/80 truncate">{e.services.nome}</p>
+                          )}
+                          <div className="flex flex-col gap-1 mt-2">
+                            {e.data_ensaio && (
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <Camera className="w-3 h-3" /> Ensaio {fmtDate(e.data_ensaio)}
+                              </span>
+                            )}
+                            {e.data_entrega_prevista && (
+                              <span className={`text-[11px] flex items-center gap-1 ${atrasada ? "text-status-danger" : "text-muted-foreground"}`}>
+                                {atrasada ? <AlertTriangle className="w-3 h-3" /> : <CalendarDays className="w-3 h-3" />}
+                                Entrega {fmtDate(e.data_entrega_prevista)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
+
                 </div>
               </div>
             );
