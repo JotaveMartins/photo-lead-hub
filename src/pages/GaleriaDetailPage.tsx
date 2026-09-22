@@ -161,6 +161,22 @@ const GaleriaDetailPage = () => {
       cover_media_id: coverId || null,
       expires_at,
     });
+
+    if (entrega) {
+      await updateEntrega.mutateAsync({
+        id: entrega.id,
+        titulo: name.trim() || entrega.titulo,
+        etapa: (etapa || entrega.etapa) as EntregaEtapa,
+        cliente_id: clienteId || null,
+        service_id: serviceId || null,
+        data_ensaio: dataEnsaio || null,
+        data_previa_prevista: dataPrevia || null,
+        data_entrega_prevista: dataPrevista || null,
+        data_entrega_final: dataFinal || null,
+        observacoes: obs.trim() || null,
+      });
+    }
+
     if (senha.trim()) {
       if (senha.trim().length < 4) {
         toast.error("A senha precisa ter ao menos 4 caracteres");
