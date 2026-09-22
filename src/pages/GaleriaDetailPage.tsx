@@ -106,7 +106,7 @@ const GaleriaDetailPage = () => {
   }
 
   const published = gallery.status === "published";
-  const publicUrl = `${window.location.origin}/g/${gallery.slug}`;
+  const publicUrl = `${window.location.origin}/galeria/${gallery.slug}`;
   const visibleMedia = activeSection === "all" ? media : media.filter((m) => m.section_id === activeSection);
 
   const handlePublish = () => {
@@ -204,15 +204,20 @@ const GaleriaDetailPage = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" disabled={!published || !media.length} onClick={() => window.open(publicUrl, "_blank")}>
+          <Button
+            variant="outline"
+            disabled={!media.length}
+            onClick={() => window.open(`${publicUrl}?preview=1`, "_blank")}
+          >
             <Eye className="mr-2 h-4 w-4" /> Pré-visualizar
           </Button>
           <Button onClick={handlePublish} disabled={published || updateGallery.isPending}>
             <Send className="mr-2 h-4 w-4" /> Publicar
           </Button>
-          <Button variant="outline" disabled={!published} onClick={() => setShareOpen(true)}>
+          <Button variant="outline" onClick={() => setShareOpen(true)}>
             <Share2 className="mr-2 h-4 w-4" /> Compartilhar
           </Button>
+
           <Button variant="outline" onClick={() => setTab("config")}>
             <Settings className="mr-2 h-4 w-4" /> Configurações
           </Button>
@@ -428,24 +433,33 @@ const GaleriaDetailPage = () => {
             <DialogTitle>Compartilhar entrega</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex gap-2">
-              <Input readOnly value={publicUrl} className="bg-muted border-border" />
-              <Button
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(publicUrl);
-                  toast.success("Link copiado!");
-                }}
-              >
-                <Copy className="mr-2 h-4 w-4" /> Copiar
-              </Button>
-            </div>
-            {entrega && entrega.etapa !== "Entregue" && (
-              <Button className="w-full" onClick={marcarEntregue} disabled={updateEntrega.isPending}>
-                Marcar entrega como entregue
-              </Button>
+            {!published ? (
+              <p className="text-sm text-muted-foreground">
+                Publique a galeria antes de compartilhar com o cliente.
+              </p>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <Input readOnly value={publicUrl} className="bg-muted border-border" />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(publicUrl);
+                      toast.success("Link copiado!");
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4" /> Copiar
+                  </Button>
+                </div>
+                {entrega && entrega.etapa !== "Entregue" && (
+                  <Button className="w-full" onClick={marcarEntregue} disabled={updateEntrega.isPending}>
+                    Marcar entrega como entregue
+                  </Button>
+                )}
+              </>
             )}
           </div>
+
         </DialogContent>
       </Dialog>
 
