@@ -311,7 +311,41 @@ Deno.serve(async (req) => {
       return json({ urls });
     }
 
+    // Capas (miniatura) de todas as galerias do usuário, em lote, para os cards do funil.
+    if (action === "get-cover-urls") {
+      const { data: gals } = await admin
+        .from("galleries")
+        .select("id, entrega_id, cover_media_id, media_count, status")
+        .eq("user_id", user.id)
+        .is("deleted_at", null);
+
+      const ids = (gals ?? []).map((g: any) => g.id);
+      const covers: Record<string, string | null> = {};
+      if (ids.length) {
+        const { data: rows } = await admin
+          .from("gallery_media")
+          .select("id, gallery_id, thumbnail_key, original_key, processing_status, sort_order")
+          .in("gallery_id", ids)
+          .order("sort_order");
+
+        await Promise.all(
+          (gals ?? []).map(async (g: any) => {
+            const own = (rows ?? []).filter((r: any) => r.gallery_id === g.id);
+            const pick = own.find((r: any) => r.id === g.cover_media_id) ?? own[0];
+            if (!pick) return;
+            const key =
+              pick.processing_status === "ready" && pick.thumbnail_key
+                ? pick.thumbnail_key
+                : pick.original_key;
+            covers[g.id] = key ? await presign(key, "GET", 3600) : null;
+          }),
+        );
+      }
+      return json({ galleries: gals ?? [], covers });
+    }
+
     if (action === "cleanup-pending") {
+
       if (!gallery) return json({ error: "Galeria não encontrada" }, 404);
       await admin
         .from("gallery_media")
