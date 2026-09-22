@@ -365,6 +365,15 @@ const GaleriaPublicaPage = () => {
           <div className="flex items-center justify-between px-4 py-3 text-white/80">
             <span className="text-xs">{(lightbox ?? 0) + 1} / {photos.length}</span>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => toggleFavorite(current.id)}
+                aria-label={favorites.has(current.id) ? "Remover das favoritas" : "Adicionar às favoritas"}
+                aria-pressed={favorites.has(current.id)}
+                className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs hover:bg-white/20"
+              >
+                <Heart className={`h-4 w-4 ${favorites.has(current.id) ? "fill-white text-white" : ""}`} />
+                Favorita
+              </button>
               {g.download_enabled && (
                 <button
                   onClick={() => downloadPhoto(current.id)}
