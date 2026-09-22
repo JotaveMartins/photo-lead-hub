@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,6 +153,22 @@ const GaleriaPublicaPage = () => {
       setLightbox((i) => (i === null ? i : (i + delta + photos.length) % photos.length)),
     [photos.length],
   );
+
+  // Swipe (arrastar o dedo) no lightbox
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || lightbox === null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) move(dx < 0 ? 1 : -1);
+  };
 
   useEffect(() => {
     if (lightbox === null) return;
@@ -387,7 +403,11 @@ const GaleriaPublicaPage = () => {
               </button>
             </div>
           </div>
-          <div className="relative flex flex-1 items-center justify-center overflow-hidden px-2 pb-6">
+          <div
+            className="relative flex flex-1 items-center justify-center overflow-hidden px-2 pb-6"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          >
             <button
               onClick={() => move(-1)}
               aria-label="Anterior"
