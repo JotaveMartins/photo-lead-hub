@@ -49,6 +49,12 @@ const presign = async (key: string, method: "PUT" | "GET", expiresIn: number) =>
   return signed.url;
 };
 
+const headSize = async (key: string) => {
+  const res = await aws().fetch(objectUrl(key), { method: "HEAD" });
+  if (!res.ok) return null;
+  return Number(res.headers.get("content-length") ?? 0);
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -107,10 +113,17 @@ Deno.serve(async (req) => {
     const recalc = async (galleryId: string) => {
       const { data: rows } = await admin
         .from("gallery_media")
-        .select("size_bytes")
+        .select("size_bytes, preview_size_bytes, thumbnail_size_bytes")
         .eq("gallery_id", galleryId)
         .eq("processing_status", "ready");
-      const bytes = (rows ?? []).reduce((s: number, r: any) => s + Number(r.size_bytes || 0), 0);
+      const bytes = (rows ?? []).reduce(
+        (s: number, r: any) =>
+          s +
+          Number(r.size_bytes || 0) +
+          Number(r.preview_size_bytes || 0) +
+          Number(r.thumbnail_size_bytes || 0),
+        0,
+      );
       await admin
         .from("galleries")
         .update({ storage_bytes: bytes, media_count: (rows ?? []).length })
@@ -156,46 +169,107 @@ Deno.serve(async (req) => {
           filename: String(body.filename ?? "foto").slice(0, 200),
           media_type: "image",
           size_bytes: fileSize,
+          width: Number(body.width) || null,
+          height: Number(body.height) || null,
           processing_status: "pending",
         })
         .select("id")
         .single();
       if (insErr) throw insErr;
 
-      const key = `galleries/${ownerId}/${gallery.id}/originals/${inserted.id}.${ext}`;
-      await admin.from("gallery_media").update({ original_key: key }).eq("id", inserted.id);
+      const base = `galleries/${ownerId}/${gallery.id}`;
+      const originalKey = `${base}/originals/${inserted.id}.${ext}`;
+      const previewKey = `${base}/previews/${inserted.id}.webp`;
+      const thumbKey = `${base}/thumbs/${inserted.id}.webp`;
 
-      const uploadUrl = await presign(key, "PUT", 600);
+      await admin
+        .from("gallery_media")
+        .update({ original_key: originalKey, preview_key: previewKey, thumbnail_key: thumbKey })
+        .eq("id", inserted.id);
+
+      const [originalUrl, previewUrl, thumbUrl] = await Promise.all([
+        presign(originalKey, "PUT", 600),
+        presign(previewKey, "PUT", 600),
+        presign(thumbKey, "PUT", 600),
+      ]);
+
       return json({
         mediaId: inserted.id,
-        uploadUrl,
-        objectKey: key,
+        // compatibilidade com a versão anterior
+        uploadUrl: originalUrl,
+        objectKey: originalKey,
+        original: { key: originalKey, uploadUrl: originalUrl },
+        preview: { key: previewKey, uploadUrl: previewUrl },
+        thumbnail: { key: thumbKey, uploadUrl: thumbUrl },
         expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      });
+    }
+
+    // Reemite URLs de envio dos derivados de uma foto cujo original já está no R2.
+    if (action === "retry-derivatives-url") {
+      if (!media) return json({ error: "Foto não encontrada" }, 404);
+      const base = `galleries/${media.user_id}/${media.gallery_id}`;
+      const previewKey = media.preview_key ?? `${base}/previews/${media.id}.webp`;
+      const thumbKey = media.thumbnail_key ?? `${base}/thumbs/${media.id}.webp`;
+      await admin
+        .from("gallery_media")
+        .update({ preview_key: previewKey, thumbnail_key: thumbKey, processing_status: "processing" })
+        .eq("id", media.id);
+      const [previewUrl, thumbUrl] = await Promise.all([
+        presign(previewKey, "PUT", 600),
+        presign(thumbKey, "PUT", 600),
+      ]);
+      return json({
+        mediaId: media.id,
+        preview: { key: previewKey, uploadUrl: previewUrl },
+        thumbnail: { key: thumbKey, uploadUrl: thumbUrl },
       });
     }
 
     if (action === "confirm-upload") {
       if (!media) return json({ error: "Foto não encontrada" }, 404);
-      const head = await aws().fetch(objectUrl(media.original_key), { method: "HEAD" });
-      if (!head.ok) return json({ error: "Arquivo não encontrado no armazenamento" }, 400);
-      const size = Number(head.headers.get("content-length") ?? media.size_bytes ?? 0);
+      const originalSize = media.original_key ? await headSize(media.original_key) : null;
+      if (originalSize === null) {
+        await admin
+          .from("gallery_media")
+          .update({ processing_status: "failed", processing_error: "Original ausente no armazenamento" })
+          .eq("id", media.id);
+        return json({ error: "Arquivo não encontrado no armazenamento" }, 400);
+      }
+      const previewSize = media.preview_key ? await headSize(media.preview_key) : null;
+      const thumbSize = media.thumbnail_key ? await headSize(media.thumbnail_key) : null;
+
+      const derivativesOk = previewSize !== null && thumbSize !== null;
+
       await admin
         .from("gallery_media")
         .update({
-          processing_status: "ready",
-          size_bytes: size,
-          uploaded_at: new Date().toISOString(),
+          processing_status: derivativesOk ? "ready" : "processing",
+          processing_error: derivativesOk ? null : "Miniaturas ainda não enviadas",
+          size_bytes: originalSize,
+          preview_size_bytes: previewSize ?? 0,
+          thumbnail_size_bytes: thumbSize ?? 0,
+          width: Number(body.width) || media.width,
+          height: Number(body.height) || media.height,
+          uploaded_at: media.uploaded_at ?? new Date().toISOString(),
         })
         .eq("id", media.id);
+
       const used = await recalc(media.gallery_id);
-      return json({ ok: true, sizeBytes: size, storageUsedBytes: used });
+      return json({
+        ok: derivativesOk,
+        status: derivativesOk ? "ready" : "processing",
+        sizeBytes: originalSize + (previewSize ?? 0) + (thumbSize ?? 0),
+        storageUsedBytes: used,
+      });
     }
 
     if (action === "delete-media") {
       if (!media) return json({ error: "Foto não encontrada" }, 404);
-      if (media.original_key) {
-        await aws().fetch(objectUrl(media.original_key), { method: "DELETE" });
-      }
+      const keys = [media.original_key, media.preview_key, media.thumbnail_key].filter(Boolean);
+      await Promise.all(
+        keys.map((k: string) => aws().fetch(objectUrl(k), { method: "DELETE" }).catch(() => null)),
+      );
       await admin.from("gallery_media").delete().eq("id", media.id);
       await admin
         .from("galleries")
@@ -209,6 +283,32 @@ Deno.serve(async (req) => {
     if (action === "get-view-url") {
       if (!media?.original_key) return json({ error: "Foto sem arquivo" }, 404);
       return json({ url: await presign(media.original_key, "GET", 3600) });
+    }
+
+    // URLs de exibição em lote (miniatura + visualização) para a grade.
+    if (action === "get-media-urls") {
+      if (!gallery) return json({ error: "Galeria não encontrada" }, 404);
+      const ids: string[] = Array.isArray(body.mediaIds) ? body.mediaIds.slice(0, 500) : [];
+      let query = admin
+        .from("gallery_media")
+        .select("id, original_key, preview_key, thumbnail_key, processing_status")
+        .eq("gallery_id", gallery.id);
+      if (ids.length) query = query.in("id", ids);
+      const { data: rows } = await query;
+
+      const urls: Record<string, { thumb: string | null; preview: string | null }> = {};
+      await Promise.all(
+        (rows ?? []).map(async (r: any) => {
+          const ready = r.processing_status === "ready";
+          const thumbKey = ready && r.thumbnail_key ? r.thumbnail_key : r.original_key;
+          const previewKey = ready && r.preview_key ? r.preview_key : r.original_key;
+          urls[r.id] = {
+            thumb: thumbKey ? await presign(thumbKey, "GET", 3600) : null,
+            preview: previewKey ? await presign(previewKey, "GET", 3600) : null,
+          };
+        }),
+      );
+      return json({ urls });
     }
 
     if (action === "cleanup-pending") {
