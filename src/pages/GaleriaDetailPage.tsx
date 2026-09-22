@@ -465,8 +465,27 @@ const GaleriaDetailPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={!!previewId} onOpenChange={(o) => !o && setPreviewId(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="truncate">
+              {media.find((m) => m.id === previewId)?.filename ?? "Foto"}
+            </DialogTitle>
+          </DialogHeader>
+          {previewId && mediaUrls?.[previewId]?.preview ? (
+            <img
+              src={mediaUrls[previewId]!.preview!}
+              alt="Visualização da foto"
+              className="max-h-[75vh] w-full rounded-md object-contain"
+            />
+          ) : (
+            <p className="py-10 text-center text-sm text-muted-foreground">Processando...</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default GaleriaDetailPage;
