@@ -143,6 +143,41 @@ Deno.serve(async (req) => {
       return json({ state: "password", gallery: { name: gallery.name }, photographer });
     }
 
+    // Identificação da sessão do visitante (gerada no cliente, aleatória).
+    const visitorId = String(body?.visitorId ?? "").slice(0, 64);
+    const validVisitor = /^[A-Za-z0-9_-]{16,64}$/.test(visitorId);
+
+    if (action === "favorite") {
+      if (!validVisitor) return json({ error: "Sessão inválida" }, 400);
+      if (!isOwner && gallery.status !== "published") return json({ error: "Galeria indisponível" }, 403);
+      const mediaId = String(body?.mediaId ?? "");
+      const { data: m } = await admin
+        .from("gallery_media")
+        .select("id")
+        .eq("gallery_id", gallery.id)
+        .eq("id", mediaId)
+        .maybeSingle();
+      if (!m) return json({ error: "Foto não encontrada" }, 404);
+
+      if (body?.favorite === false) {
+        await admin
+          .from("gallery_favorites")
+          .delete()
+          .eq("gallery_id", gallery.id)
+          .eq("media_id", mediaId)
+          .eq("visitor_session_id", visitorId);
+        return json({ ok: true, favorite: false });
+      }
+      const { error: insErr } = await admin
+        .from("gallery_favorites")
+        .upsert(
+          { gallery_id: gallery.id, media_id: mediaId, visitor_session_id: visitorId },
+          { onConflict: "gallery_id,media_id,visitor_session_id", ignoreDuplicates: true },
+        );
+      if (insErr) return json({ error: insErr.message }, 400);
+      return json({ ok: true, favorite: true });
+    }
+
     if (action === "download") {
       if (!gallery.download_enabled) return json({ error: "Download não permitido" }, 403);
       const { data: m } = await admin
@@ -184,7 +219,19 @@ Deno.serve(async (req) => {
     const coverId = gallery.cover_media_id;
     const cover = photos.find((p) => p.id === coverId) ?? photos[0] ?? null;
 
+    // Favoritas desta sessão, em lote.
+    let favorite_media_ids: string[] = [];
+    if (validVisitor) {
+      const { data: favs } = await admin
+        .from("gallery_favorites")
+        .select("media_id")
+        .eq("gallery_id", gallery.id)
+        .eq("visitor_session_id", visitorId);
+      favorite_media_ids = (favs ?? []).map((f: any) => f.media_id);
+    }
+
     return json({
+      favorite_media_ids,
       state: "ok",
       token,
       preview: isOwner && gallery.status !== "published",

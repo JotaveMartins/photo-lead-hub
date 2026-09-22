@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Download, ImageOff, Lock, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Heart, ImageOff, Lock, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils";
@@ -24,6 +24,7 @@ interface PublicPhoto {
 
 interface PublicData {
   state: "ok" | "password" | "unavailable" | "expired" | "not_found";
+  favorite_media_ids?: string[];
   token?: string | null;
   preview?: boolean;
   gallery?: { name: string; event_date: string | null; download_enabled: boolean; media_count: number; cover_url: string | null };
@@ -34,6 +35,18 @@ interface PublicData {
 }
 
 const tokenKey = (slug: string) => `gallery-token:${slug}`;
+
+/** Identificação aleatória e persistente do visitante desta galeria (sem login, sem IP). */
+const visitorKey = (slug: string) => `gallery-visitor:${slug}`;
+const getVisitorId = (slug: string) => {
+  let id = localStorage.getItem(visitorKey(slug));
+  if (!id || !/^[A-Za-z0-9_-]{16,64}$/.test(id)) {
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    id = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    localStorage.setItem(visitorKey(slug), id);
+  }
+  return id;
+};
 
 const callPublic = async (payload: Record<string, unknown>): Promise<PublicData> => {
   const { data, error } = await supabase.functions.invoke("gallery-public", { body: payload });
@@ -66,6 +79,9 @@ const GaleriaPublicaPage = () => {
   const [activeSection, setActiveSection] = useState("all");
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [broken, setBroken] = useState<Record<string, boolean>>({});
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favError, setFavError] = useState("");
+  const visitorId = useMemo(() => (slug ? getVisitorId(slug) : ""), [slug]);
 
   // noindex para galerias de clientes
   useEffect(() => {
@@ -79,7 +95,7 @@ const GaleriaPublicaPage = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["gallery-public", slug, token, isPreview],
     enabled: !!slug,
-    queryFn: () => callPublic({ action: "get", slug, token }),
+    queryFn: () => callPublic({ action: "get", slug, token, visitorId }),
   });
 
   useEffect(() => {
@@ -87,13 +103,49 @@ const GaleriaPublicaPage = () => {
       sessionStorage.setItem(tokenKey(slug), data.token);
       setToken(data.token);
     }
+    if (data?.favorite_media_ids) setFavorites(new Set(data.favorite_media_ids));
     if (data?.gallery?.name) document.title = data.gallery.name;
   }, [data, slug]);
 
+  const toggleFavorite = useCallback(
+    async (mediaId: string) => {
+      const wasFav = favorites.has(mediaId);
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        if (wasFav) next.delete(mediaId);
+        else next.add(mediaId);
+        return next;
+      });
+      setFavError("");
+      try {
+        const res = await callPublic({
+          action: "favorite",
+          slug,
+          token,
+          visitorId,
+          mediaId,
+          favorite: !wasFav,
+        } as any);
+        if ((res as any)?.error) throw new Error((res as any).error);
+      } catch {
+        setFavorites((prev) => {
+          const next = new Set(prev);
+          if (wasFav) next.add(mediaId);
+          else next.delete(mediaId);
+          return next;
+        });
+        setFavError("Não foi possível salvar a favorita. Tente novamente.");
+        setTimeout(() => setFavError(""), 3000);
+      }
+    },
+    [favorites, slug, token, visitorId],
+  );
+
   const photos = useMemo(() => {
     const all = data?.photos ?? [];
+    if (activeSection === "favorites") return all.filter((p) => favorites.has(p.id));
     return activeSection === "all" ? all : all.filter((p) => p.section_id === activeSection);
-  }, [data, activeSection]);
+  }, [data, activeSection, favorites]);
 
   const close = useCallback(() => setLightbox(null), []);
   const move = useCallback(
@@ -232,53 +284,73 @@ const GaleriaPublicaPage = () => {
         {!!g.media_count && <p className="mt-2 text-xs text-[#a8a29e]">{g.media_count} fotografias</p>}
       </div>
 
-      {/* Seções */}
-      {sections.length > 0 && (
-        <div className="mx-auto mb-8 flex max-w-5xl flex-wrap justify-center gap-x-6 gap-y-3 px-6">
-          {[{ id: "all", name: "Todas" }, ...sections].map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setActiveSection(s.id)}
-              className={`pb-1 text-xs uppercase tracking-[0.2em] transition-colors ${
-                activeSection === s.id
-                  ? "border-b border-[#1c1917] text-[#1c1917]"
-                  : "border-b border-transparent text-[#a8a29e] hover:text-[#1c1917]"
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
+      {/* Seções + favoritas */}
+      <div className="mx-auto mb-8 flex max-w-5xl flex-wrap justify-center gap-x-6 gap-y-3 px-6">
+        {[
+          { id: "all", name: "Todas" },
+          { id: "favorites", name: `Favoritas ${favorites.size || ""}`.trim() },
+          ...sections,
+        ].map((s) => (
+          <button
+            key={s.id}
+            onClick={() => { setActiveSection(s.id); setLightbox(null); }}
+            className={`pb-1 text-xs uppercase tracking-[0.2em] transition-colors ${
+              activeSection === s.id
+                ? "border-b border-[#1c1917] text-[#1c1917]"
+                : "border-b border-transparent text-[#a8a29e] hover:text-[#1c1917]"
+            }`}
+          >
+            {s.name}
+          </button>
+        ))}
+      </div>
+
+      {favError && (
+        <p className="mb-4 text-center text-xs text-[#b91c1c]">{favError}</p>
       )}
 
       {/* Grade */}
       {photos.length ? (
         <div className="mx-auto max-w-[1600px] px-2 pb-20 sm:px-4">
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4">
-            {photos.map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => setLightbox(i)}
-                className="group relative aspect-[4/5] overflow-hidden bg-[#f5f5f4]"
-              >
-                {p.thumbnail_url && !broken[p.id] ? (
-                  <img
-                    src={p.thumbnail_url}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    onError={() => setBroken((b) => ({ ...b, [p.id]: true }))}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <ImageOff className="h-5 w-5 text-[#d6d3d1]" />
-                  </div>
-                )}
-              </button>
-            ))}
+            {photos.map((p, i) => {
+              const fav = favorites.has(p.id);
+              return (
+                <div key={p.id} className="group relative aspect-[4/5] overflow-hidden bg-[#f5f5f4]">
+                  <button onClick={() => setLightbox(i)} className="block h-full w-full">
+                    {p.thumbnail_url && !broken[p.id] ? (
+                      <img
+                        src={p.thumbnail_url}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        onError={() => setBroken((b) => ({ ...b, [p.id]: true }))}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ImageOff className="h-5 w-5 text-[#d6d3d1]" />
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={fav ? "Remover das favoritas" : "Adicionar às favoritas"}
+                    aria-pressed={fav}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(p.id); }}
+                    className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-black/20"
+                  >
+                    <Heart
+                      className={`h-5 w-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${fav ? "fill-white text-white" : ""}`}
+                    />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
+      ) : activeSection === "favorites" ? (
+        <p className="pb-24 text-center text-sm text-[#a8a29e]">Você ainda não adicionou fotos às favoritas.</p>
       ) : (
         <p className="pb-24 text-center text-sm text-[#a8a29e]">Esta galeria ainda não possui fotografias.</p>
       )}
@@ -293,6 +365,15 @@ const GaleriaPublicaPage = () => {
           <div className="flex items-center justify-between px-4 py-3 text-white/80">
             <span className="text-xs">{(lightbox ?? 0) + 1} / {photos.length}</span>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => toggleFavorite(current.id)}
+                aria-label={favorites.has(current.id) ? "Remover das favoritas" : "Adicionar às favoritas"}
+                aria-pressed={favorites.has(current.id)}
+                className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs hover:bg-white/20"
+              >
+                <Heart className={`h-4 w-4 ${favorites.has(current.id) ? "fill-white text-white" : ""}`} />
+                Favorita
+              </button>
               {g.download_enabled && (
                 <button
                   onClick={() => downloadPhoto(current.id)}

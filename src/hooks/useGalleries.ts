@@ -138,6 +138,27 @@ export const useGalleryMedia = (galleryId?: string) =>
     },
   });
 
+/** Favoritas dos visitantes: contagem por foto e total de sessões. */
+export const useGalleryFavorites = (galleryId?: string) =>
+  useQuery({
+    queryKey: ["gallery-favorites", galleryId],
+    enabled: !!galleryId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gallery_favorites")
+        .select("media_id, visitor_session_id")
+        .eq("gallery_id", galleryId!);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      const sessions = new Set<string>();
+      for (const r of (data ?? []) as any[]) {
+        counts[r.media_id] = (counts[r.media_id] ?? 0) + 1;
+        sessions.add(r.visitor_session_id);
+      }
+      return { counts, visitors: sessions.size };
+    },
+  });
+
 /** Capa e galeria de cada entrega, em uma única chamada (para os cards do funil). */
 export const useEntregaCovers = () => {
   const userId = useEffectiveUserId();

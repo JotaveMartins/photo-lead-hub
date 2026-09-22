@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ChevronRight, Eye, Send, Settings, Trash2, UploadCloud, Plus, Images,
-  Share2, Pencil, Check, X, Copy, Camera, CalendarDays, User,
+  Share2, Pencil, Check, X, Copy, Camera, CalendarDays, User, Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,7 +28,7 @@ import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   useGallery, useGallerySections, useGalleryMedia, useUpdateGallery, useDeleteGallery,
-  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, formatBytes,
+  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, useGalleryFavorites, formatBytes,
 } from "@/hooks/useGalleries";
 import GalleryUploader from "@/components/galerias/GalleryUploader";
 import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
@@ -61,6 +61,8 @@ const GaleriaDetailPage = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const { data: mediaUrls } = useGalleryMediaUrls(id, media.length);
+  const { data: favorites } = useGalleryFavorites(id);
+  const favoriteMedia = media.filter((m) => (favorites?.counts?.[m.id] ?? 0) > 0);
   const refreshMedia = () => {
     qc.invalidateQueries({ queryKey: ["gallery-media", id] });
     qc.invalidateQueries({ queryKey: ["gallery", id] });
@@ -271,6 +273,7 @@ const GaleriaDetailPage = () => {
       <Tabs value={tab} onValueChange={setTab} className="space-y-5">
         <TabsList>
           <TabsTrigger value="fotos">Fotos</TabsTrigger>
+          <TabsTrigger value="favoritas">Favoritas</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
 
@@ -399,6 +402,42 @@ const GaleriaDetailPage = () => {
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
               <Images className="mb-3 h-8 w-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Nenhuma foto nesta entrega ainda.</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="favoritas" className="space-y-5">
+          <p className="text-sm text-muted-foreground">
+            {favoriteMedia.length} {favoriteMedia.length === 1 ? "foto favoritada" : "fotos favoritadas"}
+            {!!favorites?.visitors && (
+              <> · {favorites.visitors} {favorites.visitors === 1 ? "visitante" : "visitantes"}</>
+            )}
+          </p>
+          {favoriteMedia.length ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+              {favoriteMedia.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setPreviewId(m.id)}
+                  className="relative aspect-square overflow-hidden rounded-lg border border-border bg-muted/40"
+                >
+                  {mediaUrls?.[m.id]?.thumb ? (
+                    <img src={mediaUrls[m.id].thumb!} alt={m.filename} loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Images className="h-5 w-5 text-muted-foreground/60" />
+                    </div>
+                  )}
+                  <span className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] text-foreground">
+                    <Heart className="h-3 w-3 fill-current text-destructive" /> {favorites?.counts?.[m.id] ?? 1}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
+              <Heart className="mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Nenhum cliente favoritou fotos ainda.</p>
             </div>
           )}
         </TabsContent>
