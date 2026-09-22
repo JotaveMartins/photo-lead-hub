@@ -47,7 +47,6 @@ const EntregasPage = () => {
   };
 
   const openNew = () => { setSelected(null); setDrawerOpen(true); };
-  const editEntrega = (e: Entrega) => { setSelected(e); setDrawerOpen(true); };
 
   /** Clicar no card abre direto as fotos da entrega (cria a galeria se ainda não existir). */
   const openFotos = async (e: Entrega) => {
