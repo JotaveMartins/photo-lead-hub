@@ -87,6 +87,16 @@ const GaleriaDetailPage = () => {
   const [senha, setSenha] = useState("");
   const [coverId, setCoverId] = useState("");
 
+  // Dados da entrega
+  const { data: services = [] } = useServices();
+  const [etapa, setEtapa] = useState<EntregaEtapa | "">("");
+  const [serviceId, setServiceId] = useState("");
+  const [dataEnsaio, setDataEnsaio] = useState("");
+  const [dataPrevia, setDataPrevia] = useState("");
+  const [dataPrevista, setDataPrevista] = useState("");
+  const [dataFinal, setDataFinal] = useState("");
+  const [obs, setObs] = useState("");
+
   useEffect(() => {
     if (!gallery) return;
     setName(gallery.name);
@@ -100,6 +110,18 @@ const GaleriaDetailPage = () => {
         : "0",
     );
   }, [gallery]);
+
+  useEffect(() => {
+    if (!entrega) return;
+    setEtapa(entrega.etapa as EntregaEtapa);
+    setServiceId(entrega.service_id ?? "");
+    setDataEnsaio(entrega.data_ensaio ?? "");
+    setDataPrevia(entrega.data_previa_prevista ?? "");
+    setDataPrevista(entrega.data_entrega_prevista ?? "");
+    setDataFinal(entrega.data_entrega_final ?? "");
+    setObs(entrega.observacoes ?? "");
+  }, [entrega]);
+
 
   if (isLoading) {
     return <p className="py-20 text-center text-sm text-muted-foreground animate-pulse">Carregando...</p>;
