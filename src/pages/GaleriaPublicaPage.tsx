@@ -11,14 +11,9 @@ const GaleriaPublicaPage = () => {
     queryKey: ["gallery-public", slug],
     enabled: !!slug,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("galleries")
-        .select("name, event_date, status, media_count")
-        .eq("slug", slug!)
-        .eq("status", "published")
-        .is("deleted_at", null)
-        .maybeSingle();
-      return data as any;
+      const { data } = await supabase.rpc("get_public_gallery" as any, { _slug: slug! });
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? null) as any;
     },
   });
 
