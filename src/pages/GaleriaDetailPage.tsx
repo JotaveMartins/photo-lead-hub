@@ -404,65 +404,72 @@ const GaleriaDetailPage = () => {
         </TabsContent>
 
         <TabsContent value="config">
-          <Card className="max-w-2xl space-y-4 p-5">
-            <div className="space-y-2">
-              <Label>Nome da galeria</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-muted border-border" />
-            </div>
-
-            <ClienteSearchSelect clientes={clientes as any} value={clienteId} onChange={setClienteId} />
-
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <Card className="space-y-4 p-5">
+              <p className="text-sm font-medium text-foreground">Configurações da galeria</p>
               <div className="space-y-2">
-                <Label>Data do trabalho</Label>
-                <DatePickerField value={eventDate} onChange={setEventDate} placeholder="Data do trabalho" />
+                <Label>Nome da galeria</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-muted border-border" />
               </div>
+
+              <ClienteSearchSelect clientes={clientes as any} value={clienteId} onChange={setClienteId} />
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Data do trabalho</Label>
+                  <DatePickerField value={eventDate} onChange={setEventDate} placeholder="Data do trabalho" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Expiração (dias)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={expiraDias}
+                    onChange={(e) => setExpiraDias(e.target.value)}
+                    className="bg-muted border-border"
+                  />
+                  <p className="text-[11px] text-muted-foreground">0 = nunca expira</p>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label>Expiração (dias)</Label>
+                <Label>Senha de acesso (opcional)</Label>
                 <Input
-                  type="number"
-                  min={0}
-                  value={expiraDias}
-                  onChange={(e) => setExpiraDias(e.target.value)}
+                  type="password"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder={gallery.password_hash ? "Senha definida - digite para alterar" : "Mínimo 4 caracteres"}
                   className="bg-muted border-border"
                 />
-                <p className="text-[11px] text-muted-foreground">0 = nunca expira</p>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Senha de acesso (opcional)</Label>
-              <Input
-                type="password"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                placeholder={gallery.password_hash ? "Senha definida - digite para alterar" : "Mínimo 4 caracteres"}
-                className="bg-muted border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <SearchSelect
-                label="Foto de capa"
-                options={media.map((m) => ({ value: m.id, label: m.filename }))}
-                value={coverId}
-                onChange={setCoverId}
-                placeholder={media.length ? "Selecione a capa" : "Envie fotos para escolher a capa"}
-                emptyLabel="Sem capa"
-                searchPlaceholder="Buscar foto..."
-              />
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Permitir download</p>
-                <p className="text-xs text-muted-foreground">O cliente poderá baixar as fotos da galeria.</p>
+              <div className="space-y-2">
+                <SearchSelect
+                  label="Foto de capa"
+                  options={media.map((m) => ({ value: m.id, label: m.filename }))}
+                  value={coverId}
+                  onChange={setCoverId}
+                  placeholder={media.length ? "Selecione a capa" : "Envie fotos para escolher a capa"}
+                  emptyLabel="Sem capa"
+                  searchPlaceholder="Buscar foto..."
+                />
               </div>
-              <Switch checked={download} onCheckedChange={setDownload} />
-            </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Permitir download</p>
+                  <p className="text-xs text-muted-foreground">O cliente poderá baixar as fotos da galeria.</p>
+                </div>
+                <Switch checked={download} onCheckedChange={setDownload} />
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSettings} disabled={updateGallery.isPending}>Salvar configurações</Button>
+              </div>
+            </Card>
 
             {entrega && (
-              <div className="space-y-4 border-t border-border pt-4">
+              <Card className="space-y-4 p-5">
                 <p className="text-sm font-medium text-foreground">Dados da entrega</p>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -514,14 +521,13 @@ const GaleriaDetailPage = () => {
                     className="resize-none bg-muted border-border"
                   />
                 </div>
-              </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSettings} disabled={updateGallery.isPending}>Salvar configurações</Button>
+                </div>
+              </Card>
             )}
-
-
-            <div className="flex justify-end">
-              <Button onClick={handleSaveSettings} disabled={updateGallery.isPending}>Salvar configurações</Button>
-            </div>
-          </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
