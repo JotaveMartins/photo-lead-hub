@@ -30,6 +30,8 @@ import {
 import GalleryUploader from "@/components/galerias/GalleryUploader";
 import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
 import { StorageService } from "@/lib/storage/StorageService";
+import { useGalleryMediaUrls } from "@/hooks/useGalleryMediaUrls";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
