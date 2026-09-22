@@ -54,11 +54,15 @@ const GaleriaDetailPage = () => {
   const { data: storage } = useStorageUsage();
   const qc = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const { data: mediaUrls } = useGalleryMediaUrls(id, media.length);
   const refreshMedia = () => {
     qc.invalidateQueries({ queryKey: ["gallery-media", id] });
     qc.invalidateQueries({ queryKey: ["gallery", id] });
+    qc.invalidateQueries({ queryKey: ["gallery-media-urls", id] });
     qc.invalidateQueries({ queryKey: ["storage-usage"] });
   };
+
 
   const [tab, setTab] = useState("fotos");
   const [activeSection, setActiveSection] = useState<string>("all");
