@@ -2293,6 +2293,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_public_gallery: {
+        Args: { _slug: string }
+        Returns: {
+          download_enabled: boolean
+          event_date: string
+          has_password: boolean
+          media_count: number
+          name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
