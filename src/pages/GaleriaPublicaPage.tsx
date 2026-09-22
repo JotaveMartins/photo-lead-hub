@@ -79,6 +79,9 @@ const GaleriaPublicaPage = () => {
   const [activeSection, setActiveSection] = useState("all");
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [broken, setBroken] = useState<Record<string, boolean>>({});
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favError, setFavError] = useState("");
+  const visitorId = useMemo(() => (slug ? getVisitorId(slug) : ""), [slug]);
 
   // noindex para galerias de clientes
   useEffect(() => {
@@ -92,7 +95,7 @@ const GaleriaPublicaPage = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["gallery-public", slug, token, isPreview],
     enabled: !!slug,
-    queryFn: () => callPublic({ action: "get", slug, token }),
+    queryFn: () => callPublic({ action: "get", slug, token, visitorId }),
   });
 
   useEffect(() => {
@@ -100,13 +103,49 @@ const GaleriaPublicaPage = () => {
       sessionStorage.setItem(tokenKey(slug), data.token);
       setToken(data.token);
     }
+    if (data?.favorite_media_ids) setFavorites(new Set(data.favorite_media_ids));
     if (data?.gallery?.name) document.title = data.gallery.name;
   }, [data, slug]);
 
+  const toggleFavorite = useCallback(
+    async (mediaId: string) => {
+      const wasFav = favorites.has(mediaId);
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        if (wasFav) next.delete(mediaId);
+        else next.add(mediaId);
+        return next;
+      });
+      setFavError("");
+      try {
+        const res = await callPublic({
+          action: "favorite",
+          slug,
+          token,
+          visitorId,
+          mediaId,
+          favorite: !wasFav,
+        } as any);
+        if ((res as any)?.error) throw new Error((res as any).error);
+      } catch {
+        setFavorites((prev) => {
+          const next = new Set(prev);
+          if (wasFav) next.add(mediaId);
+          else next.delete(mediaId);
+          return next;
+        });
+        setFavError("Não foi possível salvar a favorita. Tente novamente.");
+        setTimeout(() => setFavError(""), 3000);
+      }
+    },
+    [favorites, slug, token, visitorId],
+  );
+
   const photos = useMemo(() => {
     const all = data?.photos ?? [];
+    if (activeSection === "favorites") return all.filter((p) => favorites.has(p.id));
     return activeSection === "all" ? all : all.filter((p) => p.section_id === activeSection);
-  }, [data, activeSection]);
+  }, [data, activeSection, favorites]);
 
   const close = useCallback(() => setLightbox(null), []);
   const move = useCallback(
