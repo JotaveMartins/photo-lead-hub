@@ -19,8 +19,11 @@ import {
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import SearchSelect from "@/components/SearchSelect";
 import DatePickerField from "@/components/DatePickerField";
+import { Textarea } from "@/components/ui/textarea";
 import { useClientes } from "@/hooks/useClientes";
-import { useEntrega, useUpdateEntrega } from "@/hooks/useEntregas";
+import { useServices } from "@/hooks/useServices";
+import { ENTREGA_ETAPAS, useEntrega, useUpdateEntrega, type EntregaEtapa } from "@/hooks/useEntregas";
+
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
