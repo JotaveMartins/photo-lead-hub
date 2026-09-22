@@ -112,6 +112,8 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/g/:slug" element={<GaleriaPublicaPage />} />
+      <Route path="/galeria/:slug" element={<GaleriaPublicaPage />} />
+
       <Route path="/" element={<Navigate to="/inicio" replace />} />
 
       <Route element={<ProtectedLayout />}>
