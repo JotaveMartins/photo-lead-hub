@@ -79,6 +79,7 @@ export const useCreateEntrega = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      queryClient.invalidateQueries({ queryKey: ["entrega"] });
     },
     onError: (e: any) => toast.error("Erro ao criar entrega: " + (e?.message || "tente novamente")),
   });
@@ -100,6 +101,7 @@ export const useUpdateEntrega = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      queryClient.invalidateQueries({ queryKey: ["entrega"] });
     },
     onError: (e: any) => toast.error("Erro ao atualizar entrega: " + (e?.message || "tente novamente")),
   });
@@ -118,6 +120,7 @@ export const useDeleteEntrega = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      queryClient.invalidateQueries({ queryKey: ["entrega"] });
       toast.success("Entrega removida");
     },
     onError: (e: any) => toast.error("Erro ao remover entrega: " + (e?.message || "tente novamente")),
