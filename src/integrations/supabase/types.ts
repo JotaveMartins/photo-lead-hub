@@ -535,6 +535,7 @@ export type Database = {
           data_entrada_ensaio_realizado: string | null
           data_entrada_entregue: string | null
           data_entrada_previa_enviada: string | null
+          data_entrada_pronto_para_entrega: string | null
           data_entrega_final: string | null
           data_entrega_prevista: string | null
           data_previa_prevista: string | null
@@ -559,6 +560,7 @@ export type Database = {
           data_entrada_ensaio_realizado?: string | null
           data_entrada_entregue?: string | null
           data_entrada_previa_enviada?: string | null
+          data_entrada_pronto_para_entrega?: string | null
           data_entrega_final?: string | null
           data_entrega_prevista?: string | null
           data_previa_prevista?: string | null
@@ -583,6 +585,7 @@ export type Database = {
           data_entrada_ensaio_realizado?: string | null
           data_entrada_entregue?: string | null
           data_entrada_previa_enviada?: string | null
+          data_entrada_pronto_para_entrega?: string | null
           data_entrega_final?: string | null
           data_entrega_prevista?: string | null
           data_previa_prevista?: string | null
@@ -2318,6 +2321,7 @@ export type Database = {
         | "Prévia enviada"
         | "Em edição"
         | "Entregue"
+        | "Pronto para entrega"
       gallery_media_status: "pending" | "processing" | "ready" | "failed"
       gallery_status: "draft" | "published" | "expired" | "archived"
       gallery_type: "delivery" | "selection"
@@ -2469,6 +2473,7 @@ export const Constants = {
         "Prévia enviada",
         "Em edição",
         "Entregue",
+        "Pronto para entrega",
       ],
       gallery_media_status: ["pending", "processing", "ready", "failed"],
       gallery_status: ["draft", "published", "expired", "archived"],
