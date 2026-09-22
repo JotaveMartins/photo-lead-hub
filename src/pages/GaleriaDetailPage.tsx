@@ -28,7 +28,7 @@ import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   useGallery, useGallerySections, useGalleryMedia, useUpdateGallery, useDeleteGallery,
-  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, formatBytes,
+  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, useGalleryFavorites, formatBytes,
 } from "@/hooks/useGalleries";
 import GalleryUploader from "@/components/galerias/GalleryUploader";
 import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
@@ -61,6 +61,8 @@ const GaleriaDetailPage = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const { data: mediaUrls } = useGalleryMediaUrls(id, media.length);
+  const { data: favorites } = useGalleryFavorites(id);
+  const favoriteMedia = media.filter((m) => (favorites?.counts?.[m.id] ?? 0) > 0);
   const refreshMedia = () => {
     qc.invalidateQueries({ queryKey: ["gallery-media", id] });
     qc.invalidateQueries({ queryKey: ["gallery", id] });
