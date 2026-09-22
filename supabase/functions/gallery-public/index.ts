@@ -219,7 +219,19 @@ Deno.serve(async (req) => {
     const coverId = gallery.cover_media_id;
     const cover = photos.find((p) => p.id === coverId) ?? photos[0] ?? null;
 
+    // Favoritas desta sessão, em lote.
+    let favorite_media_ids: string[] = [];
+    if (validVisitor) {
+      const { data: favs } = await admin
+        .from("gallery_favorites")
+        .select("media_id")
+        .eq("gallery_id", gallery.id)
+        .eq("visitor_session_id", visitorId);
+      favorite_media_ids = (favs ?? []).map((f: any) => f.media_id);
+    }
+
     return json({
+      favorite_media_ids,
       state: "ok",
       token,
       preview: isOwner && gallery.status !== "published",
