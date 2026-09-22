@@ -461,6 +461,63 @@ const GaleriaDetailPage = () => {
               <Switch checked={download} onCheckedChange={setDownload} />
             </div>
 
+            {entrega && (
+              <div className="space-y-4 border-t border-border pt-4">
+                <p className="text-sm font-medium text-foreground">Dados da entrega</p>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <SearchSelect
+                    label="Etapa"
+                    options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
+                    value={etapa}
+                    onChange={(v) => v && setEtapa(v as EntregaEtapa)}
+                    allowEmpty={false}
+                    placeholder="Selecione a etapa"
+                    searchPlaceholder="Buscar etapa..."
+                  />
+                  <SearchSelect
+                    label="Serviço"
+                    options={(services as any[]).filter((s) => s.ativo).map((s) => ({ value: s.id, label: s.nome }))}
+                    value={serviceId}
+                    onChange={setServiceId}
+                    placeholder="Sem serviço"
+                    emptyLabel="Sem serviço"
+                    searchPlaceholder="Buscar serviço..."
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Data do ensaio</Label>
+                    <DatePickerField value={dataEnsaio} onChange={setDataEnsaio} placeholder="Data do ensaio" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Prévia prevista</Label>
+                    <DatePickerField value={dataPrevia} onChange={setDataPrevia} placeholder="Prévia prevista" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Entrega prevista</Label>
+                    <DatePickerField value={dataPrevista} onChange={setDataPrevista} placeholder="Entrega prevista" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Entrega final</Label>
+                    <DatePickerField value={dataFinal} onChange={setDataFinal} placeholder="Entrega final" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Observações</Label>
+                  <Textarea
+                    value={obs}
+                    onChange={(e) => setObs(e.target.value)}
+                    rows={3}
+                    className="resize-none bg-muted border-border"
+                  />
+                </div>
+              </div>
+            )}
+
+
             <div className="flex justify-end">
               <Button onClick={handleSaveSettings} disabled={updateGallery.isPending}>Salvar configurações</Button>
             </div>
