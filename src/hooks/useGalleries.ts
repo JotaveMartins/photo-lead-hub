@@ -289,3 +289,44 @@ export const useStorageUsage = () => {
     },
   });
 };
+
+export const useUpdateSection = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; galleryId: string; name: string }) => {
+      const { error } = await supabase.from("gallery_sections").update({ name } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ["gallery-sections", v.galleryId] }),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao renomear seção"),
+  });
+};
+
+export const useDeleteSection = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; galleryId: string }) => {
+      const { error } = await supabase.from("gallery_sections").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["gallery-sections", v.galleryId] });
+      qc.invalidateQueries({ queryKey: ["gallery-media", v.galleryId] });
+      toast.success("Seção excluída");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir seção"),
+  });
+};
+
+/** Move uma foto para uma seção (ou para "sem seção"). */
+export const useSetMediaSection = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ mediaId, sectionId }: { mediaId: string; galleryId: string; sectionId: string | null }) => {
+      const { error } = await supabase.from("gallery_media").update({ section_id: sectionId } as any).eq("id", mediaId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ["gallery-media", v.galleryId] }),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao mover foto"),
+  });
+};
