@@ -25,8 +25,12 @@ import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   useGallery, useGallerySections, useGalleryMedia, useUpdateGallery, useDeleteGallery,
-  useCreateSection, useUpdateSection, useDeleteSection, formatBytes,
+  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, formatBytes,
 } from "@/hooks/useGalleries";
+import GalleryUploader from "@/components/galerias/GalleryUploader";
+import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
+import { StorageService } from "@/lib/storage/StorageService";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -46,6 +50,15 @@ const GaleriaDetailPage = () => {
   const createSection = useCreateSection();
   const updateSection = useUpdateSection();
   const deleteSection = useDeleteSection();
+
+  const { data: storage } = useStorageUsage();
+  const qc = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const refreshMedia = () => {
+    qc.invalidateQueries({ queryKey: ["gallery-media", id] });
+    qc.invalidateQueries({ queryKey: ["gallery", id] });
+    qc.invalidateQueries({ queryKey: ["storage-usage"] });
+  };
 
   const [tab, setTab] = useState("fotos");
   const [activeSection, setActiveSection] = useState<string>("all");
