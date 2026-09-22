@@ -24,6 +24,7 @@ interface PublicPhoto {
 
 interface PublicData {
   state: "ok" | "password" | "unavailable" | "expired" | "not_found";
+  favorite_media_ids?: string[];
   token?: string | null;
   preview?: boolean;
   gallery?: { name: string; event_date: string | null; download_enabled: boolean; media_count: number; cover_url: string | null };
@@ -34,6 +35,18 @@ interface PublicData {
 }
 
 const tokenKey = (slug: string) => `gallery-token:${slug}`;
+
+/** Identificação aleatória e persistente do visitante desta galeria (sem login, sem IP). */
+const visitorKey = (slug: string) => `gallery-visitor:${slug}`;
+const getVisitorId = (slug: string) => {
+  let id = localStorage.getItem(visitorKey(slug));
+  if (!id || !/^[A-Za-z0-9_-]{16,64}$/.test(id)) {
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    id = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    localStorage.setItem(visitorKey(slug), id);
+  }
+  return id;
+};
 
 const callPublic = async (payload: Record<string, unknown>): Promise<PublicData> => {
   const { data, error } = await supabase.functions.invoke("gallery-public", { body: payload });
