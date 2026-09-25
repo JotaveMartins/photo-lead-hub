@@ -81,6 +81,14 @@ const InstagramCard = () => {
         )}
       </div>
 
+      {isConnected && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm space-y-1">
+          <p className="font-semibold text-emerald-500">Instagram conectado</p>
+          <p className="text-foreground">@{account?.username ?? "—"}</p>
+          <p className="text-xs text-muted-foreground">Instagram ID: {account?.instagram_user_id ?? "—"}</p>
+        </div>
+      )}
+
       {!isConnected && (
         <div className="rounded-lg bg-muted/50 border border-border p-3 text-xs text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">Requisitos:</p>
@@ -120,6 +128,7 @@ const InstagramCard = () => {
           disabled={isLoading || connect.isPending}
           onClick={() =>
             connect.mutate(undefined, {
+              onSuccess: (ok) => ok && toast.success("Instagram conectado com sucesso"),
               onError: (e: any) => toast.error(e?.message ?? "Erro ao conectar"),
             })
           }

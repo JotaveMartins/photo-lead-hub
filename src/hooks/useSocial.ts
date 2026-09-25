@@ -83,7 +83,7 @@ export const useConnectInstagram = () => {
         const closedCheck = setInterval(() => {
           if (popup.closed) {
             cleanup();
-            resolve(true);
+            resolve(false);
           }
         }, 800);
         const cleanup = () => {

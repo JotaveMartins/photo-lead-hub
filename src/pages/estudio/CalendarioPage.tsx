@@ -76,7 +76,7 @@ const CalendarioPage = () => {
 
   const handlePublishNow = (post: ScheduledPost) =>
     publish.mutate(post.id, {
-      onSuccess: () => toast.success("Publicado no Instagram!"),
+      onSuccess: () => toast.success("Publicação realizada com sucesso no Instagram"),
       onError: (e: any) => toast.error(e?.message ?? "Falha ao publicar"),
     });
 

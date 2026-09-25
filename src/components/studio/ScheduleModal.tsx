@@ -21,6 +21,7 @@ interface ScheduleModalProps {
   account?: InstagramAccount | null;
   slideCount: number;
   caption: string;
+  imageUrls?: string[];
   busyLabel?: string | null;
   initialDate?: string;
   initialTime?: string;
@@ -35,6 +36,7 @@ const ScheduleModal = ({
   account,
   slideCount,
   caption,
+  imageUrls = [],
   busyLabel,
   initialDate,
   initialTime,
@@ -57,6 +59,8 @@ const ScheduleModal = ({
   const inPast = !!scheduledAt && scheduledAt.getTime() < Date.now();
   const connected = !!account && account.status === "connected";
   const busy = !!busyLabel;
+  const hashtags = (caption.match(/#[\p{L}\p{N}_]+/gu) ?? []).join(" ");
+  const captionText = caption.replace(/#[\p{L}\p{N}_]+/gu, "").trim();
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
@@ -84,6 +88,28 @@ const ScheduleModal = ({
                 {slideCount} imagem(ns) · legenda com {caption.length} caracteres
               </p>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-foreground">Imagem</p>
+            <div className="flex gap-1.5 overflow-x-auto">
+              {imageUrls.map((u, i) => (
+                <img key={i} src={u} alt={`Imagem ${i + 1}`} className="h-16 w-14 shrink-0 rounded-md border border-border object-cover" />
+              ))}
+              {!imageUrls.length && <p className="text-xs text-muted-foreground">Nenhuma imagem</p>}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-foreground">Legenda</p>
+            <p className="max-h-28 overflow-y-auto whitespace-pre-wrap rounded-md border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
+              {captionText || "Sem legenda"}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-foreground">Hashtags</p>
+            <p className="rounded-md border border-border bg-muted/40 p-2 text-xs text-primary">
+              {hashtags || "Sem hashtags"}
+            </p>
           </div>
 
           {!connected && (
@@ -119,7 +145,7 @@ const ScheduleModal = ({
             ) : (
               <Send className="mr-1.5 h-4 w-4" />
             )}
-            Publicar agora
+            Publicar no Instagram
           </Button>
           <Button
             disabled={busy || !connected || !scheduledAt || inPast}

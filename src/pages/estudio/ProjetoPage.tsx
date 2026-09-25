@@ -237,7 +237,7 @@ const ProjetoPage = () => {
 
       if (mode === "now") {
         await publishPost.mutateAsync(postId);
-        toast.success("Carrossel publicado no Instagram!");
+        toast.success("Publicação realizada com sucesso no Instagram");
       } else {
         toast.success(
           `Publicação agendada para ${format(new Date(when), "dd/MM 'às' HH:mm", { locale: ptBR })}`,
@@ -413,6 +413,12 @@ const ProjetoPage = () => {
         account={instagram}
         slideCount={slides?.length ?? 0}
         caption={caption}
+        imageUrls={(slides ?? [])
+          .map((s) => {
+            const ph = photos.find((p) => p.id === s.photoIds?.[0]);
+            return ph ? (ph.thumbUrl ?? ph.url) : null;
+          })
+          .filter(Boolean) as string[]}
         busyLabel={publishBusy}
         onConfirm={handleSchedule}
       />
