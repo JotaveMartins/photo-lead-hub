@@ -1,0 +1,16 @@
+name = "avanzo-gallery-zip"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+[[r2_buckets]]
+binding = "GALLERY_BUCKET"
+bucket_name = "avanzo-galerias"
+
+[vars]
+SUPABASE_URL = "https://cqbewlffoosoexbgldqh.supabase.co"
+# Chave pública (anon), a mesma usada no site. Não é segredo.
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxYmV3bGZmb29zb2V4YmdsZHFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2NDIyMjksImV4cCI6MjA4NTIxODIyOX0.qGudb-EQYCMBVkWlCqV10WI20Duzeg2g7Zp_Q6L9_3s"
+
+# Plano pago do Workers: permite mais CPU para o cálculo do CRC em galerias grandes.
+[limits]
+cpu_ms = 300000
