@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import {
   useInstagramAccount,
   useConnectInstagram,
@@ -16,6 +17,7 @@ const InstagramCard = () => {
   const disconnect = useDisconnectInstagram();
   const [testing, setTesting] = useState(false);
   const queryClient = useQueryClient();
+  const userId = useEffectiveUserId();
   const [testResult, setTestResult] = useState<
     { ok: true; username: string | null; id: string } | { ok: false; message: string } | null
   >(null);
@@ -25,7 +27,7 @@ const InstagramCard = () => {
     setTestResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("test-instagram-connection", {
-        body: {},
+        body: { target_user_id: userId },
       });
       if (error || data?.status !== "ok") {
         const message = data?.message ?? "Não foi possível conectar à API do Instagram.";
