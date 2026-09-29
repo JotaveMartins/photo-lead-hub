@@ -66,6 +66,22 @@ const verifyToken = async (token: string | undefined, galleryId: string) => {
   return b64(expected) === sig;
 };
 
+// Autorização temporária do ZIP (15 min), assinada e específica da galeria.
+const signZipToken = async (galleryId: string) => {
+  const payload = `zip.${galleryId}.${Date.now() + 15 * 60_000}`;
+  const sig = await crypto.subtle.sign("HMAC", await hmacKey(), enc.encode(payload));
+  return `${payload}.${b64(sig)}`;
+};
+
+const verifyZipToken = async (token: string): Promise<string | null> => {
+  const parts = token.split(".");
+  if (parts.length !== 4 || parts[0] !== "zip") return null;
+  const [, id, exp, sig] = parts;
+  if (!/^[0-9a-f-]{36}$/.test(id) || Number(exp) < Date.now()) return null;
+  const expected = await crypto.subtle.sign("HMAC", await hmacKey(), enc.encode(`zip.${id}.${exp}`));
+  return b64(expected) === sig ? id : null;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -77,6 +93,53 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "get");
+
+    // Manifesto do ZIP: chamado pelo Cloudflare Worker com a autorização temporária.
+    // O servidor decide quais objetos entram; nenhuma key vem do cliente.
+    if (action === "zip-manifest") {
+      const galleryId = await verifyZipToken(String(body?.zipToken ?? ""));
+      if (!galleryId) return json({ error: "Autorização inválida ou expirada" }, 403);
+      const { data: g } = await admin
+        .from("galleries")
+        .select("id, name, status, expires_at, download_enabled")
+        .eq("id", galleryId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (!g || g.status !== "published" || !g.download_enabled) {
+        return json({ error: "Esta galeria não está mais disponível." }, 403);
+      }
+      if (g.expires_at && new Date(g.expires_at).getTime() < Date.now()) {
+        return json({ error: "Esta galeria não está mais disponível." }, 403);
+      }
+      const { data: rows } = await admin
+        .from("gallery_media")
+        .select("filename, original_key, size_bytes, processing_status, uploaded_at")
+        .eq("gallery_id", g.id)
+        .eq("is_disabled", false)
+        .not("original_key", "is", null)
+        .not("uploaded_at", "is", null)
+        .neq("processing_status", "failed")
+        .order("sort_order")
+        .order("created_at");
+      const prefix = `galleries/`;
+      const used = new Set<string>();
+      const files = (rows ?? [])
+        .filter((r: any) => typeof r.original_key === "string" && r.original_key.startsWith(prefix) && !r.original_key.includes(".."))
+        .map((r: any) => {
+          const raw = String(r.filename ?? "foto.jpg").split(/[\\/]/).pop()!.replace(/[\x00-\x1f<>:"|?*]/g, "_").trim() || "foto.jpg";
+          const dot = raw.lastIndexOf(".");
+          const base = dot > 0 ? raw.slice(0, dot) : raw;
+          const ext = dot > 0 ? raw.slice(dot) : "";
+          let name = raw, n = 2;
+          while (used.has(name.toLowerCase())) name = `${base}-${n++}${ext}`;
+          used.add(name.toLowerCase());
+          return { key: r.original_key, name, size: r.size_bytes ?? null };
+        });
+      const zipName = (String(g.name ?? "galeria").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "galeria") + ".zip";
+      return json({ zipName, files });
+    }
+
     const slug = String(body?.slug ?? "");
     if (!slug) return json({ error: "Galeria não encontrada", state: "not_found" }, 404);
 
@@ -176,6 +239,14 @@ Deno.serve(async (req) => {
         );
       if (insErr) return json({ error: insErr.message }, 400);
       return json({ ok: true, favorite: true });
+    }
+
+    if (action === "download-all") {
+      if (!gallery.download_enabled) return json({ error: "Download não permitido" }, 403);
+      if (gallery.status !== "published") return json({ error: "Galeria indisponível" }, 403);
+      const workerUrl = (Deno.env.get("ZIP_WORKER_URL") ?? "").replace(/\/+$/, "");
+      if (!workerUrl) return json({ error: "Download completo ainda não configurado" }, 503);
+      return json({ url: `${workerUrl}/?t=${encodeURIComponent(await signZipToken(gallery.id))}` });
     }
 
     if (action === "download") {
