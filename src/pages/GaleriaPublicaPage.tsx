@@ -214,6 +214,29 @@ const GaleriaPublicaPage = () => {
     } catch { /* ignora */ }
   };
 
+  const [zipState, setZipState] = useState<"idle" | "loading" | "error">("idle");
+  const downloadAll = async () => {
+    if (zipState === "loading") return;
+    setZipState("loading");
+    try {
+      const { data: res, error } = await supabase.functions.invoke("gallery-public", {
+        body: { action: "download-all", slug, token },
+      });
+      const url = (res as any)?.url;
+      if (error || !url) throw new Error();
+      const a = document.createElement("a");
+      a.href = url;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => setZipState("idle"), 1500);
+    } catch {
+      setZipState("error");
+    }
+  };
+
+
   if (isLoading) {
     return <Shell><p className="text-sm text-[#78716c] animate-pulse">Carregando...</p></Shell>;
   }
@@ -298,6 +321,20 @@ const GaleriaPublicaPage = () => {
           </p>
         )}
         {!!g.media_count && <p className="mt-2 text-xs text-[#a8a29e]">{g.media_count} fotografias</p>}
+        {g.download_enabled && (
+          <div className="mt-6">
+            <button
+              onClick={downloadAll}
+              disabled={zipState === "loading"}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#d6d3d1] px-5 py-2 text-xs uppercase tracking-[0.2em] text-[#44403c] hover:border-[#1c1917] hover:text-[#1c1917] disabled:opacity-60"
+            >
+              {zipState === "loading" ? "Preparando download..." : "Baixar todas"}
+            </button>
+            {zipState === "error" && (
+              <p className="mt-2 text-xs text-[#b91c1c]">Não foi possível preparar o download. Tente novamente.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Seções + favoritas */}
