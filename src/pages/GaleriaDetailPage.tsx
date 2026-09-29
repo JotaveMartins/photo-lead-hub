@@ -366,9 +366,10 @@ const GaleriaDetailPage = () => {
 
           {visibleMedia.length ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-              {visibleMedia.map((m) => (
+              {visibleMedia.map((m, i) => (
                 <GalleryPhotoCard
                   key={m.id}
+                  priority={i < 12}
                   media={m}
                   thumbUrl={mediaUrls?.[m.id]?.thumb ?? null}
                   isCover={gallery.cover_media_id === m.id}
