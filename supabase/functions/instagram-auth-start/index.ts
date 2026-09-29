@@ -59,9 +59,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { origin } = await req.json().catch(() => ({ origin: '' }));
+    const { origin, target_user_id } = await req.json().catch(() => ({ origin: '' }));
+    let uid = user.id;
+    if (target_user_id && target_user_id !== user.id) {
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+      const { data: isAdmin } = await admin.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      uid = target_user_id;
+    }
     const statePayload = btoa(JSON.stringify({
-      uid: user.id, ts: Date.now(), origin: origin || '',
+      uid, ts: Date.now(), origin: origin || '',
     })).replace(/=+$/, '');
     const state = await signState(statePayload);
 
