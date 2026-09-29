@@ -55,10 +55,11 @@ export const useInstagramAccount = () => {
 
 export const useConnectInstagram = () => {
   const queryClient = useQueryClient();
+  const userId = useEffectiveUserId();
   return useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("instagram-auth-start", {
-        body: { origin: window.location.origin },
+        body: { origin: window.location.origin, target_user_id: userId },
       });
       if (error) throw new Error("Integração do Instagram ainda não configurada (App ID/Secret).");
       if (!data?.authUrl) throw new Error("authUrl ausente");
