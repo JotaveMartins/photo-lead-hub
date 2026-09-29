@@ -15,6 +15,8 @@ interface Props {
   onOpen?: () => void;
   onRefresh?: () => void;
   deleting?: boolean;
+  /** Primeiras fotos visíveis: carregamento prioritário. */
+  priority?: boolean;
 }
 
 const GalleryPhotoCard = ({
@@ -26,8 +28,10 @@ const GalleryPhotoCard = ({
   onOpen,
   onRefresh,
   deleting,
+  priority,
 }: Props) => {
   const [retrying, setRetrying] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const failed = media.processing_status === "failed";
   const processing = media.processing_status === "pending" || media.processing_status === "processing";
 
@@ -50,9 +54,12 @@ const GalleryPhotoCard = ({
         <img
           src={thumbUrl}
           alt={media.filename}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+          {...({ fetchpriority: priority ? "high" : "low" } as any)}
+          onLoad={() => setLoaded(true)}
           onClick={onOpen}
-          className="h-full w-full cursor-zoom-in object-cover"
+          className={`h-full w-full cursor-zoom-in object-cover transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       ) : (
         <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-center text-[11px] text-muted-foreground">
