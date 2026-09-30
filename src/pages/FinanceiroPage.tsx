@@ -108,7 +108,7 @@ const FinanceiroPage = () => {
       {/* Controls bar */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="icon" onClick={prevMonth} className="h-10 w-10" aria-label="Mês anterior" title="Mês anterior">
               <ChevronLeft className="w-4 h-4" />
             </Button>
