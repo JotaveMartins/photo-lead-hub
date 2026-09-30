@@ -25,6 +25,11 @@ import { useEntregas, ENTREGA_ETAPAS, type Entrega } from "@/hooks/useEntregas";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type CobrancaComItem = Cobranca & {
+  services: { nome: string; valor_base: number; custo_interno: number | null } | null;
+  packages: { nome: string; preco_final: number | null } | null;
+};
+
 const ClienteDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -71,12 +76,12 @@ const ClienteDetailPage = () => {
     queryFn: async () => {
       if (!id || !effectiveUserId) return [];
       const { data, error } = await supabase
-        .from("cobrancas").select("*")
+        .from("cobrancas").select("*, services(nome, valor_base, custo_interno), packages(nome, preco_final)")
         .eq("user_id", effectiveUserId).eq("cliente_id", id)
         .is("deleted_at", null)
         .order("vencimento", { ascending: true });
       if (error) throw error;
-      return (data || []) as Cobranca[];
+      return (data || []) as CobrancaComItem[];
     },
     enabled: !!id && !!effectiveUserId,
   });
@@ -115,37 +120,37 @@ const ClienteDetailPage = () => {
     enabled: !!id && !!effectiveUserId && eventos.length > 0,
   });
 
-  // Serviços únicos contratados (via eventos)
+  // Serviços únicos contratados: via eventos OU vínculo direto na cobrança (service_id).
+  // count = nº de eventos (custo de execução continua baseado só em eventos).
   const servicosContratados = (() => {
-    const map = new Map<string, { nome: string; valor_base: number; custo_interno: number | null; count: number }>();
+    const map = new Map<string, { nome: string; valor_base: number; custo_interno: number | null; count: number; viaCobranca: boolean }>();
     eventos.forEach((ev: any) => {
       if (ev.services && ev.service_id) {
         const s = ev.services as { nome: string; valor_base: number; custo_interno: number | null };
         const existing = map.get(ev.service_id);
         if (existing) { existing.count++; }
-        else { map.set(ev.service_id, { nome: s.nome, valor_base: s.valor_base, custo_interno: s.custo_interno, count: 1 }); }
+        else { map.set(ev.service_id, { nome: s.nome, valor_base: s.valor_base, custo_interno: s.custo_interno, count: 1, viaCobranca: false }); }
       }
+    });
+    cobrancas.forEach((c) => {
+      if (!c.service_id || !c.services) return;
+      const existing = map.get(c.service_id);
+      if (existing) existing.viaCobranca = true;
+      else map.set(c.service_id, { nome: c.services.nome, valor_base: c.services.valor_base, custo_interno: c.services.custo_interno, count: 0, viaCobranca: true });
     });
     return Array.from(map.entries()).map(([id, v]) => ({ id, ...v }));
   })();
 
-  const { data: pacotesContratados = [] } = useQuery({
-    queryKey: ["packages-cliente", id, effectiveUserId],
-    queryFn: async () => {
-      if (!id || !effectiveUserId) return [];
-      const { data: pkgs } = await supabase.from("packages").select("id, nome, preco_final, descricao").eq("user_id", effectiveUserId);
-      if (!pkgs) return [];
-      const clienteCobrancas = cobrancas.map(c => c.descricao?.toLowerCase() || "");
-      const uniquePackages = new Map<string, { nome: string; preco_final: number | null }>();
-      pkgs.forEach(pkg => {
-        if (clienteCobrancas.some(desc => desc.includes(pkg.nome.toLowerCase()))) {
-          uniquePackages.set(pkg.id, { nome: pkg.nome, preco_final: pkg.preco_final });
-        }
-      });
-      return Array.from(uniquePackages.entries()).map(([id, v]) => ({ id, ...v }));
-    },
-    enabled: !!id && !!effectiveUserId && cobrancas.length >= 0,
-  });
+  // Pacotes contratados: relação real cobrancas.package_id (dedup por pacote; inclui arquivados).
+  const pacotesContratados = (() => {
+    const map = new Map<string, { nome: string; preco_final: number | null }>();
+    cobrancas.forEach((c) => {
+      if (c.package_id && c.packages && !map.has(c.package_id)) {
+        map.set(c.package_id, { nome: c.packages.nome, preco_final: c.packages.preco_final });
+      }
+    });
+    return Array.from(map.entries()).map(([id, v]) => ({ id, ...v }));
+  })();
 
   const handleDelete = async () => {
     if (!id) return;
@@ -392,7 +397,7 @@ const ClienteDetailPage = () => {
               <div className="space-y-2">
                 {servicosContratados.map((s) => (
                   <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/servicos")}>
-                    <div><p className="text-sm font-medium text-foreground">{s.nome}</p><p className="text-xs text-muted-foreground">{s.count} {s.count === 1 ? "evento" : "eventos"}</p></div>
+                    <div><p className="text-sm font-medium text-foreground">{s.nome}</p><p className="text-xs text-muted-foreground">{s.count > 0 ? `${s.count} ${s.count === 1 ? "evento" : "eventos"}` : "via cobrança"}</p></div>
                     <div className="text-right"><p className="text-sm font-bold text-foreground">{fmt(s.valor_base)}</p></div>
                   </div>
                 ))}
@@ -402,7 +407,7 @@ const ClienteDetailPage = () => {
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-3"><Package className="w-4 h-4" />Pacotes Contratados</h3>
             {pacotesContratados.length === 0 ? (
-              <Card className="bg-card border-border"><CardContent className="flex flex-col items-center justify-center py-8 gap-2"><Package className="w-8 h-8 text-muted-foreground/30" /><p className="text-sm text-muted-foreground">Nenhum pacote vinculado</p><p className="text-xs text-muted-foreground/70">Pacotes aparecem aqui quando identificados nas cobranças deste cliente</p></CardContent></Card>
+              <Card className="bg-card border-border"><CardContent className="flex flex-col items-center justify-center py-8 gap-2"><Package className="w-8 h-8 text-muted-foreground/30" /><p className="text-sm text-muted-foreground">Nenhum pacote vinculado</p><p className="text-xs text-muted-foreground/70">Pacotes aparecem aqui quando vinculados às cobranças deste cliente</p></CardContent></Card>
             ) : (
               <div className="space-y-2">
                 {pacotesContratados.map((p) => (
