@@ -167,7 +167,8 @@ export const useEntregaCovers = () => {
   return useQuery({
     queryKey: ["entrega-covers", userId],
     enabled: !!userId,
-    staleTime: 50 * 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { galleries, covers } = await StorageService.getCoverUrls();
       const map: Record<string, {
