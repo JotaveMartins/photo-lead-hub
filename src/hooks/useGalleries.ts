@@ -170,13 +170,21 @@ export const useEntregaCovers = () => {
     staleTime: 50 * 60 * 1000,
     queryFn: async () => {
       const { galleries, covers } = await StorageService.getCoverUrls();
-      const map: Record<string, { galleryId: string; coverUrl: string | null; mediaCount: number }> = {};
+      const map: Record<string, {
+        galleryId: string; coverUrl: string | null; mediaCount: number;
+        galleryType: "delivery" | "selection"; selectionLimit: number | null;
+        selectionCount: number; selectionFinalizedAt: string | null;
+      }> = {};
       for (const g of galleries) {
         if (!g.entrega_id) continue;
         map[g.entrega_id] = {
           galleryId: g.id,
           coverUrl: covers[g.id] ?? null,
           mediaCount: g.media_count ?? 0,
+          galleryType: g.gallery_type ?? "delivery",
+          selectionLimit: g.selection_limit ?? null,
+          selectionCount: g.selection_count ?? 0,
+          selectionFinalizedAt: g.selection_finalized_at ?? null,
         };
       }
       return map;

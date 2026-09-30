@@ -22,7 +22,8 @@ import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import SearchSelect from "@/components/SearchSelect";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { getSelectionStatus, selectionStatusMeta } from "@/lib/gallerySelection";
+import { getSelectionStatus, selectionStatusMeta, selectedFilenames } from "@/lib/gallerySelection";
+import { EmptyState } from "@/components/ui/empty-state";
 import DatePickerField from "@/components/DatePickerField";
 import { Textarea } from "@/components/ui/textarea";
 import { useClientes } from "@/hooks/useClientes";
@@ -73,6 +74,8 @@ const GaleriaDetailPage = () => {
     qc.invalidateQueries({ queryKey: ["gallery", id] });
     qc.invalidateQueries({ queryKey: ["gallery-media-urls", id] });
     qc.invalidateQueries({ queryKey: ["storage-usage"] });
+    qc.invalidateQueries({ queryKey: ["gallery-selections", id] });
+    qc.invalidateQueries({ queryKey: ["entrega-covers"] });
   };
 
 
@@ -105,7 +108,7 @@ const GaleriaDetailPage = () => {
   const [obs, setObs] = useState("");
   const [galleryType, setGalleryType] = useState<"delivery" | "selection">("delivery");
   const [selLimit, setSelLimit] = useState("");
-  const { data: selections } = useGallerySelections(id);
+  const { data: selections, isLoading: selLoading, isError: selError, refetch: refetchSel } = useGallerySelections(id);
   const selCount = selections?.count ?? 0;
   const [reopenOpen, setReopenOpen] = useState(false);
   const [reopening, setReopening] = useState(false);
@@ -176,6 +179,16 @@ const GaleriaDetailPage = () => {
   const selLocked = !!selFinalizedAt;
   const selStatus = selectionStatusMeta[getSelectionStatus(selFinalizedAt, selCount)];
 
+  const selectedMedia = selections ? media.filter((m) => selections.selectedIds.has(m.id)) : [];
+  const copyFilenames = async () => {
+    try {
+      await navigator.clipboard.writeText(selectedFilenames(media, selections?.selectedIds ?? new Set()));
+      toast.success("Nomes dos arquivos copiados");
+    } catch {
+      toast.error("Não foi possível copiar os nomes. Tente novamente.");
+    }
+  };
+
   const handleReopen = async () => {
     setReopening(true);
     const { error } = await supabase.rpc("reopen_gallery_selection" as any, { _gallery_id: gallery.id });
@@ -184,6 +197,8 @@ const GaleriaDetailPage = () => {
     setReopenOpen(false);
     toast.success("Seleção reaberta");
     refetch();
+    qc.invalidateQueries({ queryKey: ["gallery-selections", id] });
+    qc.invalidateQueries({ queryKey: ["entrega-covers"] });
   };
 
   const handleSaveSettings = async () => {
@@ -327,6 +342,7 @@ const GaleriaDetailPage = () => {
       <Tabs value={tab} onValueChange={setTab} className="space-y-5">
         <TabsList>
           <TabsTrigger value="fotos">Fotos</TabsTrigger>
+          {gallery.gallery_type === "selection" && <TabsTrigger value="selecionadas">Selecionadas</TabsTrigger>}
           <TabsTrigger value="favoritas">Favoritas</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
@@ -460,6 +476,63 @@ const GaleriaDetailPage = () => {
             </div>
           )}
         </TabsContent>
+
+        {gallery.gallery_type === "selection" && (
+          <TabsContent value="selecionadas" className="space-y-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <StatusBadge tone={selStatus.tone}>{selStatus.label}</StatusBadge>
+                {!selError && !selLoading && (
+                  <p className="text-sm text-muted-foreground">
+                    {selCount} de {gallery.selection_limit ?? "-"} selecionadas
+                    {selFinalizedAt && ` · Finalizada em ${new Date(selFinalizedAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} às ${new Date(selFinalizedAt).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedMedia.length > 0 && (
+                  <Button type="button" variant="outline" size="sm" className="min-h-10" onClick={copyFilenames}>Copiar nomes dos arquivos</Button>
+                )}
+                {selLocked && (
+                  <Button type="button" variant="outline" size="sm" className="min-h-10" onClick={() => setReopenOpen(true)}>Reabrir seleção</Button>
+                )}
+              </div>
+            </div>
+            {selLoading ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="aspect-square w-full" />)}
+              </div>
+            ) : selError ? (
+              <ErrorState title="Não foi possível carregar a seleção" onRetry={() => refetchSel()} />
+            ) : selectedMedia.length ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                {selectedMedia.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPreviewId(m.id)}
+                    className="relative aspect-square overflow-hidden rounded-lg border border-border bg-muted/40"
+                  >
+                    {mediaUrls?.[m.id]?.thumb ? (
+                      <img src={mediaUrls[m.id].thumb!} alt={m.filename} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Images className="h-5 w-5 text-muted-foreground/60" />
+                      </div>
+                    )}
+                    <span className="absolute inset-x-0 bottom-0 truncate bg-background/85 px-2 py-1 text-left text-[10px] text-foreground">{m.filename}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={Images}
+                title="Nenhuma foto selecionada"
+                description="Quando o cliente selecionar as fotos, elas aparecerão aqui."
+              />
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="favoritas" className="space-y-5">
           <p className="text-sm text-muted-foreground">
@@ -600,15 +673,7 @@ const GaleriaDetailPage = () => {
               {selLocked && (
                 <p className="text-xs text-muted-foreground">Reabra a seleção para alterar o tipo ou o limite.</p>
               )}
-              <ConfirmDialog
-                open={reopenOpen}
-                onOpenChange={setReopenOpen}
-                title="Reabrir seleção?"
-                description="O cliente poderá alterar novamente as fotos selecionadas. As escolhas atuais serão preservadas."
-                confirmLabel="Reabrir seleção"
-                loading={reopening}
-                onConfirm={handleReopen}
-              />
+
 
               <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
                 <div>
@@ -738,6 +803,16 @@ const GaleriaDetailPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+<ConfirmDialog
+                open={reopenOpen}
+                onOpenChange={setReopenOpen}
+                title="Reabrir seleção?"
+                description="O cliente poderá alterar novamente as fotos selecionadas. As escolhas atuais serão preservadas."
+                confirmLabel="Reabrir seleção"
+                loading={reopening}
+                onConfirm={handleReopen}
+              />
+
       <Dialog open={!!previewId} onOpenChange={(o) => !o && setPreviewId(null)}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>

@@ -19,3 +19,14 @@ export const canEditSelection = (opts: { finalizedAt?: string | null; preview?: 
 /** O cliente pode finalizar? */
 export const canFinalizeSelection = (opts: { finalizedAt?: string | null; preview?: boolean; count: number; limit: number | null | undefined }) =>
   canEditSelection(opts) && !!opts.limit && opts.count >= 1 && opts.count <= opts.limit;
+
+/** Linha curta para o card do Funil de Entregas. */
+export const selectionFunnelLabel = (finalizedAt: string | null | undefined, count: number, limit: number | null | undefined) => {
+  const status = getSelectionStatus(finalizedAt, count);
+  const prefix = status === "finalized" ? "Seleção finalizada" : status === "in_progress" ? "Seleção" : "Aguardando seleção";
+  return `${prefix} · ${count}/${limit ?? "-"}`;
+};
+
+/** Nomes dos arquivos selecionados, um por linha, na ordem da galeria. */
+export const selectedFilenames = (media: { id: string; filename: string }[], selectedIds: Set<string>) =>
+  media.filter((m) => selectedIds.has(m.id)).map((m) => m.filename).join("\n");
