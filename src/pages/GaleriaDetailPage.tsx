@@ -30,7 +30,7 @@ import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   useGallery, useGallerySections, useGalleryMedia, useUpdateGallery, useDeleteGallery,
-  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, useGalleryFavorites, formatBytes,
+  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, useGalleryFavorites, useGallerySelections, formatBytes,
 } from "@/hooks/useGalleries";
 import GalleryUploader from "@/components/galerias/GalleryUploader";
 import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
@@ -102,7 +102,7 @@ const GaleriaDetailPage = () => {
   const [obs, setObs] = useState("");
   const [galleryType, setGalleryType] = useState<"delivery" | "selection">("delivery");
   const [selLimit, setSelLimit] = useState("");
-  const { data: selections } = useGallerySelections(galleryId);
+  const { data: selections } = useGallerySelections(id);
   const selCount = selections?.count ?? 0;
 
   useEffect(() => {
