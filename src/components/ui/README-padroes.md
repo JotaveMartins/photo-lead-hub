@@ -16,6 +16,7 @@ Fonte de verdade para toda tela/feature nova. Telas antigas não precisam ser re
 | Seleção pesquisável | `@/components/SearchSelect` |
 | Seleção múltipla | `@/components/MultiSearchSelect` |
 | Cliente | `@/components/ClienteSearchSelect` |
+| Serviço em evento da Agenda | `ServiceInlineSelect` (em `AgendaPage`; especializado: busca + preço + "Novo serviço" inline) |
 | Serviço/Pacote em cobrança | `@/components/financeiro/CobrancaItemSelector` (especializado: grupos Serviço/Pacote, preço, criação rápida, item arquivado, remover vínculo) |
 | Data | `@/components/DatePickerField` |
 | Hora | `@/components/TimePickerField` |
