@@ -30,7 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { cn, normalizeText } from "@/lib/utils";
+import { cn, normalizeText, parseLocalDate } from "@/lib/utils";
 
 type FilterKey = "todos" | "proximos" | "passados";
 type SortDir = "asc" | "desc";
