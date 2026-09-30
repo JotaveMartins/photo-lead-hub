@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
@@ -66,8 +67,8 @@ export const useDespesas = (month?: Date) => {
         const start = new Date(month.getFullYear(), month.getMonth(), 1);
         const end = new Date(month.getFullYear(), month.getMonth() + 1, 0);
         query = query
-          .gte("data", start.toISOString().split("T")[0])
-          .lte("data", end.toISOString().split("T")[0]);
+          .gte("data", getLocalDateStr(start))
+          .lte("data", getLocalDateStr(end));
       }
 
       const { data, error } = await query;

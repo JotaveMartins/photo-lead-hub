@@ -40,7 +40,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   const createGallery = useCreateGallery();
 
   const [titulo, setTitulo] = useState("");
-  const [etapa, setEtapa] = useState<EntregaEtapa>("Ensaio Agendado");
+  const [etapa, setEtapa] = useState<EntregaEtapa>("Ensaio Realizado");
   const [clienteId, setClienteId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [dataEnsaio, setDataEnsaio] = useState("");
@@ -53,7 +53,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   useEffect(() => {
     if (!open) return;
     setTitulo(entrega?.titulo ?? "");
-    setEtapa((entrega?.etapa as EntregaEtapa) ?? "Ensaio Agendado");
+    setEtapa((entrega?.etapa as EntregaEtapa) ?? "Ensaio Realizado");
     setClienteId(entrega?.cliente_id ?? defaultClienteId ?? "");
     setServiceId(entrega?.service_id ?? "");
     setDataEnsaio(entrega?.data_ensaio ?? "");

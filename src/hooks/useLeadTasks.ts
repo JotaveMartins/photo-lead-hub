@@ -1,3 +1,4 @@
+import { getLocalDateStr as toLocalDateStr } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
@@ -6,9 +7,8 @@ import { toast } from "sonner";
 // Helper to get today's date string in local timezone (YYYY-MM-DD)
 const getLocalDateStr = (offsetDays = 0): string => {
   const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  if (offsetDays !== 0) now.setDate(now.getDate() + offsetDays);
-  return now.toISOString().slice(0, 10);
+  now.setDate(now.getDate() + offsetDays);
+  return toLocalDateStr(now);
 };
 
 export interface LeadTask {

@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +16,8 @@ const fmtPct = (v: number | null) => (v == null ? "—" : `${v.toFixed(2)}%`);
 
 export default function AnunciosPage() {
   const qc = useQueryClient();
-  const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const today = getLocalDateStr();
+  const monthAgo = getLocalDateStr(new Date(Date.now() - 30 * 86400000));
 
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);

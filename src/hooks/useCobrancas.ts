@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
@@ -59,8 +60,8 @@ export const useCobrancas = (month?: Date) => {
       if (month) {
         const start = new Date(month.getFullYear(), month.getMonth(), 1);
         const end = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-        const startStr = start.toISOString().split("T")[0];
-        const endStr = end.toISOString().split("T")[0];
+        const startStr = getLocalDateStr(start);
+        const endStr = getLocalDateStr(end);
         query = query.gte("vencimento", startStr).lte("vencimento", endStr);
       }
 

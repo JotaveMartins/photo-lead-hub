@@ -67,3 +67,11 @@ export function whatsappMatchKey(raw: string | null | undefined): string {
   }
   return d;
 }
+
+/** Data local do navegador no formato YYYY-MM-DD (para campos date-only; não usar em timestamps). */
+export function getLocalDateStr(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}

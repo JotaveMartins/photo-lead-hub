@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { DollarSign, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import type { Cobranca } from "@/hooks/useCobrancas";
 
@@ -7,7 +8,7 @@ interface CobrancaCardsProps {
 }
 
 const CobrancaCards = ({ cobrancas, allCobrancas }: CobrancaCardsProps) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateStr();
 
   const recebidas = allCobrancas
     .filter((c) => c.status === "paga")

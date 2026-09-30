@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -132,7 +133,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
         return {
           descricao: descricao.trim(),
           valor: i === parcelas - 1 ? Math.round((valorNum - valorParcela * (parcelas - 1)) * 100) / 100 : valorParcela,
-          data: parcelaDate.toISOString().split("T")[0],
+          data: getLocalDateStr(parcelaDate),
           categoria,
           forma_pagamento: formaPagamento,
           status: "prevista" as DespesaStatus,
