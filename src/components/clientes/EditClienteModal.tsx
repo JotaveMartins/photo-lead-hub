@@ -86,7 +86,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
             </div>
             <div>
               <Label>Origem</Label>
-              <SearchSelect options={origemOptions.map((o) => ({ value: o, label: o }))} value={origem} onChange={setOrigem} emptyLabel="Selecione..." />
+              <SearchSelect options={(origem && !origemOptions.includes(origem) ? [...origemOptions, origem] : origemOptions).map((o) => ({ value: o, label: o }))} value={origem} onChange={setOrigem} emptyLabel="Selecione..." />
             </div>
           </div>
           <div>
