@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Inbox as InboxIcon, Search, Send, UserPlus, User, MessageSquare, Bot,
+  Inbox as InboxIcon, Send, UserPlus, User, MessageSquare,
   Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
   MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon, RefreshCw,
 } from "lucide-react";
