@@ -397,7 +397,7 @@ const ClienteDetailPage = () => {
             ) : (
               <div className="space-y-2">
                 {servicosContratados.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/servicos")}>
+                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/catalogo?tab=servicos")}>
                     <div><p className="text-sm font-medium text-foreground">{s.nome}</p><p className="text-xs text-muted-foreground">{s.count > 0 ? `${s.count} ${s.count === 1 ? "evento" : "eventos"}` : "via cobrança"}</p></div>
                     <div className="text-right"><p className="text-sm font-bold text-foreground">{fmt(s.valor_base)}</p></div>
                   </div>
@@ -412,7 +412,7 @@ const ClienteDetailPage = () => {
             ) : (
               <div className="space-y-2">
                 {pacotesContratados.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/pacotes")}>
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/catalogo?tab=pacotes")}>
                     <div><p className="text-sm font-medium text-foreground">{p.nome}</p></div>
                     <div className="text-right">{p.preco_final && <p className="text-sm font-bold text-foreground">{fmt(p.preco_final)}</p>}</div>
                   </div>
