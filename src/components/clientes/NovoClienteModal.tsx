@@ -1,3 +1,4 @@
+import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
 import { useState, useEffect } from "react";
 import { formatPhone, formatCpfCnpj } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -52,6 +53,8 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
   const [origem, setOrigem] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [showCobrancaPrompt, setShowCobrancaPrompt] = useState(false);
+  const [lastClienteId, setLastClienteId] = useState<string | null>(null);
+  const [cobrancaOpen, setCobrancaOpen] = useState(false);
 
   // Pre-fill when initialData changes
   useEffect(() => {
@@ -97,7 +100,7 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
       onClienteCreated(result.id);
     } else {
       onClose();
-      if (!hideCobrancaPrompt) setShowCobrancaPrompt(true);
+      if (!hideCobrancaPrompt) { setLastClienteId((result as any)?.id ?? null); setShowCobrancaPrompt(true); }
     }
   };
 
@@ -173,10 +176,13 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Não</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate("/financeiro/cobrancas")}>Sim, criar cobrança</AlertDialogAction>
+            <AlertDialogAction onClick={() => setCobrancaOpen(true)}>Sim, criar cobrança</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {cobrancaOpen && lastClienteId && (
+        <NovaCobrancaModal open={cobrancaOpen} onOpenChange={setCobrancaOpen} type="unica" initialClienteId={lastClienteId} />
+      )}
     </>
   );
 };
