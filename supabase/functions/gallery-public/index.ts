@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     const { data: gallery } = await admin
       .from("galleries")
       .select(
-        "id, user_id, name, slug, status, event_date, expires_at, password_hash, cover_media_id, download_enabled, media_count, gallery_type, selection_limit",
+        "id, user_id, name, slug, status, event_date, expires_at, password_hash, cover_media_id, download_enabled, media_count, gallery_type, selection_limit, selection_finalized_at",
       )
       .eq("slug", slug)
       .is("deleted_at", null)
@@ -256,7 +256,20 @@ Deno.serve(async (req) => {
       });
       if (rErr) return json({ error: "Não foi possível salvar a seleção." }, 400);
       const res = r as any;
-      if (!res?.ok) return json({ error: res?.error ?? "Não foi possível salvar a seleção.", limit: !!res?.limit, count: res?.count }, res?.limit ? 409 : 400);
+      if (!res?.ok) return json({ error: res?.error ?? "Não foi possível salvar a seleção.", finalized: !!res?.finalized, limit: !!res?.limit, count: res?.count }, res?.limit ? 409 : 400);
+      return json(res);
+    }
+
+    if (action === "finalize-selection") {
+      if (gallery.status !== "published") return json({ error: "Galeria indisponível" }, 403);
+      if (gallery.expires_at && new Date(gallery.expires_at).getTime() < Date.now()) {
+        return json({ error: "Esta galeria não está mais disponível." }, 403);
+      }
+      if (gallery.gallery_type !== "selection") return json({ error: "Esta galeria não aceita seleção." }, 403);
+      const { data: r, error: rErr } = await admin.rpc("finalize_gallery_selection", { _gallery_id: gallery.id });
+      if (rErr) return json({ error: "Não foi possível finalizar a seleção." }, 400);
+      const res = r as any;
+      if (!res?.ok) return json({ error: res?.error ?? "Não foi possível finalizar a seleção." }, 400);
       return json(res);
     }
 
@@ -339,6 +352,7 @@ Deno.serve(async (req) => {
         download_enabled: gallery.download_enabled,
         gallery_type: gallery.gallery_type,
         selection_limit: gallery.selection_limit,
+        selection_finalized_at: gallery.selection_finalized_at,
         media_count: photos.length,
         cover_url: cover?.preview_url ?? null,
       },
