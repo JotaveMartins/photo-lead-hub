@@ -829,7 +829,7 @@ const InboxPage = () => {
                 <Button
                   variant="outline" size="sm"
                   className="w-full text-xs h-7 border-cyan-400/30 text-cyan-400 bg-cyan-400/5 hover:bg-cyan-400/10"
-                  onClick={() => navigate(`/leads?id=${selectedConv.lead_id}`)}
+                  onClick={() => navigate(`/leads?open=${selectedConv.lead_id}`)}
                 >
                   <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Abrir lead no Kanban
                 </Button>

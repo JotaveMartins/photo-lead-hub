@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { Pencil, Trash2, ExternalLink, Copy } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +38,7 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
 
   const clienteMap = Object.fromEntries(clientes.map((c) => [c.id, c]));
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateStr();
 
   const getEffectiveStatus = (c: Cobranca) => {
     if (c.status === "paga") return "paga";
@@ -71,7 +72,7 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
       await updateCobranca.mutateAsync({
         id: c.id,
         status: isPaga ? "aguardando" : "paga",
-        data_pagamento: isPaga ? null : new Date().toISOString().split("T")[0],
+        data_pagamento: isPaga ? null : getLocalDateStr(),
       } as any);
       toast.success(isPaga ? "Cobrança desmarcada como paga" : "Cobrança marcada como paga!");
     } catch {

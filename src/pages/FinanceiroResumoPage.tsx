@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Clock, CheckCircle, PieChart, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ const FinanceiroResumoPage = () => {
   const { data: allCobrancas = [] } = useAllCobrancas();
   const { data: despesas = [] } = useDespesas(currentMonth);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateStr();
 
   // Cobranças metrics
   const recebidas = cobrancas.filter((c) => c.status === "paga");

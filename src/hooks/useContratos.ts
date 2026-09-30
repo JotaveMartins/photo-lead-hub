@@ -176,21 +176,67 @@ export const useRestoreContrato = () => {
   });
 };
 
+const BUCKET = "contratos";
+
+/** Extrai o object path de contratos antigos que só têm URL pública. */
+export const getContratoPath = (c: Pick<Contrato, "arquivo_contrato_path" | "arquivo_contrato_url">): string | null => {
+  if (c.arquivo_contrato_path) return c.arquivo_contrato_path;
+  const m = c.arquivo_contrato_url?.match(/\/storage\/v1\/object\/(?:public|sign)\/contratos\/([^?]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+};
+
+export const getContratoFileKind = (path: string | null): "pdf" | "image" | "doc" | null => {
+  if (!path) return null;
+  const ext = path.split(".").pop()?.toLowerCase();
+  if (ext === "pdf") return "pdf";
+  if (ext && ["jpg", "jpeg", "png"].includes(ext)) return "image";
+  return "doc";
+};
+
+/** Signed URL temporária (15 min), nunca persistida. */
+export const useContratoSignedUrl = (path: string | null) =>
+  useQuery({
+    queryKey: ["contrato-signed-url", path],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path!, 900);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    enabled: !!path,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+const isNotFound = (err: any) =>
+  err?.statusCode === "404" || err?.status === 404 || /not.?found/i.test(err?.message ?? "");
+
 export const usePermanentDeleteContrato = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { data: row, error: fetchError } = await supabase
         .from("contratos")
-        .delete()
-        .eq("id", id);
+        .select("arquivo_contrato_path, arquivo_contrato_url")
+        .eq("id", id)
+        .single();
+      if (fetchError) throw fetchError;
 
+      const path = getContratoPath(row);
+      if (path) {
+        const { error: rmError } = await supabase.storage.from(BUCKET).remove([path]);
+        if (rmError && !isNotFound(rmError)) throw rmError;
+      }
+
+      const { error } = await supabase.from("contratos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contratos-deleted"] });
       toast.success("Contrato excluído permanentemente.");
+    },
+    onError: () => {
+      toast.error("Não foi possível remover o arquivo. O contrato não foi excluído.");
     },
   });
 };
@@ -203,35 +249,42 @@ export const useUploadContratoFile = () => {
     mutationFn: async ({ contratoId, file }: { contratoId: string; file: File }) => {
       if (!effectiveUserId) throw new Error("Usuário não autenticado");
 
-      const ext = file.name.split(".").pop();
+      const { data: current } = await supabase
+        .from("contratos")
+        .select("arquivo_contrato_path, arquivo_contrato_url")
+        .eq("id", contratoId)
+        .single();
+      const oldPath = current ? getContratoPath(current) : null;
+
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
       const path = `${effectiveUserId}/${contratoId}/contrato.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("contratos")
+        .from(BUCKET)
         .upload(path, file, { upsert: true });
-
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("contratos")
-        .getPublicUrl(path);
 
       const { data, error: updateError } = await supabase
         .from("contratos")
-        .update({
-          arquivo_contrato_url: urlData.publicUrl,
-          status: "contrato_enviado",
-        })
+        .update({ arquivo_contrato_path: path, arquivo_contrato_url: null, status: "contrato_enviado" })
         .eq("id", contratoId)
         .select()
         .single();
-
       if (updateError) throw updateError;
+
+      if (oldPath && oldPath !== path) {
+        const { error: rmError } = await supabase.storage.from(BUCKET).remove([oldPath]);
+        if (rmError && !isNotFound(rmError)) {
+          console.error("Falha ao remover arquivo anterior do contrato:", rmError);
+          toast.warning("Novo arquivo salvo, mas o arquivo anterior não pôde ser removido.");
+        }
+      }
       return data as Contrato;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contratos"] });
       queryClient.invalidateQueries({ queryKey: ["contratos-cliente"] });
+      queryClient.invalidateQueries({ queryKey: ["contrato-signed-url"] });
       toast.success("Contrato anexado! Card movido para Contrato Enviado.");
     },
     onError: () => {

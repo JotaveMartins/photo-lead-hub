@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { useState, useMemo, useRef, useEffect } from "react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,9 +57,13 @@ interface NovaCobrancaModalProps {
   lockOutsideClose?: boolean;
   headerExtra?: React.ReactNode;
   footerExtra?: React.ReactNode;
+  /** Chamado somente após a cobrança ser criada com sucesso. */
+  onCreated?: () => void;
+  /** Chamado quando o usuário cancela/fecha sem criar. */
+  onCancel?: () => void;
 }
 
-const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initialValor, lockOutsideClose, headerExtra, footerExtra }: NovaCobrancaModalProps) => {
+const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initialValor, lockOutsideClose, headerExtra, footerExtra, onCreated, onCancel }: NovaCobrancaModalProps) => {
   const effectiveUserId = useEffectiveUserId();
   const createCobranca = useCreateCobranca();
   const createBatch = useCreateCobrancasBatch();
@@ -228,7 +233,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             valor: vp,
             forma_pagamento: formaPagamento,
             status: "aguardando",
-            vencimento: dueDate.toISOString().split("T")[0],
+            vencimento: getLocalDateStr(dueDate),
             parcela_numero: i + 1,
             parcela_total: n,
             cliente_id: clienteId || null,
@@ -274,7 +279,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             valor: vp,
             forma_pagamento: formaPagamento,
             status: "aguardando",
-            vencimento: dueDate.toISOString().split("T")[0],
+            vencimento: getLocalDateStr(dueDate),
             parcela_numero: i + 1,
             parcela_total: n,
             cliente_id: clienteId || null,
@@ -285,6 +290,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
       }
       onOpenChange(false);
       resetForm();
+      onCreated?.();
     } catch (err: any) {
       console.error("Erro ao criar cobrança:", err);
       const msg = err?.message || err?.error_description || err?.details || String(err);
@@ -307,7 +313,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && lockOutsideClose) return; onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && lockOutsideClose) return; if (!v) onCancel?.(); onOpenChange(v); }}>
       <DialogContent
         className="w-[calc(100vw-1.5rem)] max-w-lg bg-card border-border max-h-[90dvh] overflow-y-auto p-4 sm:p-6"
         onPointerDownOutside={(e) => { if (lockOutsideClose) e.preventDefault(); }}
@@ -537,7 +543,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
             {footerExtra}
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={() => { onCancel?.(); onOpenChange(false); }} disabled={isPending}>
               Cancelar
             </Button>
             <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={isPending}>

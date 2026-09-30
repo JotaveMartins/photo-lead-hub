@@ -1,3 +1,4 @@
+import { getLocalDateStr } from "@/lib/utils";
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const refreshDemoData = async (userId: string, accessToken: string) => {
       if (userId !== DEMO_USER_ID) return;
       const lastRefresh = sessionStorage.getItem("demo_refresh");
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getLocalDateStr();
       if (lastRefresh === todayStr) return;
       
       try {

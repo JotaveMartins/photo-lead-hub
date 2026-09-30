@@ -89,7 +89,7 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
 
   const goToConfirmacao = () => setStep("confirmacao");
 
-  const handleCobrancaClosed = () => {
+  const handleCobrancaCreated = () => {
     setCobrancaWasCreated(true);
     goToEvento();
   };
@@ -112,7 +112,7 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
     try {
       await createEntrega.mutateAsync({
         titulo: eventoTitulo.trim() || lead?.nome || "Entrega",
-        etapa: "Ensaio Agendado",
+        etapa: "Ensaio Realizado",
         cliente_id: createdClienteId || null,
         lead_id: lead?.id || null,
         event_id: novoEvento?.id || null,
@@ -250,7 +250,9 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
       {step === "cobranca" && (
         <NovaCobrancaModal
           open={true}
-          onOpenChange={(v) => { if (!v) handleCobrancaClosed(); }}
+          onOpenChange={() => {}}
+          onCreated={handleCobrancaCreated}
+          onCancel={() => setStep("tipo")}
           type={cobrancaType}
           initialClienteId={createdClienteId || undefined}
           initialValor={lead.valor || undefined}
