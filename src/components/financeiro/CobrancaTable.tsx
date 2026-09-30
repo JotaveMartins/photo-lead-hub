@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { getLocalDateStr } from "@/lib/utils";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Pencil, Trash2, ExternalLink, Copy } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
@@ -16,11 +19,6 @@ const PAYMENT_LABELS: Record<string, string> = {
   dinheiro: "Dinheiro",
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  aguardando: "bg-[hsl(var(--status-warning))]/20 text-[hsl(var(--status-warning))]",
-  paga: "bg-[hsl(var(--status-success))]/20 text-[hsl(var(--status-success))]",
-  vencida: "bg-destructive/20 text-destructive",
-};
 
 interface CobrancaTableProps {
   cobrancas: Cobranca[];
@@ -212,6 +210,15 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        open={!!archiveId}
+        onOpenChange={(v) => !v && setArchiveId(null)}
+        title="Arquivar cobrança"
+        description="A cobrança será movida para a lixeira e poderá ser restaurada depois."
+        confirmLabel="Arquivar"
+        loading={deleteCobranca.isPending}
+        onConfirm={confirmArchive}
+      />
     </div>
   );
 };
