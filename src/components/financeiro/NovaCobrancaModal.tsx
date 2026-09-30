@@ -1,5 +1,5 @@
 import { getLocalDateStr } from "@/lib/utils";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,10 @@ import { parseLocalDate } from "@/lib/utils";
 import { useCreateCobranca, useCreateCobrancasBatch } from "@/hooks/useCobrancas";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useClientes } from "@/hooks/useClientes";
-import { useServices } from "@/hooks/useServices";
-import { usePackages } from "@/hooks/usePackages";
 import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import { useIntegrationSettings, useAsaasCreateCharge } from "@/hooks/useIntegrationSettings";
 import { toast } from "sonner";
-import ServiceModal from "@/components/ServiceModal";
-import PackageModal from "@/components/PackageModal";
-import { Plus, Zap, Copy, ExternalLink } from "lucide-react";
+import { Zap, Copy, ExternalLink } from "lucide-react";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 import CobrancaItemSelector from "./CobrancaItemSelector";
 
@@ -244,8 +240,6 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             cliente_id: clienteId || null,
             service_id: serviceId,
             package_id: packageId,
-          service_id: serviceId,
-          package_id: packageId,
           } as any);
         }
         const batchResult = await createBatch.mutateAsync(items);
@@ -296,8 +290,6 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             cliente_id: clienteId || null,
             service_id: serviceId,
             package_id: packageId,
-          service_id: serviceId,
-          package_id: packageId,
           } as any);
         }
         const batchResult2 = await createBatch.mutateAsync(items);
