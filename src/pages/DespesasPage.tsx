@@ -200,7 +200,7 @@ const DespesasPage = () => {
             placeholder="Buscar por descrição, categoria..."
             className="bg-muted border-border h-9"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="icon" className="h-10 w-10" onClick={prevMonth} aria-label="Mês anterior" title="Mês anterior"><ChevronLeft className="w-4 h-4" /></Button>
             <span className="text-sm font-medium text-foreground min-w-[140px] text-center uppercase">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</span>
             <Button variant="ghost" size="icon" className="h-10 w-10" onClick={nextMonth} aria-label="Próximo mês" title="Próximo mês"><ChevronRight className="w-4 h-4" /></Button>
@@ -209,7 +209,7 @@ const DespesasPage = () => {
         </div>
 
         {/* Dropdown filters */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter className="w-3.5 h-3.5" />Filtros:</div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[130px] h-8 text-xs bg-muted border-border">
@@ -315,7 +315,7 @@ const DespesasPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-border">
