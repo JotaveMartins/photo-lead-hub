@@ -1,15 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Instagram, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Instagram } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { StudioPhoto } from "@/hooks/useStudio";
 import { EditorSlide } from "@/lib/carouselSchema";
-import {
-  renderSlideToBlob,
-  PREVIEW_W,
-  PREVIEW_H,
-  PREVIEW_QUALITY,
-} from "@/lib/carouselExport";
 import { InstagramAccount } from "@/hooks/useSocial";
+import CarouselSlide from "./CarouselSlide";
 
 interface PostPreviewModalProps {
   open: boolean;
@@ -31,9 +26,7 @@ const PostPreviewModal = ({
   account,
 }: PostPreviewModalProps) => {
   const [index, setIndex] = useState(0);
-  const [rendered, setRendered] = useState<Record<number, string>>({});
   const [expanded, setExpanded] = useState(false);
-  const urlsRef = useRef<string[]>([]);
   const dragX = useRef<number | null>(null);
   const wheelLock = useRef(0);
 
@@ -42,67 +35,31 @@ const PostPreviewModal = ({
     [slides, photos],
   );
 
-  const urlById = useMemo(() => {
-    const map: Record<string, string> = {};
-    photos.forEach((p) => (map[p.id] = p.thumbUrl ?? p.url));
+  const photosById = useMemo(() => {
+    const map: Record<string, StudioPhoto> = {};
+    photos.forEach((photo) => (map[photo.id] = photo));
     return map;
   }, [photos]);
 
-  // Reseta ao abrir para refletir sempre o estado atual do carrossel.
   useEffect(() => {
     if (!open) return;
     setIndex(0);
     setExpanded(false);
-    setRendered({});
-    urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-    urlsRef.current = [];
   }, [open, slides, caption, photos]);
 
-  const renderAt = useCallback(
-    async (i: number) => {
-      const slide = usable[i];
-      if (!slide) return;
-      const blob = await renderSlideToBlob(slide, urlById, {
-        width: PREVIEW_W,
-        height: PREVIEW_H,
-        quality: PREVIEW_QUALITY,
-      });
-      const url = URL.createObjectURL(blob);
-      urlsRef.current.push(url);
-      setRendered((prev) => (prev[i] ? prev : { ...prev, [i]: url }));
-    },
-    [usable, urlById],
-  );
-
-  // Prioriza slide atual, anterior e próximo; o restante carrega progressivamente.
+  // Pré-carrega somente os vizinhos com as miniaturas leves, como nas Entregas.
   useEffect(() => {
     if (!open || !usable.length) return;
-    let cancelled = false;
-    const run = async () => {
-      const priority = [index, index + 1, index - 1].filter(
-        (i) => i >= 0 && i < usable.length,
-      );
-      const rest = usable.map((_, i) => i).filter((i) => !priority.includes(i));
-      for (const i of [...priority, ...rest]) {
-        if (cancelled) return;
-        if (rendered[i]) continue;
-        await renderAt(i);
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, index, usable.length, renderAt]);
-
-  useEffect(
-    () => () => {
-      urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-      urlsRef.current = [];
-    },
-    [],
-  );
+    [index - 1, index + 1]
+      .filter((i) => i >= 0 && i < usable.length)
+      .flatMap((i) => usable[i].photoIds)
+      .forEach((id) => {
+        const photo = photosById[id];
+        if (!photo) return;
+        const image = new Image();
+        image.src = photo.thumbUrl ?? photo.url;
+      });
+  }, [open, index, usable, photosById]);
 
   const go = (dir: number) =>
     setIndex((i) => Math.min(usable.length - 1, Math.max(0, i + dir)));
@@ -118,7 +75,7 @@ const PostPreviewModal = ({
   }, [open, usable.length]);
 
   const username = account?.username ? `@${account.username}` : "@sua_conta";
-  const current = rendered[index];
+  const current = usable[index];
 
   const dots = useMemo(() => {
     const total = usable.length;
@@ -130,7 +87,7 @@ const PostPreviewModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[min(100vw-1.5rem,430px)] gap-0 overflow-hidden rounded-2xl border-border/60 bg-card p-0">
+      <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[430px] flex-col gap-0 overflow-hidden rounded-2xl border-border/60 bg-card p-0">
         <DialogTitle className="sr-only">Pré-visualização da publicação</DialogTitle>
 
         {/* Cabeçalho */}
@@ -178,17 +135,13 @@ const PostPreviewModal = ({
             dragX.current = null;
           }}
         >
-          {current ? (
-            <img
-              src={current}
-              alt={`Slide ${index + 1}`}
-              draggable={false}
-              className="h-full w-full object-cover"
+          {current && (
+            <CarouselSlide
+              layout={current.layout}
+              photoIds={current.photoIds}
+              focus={current.focus}
+              photosById={photosById}
             />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
           )}
 
           {usable.length > 1 && (

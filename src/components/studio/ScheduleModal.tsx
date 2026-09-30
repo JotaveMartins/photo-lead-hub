@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -64,14 +65,17 @@ const ScheduleModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-md flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-12">
           <DialogTitle className="flex items-center gap-2">
             <CalendarClock className="h-4 w-4" /> Publicar no Instagram
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Revise o conteúdo e escolha quando publicar no Instagram.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-5 py-4">
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-pink-500/10">
               {account?.profile_picture_url ? (
@@ -92,9 +96,9 @@ const ScheduleModal = ({
 
           <div className="space-y-1.5">
             <p className="text-xs font-semibold text-foreground">Imagem</p>
-            <div className="flex gap-1.5 overflow-x-auto">
+            <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1">
               {imageUrls.map((u, i) => (
-                <img key={i} src={u} alt={`Imagem ${i + 1}`} className="h-16 w-14 shrink-0 rounded-md border border-border object-cover" />
+                <img key={i} src={u} alt={`Imagem ${i + 1}`} loading="lazy" decoding="async" className="h-16 w-14 shrink-0 rounded-md border border-border object-cover" />
               ))}
               {!imageUrls.length && <p className="text-xs text-muted-foreground">Nenhuma imagem</p>}
             </div>
@@ -118,12 +122,12 @@ const ScheduleModal = ({
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="min-w-0 space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Data</label>
-              <DatePickerField value={date} onChange={setDate} disabled={busy} />
+              <DatePickerField value={date} onChange={setDate} disabled={busy} className="min-w-0" />
             </div>
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Horário</label>
               <TimePickerField value={time} onChange={setTime} disabled={busy} />
             </div>
@@ -134,7 +138,7 @@ const ScheduleModal = ({
           </p>
         </div>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-background px-5 py-4 sm:justify-between">
           <Button
             variant="outline"
             disabled={busy || !connected}
