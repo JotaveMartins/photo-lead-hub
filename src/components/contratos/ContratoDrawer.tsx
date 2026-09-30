@@ -16,7 +16,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils";
-import { useUpdateContrato, useUploadContratoFile, type Contrato } from "@/hooks/useContratos";
+import { useUpdateContrato, useUploadContratoFile, useContratoSignedUrl, getContratoPath, getContratoFileKind, type Contrato } from "@/hooks/useContratos";
 import { toast } from "sonner";
 
 interface Props {
@@ -81,6 +81,9 @@ const ContratoDrawer = ({ contrato, open, onClose }: Props) => {
 
   const updateContrato = useUpdateContrato();
   const uploadFile = useUploadContratoFile();
+  const filePath = contrato ? getContratoPath(contrato) : null;
+  const fileKind = getContratoFileKind(filePath);
+  const { data: signedUrl, isLoading: signedLoading } = useContratoSignedUrl(open ? filePath : null);
 
   const handleOpenEdit = () => {
     if (!contrato) return;
@@ -141,7 +144,6 @@ const ContratoDrawer = ({ contrato, open, onClose }: Props) => {
   if (!contrato) return null;
 
   const badge = STATUS_BADGE[contrato.status] ?? STATUS_BADGE.aguardando_contrato;
-  const isPdf = contrato.arquivo_contrato_url?.toLowerCase().includes(".pdf");
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) { handleCancelEdit(); onClose(); } }}>
@@ -280,26 +282,38 @@ const ContratoDrawer = ({ contrato, open, onClose }: Props) => {
 
           {/* File / contract */}
           <Section title="Arquivo do Contrato" icon={<FileText className="w-4 h-4" />}>
-            {contrato.arquivo_contrato_url ? (
+            {filePath ? (
               <div className="space-y-3">
-                {isPdf ? (
+                {!signedUrl ? (
+                  <div className="flex items-center justify-center rounded-lg border border-border py-8 text-xs text-muted-foreground">
+                    {signedLoading ? "Carregando arquivo..." : "Não foi possível carregar o arquivo."}
+                  </div>
+                ) : fileKind === "pdf" ? (
                   <iframe
-                    src={contrato.arquivo_contrato_url}
+                    src={signedUrl}
                     className="w-full rounded-lg border border-border"
                     style={{ height: 320 }}
                     title="Contrato"
                   />
-                ) : (
+                ) : fileKind === "image" ? (
                   <img
-                    src={contrato.arquivo_contrato_url}
+                    src={signedUrl}
                     alt="Contrato"
                     className="w-full max-h-72 object-contain rounded-lg border border-border cursor-pointer"
-                    onClick={() => window.open(contrato.arquivo_contrato_url!, "_blank")}
+                    onClick={() => window.open(signedUrl, "_blank")}
                   />
+                ) : (
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+                    <FileText className="w-8 h-8 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-foreground truncate">{filePath.split("/").pop()}</p>
+                      <p className="text-xs text-muted-foreground">Documento anexado</p>
+                    </div>
+                  </div>
                 )}
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => window.open(contrato.arquivo_contrato_url!, "_blank")}>
-                    <ExternalLink className="w-3 h-3" /> Abrir em nova aba
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={!signedUrl} onClick={() => signedUrl && window.open(signedUrl, "_blank", "noopener")}>
+                    <ExternalLink className="w-3 h-3" /> {fileKind === "doc" ? "Abrir/baixar arquivo" : "Abrir em nova aba"}
                   </Button>
                   <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={handleFileChange} />
                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => fileRef.current?.click()} disabled={uploadFile.isPending}>
