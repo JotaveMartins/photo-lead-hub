@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { formatPhone, formatCpfCnpj } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import SearchSelect from "@/components/SearchSelect";
+import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -137,16 +139,7 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
               </div>
               <div>
                 <Label>Origem</Label>
-                <select
-                  value={origem}
-                  onChange={(e) => setOrigem(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="">Selecione...</option>
-                  {origemOptions.map((o) => (
-                    <option key={o} value={o}>{o}</option>
-                  ))}
-                </select>
+                <SearchSelect options={origemOptions.map((o) => ({ value: o, label: o }))} value={origem} onChange={setOrigem} emptyLabel="Selecione..." />
               </div>
             </div>
             <div>
@@ -157,13 +150,7 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
               <Label>Observações</Label>
               <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Notas sobre o cliente..." rows={3} />
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              {footerExtra}
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" disabled={createCliente.isPending}>
-                {createCliente.isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </div>
+            <FormActions onCancel={onClose} loading={createCliente.isPending} submitLabel="Criar Cliente" loadingLabel="Criando..." extra={footerExtra} />
           </form>
         </DialogContent>
       </Dialog>

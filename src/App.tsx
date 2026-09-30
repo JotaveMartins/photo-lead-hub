@@ -1,4 +1,3 @@
- import { Toaster } from "@/components/ui/toaster";
  import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
 import IntegracoesPage from "./pages/IntegracoesPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -159,7 +158,6 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
       <Sonner />
       <BrowserRouter>
         <AuthProvider>

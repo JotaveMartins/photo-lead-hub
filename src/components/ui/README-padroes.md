@@ -16,11 +16,13 @@ Fonte de verdade para toda tela/feature nova. Telas antigas não precisam ser re
 | Seleção pesquisável | `@/components/SearchSelect` |
 | Seleção múltipla | `@/components/MultiSearchSelect` |
 | Cliente | `@/components/ClienteSearchSelect` |
+| Serviço/Pacote em cobrança | `@/components/financeiro/CobrancaItemSelector` (especializado: grupos Serviço/Pacote, preço, criação rápida, item arquivado, remover vínculo) |
 | Data | `@/components/DatePickerField` |
 | Hora | `@/components/TimePickerField` |
 | Formulário simples | `@/components/ui/dialog` |
 | Detalhes / formulário extenso | `@/components/ui/sheet` |
 | Confirmação destrutiva | `@/components/ui/alert-dialog` |
+| Confirmação simples (arquivar/excluir) | `@/components/ui/confirm-dialog` (`ConfirmDialog`) |
 | Status | `@/components/ui/status-badge` (`StatusBadge`) |
 | Estado vazio | `@/components/ui/empty-state` (`EmptyState`) |
 | Rodapé de formulário | `@/components/ui/form-actions` (`FormActions`) |
@@ -90,6 +92,7 @@ Labels acima dos campos (`Label` + campo em `space-y-2`). Obrigatórios com ` *`
 ```tsx
 <FormActions onCancel={onClose} loading={mutation.isPending} submitLabel="Criar" />
 ```
+Conteúdo extra no rodapé (ex.: fluxo Lead Ganho): prop `extra`.
 
 ## 14. Mobile
 Header empilha; CTA principal sempre visível; tabelas viram cards ou rolam horizontalmente; área de toque mínima 40px (`h-10`); modais com `max-h` e rolagem interna.

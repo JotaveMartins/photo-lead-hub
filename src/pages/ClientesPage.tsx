@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { UserPlus, Bell, Trash2, RotateCcw, Trash } from "lucide-react";
 import { useClientes, useDeleteCliente, useDeletedClientes, useRestoreCliente, usePermanentDeleteCliente, type Cliente } from "@/hooks/useClientes";
@@ -31,23 +33,19 @@ const ClientesPage = () => {
   const permanentDeleteCliente = usePermanentDeleteCliente();
   const { data: clienteTasksToday = [] } = useTodayClienteTasks();
 
-  const handleDelete = (id: string) => {
-    if (confirm("Arquivar este cliente? Ele poderá ser restaurado depois.")) {
-      deleteCliente.mutate(id);
-    }
-  };
+  const [archiveId, setArchiveId] = useState<string | null>(null);
+  const handleDelete = (id: string) => setArchiveId(id);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Clientes</h1>
-          <p className="text-muted-foreground text-sm">Gerencie seus clientes cadastrados</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Clientes"
+        description="Gerencie seus clientes cadastrados"
+        secondaryActions={
+          <>
           <Popover open={bellOpen} onOpenChange={setBellOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative h-10 w-10" aria-label="Tarefas de clientes" title="Tarefas de clientes">
                 <Bell className="w-5 h-5" />
                 {clienteTasksToday.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] font-bold flex items-center justify-center">
@@ -79,8 +77,8 @@ const ClientesPage = () => {
               </div>
             </PopoverContent>
           </Popover>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowArchived((v) => !v)}>
-            <Trash2 className="w-3.5 h-3.5" />
+          <Button variant="outline" className="gap-1.5" onClick={() => setShowArchived((v) => !v)}>
+            <Trash2 className="w-4 h-4" />
             Arquivados
             {deletedClientes.length > 0 && (
               <span className="ml-0.5 bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px]">
@@ -88,12 +86,25 @@ const ClientesPage = () => {
               </span>
             )}
           </Button>
+          </>
+        }
+        action={
           <Button onClick={() => setNovoOpen(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Novo Cliente
           </Button>
-        </div>
-      </div>
+        }
+      />
+
+      <ConfirmDialog
+        open={!!archiveId}
+        onOpenChange={(v) => !v && setArchiveId(null)}
+        title="Arquivar Cliente"
+        description="O cliente será movido para Arquivados e poderá ser restaurado depois."
+        confirmLabel="Arquivar"
+        loading={deleteCliente.isPending}
+        onConfirm={() => { if (archiveId) deleteCliente.mutate(archiveId); setArchiveId(null); }}
+      />
 
       <ClienteCards clientes={clientes} />
 
@@ -133,7 +144,7 @@ const ClientesPage = () => {
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => restoreCliente.mutate(c.id)}>
                       <RotateCcw className="w-3 h-3" /> Restaurar
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" title="Excluir permanentemente" onClick={() => setPermDeleteTarget(c)}>
+                    <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive" title="Excluir permanentemente" aria-label="Excluir permanentemente" onClick={() => setPermDeleteTarget(c)}>
                       <Trash className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -161,10 +172,10 @@ const ClientesPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "destructive" })}
               onClick={() => { if (permDeleteTarget) { permanentDeleteCliente.mutate(permDeleteTarget.id); setPermDeleteTarget(null); } }}
             >
-              Excluir
+              Excluir permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

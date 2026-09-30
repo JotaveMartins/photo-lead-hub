@@ -8,6 +8,8 @@ import NovoContratoDialog from "@/components/contratos/NovoContratoDialog";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { Button } from "@/components/ui/button";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Pencil, Trash2, Phone, Mail, MapPin, FileText, DollarSign, User, Receipt, Calendar, Package, Wrench, TrendingDown, BarChart3, CheckSquare, Plus, Circle, Hourglass, Send, CheckCircle2, Eye } from "lucide-react";
@@ -154,11 +156,11 @@ const ClienteDetailPage = () => {
 
   const handleDelete = async () => {
     if (!id) return;
-    if (confirm("Arquivar este cliente? Ele poderá ser restaurado em Clientes > Arquivados.")) {
-      await deleteCliente.mutateAsync(id);
-      navigate("/clientes");
-    }
+    await deleteCliente.mutateAsync(id);
+    setArchiveOpen(false);
+    navigate("/clientes");
   };
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-20"><div className="animate-pulse text-muted-foreground">Carregando...</div></div>;
@@ -194,12 +196,11 @@ const ClienteDetailPage = () => {
             <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => setEditOpen(true)}>
               <Pencil className="w-4 h-4 mr-1" />Editar
             </Button>
-            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 h-8 w-8" onClick={handleDelete}>
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 h-10 w-10" onClick={() => setArchiveOpen(true)} aria-label="Arquivar cliente" title="Arquivar cliente">
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
-        <div className="mb-1"><span className="inline-block px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold bg-green-500/20 text-green-300">ATIVO</span></div>
         <h1 className="text-xl sm:text-2xl font-bold mb-1 break-words">{cliente.nome}</h1>
         {cliente.whatsapp && <p className="flex items-center gap-2 text-xs sm:text-sm text-primary-foreground/70"><Phone className="w-3.5 h-3.5" />{cliente.whatsapp}</p>}
 
@@ -272,10 +273,10 @@ const ClienteDetailPage = () => {
             <div className="space-y-2">
               {contratos.map((c) => {
                 const statusInfo = {
-                  aguardando_contrato: { icon: <Hourglass className="w-3.5 h-3.5" />, label: "Aguardando", cls: "text-yellow-500" },
-                  contrato_enviado: { icon: <Send className="w-3.5 h-3.5" />, label: "Enviado", cls: "text-blue-500" },
-                  contrato_assinado: { icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Assinado", cls: "text-emerald-500" },
-                }[c.status as string] ?? { icon: null, label: c.status, cls: "text-muted-foreground" };
+                  aguardando_contrato: { icon: <Hourglass className="w-3.5 h-3.5" />, label: "Aguardando Contrato", tone: "warning" },
+                  contrato_enviado: { icon: <Send className="w-3.5 h-3.5" />, label: "Contrato Enviado", tone: "info" },
+                  contrato_assinado: { icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Contrato Assinado", tone: "success" },
+                }[c.status as string] ?? { icon: null, label: c.status, tone: "neutral" };
                 return (
                   <div key={c.id} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/40 transition-colors">
                     <div className="min-w-0">
@@ -288,9 +289,9 @@ const ClienteDetailPage = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <span className={`flex items-center gap-1 text-[11px] font-medium ${statusInfo.cls}`}>
+                      <StatusBadge tone={statusInfo.tone as StatusTone}>
                         {statusInfo.icon} {statusInfo.label}
-                      </span>
+                      </StatusBadge>
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setViewContrato(c)}>
                         <Eye className="w-3 h-3" /> Ver
                       </Button>
@@ -306,7 +307,7 @@ const ClienteDetailPage = () => {
         <TabsContent value="cobrancas" className="mt-4">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <Card className="bg-card border-border"><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase mb-1">TOTAL</p><p className="text-xl font-bold text-foreground">{fmt(totalCobrancas)}</p></CardContent></Card>
-            <Card className="bg-green-500/5 border-green-500/20"><CardContent className="p-4"><p className="text-xs text-green-600 uppercase mb-1">RECEBIDO</p><p className="text-xl font-bold text-green-600">{fmt(totalRecebido)}</p></CardContent></Card>
+            <Card className="bg-status-success/5 border-status-success/20"><CardContent className="p-4"><p className="text-xs text-status-success uppercase mb-1">RECEBIDO</p><p className="text-xl font-bold text-status-success">{fmt(totalRecebido)}</p></CardContent></Card>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 mb-6">
             <Button className="sm:flex-1 gap-1" onClick={() => setNovaCobrancaOpen(true)}><Plus className="w-4 h-4" /> Nova Cobrança</Button>
@@ -330,9 +331,9 @@ const ClienteDetailPage = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-foreground">{fmt(cob.valor)}</p>
-                    <span className={`text-xs font-medium ${cob.status === "paga" ? "text-green-500" : cob.status === "vencida" ? "text-destructive" : "text-yellow-500"}`}>
+                    <StatusBadge tone={cob.status === "paga" ? "success" : cob.status === "vencida" ? "danger" : "warning"}>
                       {cob.status === "paga" ? "Paga" : cob.status === "vencida" ? "Vencida" : "Aguardando"}
-                    </span>
+                    </StatusBadge>
                   </div>
                 </div>
               ))}
@@ -377,9 +378,9 @@ const ClienteDetailPage = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-foreground">{fmt(Number(d.valor))}</p>
-                    <span className={`text-xs font-medium ${d.status === "paga" ? "text-green-500" : "text-yellow-500"}`}>
+                    <StatusBadge tone={d.status === "paga" ? "success" : "warning"}>
                       {d.status === "paga" ? "Paga" : "Prevista"}
-                    </span>
+                    </StatusBadge>
                   </div>
                 </div>
               ))}
@@ -560,16 +561,16 @@ const ClienteDetailPage = () => {
                 <p className="text-xs text-muted-foreground">{cobrancas.length} cobranças</p>
               </CardContent>
             </Card>
-            <Card className="bg-green-500/5 border-green-500/20">
+            <Card className="bg-status-success/5 border-status-success/20">
               <CardContent className="p-4">
-                <p className="text-xs text-green-600 uppercase mb-1">VALOR RECEBIDO</p>
-                <p className="text-xl font-bold text-green-600">{fmt(totalRecebido)}</p>
+                <p className="text-xs text-status-success uppercase mb-1">VALOR RECEBIDO</p>
+                <p className="text-xl font-bold text-status-success">{fmt(totalRecebido)}</p>
               </CardContent>
             </Card>
-            <Card className="bg-yellow-500/5 border-yellow-500/20">
+            <Card className="bg-status-warning/5 border-status-warning/20">
               <CardContent className="p-4">
-                <p className="text-xs text-yellow-600 uppercase mb-1">A RECEBER</p>
-                <p className="text-xl font-bold text-yellow-600">{fmt(totalPendente)}</p>
+                <p className="text-xs text-status-warning uppercase mb-1">A RECEBER</p>
+                <p className="text-xl font-bold text-status-warning">{fmt(totalPendente)}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
@@ -586,10 +587,10 @@ const ClienteDetailPage = () => {
                 <p className="text-xs text-muted-foreground">{despesas.length} lançamentos</p>
               </CardContent>
             </Card>
-            <Card className={`${lucroEstimado >= 0 ? "bg-green-500/5 border-green-500/20" : "bg-destructive/5 border-destructive/20"}`}>
+            <Card className={`${lucroEstimado >= 0 ? "bg-status-success/5 border-status-success/20" : "bg-destructive/5 border-destructive/20"}`}>
               <CardContent className="p-4">
-                <p className={`text-xs uppercase mb-1 ${lucroEstimado >= 0 ? "text-green-600" : "text-destructive"}`}>LUCRO</p>
-                <p className={`text-xl font-bold ${lucroEstimado >= 0 ? "text-green-600" : "text-destructive"}`}>{fmt(lucroEstimado)}</p>
+                <p className={`text-xs uppercase mb-1 ${lucroEstimado >= 0 ? "text-status-success" : "text-destructive"}`}>LUCRO</p>
+                <p className={`text-xl font-bold ${lucroEstimado >= 0 ? "text-status-success" : "text-destructive"}`}>{fmt(lucroEstimado)}</p>
                 <p className="text-xs text-muted-foreground">recebido - despesas</p>
               </CardContent>
             </Card>
@@ -646,6 +647,15 @@ const ClienteDetailPage = () => {
         onClose={() => { setEntregaOpen(false); setSelectedEntrega(null); }}
         entrega={selectedEntrega}
         defaultClienteId={id}
+      />
+      <ConfirmDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        title="Arquivar Cliente"
+        description="O cliente será movido para Arquivados e poderá ser restaurado depois."
+        confirmLabel="Arquivar"
+        loading={deleteCliente.isPending}
+        onConfirm={handleDelete}
       />
     </div>
   );

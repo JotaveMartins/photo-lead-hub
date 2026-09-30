@@ -26,9 +26,9 @@ interface Props {
 }
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  aguardando_contrato: { label: "Aguardando Contrato", className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30" },
-  contrato_enviado: { label: "Contrato Enviado", className: "bg-blue-500/10 text-blue-500 border-blue-500/30" },
-  contrato_assinado: { label: "Contrato Assinado", className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" },
+  aguardando_contrato: { label: "Aguardando Contrato", className: "bg-status-warning/15 text-status-warning border-status-warning/30" },
+  contrato_enviado: { label: "Contrato Enviado", className: "bg-status-info/15 text-status-info border-status-info/30" },
+  contrato_assinado: { label: "Contrato Assinado", className: "bg-status-success/15 text-status-success border-status-success/30" },
 };
 
 const fmt = (v: number | null) =>
@@ -338,7 +338,7 @@ const ContratoDrawer = ({ contrato, open, onClose }: Props) => {
         {!editing && contrato.status === "contrato_enviado" && (
           <div className="px-5 py-3 border-t border-border shrink-0">
             <Button
-              className="w-full h-9 text-sm gap-2 bg-emerald-500 hover:bg-emerald-600 text-white border-0"
+              className="w-full h-10 text-sm gap-2"
               onClick={handleMarkSigned}
               disabled={updateContrato.isPending}
             >

@@ -3,6 +3,7 @@ import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Clock, CheckCircle
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { useCobrancas, useAllCobrancas } from "@/hooks/useCobrancas";
 import { useDespesas } from "@/hooks/useDespesas";
 import { useNavigate } from "react-router-dom";
@@ -118,23 +119,15 @@ const FinanceiroResumoPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <DollarSign className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Financeiro</h1>
-          <p className="text-sm text-muted-foreground">Visão geral da saúde financeira</p>
-        </div>
-      </div>
+      <PageHeader title="Financeiro" description="Visão geral da saúde financeira" />
 
       {/* Month selector */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={prevMonth} className="h-9 w-9">
+        <Button variant="outline" size="icon" onClick={prevMonth} className="h-10 w-10" aria-label="Mês anterior" title="Mês anterior">
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <span className="text-sm font-medium capitalize min-w-[120px] text-center">{monthLabel}</span>
-        <Button variant="outline" size="icon" onClick={nextMonth} className="h-9 w-9">
+        <Button variant="outline" size="icon" onClick={nextMonth} className="h-10 w-10" aria-label="Próximo mês" title="Próximo mês">
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>

@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import type { Cliente } from "@/hooks/useClientes";
 import { useClienteTaskCounts } from "@/hooks/useLeadTasks";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface ClienteTableProps {
   clientes: Cliente[];
@@ -29,16 +30,12 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
 
   if (clientes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <div className="p-4 rounded-full bg-muted">
-          <UserPlus className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <p className="text-muted-foreground">Nenhum cliente cadastrado</p>
-        <Button onClick={onNew}>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Cadastrar Cliente
-        </Button>
-      </div>
+      <EmptyState
+        icon={UserPlus}
+        title="Nenhum cliente cadastrado"
+        description="Cadastre o primeiro cliente para começar."
+        action={<Button onClick={onNew}><UserPlus className="w-4 h-4 mr-2" />Novo Cliente</Button>}
+      />
     );
   }
 
@@ -82,10 +79,10 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
               </TableCell>
               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-end gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => onEdit(c)} className="h-8 w-8">
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(c)} className="h-10 w-10" aria-label="Editar cliente" title="Editar cliente">
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(c.id)} className="h-8 w-8 text-destructive hover:text-destructive">
+                  <Button variant="ghost" size="icon" onClick={() => onDelete(c.id)} className="h-10 w-10 text-muted-foreground hover:text-destructive" aria-label="Arquivar cliente" title="Arquivar cliente">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>

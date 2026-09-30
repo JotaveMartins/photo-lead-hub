@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DollarSign, ChevronLeft, ChevronRight, Plus, TrendingDown, Clock, Hash, Tag, PieChart, BarChart3, Pencil, Trash2, Filter } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
@@ -128,15 +130,10 @@ const DespesasPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <TrendingDown className="w-6 h-6 text-primary" />
-            Despesas
-          </h1>
-          <p className="text-sm text-muted-foreground">Controle e organize todos os gastos do seu negócio</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Despesas"
+        description="Controle e organize todos os gastos do seu negócio"
+        secondaryActions={
           <GenericTrashBin
             items={trashItems}
             onRestore={(id) => restoreDespesa.mutate(id)}
@@ -144,12 +141,14 @@ const DespesasPage = () => {
             isRestoring={restoreDespesa.isPending}
             entityName="despesa"
           />
+        }
+        action={
           <Button onClick={openNew}>
             <Plus className="w-4 h-4 mr-2" />
             Adicionar despesa
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -200,9 +199,9 @@ const DespesasPage = () => {
             className="bg-muted border-border h-9"
           />
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={prevMonth} aria-label="Mês anterior" title="Mês anterior"><ChevronLeft className="w-4 h-4" /></Button>
             <span className="text-sm font-medium text-foreground min-w-[140px] text-center uppercase">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={nextMonth} aria-label="Próximo mês" title="Próximo mês"><ChevronRight className="w-4 h-4" /></Button>
             <span className="text-sm text-muted-foreground ml-2">{filtered.length} despesas</span>
           </div>
         </div>
@@ -336,15 +335,15 @@ const DespesasPage = () => {
                   <TableCell className="text-sm text-muted-foreground">{format(new Date(d.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell className="text-sm font-bold text-foreground">{formatCurrency(d.valor)}</TableCell>
                   <TableCell>
-                    <span className={`text-xs font-medium ${d.status === "paga" ? "text-primary" : "text-yellow-500"}`}>
+                    <StatusBadge tone={d.status === "paga" ? "success" : "warning"}>
                       {d.status === "paga" ? "Paga" : "Prevista"}
-                    </span>
+                    </StatusBadge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{PAYMENT_LABELS[d.forma_pagamento] || d.forma_pagamento}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => openEdit(d)} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => deleteDespesa.mutate(d.id)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => openEdit(d)} aria-label="Editar despesa" title="Editar despesa" className="h-9 w-9 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => deleteDespesa.mutate(d.id)} aria-label="Mover para lixeira" title="Mover para lixeira" className="h-9 w-9 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </TableCell>
                 </TableRow>

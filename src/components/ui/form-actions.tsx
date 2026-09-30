@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +10,8 @@ interface FormActionsProps {
   loadingLabel?: string;
   cancelLabel?: string;
   className?: string;
+  /** Conteúdo extra à esquerda dos botões (ex.: footerExtra de fluxos). */
+  extra?: React.ReactNode;
 }
 
 /** Rodapé padrão de formulário: Cancelar (outline) + Salvar/Criar (submit). */
@@ -20,9 +23,11 @@ export function FormActions({
   loadingLabel = "Salvando...",
   cancelLabel = "Cancelar",
   className,
+  extra,
 }: FormActionsProps) {
   return (
     <div className={cn("flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end", className)}>
+      {extra}
       <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
         {cancelLabel}
       </Button>
