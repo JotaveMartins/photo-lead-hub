@@ -431,7 +431,7 @@ Deno.serve(async (req) => {
             contact_name: pushName || whatsapp,
             contact_jid: contactJid,
             is_group: isGroup,
-            status: 'pending_ai',
+            status: 'open',
             last_message: content,
             unread_count: key.fromMe ? 0 : 1,
             instance_id: instanceId
@@ -619,8 +619,9 @@ Deno.serve(async (req) => {
           }
         }
 
-        // B. Trigger AI if conversation still pending_ai
-        if (conversation.status === 'pending_ai') {
+        // B. IA conversacional DESATIVADA (Sprint 02). Reativar trocando AI_CONVERSATIONAL_ENABLED.
+        const AI_CONVERSATIONAL_ENABLED = false;
+        if (AI_CONVERSATIONAL_ENABLED && conversation.status === 'pending_ai') {
           const { data: aiCfg } = await supabase
             .from("ai_config")
             .select("is_active, ai_trigger_enabled, ai_trigger_keywords")

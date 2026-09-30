@@ -69,7 +69,6 @@ const financeiroItems: MenuItem[] = [
 
 const configItems: MenuItem[] = [
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-  { id: 'ia', label: 'IA', icon: Bot },
   { id: 'integracoes', label: 'Integrações', icon: Plug },
 ];
 
