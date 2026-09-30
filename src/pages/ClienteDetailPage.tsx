@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,18 +65,18 @@ const ClienteDetailPage = () => {
     return d.toISOString().slice(0, 10);
   });
 
-  const { data: cliente, isLoading } = useQuery({
+  const { data: cliente, isLoading, isError, refetch } = useQuery({
     queryKey: ["cliente", id],
     queryFn: async () => {
       if (!id) return null;
-      const { data, error } = await supabase.from("clientes").select("*").eq("id", id).single();
+      const { data, error } = await supabase.from("clientes").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      return data as Cliente;
+      return (data ?? null) as Cliente | null;
     },
     enabled: !!id,
   });
 
-  const { data: cobrancas = [] } = useQuery({
+  const { data: cobrancas = [], isError: cobrancasError, refetch: refetchCobrancas } = useQuery({
     queryKey: ["cobrancas-cliente", id],
     queryFn: async () => {
       if (!id || !effectiveUserId) return [];
@@ -163,7 +166,17 @@ const ClienteDetailPage = () => {
   const [archiveOpen, setArchiveOpen] = useState(false);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-20"><div className="animate-pulse text-muted-foreground">Carregando...</div></div>;
+    return (
+      <div className="space-y-4" aria-busy="true">
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[0,1,2,3].map((i) => <Skeleton key={i} className="h-20" />)}</div>
+        <ListSkeleton rows={4} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return <ErrorState title="Não foi possível carregar o cliente" onRetry={() => refetch()} />;
   }
 
   if (!cliente) {
@@ -313,7 +326,9 @@ const ClienteDetailPage = () => {
             <Button className="sm:flex-1 gap-1" onClick={() => setNovaCobrancaOpen(true)}><Plus className="w-4 h-4" /> Nova Cobrança</Button>
             <Button variant="outline" className="sm:flex-1" onClick={() => navigate("/financeiro/cobrancas")}>Gerenciar Cobranças</Button>
           </div>
-          {cobrancas.length === 0 ? (
+          {cobrancasError ? (
+            <ErrorState compact title="Não foi possível carregar as cobranças" onRetry={() => refetchCobrancas()} />
+          ) : cobrancas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <DollarSign className="w-10 h-10 text-muted-foreground/30" />
               <p className="font-medium text-muted-foreground">Nenhuma cobrança cadastrada</p>
@@ -397,7 +412,7 @@ const ClienteDetailPage = () => {
             ) : (
               <div className="space-y-2">
                 {servicosContratados.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/servicos")}>
+                  <div key={s.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/catalogo?tab=servicos")}>
                     <div><p className="text-sm font-medium text-foreground">{s.nome}</p><p className="text-xs text-muted-foreground">{s.count > 0 ? `${s.count} ${s.count === 1 ? "evento" : "eventos"}` : "via cobrança"}</p></div>
                     <div className="text-right"><p className="text-sm font-bold text-foreground">{fmt(s.valor_base)}</p></div>
                   </div>
@@ -412,7 +427,7 @@ const ClienteDetailPage = () => {
             ) : (
               <div className="space-y-2">
                 {pacotesContratados.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/pacotes")}>
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => navigate("/catalogo?tab=pacotes")}>
                     <div><p className="text-sm font-medium text-foreground">{p.nome}</p></div>
                     <div className="text-right">{p.preco_final && <p className="text-sm font-bold text-foreground">{fmt(p.preco_final)}</p>}</div>
                   </div>

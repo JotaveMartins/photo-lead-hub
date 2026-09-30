@@ -109,3 +109,24 @@ Inter (interface), Plus Jakarta Sans (`font-display`, títulos). Sem fontes nova
 2. Montar a tela com `PageHeader` + componentes da tabela acima.
 3. Passar pelo checklist CRUD (seção 11).
 4. Se precisar de algo novo, torná-lo reutilizável e documentar aqui.
+
+## Estados de carregamento e erro
+
+| Situação | Componente |
+|---|---|
+| Carregando, estrutura conhecida | `Skeleton` (`ui/skeleton`) ou `ListSkeleton` / `ColumnsSkeleton` (`ui/list-skeleton`) |
+| Consulta falhou | `ErrorState` (`ui/error-state`) |
+| Consulta OK, sem dados | `EmptyState` |
+
+Regras:
+- **Loading:** quando o layout é conhecido, usar Skeleton. Evitar tela vazia só com "Carregando...".
+- **Erro nunca é EmptyState.** EmptyState = consulta funcionou e não há dados; ErrorState = consulta falhou.
+- Oferecer "Tentar novamente" (`onRetry={() => refetch()}`) sempre que possível.
+- Nunca exibir mensagem técnica do backend.
+- Seção secundária falhou (ex.: cobranças na ficha do cliente): `<ErrorState compact ... />` só naquela seção; a tela continua aberta.
+- Ordem: `isLoading` → Skeleton; `isError` → ErrorState; `data.length === 0` → EmptyState; senão conteúdo.
+- Registro único inexistente vs erro: usar `.maybeSingle()`; `null` = "não encontrado", erro = ErrorState.
+
+```tsx
+<ErrorState title="Não foi possível carregar os clientes" onRetry={() => refetch()} />
+```

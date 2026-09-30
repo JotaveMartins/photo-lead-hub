@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import { useSearchParams } from "react-router-dom";
 import { DollarSign, ChevronLeft, ChevronRight, Plus, Calendar, ArrowDownUp, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +29,7 @@ const FinanceiroPage = () => {
   const [modalType, setModalType] = useState<ModalType | null>(null);
   const [editCobranca, setEditCobranca] = useState<Cobranca | null>(null);
 
-  const { data: monthCobrancas = [], isLoading } = useCobrancas(showAll ? undefined : currentMonth);
+  const { data: monthCobrancas = [], isLoading, isError, refetch } = useCobrancas(showAll ? undefined : currentMonth);
   const { data: allCobrancas = [] } = useAllCobrancas();
 
   // Open cobranca by URL param (?open=<id>&date=<yyyy-mm-dd>)
@@ -106,7 +108,7 @@ const FinanceiroPage = () => {
       {/* Controls bar */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="icon" onClick={prevMonth} className="h-10 w-10" aria-label="Mês anterior" title="Mês anterior">
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -178,7 +180,9 @@ const FinanceiroPage = () => {
 
       {/* Table */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Carregando...</div>
+        <ListSkeleton rows={6} />
+      ) : isError ? (
+        <ErrorState title="Não foi possível carregar as cobranças" onRetry={() => refetch()} />
       ) : (
         <CobrancaTable cobrancas={monthCobrancas} onEdit={setEditCobranca} search={search} filterStatus={filterStatus} filterPagamento={filterPagamento} />
       )}

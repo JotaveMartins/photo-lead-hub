@@ -1,4 +1,5 @@
 import { getLocalDateStr } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/error-state";
 import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Clock, CheckCircle, PieChart, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,9 @@ const FinanceiroResumoPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const navigate = useNavigate();
 
-  const { data: cobrancas = [] } = useCobrancas(currentMonth);
+  const { data: cobrancas = [], isError: cobErr, refetch: refetchCob } = useCobrancas(currentMonth);
   const { data: allCobrancas = [] } = useAllCobrancas();
-  const { data: despesas = [] } = useDespesas(currentMonth);
+  const { data: despesas = [], isError: despErr, refetch: refetchDesp } = useDespesas(currentMonth);
 
   const today = getLocalDateStr();
 
@@ -45,7 +46,7 @@ const FinanceiroResumoPage = () => {
   const margemLucro = recebidasValor > 0 ? Math.round((lucro / recebidasValor) * 100) : 0;
 
   // Projeção
-  const projecaoReceita = recebidasValor + pendentesValor;
+  const projecaoReceita = recebidasValor + pendentesValor + vencidasValor;
   const projecaoLucro = projecaoReceita - totalDespesas;
 
   const prevMonth = () => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
@@ -120,6 +121,9 @@ const FinanceiroResumoPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader title="Financeiro" description="Visão geral da saúde financeira" />
+      {(cobErr || despErr) && (
+        <ErrorState compact title="Não foi possível carregar os dados financeiros" description="Os valores abaixo podem estar incompletos." onRetry={() => { refetchCob(); refetchDesp(); }} />
+      )}
 
       {/* Month selector */}
       <div className="flex items-center gap-2">

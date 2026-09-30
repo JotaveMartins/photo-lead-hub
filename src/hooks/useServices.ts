@@ -78,14 +78,15 @@ export const useServiceCategories = () => {
 export const useCreateService = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (service: ServiceInsert) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!user || !effectiveUserId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("services")
-        .insert({ ...service, user_id: user.id })
+        .insert({ ...service, user_id: effectiveUserId })
         .select()
         .single();
 

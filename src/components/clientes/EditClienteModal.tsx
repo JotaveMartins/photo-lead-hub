@@ -69,7 +69,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
             <Label>Nome *</Label>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} required />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>WhatsApp</Label>
               <Input value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} maxLength={15} />
@@ -79,7 +79,7 @@ const EditClienteModal = ({ open, onClose, cliente }: EditClienteModalProps) => 
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>CPF/CNPJ</Label>
               <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))} maxLength={18} />

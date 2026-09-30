@@ -120,8 +120,8 @@ const AppRoutes = () => {
         <Route path="/tarefas" element={<TarefasPage />} />
         <Route path="/relatorios" element={<RelatoriosPage />} />
         <Route path="/catalogo" element={<CatalogoPage />} />
-        <Route path="/servicos" element={<Navigate to="/catalogo" replace />} />
-        <Route path="/pacotes" element={<Navigate to="/catalogo" replace />} />
+        <Route path="/servicos" element={<Navigate to="/catalogo?tab=servicos" replace />} />
+        <Route path="/pacotes" element={<Navigate to="/catalogo?tab=pacotes" replace />} />
         <Route path="/agenda" element={<AgendaPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/:id" element={<ClienteDetailPage />} />
@@ -136,11 +136,11 @@ const AppRoutes = () => {
         <Route path="/financeiro/cobrancas" element={<FinanceiroPage />} />
         <Route path="/financeiro/despesas" element={<DespesasPage />} />
         <Route path="/financeiro" element={<FinanceiroResumoPage />} />
-        <Route path="/admin" element={<AdminPage />} />
       </Route>
 
       <Route element={<AdminProtectedLayout />}>
         <Route path="/anuncios" element={<AnunciosPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
 
       <Route element={<EstudioProtectedLayout />}>

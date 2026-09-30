@@ -215,7 +215,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 rounded-lg border border-border p-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-lg border border-border p-3">
             <div className="space-y-2">
               <Label>Valor (R$) *</Label>
               <Input

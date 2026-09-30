@@ -81,12 +81,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { pageTutorial, pageKey } = useMemo(() => {
     const path = location.pathname;
     if (path === "/agenda") return { pageTutorial: agendaTutorial, pageKey: "agenda" };
-    if (path === "/catalogo") return { pageTutorial: servicosTutorial, pageKey: "servicos" };
+    if (path === "/catalogo") {
+      const tab = new URLSearchParams(location.search).get("tab");
+      return tab === "pacotes"
+        ? { pageTutorial: pacotesTutorial, pageKey: "pacotes" }
+        : { pageTutorial: servicosTutorial, pageKey: "servicos" };
+    }
     if (path === "/financeiro/cobrancas") return { pageTutorial: cobrancasTutorial, pageKey: "cobrancas" };
     if (path === "/financeiro/despesas") return { pageTutorial: despesasTutorial, pageKey: "despesas" };
     if (path.startsWith("/clientes/") && path !== "/clientes") return { pageTutorial: clienteDetailTutorial, pageKey: "cliente-detail" };
     return { pageTutorial: undefined, pageKey: undefined };
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const handleItemClick = (item: string) => {
     const routes: Record<string, string> = {
@@ -165,7 +170,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <>
           <TutorialModal />
           <VersionAnnouncementModal />
-          <HelpButton pageTutorial={pageTutorial} pageKey={pageKey} key={location.pathname} />
+          <HelpButton pageTutorial={pageTutorial} pageKey={pageKey} key={`${location.pathname}:${pageKey ?? ""}`} />
         </>
       )}
     </div>

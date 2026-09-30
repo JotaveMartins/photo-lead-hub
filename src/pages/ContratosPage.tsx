@@ -1,4 +1,6 @@
 import { useRef, useState, useMemo } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import {
   useContratos, useUpdateContrato, useUploadContratoFile,
   useDeleteContrato, useDeletedContratos, useRestoreContrato,
@@ -208,7 +210,7 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, onView, uplo
 };
 
 const ContratosPage = () => {
-  const { data: contratos = [], isLoading } = useContratos();
+  const { data: contratos = [], isLoading, isError, refetch } = useContratos();
   const { data: deletedContratos = [] } = useDeletedContratos();
   const updateContrato = useUpdateContrato();
   const uploadFile = useUploadContratoFile();
@@ -391,7 +393,9 @@ const ContratosPage = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center text-muted-foreground py-12">Carregando...</div>
+        <ColumnsSkeleton columns={3} />
+      ) : isError ? (
+        <ErrorState title="Não foi possível carregar os contratos" onRetry={() => refetch()} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {STATUS_COLUMNS.map((col) => {

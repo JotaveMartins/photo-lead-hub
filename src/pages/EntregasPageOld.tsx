@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import { useNavigate } from "react-router-dom";
 import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,7 @@ import { toast } from "sonner";
 const fmtDate = (d: string | null) => (d ? format(parseLocalDate(d), "dd/MM/yyyy") : null);
 
 const EntregasPage = () => {
-  const { data: entregas = [], isLoading } = useEntregas();
+  const { data: entregas = [], isLoading, isError, refetch } = useEntregas();
   const { data: covers = {} } = useEntregaCovers();
   const createGallery = useCreateGallery();
   const updateEntrega = useUpdateEntrega();
@@ -106,7 +108,9 @@ const EntregasPage = () => {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando entregas...</p>
+        <ColumnsSkeleton columns={4} />
+      ) : isError ? (
+        <ErrorState title="Não foi possível carregar as entregas" onRetry={() => refetch()} />
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4 xl:overflow-visible">
           {ENTREGA_ETAPAS.map((col) => {

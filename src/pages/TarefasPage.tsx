@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ErrorState } from "@/components/ui/error-state";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,7 +38,7 @@ type SortKey = "due_date" | "created_at" | "completed_at";
 
 const TarefasPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: allTasks = [] } = useAllTasks();
+  const { data: allTasks = [], isError: tasksError, refetch: refetchTasks } = useAllTasks();
   const { data: leads = [] } = useLeads();
   const { data: clientes = [] } = useClientes();
   const navigate = useNavigate();
@@ -252,7 +253,9 @@ const TarefasPage = () => {
       {viewMode === "table" ? (
         /* Table */
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          {filteredTasks.length === 0 ? (
+          {tasksError ? (
+            <ErrorState title="Não foi possível carregar as tarefas" onRetry={() => refetchTasks()} />
+          ) : filteredTasks.length === 0 ? (
             allTasks.length === 0 ? (
               <EmptyState
                 icon={CheckSquare}
@@ -484,7 +487,7 @@ const TarefasPage = () => {
                 />
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Data</Label>
                 <DatePickerField value={newDueDate} onChange={setNewDueDate} placeholder="Selecione a data" />
