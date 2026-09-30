@@ -1,3 +1,4 @@
+import { selectionFunnelLabel } from "@/lib/gallerySelection";
 import { useMemo, useState } from "react";
 import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
@@ -179,6 +180,11 @@ const EntregasPage = () => {
                           )}
                           {e.services?.nome && (
                             <p className="text-[11px] text-muted-foreground/80 truncate">{e.services.nome}</p>
+                          )}
+                          {info?.galleryType === "selection" && (
+                            <p className={`mt-1 truncate text-[11px] ${info.selectionFinalizedAt ? "text-status-success" : info.selectionCount ? "text-status-warning" : "text-muted-foreground"}`}>
+                              {selectionFunnelLabel(info.selectionFinalizedAt, info.selectionCount, info.selectionLimit)}
+                            </p>
                           )}
                           <div className="flex flex-col gap-1 mt-2">
                             {e.data_ensaio && (
