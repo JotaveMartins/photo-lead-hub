@@ -347,6 +347,7 @@ export type Database = {
       }
       contratos: {
         Row: {
+          arquivo_contrato_path: string | null
           arquivo_contrato_url: string | null
           autentique_document_id: string | null
           cliente_id: string | null
@@ -373,6 +374,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          arquivo_contrato_path?: string | null
           arquivo_contrato_url?: string | null
           autentique_document_id?: string | null
           cliente_id?: string | null
@@ -399,6 +401,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          arquivo_contrato_path?: string | null
           arquivo_contrato_url?: string | null
           autentique_document_id?: string | null
           cliente_id?: string | null
