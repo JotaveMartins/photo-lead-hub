@@ -23,6 +23,7 @@ export interface Gallery {
   password_hash: string | null;
   cover_media_id: string | null;
   download_enabled: boolean;
+  selection_limit: number | null;
   download_quality: string;
   storage_bytes: number;
   media_count: number;
@@ -377,3 +378,26 @@ export const useSetMediaSection = () => {
     onError: (e: any) => toast.error(e?.message ?? "Erro ao mover foto"),
   });
 };
+
+export interface GallerySelection {
+  id: string;
+  gallery_id: string;
+  media_id: string;
+  created_at: string;
+}
+
+/** Seleção oficial da galeria (não depende do visitante). */
+export const useGallerySelections = (galleryId?: string) =>
+  useQuery({
+    queryKey: ["gallery-selections", galleryId],
+    enabled: !!galleryId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gallery_selections" as any)
+        .select("media_id")
+        .eq("gallery_id", galleryId!);
+      if (error) throw error;
+      const selectedIds = new Set(((data ?? []) as any[]).map((r) => r.media_id as string));
+      return { selectedIds, count: selectedIds.size };
+    },
+  });
