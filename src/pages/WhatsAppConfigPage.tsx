@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import InboxTriggersConfig from "@/components/InboxTriggersConfig";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useInstanceStats } from "@/hooks/useInstanceStats";
 import { format, formatDistanceToNow } from "date-fns";
@@ -526,6 +527,8 @@ const WhatsAppConfigPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <InboxTriggersConfig />
 
     </div>
   );
