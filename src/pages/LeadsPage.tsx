@@ -41,6 +41,7 @@ const LeadsPage = () => {
   const today = startOfDay(new Date());
   const todayTasks = pendingTasks
     .filter((t) => {
+      if (!t.lead_id) return false;
       const d = parseLocalDate(t.due_date);
       return isToday(d) || isBefore(d, today);
     })
