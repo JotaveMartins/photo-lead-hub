@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     const { data: gallery } = await admin
       .from("galleries")
       .select(
-        "id, user_id, name, slug, status, event_date, expires_at, password_hash, cover_media_id, download_enabled, media_count",
+        "id, user_id, name, slug, status, event_date, expires_at, password_hash, cover_media_id, download_enabled, media_count, gallery_type, selection_limit",
       )
       .eq("slug", slug)
       .is("deleted_at", null)
@@ -241,6 +241,25 @@ Deno.serve(async (req) => {
       return json({ ok: true, favorite: true });
     }
 
+    if (action === "selection") {
+      if (gallery.status !== "published") return json({ error: "Galeria indisponível" }, 403);
+      if (gallery.expires_at && new Date(gallery.expires_at).getTime() < Date.now()) {
+        return json({ error: "Esta galeria não está mais disponível." }, 403);
+      }
+      if (gallery.gallery_type !== "selection") return json({ error: "Esta galeria não aceita seleção." }, 403);
+      const mediaId = String(body?.mediaId ?? "");
+      if (!/^[0-9a-f-]{36}$/.test(mediaId)) return json({ error: "Foto não encontrada" }, 404);
+      const { data: r, error: rErr } = await admin.rpc("toggle_gallery_selection", {
+        _gallery_id: gallery.id,
+        _media_id: mediaId,
+        _selected: body?.selected !== false,
+      });
+      if (rErr) return json({ error: "Não foi possível salvar a seleção." }, 400);
+      const res = r as any;
+      if (!res?.ok) return json({ error: res?.error ?? "Não foi possível salvar a seleção.", limit: !!res?.limit, count: res?.count }, res?.limit ? 409 : 400);
+      return json(res);
+    }
+
     if (action === "download-all") {
       if (!gallery.download_enabled) return json({ error: "Download não permitido" }, 403);
       if (gallery.status !== "published") return json({ error: "Galeria indisponível" }, 403);
@@ -301,8 +320,16 @@ Deno.serve(async (req) => {
       favorite_media_ids = (favs ?? []).map((f: any) => f.media_id);
     }
 
+    // Seleção oficial da galeria (independe do visitante).
+    let selected_media_ids: string[] = [];
+    if (gallery.gallery_type === "selection") {
+      const { data: sels } = await admin.from("gallery_selections").select("media_id").eq("gallery_id", gallery.id);
+      selected_media_ids = (sels ?? []).map((s: any) => s.media_id);
+    }
+
     return json({
       favorite_media_ids,
+      selected_media_ids,
       state: "ok",
       token,
       preview: isOwner && gallery.status !== "published",
@@ -310,6 +337,8 @@ Deno.serve(async (req) => {
         name: gallery.name,
         event_date: gallery.event_date,
         download_enabled: gallery.download_enabled,
+        gallery_type: gallery.gallery_type,
+        selection_limit: gallery.selection_limit,
         media_count: photos.length,
         cover_url: cover?.preview_url ?? null,
       },

@@ -30,7 +30,7 @@ import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import {
   useGallery, useGallerySections, useGalleryMedia, useUpdateGallery, useDeleteGallery,
-  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, useGalleryFavorites, formatBytes,
+  useCreateSection, useUpdateSection, useDeleteSection, useStorageUsage, useGalleryFavorites, useGallerySelections, formatBytes,
 } from "@/hooks/useGalleries";
 import GalleryUploader from "@/components/galerias/GalleryUploader";
 import GalleryPhotoCard from "@/components/galerias/GalleryPhotoCard";
@@ -100,6 +100,10 @@ const GaleriaDetailPage = () => {
   const [dataPrevista, setDataPrevista] = useState("");
   const [dataFinal, setDataFinal] = useState("");
   const [obs, setObs] = useState("");
+  const [galleryType, setGalleryType] = useState<"delivery" | "selection">("delivery");
+  const [selLimit, setSelLimit] = useState("");
+  const { data: selections } = useGallerySelections(id);
+  const selCount = selections?.count ?? 0;
 
   useEffect(() => {
     if (!gallery) return;
@@ -107,6 +111,8 @@ const GaleriaDetailPage = () => {
     setClienteId(gallery.cliente_id ?? "");
     setEventDate(gallery.event_date ?? "");
     setDownload(gallery.download_enabled);
+    setGalleryType(gallery.gallery_type ?? "delivery");
+    setSelLimit(gallery.selection_limit ? String(gallery.selection_limit) : "");
     setCoverId(gallery.cover_media_id ?? "");
     setExpiraDias(
       gallery.expires_at
@@ -162,6 +168,19 @@ const GaleriaDetailPage = () => {
   };
 
   const handleSaveSettings = async () => {
+    let selection_limit: number | null = gallery.selection_limit ?? null;
+    if (galleryType === "selection") {
+      const n = Number(selLimit);
+      if (!selLimit || !Number.isInteger(n) || n < 1) {
+        toast.error("Informe um limite de fotos válido (número inteiro, mínimo 1).");
+        return;
+      }
+      if (n < selCount) {
+        toast.error(`Existem ${selCount} fotos selecionadas. O limite não pode ser menor que a seleção atual.`);
+        return;
+      }
+      selection_limit = n;
+    }
     const expires_at =
       Number(expiraDias) > 0 ? new Date(Date.now() + Number(expiraDias) * 86400000).toISOString() : null;
     await updateGallery.mutateAsync({
@@ -170,6 +189,8 @@ const GaleriaDetailPage = () => {
       cliente_id: clienteId || null,
       event_date: eventDate || null,
       download_enabled: download,
+      gallery_type: galleryType,
+      selection_limit,
       cover_media_id: coverId || null,
       expires_at,
     });
@@ -229,6 +250,11 @@ const GaleriaDetailPage = () => {
             <h1 className="font-display text-2xl font-bold text-foreground">{gallery.name}</h1>
             {entrega && <Badge variant="secondary">{entrega.etapa}</Badge>}
             {published && <Badge>Publicada</Badge>}
+            {gallery.gallery_type === "selection" && (
+              <Badge variant="outline">
+                Seleção de fotos{gallery.selection_limit ? ` · ${selCount} de ${gallery.selection_limit} selecionadas` : ""}
+              </Badge>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {(gallery.clientes?.nome || entrega?.clientes?.nome) && (
@@ -504,6 +530,39 @@ const GaleriaDetailPage = () => {
                   searchPlaceholder="Buscar foto..."
                 />
               </div>
+
+              <div className="space-y-2">
+                <SearchSelect
+                  label="Tipo da galeria"
+                  options={[
+                    { value: "delivery", label: "Entrega completa" },
+                    { value: "selection", label: "Seleção de fotos" },
+                  ]}
+                  value={galleryType}
+                  onChange={(v) => setGalleryType((v || "delivery") as "delivery" | "selection")}
+                  searchPlaceholder="Buscar tipo..."
+                />
+              </div>
+
+              {galleryType === "selection" && (
+                <div className="space-y-2">
+                  <Label>Limite de fotos *</Label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={Math.max(1, selCount)}
+                    step={1}
+                    value={selLimit}
+                    onChange={(e) => setSelLimit(e.target.value)}
+                    placeholder="30"
+                    className="bg-muted border-border"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Quantidade máxima de fotos que o cliente poderá selecionar.
+                    {selCount > 0 && ` ${selCount} já selecionadas.`}
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
                 <div>
