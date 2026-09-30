@@ -45,7 +45,7 @@ const FinanceiroResumoPage = () => {
   const margemLucro = recebidasValor > 0 ? Math.round((lucro / recebidasValor) * 100) : 0;
 
   // Projeção
-  const projecaoReceita = recebidasValor + pendentesValor;
+  const projecaoReceita = recebidasValor + pendentesValor + vencidasValor;
   const projecaoLucro = projecaoReceita - totalDespesas;
 
   const prevMonth = () => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));

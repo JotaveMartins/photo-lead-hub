@@ -53,14 +53,15 @@ export const useDeletedPackages = () => {
 export const useCreatePackage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const effectiveUserId = useEffectiveUserId();
 
   return useMutation({
     mutationFn: async (nome: string) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!user || !effectiveUserId) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("packages")
-        .insert({ nome, user_id: user.id, is_default: false })
+        .insert({ nome, user_id: effectiveUserId, is_default: false })
         .select()
         .single();
 
