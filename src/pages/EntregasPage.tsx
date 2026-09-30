@@ -1,31 +1,7 @@
-import { Construction } from "lucide-react";
-import { useUserRole } from "@/hooks/useUserRole";
 import EntregasFunil from "./EntregasPageOld";
 
-const EntregasPage = () => {
-  const { isAdmin, isLoading } = useUserRole();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center text-muted-foreground animate-pulse">
-        Carregando...
-      </div>
-    );
-  }
-
-  if (isAdmin) return <EntregasFunil />;
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
-      <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
-        <Construction className="w-10 h-10 text-primary" />
-      </div>
-      <h1 className="text-2xl font-semibold text-foreground mb-2">Em construção</h1>
-      <p className="text-sm text-muted-foreground max-w-md">
-        O Funil de Entregas está sendo desenvolvido e estará disponível em breve.
-      </p>
-    </div>
-  );
-};
+// Funil de Entregas liberado para todos os usuários autenticados.
+// Isolamento garantido por RLS (user_id) + useEffectiveUserId (impersonação do admin).
+const EntregasPage = () => <EntregasFunil />;
 
 export default EntregasPage;
