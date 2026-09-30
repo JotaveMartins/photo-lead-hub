@@ -273,8 +273,10 @@ export type Database = {
           grupo_id: string | null
           id: string
           lead_id: string | null
+          package_id: string | null
           parcela_numero: number | null
           parcela_total: number | null
+          service_id: string | null
           status: Database["public"]["Enums"]["cobranca_status"]
           tipo: Database["public"]["Enums"]["cobranca_tipo"]
           updated_at: string
@@ -296,8 +298,10 @@ export type Database = {
           grupo_id?: string | null
           id?: string
           lead_id?: string | null
+          package_id?: string | null
           parcela_numero?: number | null
           parcela_total?: number | null
+          service_id?: string | null
           status?: Database["public"]["Enums"]["cobranca_status"]
           tipo?: Database["public"]["Enums"]["cobranca_tipo"]
           updated_at?: string
@@ -319,8 +323,10 @@ export type Database = {
           grupo_id?: string | null
           id?: string
           lead_id?: string | null
+          package_id?: string | null
           parcela_numero?: number | null
           parcela_total?: number | null
+          service_id?: string | null
           status?: Database["public"]["Enums"]["cobranca_status"]
           tipo?: Database["public"]["Enums"]["cobranca_tipo"]
           updated_at?: string
@@ -341,6 +347,20 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
