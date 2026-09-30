@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpdateCliente, useDeleteCliente, type Cliente } from "@/hooks/useClientes";
 import { useContratosByClienteId, type Contrato } from "@/hooks/useContratos";
+import NovoContratoDialog from "@/components/contratos/NovoContratoDialog";
+import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +40,8 @@ const ClienteDetailPage = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [viewContrato, setViewContrato] = useState<Contrato | null>(null);
   const [entregaOpen, setEntregaOpen] = useState(false);
+  const [novoContratoOpen, setNovoContratoOpen] = useState(false);
+  const [novaCobrancaOpen, setNovaCobrancaOpen] = useState(false);
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const { data: clienteTasks = [] } = useClienteTasks(id);
   const { data: contratos = [] } = useContratosByClienteId(id);
@@ -249,12 +253,15 @@ const ClienteDetailPage = () => {
 
         {/* Tab: Contratos */}
         <TabsContent value="contratos" className="mt-4">
+          <div className="flex justify-end mb-3">
+            <Button size="sm" className="gap-1" onClick={() => setNovoContratoOpen(true)}><Plus className="w-4 h-4" /> Novo Contrato</Button>
+          </div>
           {contratos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <FileText className="w-10 h-10 text-muted-foreground/30" />
               <p className="font-medium text-muted-foreground">Nenhum contrato vinculado</p>
               <p className="text-sm text-muted-foreground/70">Contratos aparecem aqui quando vinculados a este cliente</p>
-              <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/contratos")}>Ir para Contratos</Button>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => setNovoContratoOpen(true)}>Novo Contrato</Button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -296,7 +303,10 @@ const ClienteDetailPage = () => {
             <Card className="bg-card border-border"><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase mb-1">TOTAL</p><p className="text-xl font-bold text-foreground">{fmt(totalCobrancas)}</p></CardContent></Card>
             <Card className="bg-green-500/5 border-green-500/20"><CardContent className="p-4"><p className="text-xs text-green-600 uppercase mb-1">RECEBIDO</p><p className="text-xl font-bold text-green-600">{fmt(totalRecebido)}</p></CardContent></Card>
           </div>
-          <Button variant="outline" className="w-full mb-6" onClick={() => navigate("/financeiro/cobrancas")}>Gerenciar Cobranças</Button>
+          <div className="flex flex-col sm:flex-row gap-2 mb-6">
+            <Button className="sm:flex-1 gap-1" onClick={() => setNovaCobrancaOpen(true)}><Plus className="w-4 h-4" /> Nova Cobrança</Button>
+            <Button variant="outline" className="sm:flex-1" onClick={() => navigate("/financeiro/cobrancas")}>Gerenciar Cobranças</Button>
+          </div>
           {cobrancas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <DollarSign className="w-10 h-10 text-muted-foreground/30" />
@@ -408,11 +418,14 @@ const ClienteDetailPage = () => {
 
         {/* Tab: Agenda */}
         <TabsContent value="agenda" className="mt-4">
+          <div className="flex justify-end mb-3">
+            <Button size="sm" className="gap-1" onClick={() => navigate(`/agenda?novo=1&cliente=${id}`)}><Plus className="w-4 h-4" /> Novo Evento</Button>
+          </div>
           {eventos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <Calendar className="w-10 h-10 text-muted-foreground/30" />
               <p className="font-medium text-muted-foreground">Nenhum evento agendado</p>
-              <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/agenda")}>Ir para Agenda</Button>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => navigate("/agenda")}>Ver Agenda</Button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -615,6 +628,11 @@ const ClienteDetailPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      <NovoContratoDialog open={novoContratoOpen} onOpenChange={setNovoContratoOpen} lockCliente
+        defaults={{ cliente_id: id, nome_cliente: cliente?.nome, cpf_cnpj: (cliente as any)?.cpf_cnpj, email: cliente?.email, whatsapp: cliente?.whatsapp, endereco_cliente: (cliente as any)?.endereco }} />
+      {novaCobrancaOpen && (
+        <NovaCobrancaModal open={novaCobrancaOpen} onOpenChange={setNovaCobrancaOpen} type="unica" initialClienteId={id} />
+      )}
 
       <ContratoDrawer contrato={viewContrato} open={!!viewContrato} onClose={() => setViewContrato(null)} />
       <EditClienteModal open={editOpen} onClose={() => setEditOpen(false)} cliente={cliente} />

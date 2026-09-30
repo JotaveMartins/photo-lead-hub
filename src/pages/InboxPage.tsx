@@ -166,7 +166,7 @@ const NotesPanel = ({ conversationId }: NotesPanelProps) => {
 
 const InboxPage = () => {
   const effectiveUserId = useEffectiveUserId();
-  const [activeStatus, setActiveStatus] = useState<InboxStatus>("pending_ai");
+  const [activeStatus, setActiveStatus] = useState<InboxStatus>("open");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [messageText, setMessageText] = useState("");
@@ -215,7 +215,7 @@ const InboxPage = () => {
 
   const hasSearch = searchTerm.trim().length > 0;
   const filteredConversations = allConversations.filter((c) => {
-    if (!hasSearch) return c.status === activeStatus;
+    if (!hasSearch) return activeStatus === "closed" ? c.status === "closed" : c.status !== "closed";
     const q = searchTerm.toLowerCase();
     return (
       (c.contact_name?.toLowerCase().includes(q) || false) ||
@@ -458,7 +458,7 @@ const InboxPage = () => {
 
   const getStatusBadge = (status: InboxStatus) => {
     switch (status) {
-      case "pending_ai": return null;
+      case "pending_ai":
       case "open": return (
         <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/50 text-[10px] px-1.5 py-0.5">
           Em Atendimento
@@ -473,7 +473,7 @@ const InboxPage = () => {
   };
 
   const pendingCount = allConversations.filter((c) => c.status === "pending_ai").length;
-  const openCount = allConversations.filter((c) => c.status === "open").length;
+  const openCount = allConversations.filter((c) => c.status !== "closed").length;
   const closedCount = allConversations.filter((c) => c.status === "closed").length;
 
   // ── Conversation list panel ──────────────────
@@ -495,9 +495,8 @@ const InboxPage = () => {
       {/* Tabs */}
       <div className="flex border-b border-border">
         {([
-          { status: "pending_ai" as InboxStatus, label: "Pendentes", count: pendingCount },
-          { status: "open" as InboxStatus, label: "Abertos", count: openCount },
-          { status: "closed" as InboxStatus, label: "Fechados", count: closedCount },
+          { status: "open" as InboxStatus, label: "Em atendimento", count: openCount },
+          { status: "closed" as InboxStatus, label: "Encerrado", count: closedCount },
         ] as const).map(({ status, label, count }) => (
           <button
             key={status}
@@ -527,7 +526,7 @@ const InboxPage = () => {
           ) : filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-sm">
               Nenhuma conversa em{" "}
-              {activeStatus === "pending_ai" ? "Pendentes" : activeStatus === "open" ? "Abertos" : "Fechados"}.
+              {activeStatus === "closed" ? "Encerrado" : "Em atendimento"}.
             </div>
           ) : (
             filteredConversations.map((conv) => (
@@ -539,8 +538,7 @@ const InboxPage = () => {
                 }`}
               >
                 <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-r-full ${
-                  conv.status === "pending_ai" ? "bg-yellow-500" :
-                  conv.status === "open" ? "bg-green-500" : "bg-gray-500"
+                  conv.status !== "closed" ? "bg-green-500" : "bg-gray-500"
                 }`} />
                 <Avatar className="w-10 h-10 border border-border/50 shrink-0">
                   <AvatarFallback className="bg-muted text-foreground text-xs">
@@ -572,15 +570,6 @@ const InboxPage = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       {getStatusBadge(conv.status)}
-                      {(isGlobalAIActive || conv.ai_enabled) ? (
-                        <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded-full bg-green-500/10 text-green-500 border border-green-500/30 flex items-center gap-1">
-                          <Bot className="w-2.5 h-2.5" /> IA ativa
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 flex items-center gap-1">
-                          <Bot className="w-2.5 h-2.5" /> IA desativada
-                        </span>
-                      )}
                     </div>
                     {(conv.unread_count ?? 0) > 0 && (
                       <span className="w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-[9px] font-bold shadow-glow">
@@ -591,31 +580,7 @@ const InboxPage = () => {
 
                   {/* Quick action buttons — visible on hover */}
                   <div className="flex gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    {conv.status === "pending_ai" && !isGlobalAIActive && !conv.ai_enabled && (
-                      <button
-                        onClick={(e) => handleActivateAIForConv(conv.id, e)}
-                        className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors"
-                      >
-                        Ativar IA
-                      </button>
-                    )}
-                    {conv.status === "pending_ai" && (
-                      <>
-                        <button
-                          onClick={(e) => handleQuickAssume(conv.id, e)}
-                          className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-green-500/10 text-green-500 border border-green-500/30 hover:bg-green-500/20 transition-colors"
-                        >
-                          Assumir
-                        </button>
-                        <button
-                          onClick={(e) => handleQuickClose(conv.id, e)}
-                          className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
-                        >
-                          Encerrar
-                        </button>
-                      </>
-                    )}
-                    {conv.status === "open" && (
+                    {conv.status !== "closed" && (
                       <button
                         onClick={(e) => handleQuickClose(conv.id, e)}
                         className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
@@ -687,32 +652,10 @@ const InboxPage = () => {
                 </Button>
               )}
 
-              {selectedConv.status === "open" && (
-                <>
-                  <Button
-                    onClick={handleReturnToAI} size="sm"
-                    className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50 h-7 text-xs hidden sm:flex"
-                    variant="outline"
-                  >
-                    <Play className="w-3.5 h-3.5 mr-1" /> Para IA
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">
+              {selectedConv.status !== "closed" && (
+                <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">
                     Encerrar
                   </Button>
-                </>
-              )}
-              {selectedConv.status === "pending_ai" && (
-                <>
-                  <Button
-                    onClick={handleOpenAtendimento} size="sm"
-                    className="bg-green-500 hover:bg-green-600 text-white h-7 text-xs hidden sm:flex"
-                  >
-                    <Play className="w-3.5 h-3.5 mr-1" /> Assumir
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">
-                    Encerrar
-                  </Button>
-                </>
               )}
               {selectedConv.status === "closed" && (
                 <Button
@@ -766,27 +709,10 @@ const InboxPage = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {selectedConv.status === "open" && (
-                      <>
-                        <DropdownMenuItem onClick={handleReturnToAI}>
-                          <Play className="w-4 h-4 mr-2 text-yellow-500" /> Voltar para IA
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleClose} className="text-destructive">
-                          Encerrar atendimento
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {selectedConv.status === "pending_ai" && (
-                      <>
-                        <DropdownMenuItem onClick={handleOpenAtendimento}>
-                          <Play className="w-4 h-4 mr-2 text-green-500" /> Assumir atendimento
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleClose} className="text-destructive">
-                          Encerrar atendimento
-                        </DropdownMenuItem>
-                      </>
+                    {selectedConv.status !== "closed" && (
+                      <DropdownMenuItem onClick={handleClose} className="text-destructive">
+                        Encerrar atendimento
+                      </DropdownMenuItem>
                     )}
                     {selectedConv.status === "closed" && (
                       <DropdownMenuItem onClick={handleReopen}>

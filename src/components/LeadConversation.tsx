@@ -403,17 +403,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
           >
             {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
           </Button>
-          {conv?.id && (
-          conv.status === "pending_ai" ? (
-            <Button size="sm" className="h-7 text-xs bg-green-500 hover:bg-green-600" onClick={toggleAI}>
-              <Play className="w-3 h-3 mr-1" /> Abrir Atendimento
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={toggleAI}>
-              <Bot className="w-3 h-3 mr-1" /> Voltar para IA
-            </Button>
-          )
-          )}
+          
         </div>
       </div>
 

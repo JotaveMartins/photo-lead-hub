@@ -248,14 +248,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     } else if (newStatus === "Fechado Ganho") {
       // Cria um contrato mínimo a partir dos dados do lead e abre o fluxo
       setGanhoContratoId(null);
-      createContrato.mutateAsync({
-        lead_id: lead.id,
-        nome_cliente: lead.nome,
-        whatsapp: lead.whatsapp || null,
-        data_evento: lead.data_evento || null,
-        tipo_servico: lead.interesse || null,
-        valor: lead.valor || null,
-      }).then((c: any) => { if (c?.id) setGanhoContratoId(c.id); }).catch(() => {});
+      // Contrato agora é opcional e criado dentro do LeadToClienteFlow (Sprint 02).
       setGanhoPrevStatus(lead.status as LeadStatus);
       setLeadToClienteExtraFields(extraFields || {});
       updateLead.mutate({ id: lead.id, status: "Fechado Ganho" as LeadStatus, ...(extraFields || {}) }, {
@@ -525,7 +518,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                               <p className="text-xs">{taskConfig.label}</p>
                             </TooltipContent>
                           </Tooltip>
-                           {(lead as any).ai_paused && (
+                           {false && (lead as any).ai_paused && (
                              <Tooltip>
                                <TooltipTrigger asChild>
                                  <Bot className="w-3.5 h-3.5 text-destructive cursor-help" />

@@ -20,6 +20,9 @@ import { ptBR } from "date-fns/locale";
 import { parseLocalDate, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ContratoDrawer from "@/components/contratos/ContratoDrawer";
+import NovoContratoDialog from "@/components/contratos/NovoContratoDialog";
+import { PageHeader } from "@/components/ui/page-header";
+import { Plus } from "lucide-react";
 
 type ContratoStatus = "aguardando_contrato" | "contrato_enviado" | "contrato_assinado";
 
@@ -289,6 +292,7 @@ const ContratosPage = () => {
     setSignTarget(null);
   };
 
+  const [novoOpen, setNovoOpen] = useState(false);
   const totalPorStatus = (status: ContratoStatus) =>
     contratosFiltrados.filter((c) => c.status === status).length;
 
@@ -302,19 +306,13 @@ const ContratosPage = () => {
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <FileText className="w-6 h-6 text-primary" /> Contratos
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {contratosFiltrados.length} de {contratos.length} contrato{contratos.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+      <PageHeader
+        title="Contratos"
+        description={`${contratosFiltrados.length} de ${contratos.length} contrato${contratos.length !== 1 ? "s" : ""}`}
+        action={<Button onClick={() => setNovoOpen(true)}><Plus className="h-4 w-4" /> Novo Contrato</Button>}
+        secondaryActions={
         <Button
           variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs"
           onClick={() => setShowArchived((v) => !v)}
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -325,7 +323,9 @@ const ContratosPage = () => {
             </span>
           )}
         </Button>
-      </div>
+        }
+      />
+      <NovoContratoDialog open={novoOpen} onOpenChange={setNovoOpen} />
 
       {/* Search + Filters */}
       <div className="space-y-3">

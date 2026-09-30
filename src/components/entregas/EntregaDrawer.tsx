@@ -165,10 +165,6 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
               <DatePickerField value={dataEnsaio} onChange={setDataEnsaio} placeholder="Data do ensaio" />
             </div>
             <div className="space-y-2">
-              <Label>Prévia prevista</Label>
-              <DatePickerField value={dataPrevia} onChange={setDataPrevia} placeholder="Prévia prevista" />
-            </div>
-            <div className="space-y-2">
               <Label>Entrega prevista</Label>
               <DatePickerField value={dataPrevista} onChange={setDataPrevista} placeholder="Entrega prevista" />
             </div>
@@ -178,10 +174,13 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Link da galeria (externo)</Label>
-            <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." className="bg-muted border-border" />
-          </div>
+          <details className="rounded-lg border border-border/60 px-3 py-2" open={!!link}>
+            <summary className="text-xs text-muted-foreground cursor-pointer">Link externo (legado)</summary>
+            <div className="space-y-2 pt-2">
+              <p className="text-[11px] text-muted-foreground">Use apenas se as fotos estiverem fora do CRM. O ideal é usar "Fotos da entrega".</p>
+              <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." className="bg-muted border-border" />
+            </div>
+          </details>
 
           {entrega && (
             <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
@@ -252,8 +251,8 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
 
           <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
             {entrega ? (
-              <Button variant="ghost" size="sm" className="text-destructive gap-1" onClick={handleDelete} disabled={deleteEntrega.isPending}>
-                <Trash2 className="w-3.5 h-3.5" /> Excluir
+              <Button variant="ghost" size="sm" className="gap-1" onClick={handleDelete} disabled={deleteEntrega.isPending}>
+                <Trash2 className="w-3.5 h-3.5" /> Arquivar
               </Button>
             ) : <span />}
             <div className="flex gap-2">

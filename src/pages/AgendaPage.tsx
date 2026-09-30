@@ -190,6 +190,18 @@ const AgendaPage = () => {
     selectedDate && isSameDay(new Date(event.data_evento), selectedDate)
   );
 
+  // Novo evento com cliente pré-selecionado (?novo=1&cliente=<id>) — usado pela ficha do cliente
+  useEffect(() => {
+    if (searchParams.get("novo") !== "1") return;
+    const clienteId = searchParams.get("cliente") || "";
+    openModal();
+    if (clienteId) setTimeout(() => setSelectedClienteId(clienteId), 0);
+    const next = new URLSearchParams(searchParams);
+    next.delete("novo"); next.delete("cliente");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const openModal = (event?: any) => {
     if (event) {
       setEditingEvent(event);

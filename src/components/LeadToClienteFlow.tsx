@@ -1,6 +1,8 @@
 import { useState } from "react";
 import NovoClienteModal from "@/components/clientes/NovoClienteModal";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
+import NovoContratoDialog from "@/components/contratos/NovoContratoDialog";
+import { useClientes } from "@/hooks/useClientes";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -46,7 +48,10 @@ const COBRANCA_LABELS: Record<CobrancaType, string> = {
 };
 
 const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowProps) => {
-  const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "evento" | "confirmacao">("cliente");
+  const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "contrato" | "evento" | "confirmacao">("cliente");
+  const [contratoFormOpen, setContratoFormOpen] = useState(false);
+  const [contratoWasCreated, setContratoWasCreated] = useState(false);
+  const { data: allClientes = [] } = useClientes();
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [createdClienteNome, setCreatedClienteNome] = useState<string>("");
   const [cobrancaType, setCobrancaType] = useState<CobrancaType>("unica");
@@ -88,10 +93,11 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
   };
 
   const goToConfirmacao = () => setStep("confirmacao");
+  const goToContrato = () => setStep("contrato");
 
   const handleCobrancaCreated = () => {
     setCobrancaWasCreated(true);
-    goToEvento();
+    goToContrato();
   };
 
   const handleCreateEvento = async () => {
@@ -140,14 +146,18 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
     setEventoDate(undefined);
     setEventoServiceId("");
     setEventoWasCreated(false);
+    setContratoWasCreated(false);
+    setContratoFormOpen(false);
     onClose();
   };
 
+  const createdCliente: any = (allClientes as any[]).find((c) => c.id === createdClienteId);
   if (!open || !lead) return null;
 
   const steps: { key: typeof step; label: string }[] = [
     { key: "cliente", label: "Cliente" },
     { key: "tipo", label: "Cobrança" },
+    { key: "contrato", label: "Contrato" },
     { key: "evento", label: "Evento" },
     { key: "confirmacao", label: "Confirmação" },
   ];
@@ -236,7 +246,7 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
               </Button>
             </div>
             <AlertDialogFooter className="sm:justify-between">
-              <Button variant="ghost" size="sm" onClick={goToEvento}>
+              <Button variant="ghost" size="sm" onClick={goToContrato}>
                 Pular cobrança →
               </Button>
               <Button variant="outline" size="sm" onClick={goToConfirmacao}>
@@ -263,6 +273,42 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
               <ArrowLeft className="w-3.5 h-3.5" /> Voltar
             </Button>
           }
+        />
+      )}
+
+      {step === "contrato" && !contratoFormOpen && (
+        <AlertDialog open={true}>
+          <AlertDialogContent className="bg-card border-border sm:max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-foreground">Contrato (opcional)</AlertDialogTitle>
+              <AlertDialogDescription>Deseja criar o contrato deste cliente agora? Os dados do lead e do cliente já vêm preenchidos.</AlertDialogDescription>
+              {StepIndicator}
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:justify-between gap-2">
+              <Button variant="ghost" size="sm" onClick={goToEvento}>Pular contrato →</Button>
+              <Button size="sm" onClick={() => setContratoFormOpen(true)}>Criar contrato</Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      {step === "contrato" && (
+        <NovoContratoDialog
+          open={contratoFormOpen}
+          onOpenChange={setContratoFormOpen}
+          lockCliente
+          defaults={{
+            cliente_id: createdClienteId,
+            lead_id: lead.id,
+            nome_cliente: createdCliente?.nome || lead.nome,
+            cpf_cnpj: createdCliente?.cpf_cnpj,
+            email: createdCliente?.email,
+            whatsapp: createdCliente?.whatsapp || lead.whatsapp,
+            endereco_cliente: createdCliente?.endereco,
+            tipo_servico: lead.interesse,
+            data_evento: lead.data_evento,
+            valor: lead.valor,
+          }}
+          onCreated={() => { setContratoWasCreated(true); setContratoFormOpen(false); goToEvento(); }}
         />
       )}
 
