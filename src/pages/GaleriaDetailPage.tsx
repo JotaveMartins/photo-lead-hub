@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
 import SearchSelect from "@/components/SearchSelect";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { getSelectionStatus, selectionStatusMeta } from "@/lib/gallerySelection";
 import DatePickerField from "@/components/DatePickerField";
 import { Textarea } from "@/components/ui/textarea";
 import { useClientes } from "@/hooks/useClientes";
@@ -104,6 +107,8 @@ const GaleriaDetailPage = () => {
   const [selLimit, setSelLimit] = useState("");
   const { data: selections } = useGallerySelections(id);
   const selCount = selections?.count ?? 0;
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopening, setReopening] = useState(false);
 
   useEffect(() => {
     if (!gallery) return;
@@ -167,9 +172,23 @@ const GaleriaDetailPage = () => {
     );
   };
 
+  const selFinalizedAt = gallery.selection_finalized_at ?? null;
+  const selLocked = !!selFinalizedAt;
+  const selStatus = selectionStatusMeta[getSelectionStatus(selFinalizedAt, selCount)];
+
+  const handleReopen = async () => {
+    setReopening(true);
+    const { error } = await supabase.rpc("reopen_gallery_selection" as any, { _gallery_id: gallery.id });
+    setReopening(false);
+    if (error) { toast.error("Não foi possível reabrir a seleção."); return; }
+    setReopenOpen(false);
+    toast.success("Seleção reaberta");
+    refetch();
+  };
+
   const handleSaveSettings = async () => {
     let selection_limit: number | null = gallery.selection_limit ?? null;
-    if (galleryType === "selection") {
+    if (galleryType === "selection" && !selLocked) {
       const n = Number(selLimit);
       if (!selLimit || !Number.isInteger(n) || n < 1) {
         toast.error("Informe um limite de fotos válido (número inteiro, mínimo 1).");
@@ -189,8 +208,7 @@ const GaleriaDetailPage = () => {
       cliente_id: clienteId || null,
       event_date: eventDate || null,
       download_enabled: download,
-      gallery_type: galleryType,
-      selection_limit,
+      ...(selLocked ? {} : { gallery_type: galleryType, selection_limit }),
       cover_media_id: coverId || null,
       expires_at,
     });
@@ -251,9 +269,9 @@ const GaleriaDetailPage = () => {
             {entrega && <Badge variant="secondary">{entrega.etapa}</Badge>}
             {published && <Badge>Publicada</Badge>}
             {gallery.gallery_type === "selection" && (
-              <Badge variant="outline">
-                Seleção de fotos{gallery.selection_limit ? ` · ${selCount} de ${gallery.selection_limit} selecionadas` : ""}
-              </Badge>
+              <StatusBadge tone={selStatus.tone}>
+                {selStatus.label}{gallery.selection_limit ? ` · ${selCount} de ${gallery.selection_limit} selecionadas` : ""}
+              </StatusBadge>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -531,7 +549,22 @@ const GaleriaDetailPage = () => {
                 />
               </div>
 
-              <div className="space-y-2">
+              {gallery.gallery_type === "selection" && (
+                <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <StatusBadge tone={selStatus.tone}>{selStatus.label}</StatusBadge>
+                    <p className="text-xs text-muted-foreground">
+                      {selCount} de {gallery.selection_limit ?? "-"} selecionadas
+                      {selFinalizedAt && ` · Finalizada em ${new Date(selFinalizedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}`}
+                    </p>
+                  </div>
+                  {selLocked && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setReopenOpen(true)}>Reabrir seleção</Button>
+                  )}
+                </div>
+              )}
+
+              <div className={`space-y-2 ${selLocked ? "pointer-events-none opacity-60" : ""}`} aria-disabled={selLocked}>
                 <SearchSelect
                   label="Tipo da galeria"
                   options={[
@@ -553,6 +586,7 @@ const GaleriaDetailPage = () => {
                     min={Math.max(1, selCount)}
                     step={1}
                     value={selLimit}
+                    disabled={selLocked}
                     onChange={(e) => setSelLimit(e.target.value)}
                     placeholder="30"
                     className="bg-muted border-border"
@@ -563,6 +597,18 @@ const GaleriaDetailPage = () => {
                   </p>
                 </div>
               )}
+              {selLocked && (
+                <p className="text-xs text-muted-foreground">Reabra a seleção para alterar o tipo ou o limite.</p>
+              )}
+              <ConfirmDialog
+                open={reopenOpen}
+                onOpenChange={setReopenOpen}
+                title="Reabrir seleção?"
+                description="O cliente poderá alterar novamente as fotos selecionadas. As escolhas atuais serão preservadas."
+                confirmLabel="Reabrir seleção"
+                loading={reopening}
+                onConfirm={handleReopen}
+              />
 
               <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
                 <div>

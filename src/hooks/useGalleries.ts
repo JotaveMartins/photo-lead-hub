@@ -24,6 +24,7 @@ export interface Gallery {
   cover_media_id: string | null;
   download_enabled: boolean;
   selection_limit: number | null;
+  selection_finalized_at: string | null;
   download_quality: string;
   storage_bytes: number;
   media_count: number;
