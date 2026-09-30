@@ -2,6 +2,7 @@ import { getLocalDateStr } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { FormActions } from "@/components/ui/form-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -371,14 +372,7 @@ const NovaDespesaModal = ({ open, onOpenChange, despesa }: NovaDespesaModalProps
             </>
           )}
 
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => { resetForm(); onOpenChange(false); }}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="flex-1" disabled={isPending}>
-              {isPending ? "Salvando..." : isEditing ? "Salvar" : "Adicionar"}
-            </Button>
-          </div>
+          <FormActions onCancel={() => { resetForm(); onOpenChange(false); }} loading={isPending} submitLabel={isEditing ? "Salvar" : "Adicionar"} />
         </form>
       </DialogContent>
     </Dialog>
