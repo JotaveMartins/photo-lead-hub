@@ -1,5 +1,4 @@
  import { Toaster } from "@/components/ui/toaster";
- import IAPage from "./pages/IAPage";
  import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
 import IntegracoesPage from "./pages/IntegracoesPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
