@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { UserPlus, Bell, Trash2, RotateCcw, Trash } from "lucide-react";
 import { useClientes, useDeleteCliente, useDeletedClientes, useRestoreCliente, usePermanentDeleteCliente, type Cliente } from "@/hooks/useClientes";
@@ -144,7 +144,7 @@ const ClientesPage = () => {
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => restoreCliente.mutate(c.id)}>
                       <RotateCcw className="w-3 h-3" /> Restaurar
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" title="Excluir permanentemente" onClick={() => setPermDeleteTarget(c)}>
+                    <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive" title="Excluir permanentemente" aria-label="Excluir permanentemente" onClick={() => setPermDeleteTarget(c)}>
                       <Trash className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -172,10 +172,10 @@ const ClientesPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "destructive" })}
               onClick={() => { if (permDeleteTarget) { permanentDeleteCliente.mutate(permDeleteTarget.id); setPermDeleteTarget(null); } }}
             >
-              Excluir
+              Excluir permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
