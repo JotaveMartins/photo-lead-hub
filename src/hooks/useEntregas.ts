@@ -121,8 +121,43 @@ export const useDeleteEntrega = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["entregas"] });
       queryClient.invalidateQueries({ queryKey: ["entrega"] });
-      toast.success("Entrega removida");
+      toast.success("Entrega arquivada");
     },
-    onError: (e: any) => toast.error("Erro ao remover entrega: " + (e?.message || "tente novamente")),
+    onError: (e: any) => toast.error("Erro ao arquivar entrega: " + (e?.message || "tente novamente")),
   });
 };
+/** Entregas arquivadas (lixeira). */
+export const useDeletedEntregas = () => {
+  const effectiveUserId = useEffectiveUserId();
+  return useQuery({
+    queryKey: ["entregas", "deleted", effectiveUserId],
+    enabled: !!effectiveUserId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("entregas")
+        .select(SELECT)
+        .eq("user_id", effectiveUserId!)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as Entrega[];
+    },
+  });
+};
+
+export const useRestoreEntrega = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("entregas").update({ deleted_at: null }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["entregas"] });
+      toast.success("Entrega restaurada");
+    },
+    onError: (e: any) => toast.error("Erro ao restaurar entrega: " + (e?.message || "tente novamente")),
+  });
+};
+// Exclusão permanente de Entrega NÃO é oferecida: galleries.entrega_id tem ON DELETE CASCADE
+// e apagaria a galeria/fotos. Apenas arquivar/restaurar (Sprint 02).

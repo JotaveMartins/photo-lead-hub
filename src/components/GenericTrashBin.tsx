@@ -21,7 +21,8 @@ interface TrashItem {
 interface GenericTrashBinProps {
   items: TrashItem[];
   onRestore: (id: string) => void;
-  onPermanentDelete: (id: string) => void;
+  /** Omitir para esconder a exclusão permanente. */
+  onPermanentDelete?: (id: string) => void;
   isRestoring?: boolean;
   title?: string;
   entityName?: string;
@@ -97,7 +98,7 @@ const GenericTrashBin = ({
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </Button>
-                    <Button
+                    {onPermanentDelete && <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive"
@@ -105,7 +106,7 @@ const GenericTrashBin = ({
                       title="Excluir permanentemente"
                     >
                       <X className="w-3.5 h-3.5" />
-                    </Button>
+                    </Button>}
                   </div>
                 </div>
               ))
@@ -128,7 +129,7 @@ const GenericTrashBin = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (deletingId) { onPermanentDelete(deletingId); setDeletingId(null); } }}
+              onClick={() => { if (deletingId) { onPermanentDelete?.(deletingId); setDeletingId(null); } }}
               className="bg-destructive hover:bg-destructive/90"
             >
               Excluir permanentemente

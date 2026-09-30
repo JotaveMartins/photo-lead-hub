@@ -4,7 +4,9 @@ import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images } from "luci
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
-import { ENTREGA_ETAPAS, useEntregas, useUpdateEntrega, type Entrega, type EntregaEtapa } from "@/hooks/useEntregas";
+import GenericTrashBin from "@/components/GenericTrashBin";
+import { PageHeader } from "@/components/ui/page-header";
+import { ENTREGA_ETAPAS, useEntregas, useDeletedEntregas, useRestoreEntrega, useUpdateEntrega, type Entrega, type EntregaEtapa } from "@/hooks/useEntregas";
 import { useEntregaCovers, useCreateGallery } from "@/hooks/useGalleries";
 import { parseLocalDate } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
@@ -17,6 +19,8 @@ const EntregasPage = () => {
   const { data: covers = {} } = useEntregaCovers();
   const createGallery = useCreateGallery();
   const updateEntrega = useUpdateEntrega();
+  const { data: deletedEntregas = [] } = useDeletedEntregas();
+  const restoreEntrega = useRestoreEntrega();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -48,7 +52,9 @@ const EntregasPage = () => {
 
   const openNew = () => { setSelected(null); setDrawerOpen(true); };
 
-  /** Clicar no card abre direto as fotos da entrega (cria a galeria se ainda não existir). */
+  const openEdit = (e: Entrega) => { setSelected(e); setDrawerOpen(true); };
+
+  /** Botão "Fotos": abre a galeria da entrega (cria só quando o usuário pede). */
   const openFotos = async (e: Entrega) => {
     const existing = covers[e.id]?.galleryId;
     if (existing) { navigate(`/galerias/${existing}`); return; }
@@ -74,24 +80,29 @@ const EntregasPage = () => {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Package className="w-6 h-6 text-primary" /> Funil de Entregas
-          </h1>
-          <p className="text-sm text-muted-foreground">Acompanhe o pós-venda: do ensaio à entrega final</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Funil de Entregas"
+        description="Acompanhe o pós-venda: do ensaio à entrega final"
+        secondaryActions={
+          <GenericTrashBin
+            title="Entregas arquivadas"
+            entityName="entrega"
+            items={deletedEntregas.map((d) => ({ id: d.id, label: d.titulo, sublabel: d.clientes?.nome || undefined, deleted_at: d.deleted_at as string }))}
+            onRestore={(id) => restoreEntrega.mutate(id)}
+            isRestoring={restoreEntrega.isPending}
+          />
+        }
+        action={
+          <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova entrega</Button>
+        }
+      />
+      <div className="flex items-center gap-2">
           <SearchInput
             value={search}
             onValueChange={setSearch}
             placeholder="Buscar entrega ou cliente..."
             containerClassName="w-full sm:w-64"
           />
-          <Button className="bg-gradient-primary hover:opacity-90 gap-2 shrink-0" onClick={openNew}>
-            <Plus className="w-4 h-4" /> Nova entrega
-          </Button>
-        </div>
       </div>
 
       {isLoading ? (
@@ -131,7 +142,7 @@ const EntregasPage = () => {
                         key={e.id}
                         draggable
                         onDragStart={(ev) => ev.dataTransfer.setData("text/plain", e.id)}
-                        onClick={() => openFotos(e)}
+                        onClick={() => openEdit(e)}
                         className="relative w-full text-left bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-lg overflow-hidden transition-colors cursor-grab active:cursor-grabbing"
                       >
                         <div className="relative aspect-[16/9] w-full bg-muted/60">
@@ -157,7 +168,7 @@ const EntregasPage = () => {
 
                         <div className="p-2.5">
                           <p className="text-sm font-medium text-foreground truncate">
-                            {opening === e.id ? "Abrindo fotos..." : e.titulo}
+                            {e.titulo}
                           </p>
                           {e.clientes?.nome && (
                             <p className="text-xs text-muted-foreground truncate">{e.clientes.nome}</p>
@@ -178,6 +189,16 @@ const EntregasPage = () => {
                               </span>
                             )}
                           </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 w-full h-9 gap-1 text-xs"
+                            disabled={opening === e.id}
+                            onClick={(ev) => { ev.stopPropagation(); openFotos(e); }}
+                          >
+                            <Images className="w-3.5 h-3.5" />
+                            {opening === e.id ? "Abrindo..." : info?.galleryId ? "Fotos" : "Criar espaço de fotos"}
+                          </Button>
                         </div>
                       </div>
                     );
