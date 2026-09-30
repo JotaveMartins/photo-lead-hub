@@ -192,19 +192,23 @@ const DespesasPage = () => {
 
       {/* Search + Filters + Month Nav */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
-          <SearchInput
-            containerClassName="w-64"
-            value={search}
-            onValueChange={setSearch}
-            placeholder="Buscar por descrição, categoria..."
-            className="bg-muted border-border h-9"
-          />
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={prevMonth} aria-label="Mês anterior" title="Mês anterior"><ChevronLeft className="w-4 h-4" /></Button>
-            <span className="text-sm font-medium text-foreground min-w-[140px] text-center uppercase">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</span>
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={nextMonth} aria-label="Próximo mês" title="Próximo mês"><ChevronRight className="w-4 h-4" /></Button>
-            <span className="text-sm text-muted-foreground ml-2">{filtered.length} despesas</span>
+            <Button variant="outline" size="icon" className="h-10 w-10" onClick={prevMonth} aria-label="Mês anterior" title="Mês anterior"><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="text-sm font-medium capitalize min-w-[120px] text-center">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</span>
+            {despesas.length > 0 && (
+              <span className="text-xs bg-primary/20 text-primary rounded-full px-2 py-0.5">{despesas.length}</span>
+            )}
+            <Button variant="outline" size="icon" className="h-10 w-10" onClick={nextMonth} aria-label="Próximo mês" title="Próximo mês"><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <SearchInput
+              containerClassName="flex-1 md:w-64"
+              value={search}
+              onValueChange={setSearch}
+              placeholder="Buscar por descrição, categoria..."
+              className="bg-muted border-border"
+            />
           </div>
         </div>
 
