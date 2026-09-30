@@ -787,6 +787,7 @@ export type Database = {
           name: string
           password_hash: string | null
           published_at: string | null
+          selection_finalized_at: string | null
           selection_limit: number | null
           slug: string
           status: Database["public"]["Enums"]["gallery_status"]
@@ -813,6 +814,7 @@ export type Database = {
           name: string
           password_hash?: string | null
           published_at?: string | null
+          selection_finalized_at?: string | null
           selection_limit?: number | null
           slug: string
           status?: Database["public"]["Enums"]["gallery_status"]
@@ -839,6 +841,7 @@ export type Database = {
           name?: string
           password_hash?: string | null
           published_at?: string | null
+          selection_finalized_at?: string | null
           selection_limit?: number | null
           slug?: string
           status?: Database["public"]["Enums"]["gallery_status"]
@@ -2400,6 +2403,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      finalize_gallery_selection: {
+        Args: { _gallery_id: string }
+        Returns: Json
+      }
       get_public_gallery: {
         Args: { _slug: string }
         Returns: {
@@ -2416,6 +2423,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reopen_gallery_selection: {
+        Args: { _gallery_id: string }
+        Returns: undefined
       }
       set_gallery_password: {
         Args: { _gallery_id: string; _password: string }

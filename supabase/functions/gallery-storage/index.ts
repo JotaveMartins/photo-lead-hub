@@ -266,6 +266,16 @@ Deno.serve(async (req) => {
 
     if (action === "delete-media") {
       if (!media) return json({ error: "Foto não encontrada" }, 404);
+      // Foto de seleção finalizada: recusar ANTES de apagar qualquer arquivo no R2.
+      const { data: lockedSel } = await admin
+        .from("gallery_selections")
+        .select("id, galleries!inner(selection_finalized_at)")
+        .eq("media_id", media.id)
+        .not("galleries.selection_finalized_at", "is", null)
+        .limit(1);
+      if (lockedSel && lockedSel.length) {
+        return json({ error: "Esta foto faz parte de uma seleção finalizada. Reabra a seleção antes de excluí-la." }, 409);
+      }
       const keys = [media.original_key, media.preview_key, media.thumbnail_key].filter(Boolean);
       await Promise.all(
         keys.map((k: string) => aws().fetch(objectUrl(k), { method: "DELETE" }).catch(() => null)),
