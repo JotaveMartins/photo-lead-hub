@@ -779,24 +779,6 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                </span>
              )}
  
-             {false /* IA desativada */ && aiGloballyActive && (
-             <div className="flex items-center gap-2 ml-auto">
-               {(lead as any).ai_paused ? (
-                 <>
-                   <div className="flex items-center gap-1 bg-destructive/10 text-destructive text-[10px] font-bold px-2 py-0.5 rounded-full border border-destructive/20">
-                     <Pause className="w-3 h-3" /> IA Pausada
-                   </div>
-                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleFieldSave("ai_paused", false)}>
-                     <Play className="w-3 h-3" /> Retomar IA
-                   </Button>
-                 </>
-               ) : (
-                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-primary border-primary/30" onClick={handlePauseAI}>
-                   <Pause className="w-3 h-3" /> Pausar IA
-                 </Button>
-               )}
-             </div>
-             )}
             {lead.status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
               <Button size="sm" variant="outline" className="gap-1 h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => {
