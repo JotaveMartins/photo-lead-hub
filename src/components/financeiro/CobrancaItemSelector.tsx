@@ -10,6 +10,10 @@ import { Plus } from "lucide-react";
  * Seletor único de Serviço/Pacote usado na criação e edição de cobranças.
  * Retorna tipo + id + nome + preço. A descrição/valor da cobrança são snapshots
  * e não dependem do item após a criação.
+ *
+ * DÉBITO (Sprint 04): dropdown pesquisável próprio; o Design System define SearchSelect.
+ * Avaliar (A) reimplementar sobre SearchSelect ou (B) formalizar como componente oficial
+ * (grupos Serviço/Pacote + criação rápida) no README-padroes.md.
  */
 export type CobrancaItemType = "service" | "package";
 export interface CobrancaItem {
