@@ -267,13 +267,16 @@ Deno.serve(async (req) => {
     if (action === "delete-media") {
       if (!media) return json({ error: "Foto não encontrada" }, 404);
       // Foto de seleção finalizada: recusar ANTES de apagar qualquer arquivo no R2.
-      const { data: lockedSel } = await admin
+      const { data: lockedSel, error: lockErr } = await admin
         .from("gallery_selections")
         .select("id, galleries!inner(selection_finalized_at)")
         .eq("media_id", media.id)
         .not("galleries.selection_finalized_at", "is", null)
         .limit(1);
-      if (lockedSel && lockedSel.length) {
+      if (lockErr || !Array.isArray(lockedSel)) {
+        return json({ error: "Não foi possível validar a foto antes da exclusão. Tente novamente." }, 503);
+      }
+      if (lockedSel.length) {
         return json({ error: "Esta foto faz parte de uma seleção finalizada. Reabra a seleção antes de excluí-la." }, 409);
       }
       const keys = [media.original_key, media.preview_key, media.thumbnail_key].filter(Boolean);
@@ -325,7 +328,7 @@ Deno.serve(async (req) => {
     if (action === "get-cover-urls") {
       const { data: gals } = await admin
         .from("galleries")
-        .select("id, entrega_id, cover_media_id, media_count, status")
+        .select("id, entrega_id, cover_media_id, media_count, status, gallery_type, selection_limit, selection_finalized_at")
         .eq("user_id", user.id)
         .is("deleted_at", null);
 
@@ -351,7 +354,15 @@ Deno.serve(async (req) => {
           }),
         );
       }
-      return json({ galleries: gals ?? [], covers });
+      // Contagem da seleção oficial em lote (uma consulta para todas as galerias de seleção).
+      const selIds = (gals ?? []).filter((g: any) => g.gallery_type === "selection").map((g: any) => g.id);
+      const selCounts: Record<string, number> = {};
+      if (selIds.length) {
+        const { data: sels } = await admin.from("gallery_selections").select("gallery_id").in("gallery_id", selIds);
+        for (const s of sels ?? []) selCounts[(s as any).gallery_id] = (selCounts[(s as any).gallery_id] ?? 0) + 1;
+      }
+      const galleriesOut = (gals ?? []).map((g: any) => ({ ...g, selection_count: selCounts[g.id] ?? 0 }));
+      return json({ galleries: galleriesOut, covers });
     }
 
     if (action === "cleanup-pending") {

@@ -80,7 +80,11 @@ export const StorageService = {
   /** Capas de todas as galerias do usuário (uma chamada só). */
   getCoverUrls: () =>
     call<{
-      galleries: { id: string; entrega_id: string | null; media_count: number; status: string }[];
+      galleries: {
+        id: string; entrega_id: string | null; media_count: number; status: string;
+        gallery_type: "delivery" | "selection"; selection_limit: number | null;
+        selection_finalized_at: string | null; selection_count: number;
+      }[];
       covers: Record<string, string | null>;
     }>("get-cover-urls", {}),
 };
