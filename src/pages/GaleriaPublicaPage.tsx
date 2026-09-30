@@ -28,7 +28,7 @@ interface PublicData {
   selected_media_ids?: string[];
   token?: string | null;
   preview?: boolean;
-  gallery?: { name: string; event_date: string | null; download_enabled: boolean; gallery_type?: "delivery" | "selection"; selection_limit?: number | null; media_count: number; cover_url: string | null };
+  gallery?: { name: string; event_date: string | null; download_enabled: boolean; gallery_type?: "delivery" | "selection"; selection_limit?: number | null; selection_finalized_at?: string | null; media_count: number; cover_url: string | null };
   photographer?: { nome: string | null; logo: string | null };
   sections?: { id: string; name: string; sort_order: number }[];
   photos?: PublicPhoto[];
@@ -84,6 +84,11 @@ const GaleriaPublicaPage = () => {
   const [favError, setFavError] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selMsg, setSelMsg] = useState("");
+  const [finalizedAt, setFinalizedAt] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const [justSent, setJustSent] = useState(false);
   const visitorId = useMemo(() => (slug ? getVisitorId(slug) : ""), [slug]);
 
   // noindex para galerias de clientes
@@ -108,6 +113,7 @@ const GaleriaPublicaPage = () => {
     }
     if (data?.favorite_media_ids) setFavorites(new Set(data.favorite_media_ids));
     if (data?.selected_media_ids) setSelected(new Set(data.selected_media_ids));
+    setFinalizedAt(data?.gallery?.selection_finalized_at ?? null);
     if (data?.gallery?.name) document.title = data.gallery.name;
   }, [data, slug]);
 
@@ -147,11 +153,13 @@ const GaleriaPublicaPage = () => {
 
   const isSelection = data?.gallery?.gallery_type === "selection" && !!data?.gallery?.selection_limit;
   const selLimit = data?.gallery?.selection_limit ?? 0;
-  const selReadOnly = isPreview || !!data?.preview;
+  const isFinalized = !!finalizedAt;
+  const selReadOnly = isPreview || !!data?.preview || isFinalized;
   const flashSel = (m: string) => { setSelMsg(m); setTimeout(() => setSelMsg(""), 3500); };
 
   const toggleSelection = useCallback(
     async (mediaId: string) => {
+      if (isFinalized) { flashSel("Esta seleção já foi finalizada."); return; }
       if (selReadOnly) { flashSel("Pré-visualização: a seleção não pode ser alterada aqui."); return; }
       const was = selected.has(mediaId);
       if (!was && selected.size >= selLimit) { flashSel(`Você já selecionou o limite de ${selLimit} fotos.`); return; }
@@ -163,14 +171,32 @@ const GaleriaPublicaPage = () => {
       apply(!was);
       try {
         const res: any = await callPublic({ action: "selection", slug, token, mediaId, selected: !was } as any);
-        if (res?.error) throw new Error(res.limit ? res.error : "");
+        if (res?.finalized) setFinalizedAt(new Date().toISOString());
+        if (res?.error) throw new Error(res.limit || res.finalized ? res.error : "");
       } catch (e: any) {
         apply(was);
         flashSel(e?.message || "Não foi possível salvar a seleção. Tente novamente.");
       }
     },
-    [selected, selLimit, selReadOnly, slug, token],
+    [selected, selLimit, selReadOnly, isFinalized, slug, token],
   );
+
+  const finalizeSelection = async () => {
+    if (finalizing || selReadOnly) return;
+    setFinalizing(true);
+    try {
+      const res: any = await callPublic({ action: "finalize-selection", slug, token } as any);
+      if (!res?.ok) throw new Error(res?.error || "");
+      setFinalizedAt(res.finalized_at ?? new Date().toISOString());
+      setConfirmOpen(false);
+      setJustSent(true);
+    } catch (e: any) {
+      setConfirmOpen(false);
+      flashSel(e?.message || "Não foi possível finalizar a seleção. Tente novamente.");
+    } finally {
+      setFinalizing(false);
+    }
+  };
 
   const photos = useMemo(() => {
     const all = data?.photos ?? [];
@@ -430,6 +456,7 @@ const GaleriaPublicaPage = () => {
                       type="button"
                       aria-label={sel ? "Remover da seleção" : "Selecionar foto"}
                       aria-pressed={sel}
+                      disabled={isFinalized}
                       onClick={(e) => { e.stopPropagation(); toggleSelection(p.id); }}
                       className="absolute left-1 top-1 flex h-11 w-11 items-center justify-center"
                     >
@@ -465,10 +492,116 @@ const GaleriaPublicaPage = () => {
         {photographerName || "Galeria"}
       </footer>
 
-      {isSelection && !current && (
+      {isSelection && !current && !reviewOpen && (
         <div className="fixed inset-x-0 bottom-3 z-40 flex justify-center px-3 pointer-events-none">
-          <div className="pointer-events-auto rounded-full bg-[#1c1917]/95 px-5 py-2.5 text-center text-xs text-white shadow-lg" aria-live="polite">
-            {selMsg || `${selected.size} de ${selLimit} selecionadas${selected.size >= selLimit ? " · Limite atingido" : ""}`}
+          <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-full bg-[#1c1917]/95 py-1.5 pl-5 pr-1.5 text-xs text-white shadow-lg" aria-live="polite">
+            <span className="min-w-0 truncate py-2">
+              {selMsg || (isFinalized
+                ? `Seleção enviada · ${selected.size} ${selected.size === 1 ? "foto" : "fotos"}`
+                : `${selected.size} de ${selLimit} selecionadas${selected.size >= selLimit ? " · Limite atingido" : ""}`)}
+            </span>
+            {(isFinalized || selected.size > 0) ? (
+              <button
+                type="button"
+                onClick={() => { setReviewOpen(true); setJustSent(false); }}
+                className="min-h-10 shrink-0 rounded-full bg-white px-4 text-xs font-medium text-[#1c1917]"
+              >
+                {isFinalized ? "Ver seleção" : "Revisar seleção"}
+              </button>
+            ) : <span className="pr-3.5" />}
+          </div>
+        </div>
+      )}
+
+      {/* Revisão da seleção */}
+      {isSelection && reviewOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#fafaf9] text-[#1c1917]">
+          <div className="flex items-center justify-between border-b border-[#eeece9] px-4 py-3">
+            <button type="button" onClick={() => setReviewOpen(false)} className="flex min-h-11 items-center gap-1 text-xs uppercase tracking-[0.15em] text-[#44403c]">
+              <ChevronLeft className="h-4 w-4" /> {isFinalized ? "Voltar" : "Voltar e ajustar"}
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-3 pb-6">
+            <div className="mx-auto max-w-2xl px-3 py-8 text-center">
+              {isFinalized ? (
+                <>
+                  <h2 className="font-display text-2xl font-light">Seleção enviada</h2>
+                  <p className="mt-2 text-sm text-[#78716c]">
+                    Suas {selected.size} fotografias foram enviadas ao fotógrafo.
+                  </p>
+                  {finalizedAt && (
+                    <p className="mt-1 text-xs text-[#a8a29e]">
+                      {format(new Date(finalizedAt), "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2 className="font-display text-2xl font-light">Revise sua seleção</h2>
+                  <p className="mt-2 text-sm text-[#78716c]">Você selecionou {selected.size} de {selLimit} fotografias.</p>
+                </>
+              )}
+            </div>
+            {selected.size ? (
+              <div className="mx-auto grid max-w-[1200px] grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-6">
+                {(data?.photos ?? []).filter((p) => selected.has(p.id)).map((p) => (
+                  <div key={p.id} className="relative aspect-[4/5] overflow-hidden bg-[#f5f5f4]">
+                    {p.thumbnail_url && <img src={p.thumbnail_url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />}
+                    {!selReadOnly && (
+                      <button
+                        type="button"
+                        aria-label="Remover da seleção"
+                        onClick={() => toggleSelection(p.id)}
+                        className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center"
+                      >
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white"><X className="h-4 w-4" /></span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="py-10 text-center text-sm text-[#78716c]">Selecione pelo menos uma fotografia antes de finalizar.</p>
+            )}
+          </div>
+          {!isFinalized && (
+            <div className="border-t border-[#eeece9] bg-[#fafaf9] px-4 py-3">
+              {selMsg && <p className="mb-2 text-center text-xs text-[#b91c1c]">{selMsg}</p>}
+              <div className="mx-auto flex max-w-md gap-2">
+                <button type="button" onClick={() => setReviewOpen(false)} className="min-h-11 flex-1 rounded-full border border-[#d6d3d1] px-4 text-xs uppercase tracking-[0.12em] text-[#44403c]">
+                  Voltar e ajustar
+                </button>
+                <button
+                  type="button"
+                  disabled={!selected.size || selReadOnly}
+                  onClick={() => setConfirmOpen(true)}
+                  className="min-h-11 flex-1 rounded-full bg-[#1c1917] px-4 text-xs uppercase tracking-[0.12em] text-white disabled:opacity-40"
+                >
+                  Finalizar seleção
+                </button>
+              </div>
+              {selReadOnly && <p className="mt-2 text-center text-[11px] text-[#a8a29e]">Pré-visualização: não é possível finalizar aqui.</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Confirmação final */}
+      {confirmOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-3 sm:items-center" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center text-[#1c1917] shadow-xl">
+            <h3 className="font-display text-xl">Finalizar seleção?</h3>
+            <p className="mt-3 text-sm text-[#57534e]">
+              Você selecionou {selected.size} fotografias. Depois de enviar, a seleção ficará bloqueada até que o fotógrafo a reabra.
+            </p>
+            <div className="mt-6 flex gap-2">
+              <button type="button" onClick={() => setConfirmOpen(false)} disabled={finalizing} className="min-h-11 flex-1 rounded-full border border-[#d6d3d1] text-xs uppercase tracking-[0.12em]">
+                Voltar
+              </button>
+              <button type="button" onClick={finalizeSelection} disabled={finalizing} className="min-h-11 flex-1 rounded-full bg-[#1c1917] text-xs uppercase tracking-[0.12em] text-white disabled:opacity-60">
+                {finalizing ? "Enviando..." : "Finalizar seleção"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -482,6 +615,7 @@ const GaleriaPublicaPage = () => {
               {isSelection && (
                 <button
                   onClick={() => toggleSelection(current.id)}
+                  disabled={isFinalized}
                   aria-pressed={selected.has(current.id)}
                   className={`flex min-h-11 items-center gap-2 rounded-full px-3 text-xs sm:px-4 ${selected.has(current.id) ? "bg-white text-[#1c1917]" : "bg-white/10 hover:bg-white/20"}`}
                 >
