@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Download, Heart, ImageOff, Lock, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Download, Heart, ImageOff, Lock, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/utils";
@@ -25,9 +25,10 @@ interface PublicPhoto {
 interface PublicData {
   state: "ok" | "password" | "unavailable" | "expired" | "not_found";
   favorite_media_ids?: string[];
+  selected_media_ids?: string[];
   token?: string | null;
   preview?: boolean;
-  gallery?: { name: string; event_date: string | null; download_enabled: boolean; media_count: number; cover_url: string | null };
+  gallery?: { name: string; event_date: string | null; download_enabled: boolean; gallery_type?: "delivery" | "selection"; selection_limit?: number | null; media_count: number; cover_url: string | null };
   photographer?: { nome: string | null; logo: string | null };
   sections?: { id: string; name: string; sort_order: number }[];
   photos?: PublicPhoto[];
@@ -81,6 +82,8 @@ const GaleriaPublicaPage = () => {
   const [broken, setBroken] = useState<Record<string, boolean>>({});
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [favError, setFavError] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selMsg, setSelMsg] = useState("");
   const visitorId = useMemo(() => (slug ? getVisitorId(slug) : ""), [slug]);
 
   // noindex para galerias de clientes
@@ -104,6 +107,7 @@ const GaleriaPublicaPage = () => {
       setToken(data.token);
     }
     if (data?.favorite_media_ids) setFavorites(new Set(data.favorite_media_ids));
+    if (data?.selected_media_ids) setSelected(new Set(data.selected_media_ids));
     if (data?.gallery?.name) document.title = data.gallery.name;
   }, [data, slug]);
 
@@ -139,6 +143,33 @@ const GaleriaPublicaPage = () => {
       }
     },
     [favorites, slug, token, visitorId],
+  );
+
+  const isSelection = data?.gallery?.gallery_type === "selection" && !!data?.gallery?.selection_limit;
+  const selLimit = data?.gallery?.selection_limit ?? 0;
+  const selReadOnly = isPreview || !!data?.preview;
+  const flashSel = (m: string) => { setSelMsg(m); setTimeout(() => setSelMsg(""), 3500); };
+
+  const toggleSelection = useCallback(
+    async (mediaId: string) => {
+      if (selReadOnly) { flashSel("Pré-visualização: a seleção não pode ser alterada aqui."); return; }
+      const was = selected.has(mediaId);
+      if (!was && selected.size >= selLimit) { flashSel(`Você já selecionou o limite de ${selLimit} fotos.`); return; }
+      const apply = (add: boolean) => setSelected((prev) => {
+        const next = new Set(prev);
+        if (add) next.add(mediaId); else next.delete(mediaId);
+        return next;
+      });
+      apply(!was);
+      try {
+        const res: any = await callPublic({ action: "selection", slug, token, mediaId, selected: !was } as any);
+        if (res?.error) throw new Error(res.limit ? res.error : "");
+      } catch (e: any) {
+        apply(was);
+        flashSel(e?.message || "Não foi possível salvar a seleção. Tente novamente.");
+      }
+    },
+    [selected, selLimit, selReadOnly, slug, token],
   );
 
   const photos = useMemo(() => {
@@ -337,6 +368,13 @@ const GaleriaPublicaPage = () => {
         )}
       </div>
 
+      {isSelection && (
+        <div className="mx-auto -mt-6 mb-10 max-w-md px-6 text-center">
+          <p className="font-display text-lg">Selecione suas fotos</p>
+          <p className="mt-1 text-xs text-[#78716c]">Escolha até {selLimit} fotografias.</p>
+        </div>
+      )}
+
       {/* Seções + favoritas */}
       <div className="mx-auto mb-8 flex max-w-5xl flex-wrap justify-center gap-x-6 gap-y-3 px-6">
         {[
@@ -368,8 +406,9 @@ const GaleriaPublicaPage = () => {
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4">
             {photos.map((p, i) => {
               const fav = favorites.has(p.id);
+              const sel = isSelection && selected.has(p.id);
               return (
-                <div key={p.id} className="group relative aspect-[4/5] overflow-hidden bg-[#f5f5f4]">
+                <div key={p.id} className={`group relative aspect-[4/5] overflow-hidden bg-[#f5f5f4] ${sel ? "ring-2 ring-inset ring-[#1c1917]" : ""}`}>
                   <button onClick={() => setLightbox(i)} className="block h-full w-full">
                     {p.thumbnail_url && !broken[p.id] ? (
                       <img
@@ -386,6 +425,19 @@ const GaleriaPublicaPage = () => {
                       </div>
                     )}
                   </button>
+                  {isSelection && (
+                    <button
+                      type="button"
+                      aria-label={sel ? "Remover da seleção" : "Selecionar foto"}
+                      aria-pressed={sel}
+                      onClick={(e) => { e.stopPropagation(); toggleSelection(p.id); }}
+                      className="absolute left-1 top-1 flex h-11 w-11 items-center justify-center"
+                    >
+                      <span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 shadow-[0_1px_3px_rgba(0,0,0,0.4)] ${sel ? "border-white bg-[#1c1917]" : "border-white/90 bg-black/15"}`}>
+                        {sel && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
+                      </span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     aria-label={fav ? "Remover das favoritas" : "Adicionar às favoritas"}
@@ -408,21 +460,40 @@ const GaleriaPublicaPage = () => {
         <p className="pb-24 text-center text-sm text-[#a8a29e]">Esta galeria ainda não possui fotografias.</p>
       )}
 
+      {isSelection && <div className="h-16" />}
       <footer className="border-t border-[#eeece9] py-8 text-center text-[11px] uppercase tracking-[0.25em] text-[#a8a29e]">
         {photographerName || "Galeria"}
       </footer>
+
+      {isSelection && !current && (
+        <div className="fixed inset-x-0 bottom-3 z-40 flex justify-center px-3 pointer-events-none">
+          <div className="pointer-events-auto rounded-full bg-[#1c1917]/95 px-5 py-2.5 text-center text-xs text-white shadow-lg" aria-live="polite">
+            {selMsg || `${selected.size} de ${selLimit} selecionadas${selected.size >= selLimit ? " · Limite atingido" : ""}`}
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {current && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
           <div className="flex items-center justify-between px-4 py-3 text-white/80">
             <span className="text-xs">{(lightbox ?? 0) + 1} / {photos.length}</span>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+              {isSelection && (
+                <button
+                  onClick={() => toggleSelection(current.id)}
+                  aria-pressed={selected.has(current.id)}
+                  className={`flex min-h-11 items-center gap-2 rounded-full px-3 text-xs sm:px-4 ${selected.has(current.id) ? "bg-white text-[#1c1917]" : "bg-white/10 hover:bg-white/20"}`}
+                >
+                  <Check className="h-4 w-4" />
+                  {selected.has(current.id) ? "Selecionada" : "Selecionar"}
+                </button>
+              )}
               <button
                 onClick={() => toggleFavorite(current.id)}
                 aria-label={favorites.has(current.id) ? "Remover das favoritas" : "Adicionar às favoritas"}
                 aria-pressed={favorites.has(current.id)}
-                className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs hover:bg-white/20"
+                className="flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-3 text-xs hover:bg-white/20 sm:px-4"
               >
                 <Heart className={`h-4 w-4 ${favorites.has(current.id) ? "fill-white text-white" : ""}`} />
                 Favorita
@@ -430,16 +501,18 @@ const GaleriaPublicaPage = () => {
               {g.download_enabled && (
                 <button
                   onClick={() => downloadPhoto(current.id)}
-                  className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs hover:bg-white/20"
+                  aria-label="Baixar"
+                  className="flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-3 text-xs hover:bg-white/20 sm:px-4"
                 >
-                  <Download className="h-4 w-4" /> Baixar
+                  <Download className="h-4 w-4" /> <span className="hidden sm:inline">Baixar</span>
                 </button>
               )}
-              <button onClick={close} className="rounded-full bg-white/10 p-2 hover:bg-white/20" aria-label="Fechar">
+              <button onClick={close} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20" aria-label="Fechar">
                 <X className="h-5 w-5" />
               </button>
             </div>
           </div>
+          {isSelection && selMsg && <p className="px-4 pb-2 text-center text-xs text-white/80">{selMsg}</p>}
           <div
             className="relative flex flex-1 items-center justify-center overflow-hidden px-2 pb-6"
             onTouchStart={onTouchStart}
