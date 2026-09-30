@@ -525,7 +525,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                               <p className="text-xs">{taskConfig.label}</p>
                             </TooltipContent>
                           </Tooltip>
-                           {(lead as any).ai_paused && (
+                           {false && (lead as any).ai_paused && (
                              <Tooltip>
                                <TooltipTrigger asChild>
                                  <Bot className="w-3.5 h-3.5 text-destructive cursor-help" />

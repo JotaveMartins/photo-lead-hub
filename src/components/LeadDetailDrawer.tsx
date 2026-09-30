@@ -779,7 +779,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                </span>
              )}
  
-             {aiGloballyActive && (
+             {false /* IA desativada */ && aiGloballyActive && (
              <div className="flex items-center gap-2 ml-auto">
                {(lead as any).ai_paused ? (
                  <>
