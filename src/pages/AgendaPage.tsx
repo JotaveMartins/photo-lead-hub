@@ -433,7 +433,9 @@ const AgendaPage = () => {
           </div>
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
-            {filteredEvents.length === 0 ? (
+            {eventsError ? (
+              <ErrorState title="Não foi possível carregar os eventos" onRetry={() => refetchEvents()} />
+            ) : filteredEvents.length === 0 ? (
               events.length === 0 ? (
                 <EmptyState icon={CalendarIcon} title="Nenhum evento cadastrado" description="Crie o primeiro evento da sua agenda." action={<Button onClick={() => openModal()}><Plus className="w-4 h-4 mr-1" /> Novo Evento</Button>} />
               ) : (
@@ -655,7 +657,9 @@ const AgendaPage = () => {
           </div>
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
-            {filteredEvents.length === 0 ? (
+            {eventsError ? (
+              <ErrorState title="Não foi possível carregar os eventos" onRetry={() => refetchEvents()} />
+            ) : filteredEvents.length === 0 ? (
               events.length === 0 ? (
                 <EmptyState icon={CalendarIcon} title="Nenhum evento cadastrado" description="Crie o primeiro evento da sua agenda." action={<Button onClick={() => openModal()}><Plus className="w-4 h-4 mr-1" /> Novo Evento</Button>} />
               ) : (

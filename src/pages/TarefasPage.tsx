@@ -253,7 +253,9 @@ const TarefasPage = () => {
       {viewMode === "table" ? (
         /* Table */
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          {filteredTasks.length === 0 ? (
+          {tasksError ? (
+            <ErrorState title="Não foi possível carregar as tarefas" onRetry={() => refetchTasks()} />
+          ) : filteredTasks.length === 0 ? (
             allTasks.length === 0 ? (
               <EmptyState
                 icon={CheckSquare}

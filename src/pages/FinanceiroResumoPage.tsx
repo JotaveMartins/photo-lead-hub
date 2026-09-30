@@ -121,6 +121,9 @@ const FinanceiroResumoPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader title="Financeiro" description="Visão geral da saúde financeira" />
+      {(cobErr || despErr) && (
+        <ErrorState compact title="Não foi possível carregar os dados financeiros" description="Os valores abaixo podem estar incompletos." onRetry={() => { refetchCob(); refetchDesp(); }} />
+      )}
 
       {/* Month selector */}
       <div className="flex items-center gap-2">
