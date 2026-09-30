@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FormActions } from "@/components/ui/form-actions";
 import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
 import ClienteSearchSelect from "@/components/ClienteSearchSelect";
@@ -37,6 +40,7 @@ const TarefasPage = () => {
   const { data: allTasks = [] } = useAllTasks();
   const { data: leads = [] } = useLeads();
   const { data: clientes = [] } = useClientes();
+  const navigate = useNavigate();
   const completeTask = useCompleteLeadTask();
   const createTask = useCreateLeadTask();
 
@@ -102,7 +106,10 @@ const TarefasPage = () => {
       const q = normalizeText(searchQuery);
       tasks = tasks.filter(t =>
         normalizeText(t.title).includes(q) ||
-        normalizeText(t.leads?.nome).includes(q)
+        normalizeText(t.leads?.nome).includes(q) ||
+        normalizeText(t.leads?.whatsapp).includes(q) ||
+        normalizeText((t as any).clientes?.nome).includes(q) ||
+        normalizeText((t as any).clientes?.whatsapp).includes(q)
       );
     }
 
@@ -153,14 +160,19 @@ const TarefasPage = () => {
   const getRowStatusClass = (task: typeof allTasks[0]) => {
     if (task.completed) return "opacity-50";
     const dueDate = parseLocalDate(task.due_date);
-    if (isBefore(dueDate, today)) return "border-l-2 border-l-red-500";
-    if (isToday(dueDate)) return "border-l-2 border-l-green-500";
+    if (isBefore(dueDate, today)) return "border-l-2 border-l-status-danger";
+    if (isToday(dueDate)) return "border-l-2 border-l-status-success";
     return "";
   };
 
   const handleTaskClick = (task: typeof allTasks[0]) => {
-    const lead = leads.find(l => l.id === task.lead_id);
-    if (lead) setSelectedLead(lead);
+    if (task.lead_id) {
+      const lead = leads.find(l => l.id === task.lead_id);
+      if (lead) setSelectedLead(lead);
+      return;
+    }
+    const clienteId = (task as any).cliente_id;
+    if (clienteId) navigate(`/clientes/${clienteId}?tab=tarefas`);
   };
 
   const filters: { key: FilterKey; label: string; count?: number }[] = [
@@ -175,35 +187,42 @@ const TarefasPage = () => {
 
   return (
     <>
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <CheckSquare className="w-7 h-7 text-primary" />
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Atividades</h1>
-            <p className="text-sm text-muted-foreground">{stats.total} atividades · {stats.pending} pendentes</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            <button
+      <PageHeader
+        className="mb-4"
+        title="Tarefas"
+        description={`${stats.total} tarefas · ${stats.pending} pendentes`}
+        secondaryActions={
+          <div className="flex rounded-lg border border-border overflow-hidden" role="group" aria-label="Modo de visualização">
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="icon"
+              className="h-10 w-10 rounded-none"
+              aria-label="Ver em tabela"
+              title="Tabela"
+              aria-pressed={viewMode === "table"}
               onClick={() => setViewMode("table")}
-              className={cn("p-2 transition-colors", viewMode === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
             >
               <List className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={viewMode === "calendar" ? "default" : "ghost"}
+              size="icon"
+              className="h-10 w-10 rounded-none"
+              aria-label="Ver em calendário"
+              title="Calendário"
+              aria-pressed={viewMode === "calendar"}
               onClick={() => setViewMode("calendar")}
-              className={cn("p-2 transition-colors", viewMode === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
             >
               <CalendarIcon className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow">
-            <Plus className="w-4 h-4" /> Atividade
+        }
+        action={
+          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Nova Tarefa
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       {/* Filters row */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -234,7 +253,16 @@ const TarefasPage = () => {
         /* Table */
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           {filteredTasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-12">Nenhuma atividade encontrada.</p>
+            allTasks.length === 0 ? (
+              <EmptyState
+                icon={CheckSquare}
+                title="Nenhuma tarefa cadastrada"
+                description="Crie a primeira tarefa para organizar seus contatos."
+                action={<Button onClick={() => setIsModalOpen(true)}><Plus className="w-4 h-4 mr-1" /> Nova Tarefa</Button>}
+              />
+            ) : (
+              <EmptyState icon={CheckSquare} title="Nenhuma tarefa encontrada" description="Ajuste os filtros ou a busca." />
+            )
           ) : (
             <Table>
               <TableHeader>
@@ -385,9 +413,11 @@ const TarefasPage = () => {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className={cn("font-medium text-sm", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
-                        {task.leads?.nome && (
+                        {task.leads?.nome ? (
                           <p className="text-xs text-muted-foreground mt-0.5">Lead: {task.leads.nome}</p>
-                        )}
+                        ) : (task as any).clientes?.nome ? (
+                          <p className="text-xs text-muted-foreground mt-0.5">Cliente: {(task as any).clientes.nome}</p>
+                        ) : null}
                         {task.due_time && (
                           <p className="text-xs text-muted-foreground">{task.due_time}</p>
                         )}
@@ -396,7 +426,7 @@ const TarefasPage = () => {
                   </div>
                 ))}
               {calendarDate && allTasks.filter(t => isSameDay(parseLocalDate(t.due_date), calendarDate)).length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade nesta data</p>
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa nesta data</p>
               )}
             </div>
           </div>
@@ -406,8 +436,8 @@ const TarefasPage = () => {
       {/* Create Task Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="bg-card border-border">
-          <DialogHeader><DialogTitle>Nova Atividade</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <DialogHeader><DialogTitle>Nova Tarefa</DialogTitle></DialogHeader>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
             <div className="space-y-2">
               <Label>Título</Label>
               <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Ex: Ligar para cliente" className="bg-muted border-border" />
@@ -464,13 +494,14 @@ const TarefasPage = () => {
                 <TimePickerField value={newDueTime} onChange={setNewDueTime} />
               </div>
             </div>
-            <div className="flex gap-3 justify-end pt-4">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate} disabled={createTask.isPending || !newTitle.trim() || (newTargetType === "lead" ? !newLeadId : !newClienteId)} className="bg-gradient-primary hover:opacity-90">
-                {createTask.isPending ? "Criando..." : "Criar atividade"}
-              </Button>
-            </div>
-          </div>
+            <FormActions
+              onCancel={() => setIsModalOpen(false)}
+              loading={createTask.isPending}
+              disabled={!newTitle.trim() || (newTargetType === "lead" ? !newLeadId : !newClienteId)}
+              submitLabel="Criar tarefa"
+              loadingLabel="Criando..."
+            />
+          </form>
         </DialogContent>
       </Dialog>
 

@@ -1,3 +1,9 @@
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { FormActions } from "@/components/ui/form-actions";
+import { Checkbox } from "@/components/ui/checkbox";
+import DatePickerField from "@/components/DatePickerField";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Calendar as CalendarIcon, Plus, Trash2, Pencil, MapPin, List, ArrowUpDown, HardHat, UserPlus } from "lucide-react";
@@ -24,7 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { cn, normalizeText } from "@/lib/utils";
+import { cn, normalizeText, parseLocalDate } from "@/lib/utils";
 
 type FilterKey = "todos" | "proximos" | "passados";
 type SortDir = "asc" | "desc";
@@ -310,9 +316,9 @@ const AgendaPage = () => {
 
   const getEventStatus = (dataEvento: string) => {
     const eventDate = startOfDay(new Date(dataEvento));
-    if (isBefore(eventDate, today)) return { label: "Realizado", className: "bg-muted text-muted-foreground" };
-    if (isSameDay(eventDate, today)) return { label: "Hoje", className: "bg-primary/20 text-primary" };
-    return { label: "Agendado", className: "bg-accent text-accent-foreground" };
+    if (isBefore(eventDate, today)) return { label: "Realizado", tone: "neutral" as const };
+    if (isSameDay(eventDate, today)) return { label: "Hoje", tone: "success" as const };
+    return { label: "Agendado", tone: "info" as const };
   };
 
   const filters: { key: FilterKey; label: string }[] = [
@@ -367,49 +373,37 @@ const AgendaPage = () => {
   return (
     <>
       {tabsBar}
-      <header className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground flex items-center gap-3">
-            <CalendarIcon className="w-8 h-8 text-primary" />
-            Agenda
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {events.length} eventos · {filteredEvents.length} exibidos
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <GoogleCalendarStatusBadge />
-          <GenericTrashBin
-            items={trashItems}
-            onRestore={(id) => restoreEvent.mutate(id)}
-            onPermanentDelete={(id) => permanentDeleteEvent.mutate(id)}
-            isRestoring={restoreEvent.isPending}
-            entityName="evento"
-          />
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn("p-2 transition-colors", viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("calendar")}
-              className={cn("p-2 transition-colors", viewMode === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
-            >
-              <CalendarIcon className="w-4 h-4" />
-            </button>
-          </div>
-          <Button
-            onClick={() => openModal()}
-            className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 shadow-glow"
-          >
+      <PageHeader
+        className="mb-6"
+        title="Agenda"
+        description={`${events.length} eventos · ${filteredEvents.length} exibidos`}
+        secondaryActions={
+          <>
+            <GoogleCalendarStatusBadge />
+            <GenericTrashBin
+              items={trashItems}
+              onRestore={(id) => restoreEvent.mutate(id)}
+              onPermanentDelete={(id) => permanentDeleteEvent.mutate(id)}
+              isRestoring={restoreEvent.isPending}
+              entityName="evento"
+            />
+            <div className="flex rounded-lg border border-border overflow-hidden" role="group" aria-label="Modo de visualização">
+              <Button variant={viewMode === "list" ? "default" : "ghost"} size="icon" className="h-10 w-10 rounded-none" aria-label="Ver em lista" title="Lista" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")}>
+                <List className="w-4 h-4" />
+              </Button>
+              <Button variant={viewMode === "calendar" ? "default" : "ghost"} size="icon" className="h-10 w-10 rounded-none" aria-label="Ver em calendário" title="Calendário" aria-pressed={viewMode === "calendar"} onClick={() => setViewMode("calendar")}>
+                <CalendarIcon className="w-4 h-4" />
+              </Button>
+            </div>
+          </>
+        }
+        action={
+          <Button onClick={() => openModal()} className="gap-2">
             <Plus className="w-4 h-4" />
             Novo Evento
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       {viewMode === "list" ? (
         <>
@@ -439,7 +433,11 @@ const AgendaPage = () => {
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             {filteredEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-12">Nenhum evento encontrado.</p>
+              events.length === 0 ? (
+                <EmptyState icon={CalendarIcon} title="Nenhum evento cadastrado" description="Crie o primeiro evento da sua agenda." action={<Button onClick={() => openModal()}><Plus className="w-4 h-4 mr-1" /> Novo Evento</Button>} />
+              ) : (
+                <EmptyState icon={CalendarIcon} title="Nenhum evento encontrado" description="Ajuste os filtros ou a busca." />
+              )
             ) : (
               <Table>
                 <TableHeader>
@@ -516,21 +514,23 @@ const AgendaPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className={cn("text-xs font-medium px-2 py-1 rounded-full", status.className)}>
+                          <StatusBadge tone={status.tone}>
                             {status.label}
-                          </span>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => openModal(event)}
-                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="Editar evento" title="Editar evento"
+                              className="h-9 w-9 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => deleteEvent.mutate(event.id)}
-                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                              aria-label="Mover para lixeira" title="Mover para lixeira"
+                              className="h-9 w-9 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -604,16 +604,18 @@ const AgendaPage = () => {
                             </p>
                           )}
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => openModal(event)}
-                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Editar evento" title="Editar evento"
+                            className="h-9 w-9 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => deleteEvent.mutate(event.id)}
-                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            aria-label="Mover para lixeira" title="Mover para lixeira"
+                            className="h-9 w-9 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -653,7 +655,11 @@ const AgendaPage = () => {
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             {filteredEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-12">Nenhum evento encontrado.</p>
+              events.length === 0 ? (
+                <EmptyState icon={CalendarIcon} title="Nenhum evento cadastrado" description="Crie o primeiro evento da sua agenda." action={<Button onClick={() => openModal()}><Plus className="w-4 h-4 mr-1" /> Novo Evento</Button>} />
+              ) : (
+                <EmptyState icon={CalendarIcon} title="Nenhum evento encontrado" description="Ajuste os filtros ou a busca." />
+              )
             ) : (
               <Table>
                 <TableHeader>
@@ -714,21 +720,23 @@ const AgendaPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className={cn("text-xs font-medium px-2 py-1 rounded-full", status.className)}>
+                          <StatusBadge tone={status.tone}>
                             {status.label}
-                          </span>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => openModal(event)}
-                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="Editar evento" title="Editar evento"
+                              className="h-9 w-9 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => deleteEvent.mutate(event.id)}
-                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                              aria-label="Mover para lixeira" title="Mover para lixeira"
+                              className="h-9 w-9 flex items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -751,7 +759,7 @@ const AgendaPage = () => {
             <DialogTitle>{editingEvent ? "Editar Evento" : "Novo Evento"}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSaveEvent(); }}>
             <div className="space-y-2">
               <Label>Título *</Label>
               <Input
@@ -781,30 +789,11 @@ const AgendaPage = () => {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Data *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal bg-muted border-border",
-                        !modalDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {modalDate ? format(modalDate, "dd/MM/yyyy") : "Selecione"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={modalDate}
-                      onSelect={setModalDate}
-                      locale={ptBR}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerField
+                  value={modalDate ? format(modalDate, "yyyy-MM-dd") : ""}
+                  onChange={(v) => setModalDate(v ? parseLocalDate(v) : undefined)}
+                  placeholder="Selecione"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Início</Label>
@@ -844,14 +833,12 @@ const AgendaPage = () => {
                       {teamMembers.map((m) => {
                         const checked = selectedTeamIds.includes(m.id);
                         return (
-                          <label key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
-                            <input
-                              type="checkbox"
+                          <label key={m.id} className="flex items-center gap-2 px-2 py-2 min-h-10 rounded hover:bg-muted cursor-pointer text-sm">
+                            <Checkbox
                               checked={checked}
-                              onChange={(e) => {
-                                setSelectedTeamIds(prev => e.target.checked ? [...prev, m.id] : prev.filter(id => id !== m.id));
+                              onCheckedChange={(v) => {
+                                setSelectedTeamIds(prev => v === true ? [...prev, m.id] : prev.filter(id => id !== m.id));
                               }}
-                              className="rounded"
                             />
                             <span className="text-foreground">{m.nome}</span>
                             {m.funcao && <span className="text-xs text-muted-foreground">· {m.funcao}</span>}
@@ -867,13 +854,13 @@ const AgendaPage = () => {
               </div>
             </div>
 
-            <div className="flex gap-3 justify-end pt-4">
-              <Button variant="outline" onClick={() => { resetForm(); setIsModalOpen(false); }}>Cancelar</Button>
-              <Button onClick={handleSaveEvent} className="bg-gradient-primary hover:opacity-90">
-                {editingEvent ? "Salvar" : "Criar evento"}
-              </Button>
-            </div>
-          </div>
+            <FormActions
+              onCancel={() => { resetForm(); setIsModalOpen(false); }}
+              loading={createEvent.isPending || updateEvent.isPending}
+              submitLabel={editingEvent ? "Salvar" : "Criar evento"}
+              loadingLabel={editingEvent ? "Salvando..." : "Criando..."}
+            />
+          </form>
         </DialogContent>
       </Dialog>
 

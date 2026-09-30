@@ -340,14 +340,6 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     }
   };
 
-  const toggleAI = async () => {
-    if (!conv?.id) return;
-    const newStatus = conv.status === "pending_ai" ? "open" : "pending_ai";
-    await supabase.from("inbox_conversations").update({ status: newStatus }).eq("id", conv.id);
-    queryClient.invalidateQueries({ queryKey: ["lead-conversation", leadId] });
-    toast.success(newStatus === "pending_ai" ? "IA reativada" : "IA pausada");
-  };
-
   const isSending = sendMessage.isPending || uploadingFile;
 
   const [syncing, setSyncing] = useState(false);
