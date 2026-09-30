@@ -9,6 +9,7 @@ import CobrancaCards from "@/components/financeiro/CobrancaCards";
 import CobrancaTable from "@/components/financeiro/CobrancaTable";
 import NovaCobrancaModal from "@/components/financeiro/NovaCobrancaModal";
 import EditCobrancaModal from "@/components/financeiro/EditCobrancaModal";
+import { PageHeader } from "@/components/ui/page-header";
 import CobrancaTrashBin from "@/components/financeiro/CobrancaTrashBin";
 import { useCobrancas, useAllCobrancas } from "@/hooks/useCobrancas";
 import type { Cobranca } from "@/hooks/useCobrancas";
@@ -69,56 +70,14 @@ const FinanceiroPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <DollarSign className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Cobranças</h1>
-          <p className="text-sm text-muted-foreground">Gerencie todas as cobranças dos seus clientes</p>
-        </div>
-      </div>
-
-      <CobrancaCards cobrancas={monthCobrancas} allCobrancas={allCobrancas} />
-
-      {/* Controls bar */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={prevMonth} className="h-9 w-9">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm font-medium capitalize min-w-[120px] text-center">{monthLabel}</span>
-            {monthCount > 0 && (
-              <span className="text-xs bg-primary/20 text-primary rounded-full px-2 py-0.5">{monthCount}</span>
-            )}
-            <Button variant="outline" size="icon" onClick={nextMonth} className="h-9 w-9">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={showAll ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowAll(!showAll)}
-              className="ml-1"
-            >
-              <Calendar className="w-4 h-4 mr-1" /> Ver tudo
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <CobrancaTrashBin />
-            <SearchInput
-              containerClassName="flex-1 md:w-64"
-              value={search}
-              onValueChange={setSearch}
-              placeholder="Buscar por descrição, cliente..."
-              className="bg-muted border-border"
-            />
-
+      <PageHeader
+        title="Cobranças"
+        description="Gerencie todas as cobranças dos seus clientes"
+        secondaryActions={<CobrancaTrashBin />}
+        action={
             <div className="relative">
               <Button
-                className="bg-gradient-primary hover:opacity-90"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                                onClick={() => setDropdownOpen(!dropdownOpen)}
               >
                 <Plus className="w-4 h-4 mr-1" /> Adicionar cobrança
               </Button>
@@ -139,6 +98,44 @@ const FinanceiroPage = () => {
                 </>
               )}
             </div>
+        }
+      />
+
+      <CobrancaCards cobrancas={monthCobrancas} allCobrancas={allCobrancas} />
+
+      {/* Controls bar */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={prevMonth} className="h-10 w-10" aria-label="Mês anterior" title="Mês anterior">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium capitalize min-w-[120px] text-center">{monthLabel}</span>
+            {monthCount > 0 && (
+              <span className="text-xs bg-primary/20 text-primary rounded-full px-2 py-0.5">{monthCount}</span>
+            )}
+            <Button variant="outline" size="icon" onClick={nextMonth} className="h-10 w-10" aria-label="Próximo mês" title="Próximo mês">
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={showAll ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowAll(!showAll)}
+              className="ml-1"
+            >
+              <Calendar className="w-4 h-4 mr-1" /> Ver tudo
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <SearchInput
+              containerClassName="flex-1 md:w-64"
+              value={search}
+              onValueChange={setSearch}
+              placeholder="Buscar por descrição, cliente..."
+              className="bg-muted border-border"
+            />
+
           </div>
         </div>
 
