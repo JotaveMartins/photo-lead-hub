@@ -22,6 +22,9 @@ export interface Cobranca {
   data_pagamento: string | null;
   parcela_numero: number | null;
   parcela_total: number | null;
+  cliente_id?: string | null;
+  service_id: string | null;
+  package_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -40,7 +43,13 @@ export interface CobrancaInsert {
   data_pagamento?: string | null;
   parcela_numero?: number | null;
   parcela_total?: number | null;
+  /** Vínculo interno (não enviado ao Asaas). Exclusivo com package_id. */
+  service_id?: string | null;
+  /** Vínculo interno (não enviado ao Asaas). Exclusivo com service_id. */
+  package_id?: string | null;
 }
+
+export type CobrancaUpdate = { id: string } & Partial<CobrancaInsert>;
 
 export const useCobrancas = (month?: Date) => {
   const effectiveUserId = useEffectiveUserId();
@@ -151,7 +160,7 @@ export const useUpdateCobranca = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string } & Partial<CobrancaInsert>) => {
+    mutationFn: async ({ id, ...data }: CobrancaUpdate) => {
       const { data: result, error } = await supabase
         .from("cobrancas")
         .update(data as any)

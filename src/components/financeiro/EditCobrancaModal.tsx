@@ -7,6 +7,7 @@ import DatePickerField from "@/components/DatePickerField";
 import { useUpdateCobranca } from "@/hooks/useCobrancas";
 import { toast } from "sonner";
 import type { Cobranca, PaymentMethod } from "@/hooks/useCobrancas";
+import CobrancaItemSelector from "./CobrancaItemSelector";
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "pix", label: "Pix" },
@@ -28,6 +29,8 @@ const EditCobrancaModal = ({ open, onOpenChange, cobranca }: EditCobrancaModalPr
   const [valor, setValor] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<PaymentMethod>("pix");
   const [vencimento, setVencimento] = useState("");
+  const [serviceId, setServiceId] = useState<string | null>(null);
+  const [packageId, setPackageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (cobranca) {
@@ -35,6 +38,8 @@ const EditCobrancaModal = ({ open, onOpenChange, cobranca }: EditCobrancaModalPr
       setValor(cobranca.valor.toString());
       setFormaPagamento(cobranca.forma_pagamento);
       setVencimento(cobranca.vencimento.substring(0, 10));
+      setServiceId(cobranca.service_id ?? null);
+      setPackageId(cobranca.package_id ?? null);
     }
   }, [cobranca]);
 
@@ -55,7 +60,9 @@ const EditCobrancaModal = ({ open, onOpenChange, cobranca }: EditCobrancaModalPr
         valor: valorNum,
         forma_pagamento: formaPagamento,
         vencimento,
-      } as any);
+        service_id: serviceId,
+        package_id: packageId,
+      });
       toast.success("Cobrança atualizada!");
       onOpenChange(false);
     } catch {
@@ -71,6 +78,17 @@ const EditCobrancaModal = ({ open, onOpenChange, cobranca }: EditCobrancaModalPr
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <CobrancaItemSelector
+            serviceId={serviceId}
+            packageId={packageId}
+            onSelect={(item) => {
+              // Trocar o item não sobrescreve descrição/valor (snapshot histórico)
+              setServiceId(item.type === "service" ? item.id : null);
+              setPackageId(item.type === "package" ? item.id : null);
+            }}
+            onClear={() => { setServiceId(null); setPackageId(null); }}
+          />
+
           <div className="space-y-2">
             <Label>Descrição</Label>
             <Input
