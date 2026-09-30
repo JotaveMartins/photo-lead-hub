@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -26,7 +28,7 @@ const ClientesPage = () => {
   const [permDeleteTarget, setPermDeleteTarget] = useState<Cliente | null>(null);
   const navigate = useNavigate();
 
-  const { data: clientes = [], isLoading } = useClientes(search);
+  const { data: clientes = [], isLoading, isError, refetch } = useClientes(search);
   const { data: deletedClientes = [] } = useDeletedClientes();
   const deleteCliente = useDeleteCliente();
   const restoreCliente = useRestoreCliente();
@@ -115,6 +117,9 @@ const ClientesPage = () => {
         onValueChange={setSearch}
       />
 
+      {isError ? (
+        <ErrorState title="Não foi possível carregar os clientes" onRetry={() => refetch()} />
+      ) : (
       <ClienteTable
         clientes={clientes}
         loading={isLoading}
@@ -122,6 +127,7 @@ const ClientesPage = () => {
         onDelete={handleDelete}
         onNew={() => setNovoOpen(true)}
       />
+      )}
 
       {/* Archived clients panel */}
       {showArchived && (

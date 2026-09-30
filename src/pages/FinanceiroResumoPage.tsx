@@ -1,4 +1,5 @@
 import { getLocalDateStr } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/error-state";
 import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Clock, CheckCircle, PieChart, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,9 @@ const FinanceiroResumoPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const navigate = useNavigate();
 
-  const { data: cobrancas = [] } = useCobrancas(currentMonth);
+  const { data: cobrancas = [], isError: cobErr, refetch: refetchCob } = useCobrancas(currentMonth);
   const { data: allCobrancas = [] } = useAllCobrancas();
-  const { data: despesas = [] } = useDespesas(currentMonth);
+  const { data: despesas = [], isError: despErr, refetch: refetchDesp } = useDespesas(currentMonth);
 
   const today = getLocalDateStr();
 

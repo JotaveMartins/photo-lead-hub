@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { format } from "date-fns";
@@ -22,9 +23,7 @@ const ClienteTable = ({ clientes, loading, onEdit, onDelete, onNew }: ClienteTab
   const { data: taskCounts = {} } = useClienteTaskCounts();
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-pulse text-muted-foreground">Carregando clientes...</div>
-      </div>
+      <ListSkeleton rows={6} />
     );
   }
 

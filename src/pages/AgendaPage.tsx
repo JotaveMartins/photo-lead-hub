@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/page-header";
+import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormActions } from "@/components/ui/form-actions";
@@ -134,7 +135,7 @@ const AgendaPage = () => {
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [serviceModalOpen, setServiceModalOpen] = useState(false);
 
-  const { data: events = [] } = useEvents();
+  const { data: events = [], isError: eventsError, refetch: refetchEvents } = useEvents();
   const { data: deletedEvents = [] } = useDeletedEvents();
   const { data: clientes = [] } = useClientes();
   const { data: services = [] } = useServices();

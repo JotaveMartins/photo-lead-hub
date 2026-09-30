@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import { useSearchParams } from "react-router-dom";
 import { DollarSign, ChevronLeft, ChevronRight, Plus, TrendingDown, Clock, Hash, Tag, PieChart, BarChart3, Pencil, Trash2, Filter } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -48,7 +50,7 @@ const DespesasPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDespesa, setEditingDespesa] = useState<Despesa | null>(null);
 
-  const { data: despesas = [], isLoading } = useDespesas(currentMonth);
+  const { data: despesas = [], isLoading, isError, refetch } = useDespesas(currentMonth);
 
   // Open despesa by URL param (?open=<id>&date=<yyyy-mm-dd>)
   useEffect(() => {
@@ -300,7 +302,9 @@ const DespesasPage = () => {
 
       {/* Table */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground animate-pulse">Carregando...</div>
+        <ListSkeleton rows={6} />
+      ) : isError ? (
+        <ErrorState title="Não foi possível carregar as despesas" onRetry={() => refetch()} />
       ) : filtered.length === 0 ? (
         <Card className="bg-card border-border">
           <CardContent className="flex flex-col items-center justify-center py-16 gap-3">

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ErrorState } from "@/components/ui/error-state";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,7 +38,7 @@ type SortKey = "due_date" | "created_at" | "completed_at";
 
 const TarefasPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: allTasks = [] } = useAllTasks();
+  const { data: allTasks = [], isError: tasksError, refetch: refetchTasks } = useAllTasks();
   const { data: leads = [] } = useLeads();
   const { data: clientes = [] } = useClientes();
   const navigate = useNavigate();

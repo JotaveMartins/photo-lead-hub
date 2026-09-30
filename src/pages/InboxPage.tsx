@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import {
   Inbox as InboxIcon, Send, UserPlus, User, MessageSquare,
   Play, ChevronLeft, StickyNote, Zap, X, Plus, Trash2, Check, ExternalLink,
@@ -196,7 +198,7 @@ const InboxPage = () => {
   const isGlobalAIActive = aiConfigData?.is_active ?? true;
 
   // Fetch all conversations (no status filter) so selectedConv stays valid after status change
-  const { data: allConversations = [], isLoading: loadingConvs } = useInboxConversations();
+  const { data: allConversations = [], isLoading: loadingConvs, isError: convsError, refetch: refetchConvs } = useInboxConversations();
   const { data: messages = [], isLoading: loadingMsgs } = useInboxMessages(selectedConversationId || undefined);
   const displayedMessages = dedupeMessages(
     (messages as any[]).filter((m) => !(m as any).is_note),
@@ -483,7 +485,9 @@ const InboxPage = () => {
       <ScrollArea className="flex-1">
         <div className="divide-y divide-border/50">
           {loadingConvs ? (
-            <div className="p-8 text-center text-muted-foreground animate-pulse text-sm">Carregando...</div>
+            <ListSkeleton rows={6} className="p-3" />
+          ) : convsError ? (
+            <ErrorState compact className="m-3" title="Não foi possível carregar as conversas" onRetry={() => refetchConvs()} />
           ) : filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               {hasSearch

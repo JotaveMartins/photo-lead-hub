@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ChevronRight, Eye, Send, Settings, Trash2, UploadCloud, Plus, Images,
@@ -44,7 +46,7 @@ const fmt = (d?: string | null) => (d ? format(parseLocalDate(d), "dd/MM/yyyy") 
 const GaleriaDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: gallery, isLoading } = useGallery(id);
+  const { data: gallery, isLoading, isError, refetch } = useGallery(id);
   const { data: sections = [] } = useGallerySections(id);
   const { data: media = [] } = useGalleryMedia(id);
   const { data: entrega } = useEntrega(gallery?.entrega_id);
@@ -126,7 +128,15 @@ const GaleriaDetailPage = () => {
 
 
   if (isLoading) {
-    return <p className="py-20 text-center text-sm text-muted-foreground animate-pulse">Carregando...</p>;
+    return (
+      <div className="space-y-4" aria-busy="true">
+        <Skeleton className="h-10 w-1/3" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-square w-full" />)}</div>
+      </div>
+    );
+  }
+  if (isError) {
+    return <ErrorState title="Não foi possível carregar a galeria" onRetry={() => refetch()} />;
   }
   if (!gallery) {
     return <p className="py-20 text-center text-sm text-muted-foreground">Entrega não encontrada.</p>;
