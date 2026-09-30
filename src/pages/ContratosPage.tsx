@@ -514,7 +514,7 @@ const ContratosPage = () => {
               className={buttonVariants({ variant: "destructive" })}
               onClick={handlePermDelete}
             >
-              Excluir
+              Excluir permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
