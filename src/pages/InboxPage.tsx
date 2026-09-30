@@ -7,7 +7,8 @@ import {
 import { MediaBubble } from "@/components/chat/MediaBubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { SearchInput } from "@/components/ui/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -137,7 +138,7 @@ const NotesPanel = ({ conversationId }: NotesPanelProps) => {
           </p>
         ) : (
           notes.map((n: any) => (
-            <div key={n.id} className="bg-yellow-500/5 border border-yellow-500/20 rounded-md p-2.5">
+            <div key={n.id} className="bg-status-warning/5 border border-status-warning/20 rounded-md p-2.5">
               <p className="text-xs text-foreground whitespace-pre-wrap">{n.body}</p>
               <p className="text-[10px] text-muted-foreground mt-1">{formatMsgDate(n.timestamp || n.created_at)}</p>
             </div>
@@ -149,10 +150,10 @@ const NotesPanel = ({ conversationId }: NotesPanelProps) => {
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
           placeholder="Nota interna..."
-          className="text-xs h-8"
+          className="text-xs h-10"
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
         />
-        <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={handleAdd} disabled={!noteText.trim()}>
+        <Button size="icon" variant="outline" className="h-10 w-10 shrink-0" onClick={handleAdd} disabled={!noteText.trim()} aria-label="Adicionar nota" title="Adicionar nota">
           <Plus className="w-3.5 h-3.5" />
         </Button>
       </div>
@@ -336,18 +337,6 @@ const InboxPage = () => {
     }
   };
 
-  const handleOpenAtendimento = async () => {
-    if (!selectedConv) return;
-    await updateConv.mutateAsync({ id: selectedConv.id, status: "open" });
-    toast.success("Atendimento aberto.");
-  };
-
-  const handleReturnToAI = async () => {
-    if (!selectedConv) return;
-    await updateConv.mutateAsync({ id: selectedConv.id, status: "pending_ai" });
-    toast.success("IA reativada para esta conversa.");
-  };
-
   const handleClose = async () => {
     if (!selectedConv) return;
     await updateConv.mutateAsync({ id: selectedConv.id, status: "closed" });
@@ -358,21 +347,6 @@ const InboxPage = () => {
     if (!selectedConv) return;
     await updateConv.mutateAsync({ id: selectedConv.id, status: "open" });
     toast.success("Atendimento reaberto.");
-  };
-
-  const handleActivateAIForConv = async (convId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await supabase.from("inbox_conversations").update({ ai_enabled: true, status: "pending_ai" }).eq("id", convId);
-      const { data, error } = await supabase.functions.invoke("ai-reply", { body: { conversation_id: convId } });
-      if (error) throw error;
-      if (data?.skipped) throw new Error(`IA não respondeu (${data.skipped}). Verifique se a função foi atualizada.`);
-      queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["inbox_messages", convId] });
-      toast.success("IA ativada para esta conversa.");
-    } catch (err: any) {
-      toast.error("Erro ao ativar IA: " + (err?.message || "tente novamente"));
-    }
   };
 
   // Quick actions directly from conversation list
@@ -456,23 +430,13 @@ const InboxPage = () => {
     }
   };
 
-  const getStatusBadge = (status: InboxStatus) => {
-    switch (status) {
-      case "pending_ai":
-      case "open": return (
-        <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/50 text-[10px] px-1.5 py-0.5">
-          Em Atendimento
-        </Badge>
-      );
-      case "closed": return (
-        <Badge className="bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 border-gray-500/50 text-[10px] px-1.5 py-0.5">
-          Fechado
-        </Badge>
-      );
-    }
-  };
+  const getStatusBadge = (status: InboxStatus) =>
+    status === "closed" ? (
+      <StatusBadge tone="neutral" className="text-[10px] px-1.5 py-0.5">Encerrado</StatusBadge>
+    ) : (
+      <StatusBadge tone="success" className="text-[10px] px-1.5 py-0.5">Em atendimento</StatusBadge>
+    );
 
-  const pendingCount = allConversations.filter((c) => c.status === "pending_ai").length;
   const openCount = allConversations.filter((c) => c.status !== "closed").length;
   const closedCount = allConversations.filter((c) => c.status === "closed").length;
 
@@ -481,15 +445,12 @@ const InboxPage = () => {
     <div className="w-full flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
       {/* Search */}
       <div className="p-3 border-b border-border">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            className="pl-9 bg-muted/50 border-border h-8 text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          placeholder="Buscar..."
+          className="bg-muted/50 border-border h-9 text-sm"
+          value={searchTerm}
+          onValueChange={setSearchTerm}
+        />
       </div>
 
       {/* Tabs */}
@@ -524,9 +485,10 @@ const InboxPage = () => {
           {loadingConvs ? (
             <div className="p-8 text-center text-muted-foreground animate-pulse text-sm">Carregando...</div>
           ) : filteredConversations.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">
-              Nenhuma conversa em{" "}
-              {activeStatus === "closed" ? "Encerrado" : "Em atendimento"}.
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              {hasSearch
+                ? "Nenhuma conversa encontrada na busca."
+                : activeStatus === "closed" ? "Nenhuma conversa encerrada." : "Nenhuma conversa em atendimento."}
             </div>
           ) : (
             filteredConversations.map((conv) => (
@@ -538,7 +500,7 @@ const InboxPage = () => {
                 }`}
               >
                 <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-r-full ${
-                  conv.status !== "closed" ? "bg-green-500" : "bg-gray-500"
+                  conv.status !== "closed" ? "bg-status-success" : "bg-status-neutral"
                 }`} />
                 <Avatar className="w-10 h-10 border border-border/50 shrink-0">
                   <AvatarFallback className="bg-muted text-foreground text-xs">
@@ -579,11 +541,11 @@ const InboxPage = () => {
                   </div>
 
                   {/* Quick action buttons — visible on hover */}
-                  <div className="flex gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  <div className="flex gap-1.5 mt-2 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-150">
                     {conv.status !== "closed" && (
                       <button
                         onClick={(e) => handleQuickClose(conv.id, e)}
-                        className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
+                        className="px-3 py-1.5 md:py-0.5 text-[11px] md:text-[10px] font-semibold rounded-full bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
                       >
                         Encerrar
                       </button>
@@ -591,7 +553,7 @@ const InboxPage = () => {
                     {conv.status === "closed" && (
                       <button
                         onClick={(e) => handleQuickReopen(conv.id, e)}
-                        className="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/30 hover:bg-blue-500/20 transition-colors"
+                        className="px-3 py-1.5 md:py-0.5 text-[11px] md:text-[10px] font-semibold rounded-full bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors"
                       >
                         Reabrir
                       </button>
@@ -637,14 +599,14 @@ const InboxPage = () => {
             <div className="flex items-center gap-1.5 shrink-0">
               {selectedConv.lead_id ? (
                 <Button
-                  variant="outline" size="sm" className="text-cyan-400 border-cyan-400/30 bg-cyan-400/5 hover:bg-cyan-400/10 h-7 text-xs"
+                  variant="outline" size="sm" className="h-9 text-xs hidden sm:flex"
                   onClick={() => navigate(`/leads?open=${selectedConv.lead_id}`)}
                 >
                   Ver Lead
                 </Button>
               ) : (
                 <Button
-                  variant="outline" size="sm" className="border-dashed h-7 text-xs"
+                  variant="outline" size="sm" className="border-dashed h-9 text-xs hidden sm:flex"
                   onClick={handleCreateLead}
                 >
                   <UserPlus className="w-3.5 h-3.5 mr-1" />
@@ -653,16 +615,16 @@ const InboxPage = () => {
               )}
 
               {selectedConv.status !== "closed" && (
-                <Button variant="outline" size="sm" onClick={handleClose} className="h-7 text-xs hidden sm:flex">
+                <Button variant="outline" size="sm" onClick={handleClose} className="h-9 text-xs hidden sm:flex">
                     Encerrar
                   </Button>
               )}
               {selectedConv.status === "closed" && (
                 <Button
                   onClick={handleReopen} size="sm"
-                  className="bg-blue-500 hover:bg-blue-600 text-white h-7 text-xs"
+                  className="h-9 text-xs hidden sm:flex"
                 >
-                  <Play className="w-3.5 h-3.5 mr-1" /> Abrir
+                  <Play className="w-3.5 h-3.5 mr-1" /> Reabrir
                 </Button>
               )}
 
@@ -670,10 +632,11 @@ const InboxPage = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-7 w-7"
+                className="h-10 w-10 hidden sm:inline-flex"
                 onClick={handleSyncMessages}
                 disabled={syncingMessages}
                 title="Recarregar mensagens do WhatsApp"
+                aria-label="Recarregar mensagens do WhatsApp"
               >
                 {syncingMessages ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               </Button>
@@ -682,9 +645,11 @@ const InboxPage = () => {
               <Button
                 variant={showNotes ? "default" : "outline"}
                 size="icon"
-                className="h-7 w-7"
+                className="h-10 w-10 hidden sm:inline-flex"
                 onClick={() => { setShowNotes((v) => !v); setShowInfoPanel(false); }}
                 title="Notas internas"
+                aria-label="Notas internas"
+                aria-pressed={showNotes}
               >
                 <StickyNote className="w-3.5 h-3.5" />
               </Button>
@@ -693,42 +658,59 @@ const InboxPage = () => {
               <Button
                 variant={showInfoPanel ? "default" : "outline"}
                 size="icon"
-                className="h-7 w-7"
+                className="h-10 w-10 hidden sm:inline-flex"
                 onClick={() => { setShowInfoPanel((v) => !v); setShowNotes(false); }}
                 title="Informações do contato"
+                aria-label="Informações do contato"
+                aria-pressed={showInfoPanel}
               >
                 <User className="w-3.5 h-3.5" />
               </Button>
 
               {/* Mobile overflow actions */}
-              {(selectedConv.status === "open" || selectedConv.status === "pending_ai" || selectedConv.status === "closed") && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-7 w-7 sm:hidden">
-                      <MoreVertical className="w-3.5 h-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {selectedConv.status !== "closed" && (
-                      <DropdownMenuItem onClick={handleClose} className="text-destructive">
-                        Encerrar atendimento
-                      </DropdownMenuItem>
-                    )}
-                    {selectedConv.status === "closed" && (
-                      <DropdownMenuItem onClick={handleReopen}>
-                        <Play className="w-4 h-4 mr-2 text-blue-500" /> Reabrir atendimento
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10 sm:hidden" aria-label="Mais ações" title="Mais ações">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {selectedConv.lead_id ? (
+                    <DropdownMenuItem onClick={() => navigate(`/leads?open=${selectedConv.lead_id}`)}>
+                      <ExternalLink className="w-4 h-4 mr-2" /> Ver Lead
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={handleCreateLead}>
+                      <UserPlus className="w-4 h-4 mr-2" /> Criar Lead
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => { setShowNotes((v) => !v); setShowInfoPanel(false); }}>
+                    <StickyNote className="w-4 h-4 mr-2" /> Notas internas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setShowInfoPanel((v) => !v); setShowNotes(false); }}>
+                    <User className="w-4 h-4 mr-2" /> Informações do contato
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSyncMessages} disabled={syncingMessages}>
+                    <RefreshCw className="w-4 h-4 mr-2" /> Recarregar mensagens
+                  </DropdownMenuItem>
+                  {selectedConv.status !== "closed" ? (
+                    <DropdownMenuItem onClick={handleClose} className="text-destructive">
+                      Encerrar atendimento
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={handleReopen}>
+                      <Play className="w-4 h-4 mr-2 text-primary" /> Reabrir atendimento
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
           {/* Notes panel (below header, collapsible) */}
           {showNotes && (
-            <div className="border-b border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-              <p className="text-xs font-semibold text-yellow-600 mb-2 flex items-center gap-1">
+            <div className="border-b border-status-warning/20 bg-status-warning/5 px-4 py-3">
+              <p className="text-xs font-semibold text-status-warning mb-2 flex items-center gap-1">
                 <StickyNote className="w-3.5 h-3.5" /> Notas Internas
               </p>
               <NotesPanel conversationId={selectedConv.id} />
@@ -754,7 +736,7 @@ const InboxPage = () => {
               {selectedConv.lead_id && (
                 <Button
                   variant="outline" size="sm"
-                  className="w-full text-xs h-7 border-cyan-400/30 text-cyan-400 bg-cyan-400/5 hover:bg-cyan-400/10"
+                  className="w-full text-xs h-9"
                   onClick={() => navigate(`/leads?open=${selectedConv.lead_id}`)}
                 >
                   <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Abrir lead no Kanban
