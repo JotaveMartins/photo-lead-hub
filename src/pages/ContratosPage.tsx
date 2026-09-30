@@ -4,7 +4,9 @@ import {
   useDeleteContrato, useDeletedContratos, useRestoreContrato,
   usePermanentDeleteContrato, type Contrato,
 } from "@/hooks/useContratos";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -31,28 +33,28 @@ const STATUS_COLUMNS: {
   label: string;
   icon: React.ReactNode;
   color: string;
-  badgeClass: string;
+  tone: StatusTone;
 }[] = [
   {
     status: "aguardando_contrato",
     label: "Aguardando Contrato",
     icon: <Hourglass className="w-4 h-4" />,
-    color: "bg-yellow-500",
-    badgeClass: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+    color: "bg-status-warning",
+    tone: "warning",
   },
   {
     status: "contrato_enviado",
     label: "Contrato Enviado",
     icon: <Send className="w-4 h-4" />,
-    color: "bg-blue-500",
-    badgeClass: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    color: "bg-status-info",
+    tone: "info",
   },
   {
     status: "contrato_assinado",
     label: "Contrato Assinado",
     icon: <CheckCircle2 className="w-4 h-4" />,
-    color: "bg-emerald-500",
-    badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    color: "bg-status-success",
+    tone: "success",
   },
 ];
 
@@ -100,9 +102,9 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, onView, uplo
             <p className="text-[11px] text-muted-foreground">CPF/CNPJ: {contrato.cpf_cnpj}</p>
           )}
         </div>
-        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${col.badgeClass}`}>
+        <StatusBadge tone={col.tone} className="text-[10px]">
           {col.label}
-        </span>
+        </StatusBadge>
       </div>
 
       {/* Details */}
@@ -167,7 +169,7 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, onView, uplo
             <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={handleFileChange} />
             <Button
               size="sm"
-              className="h-7 text-xs gap-1 bg-gradient-primary hover:opacity-90"
+              className="h-8 text-xs gap-1"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
             >
@@ -179,22 +181,23 @@ const ContratoCard = ({ contrato, onUpload, onDelete, onMarkSigned, onView, uplo
         {contrato.status === "contrato_enviado" && (
           <Button
             size="sm"
-            className="h-7 text-xs gap-1 bg-emerald-500 hover:bg-emerald-600 text-white border-0"
+            className="h-8 text-xs gap-1"
             onClick={() => onMarkSigned(contrato)}
           >
             <CheckCircle2 className="w-3 h-3" /> Marcar como Assinado
           </Button>
         )}
         {contrato.status === "contrato_assinado" && (
-          <span className="flex items-center gap-1 text-[11px] text-emerald-500 font-semibold">
+          <StatusBadge tone="success" className="text-[11px]">
             <CheckCircle2 className="w-3.5 h-3.5" /> Assinado
-          </span>
+          </StatusBadge>
         )}
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 ml-auto text-muted-foreground hover:text-amber-500"
+          className="h-9 w-9 p-0 ml-auto text-muted-foreground hover:text-foreground"
           title="Arquivar"
+          aria-label="Arquivar contrato"
           onClick={() => onDelete(contrato)}
         >
           <Archive className="w-3.5 h-3.5" />
@@ -331,21 +334,11 @@ const ContratosPage = () => {
       <div className="space-y-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
+            <SearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onValueChange={setSearch}
               placeholder="Buscar por nome, serviço, local..."
-              className="pl-9 bg-muted border-border"
             />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs gap-1 text-muted-foreground">
@@ -463,7 +456,7 @@ const ContratosPage = () => {
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => restoreContrato.mutate(c.id)}>
                       <RotateCcw className="w-3 h-3" /> Restaurar
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" title="Excluir permanentemente" onClick={() => setPermDeleteTarget(c)}>
+                    <Button size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive" title="Excluir permanentemente" aria-label="Excluir permanentemente" onClick={() => setPermDeleteTarget(c)}>
                       <Trash className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -495,7 +488,7 @@ const ContratosPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-amber-500 text-white hover:bg-amber-600"
+              className={buttonVariants({ variant: "default" })}
               onClick={handleDelete}
             >
               Arquivar
@@ -518,7 +511,7 @@ const ContratosPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "destructive" })}
               onClick={handlePermDelete}
             >
               Excluir
@@ -532,7 +525,7 @@ const ContratosPage = () => {
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Confirmar assinatura
+              <CheckCircle2 className="w-5 h-5 text-status-success" /> Confirmar assinatura
             </AlertDialogTitle>
             <AlertDialogDescription>
               Marcar o contrato de{" "}
@@ -542,7 +535,7 @@ const ContratosPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-emerald-500 text-white hover:bg-emerald-600"
+              className={buttonVariants({ variant: "default" })}
               onClick={handleMarkSigned}
             >
               Confirmar
