@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ErrorState } from "@/components/ui/error-state";
 import { useNavigate } from "react-router-dom";
 import {
   CheckSquare,
@@ -199,10 +200,10 @@ const InicioPage = () => {
       return data;
     },
   });
-  const { data: pending = [] } = useAllPendingTasks();
-  const { data: events = [] } = useEvents();
-  const { data: cobrancas = [] } = useAllCobrancas();
-  const { data: despesas = [] } = useDespesas();
+  const { data: pending = [], isError: e1, refetch: r1 } = useAllPendingTasks();
+  const { data: events = [], isError: e2, refetch: r2 } = useEvents();
+  const { data: cobrancas = [], isError: e3, refetch: r3 } = useAllCobrancas();
+  const { data: despesas = [], isError: e4, refetch: r4 } = useDespesas();
 
   const now = new Date();
   const weekStart = useMemo(() => startOfWeek(now, { weekStartsOn: 1 }), []);
@@ -285,6 +286,15 @@ const InicioPage = () => {
       />
 
       <div className="relative z-10">
+        {(e1 || e2 || e3 || e4) && (
+          <ErrorState
+            compact
+            className="mb-6"
+            title="Não foi possível carregar parte das informações"
+            description="Tarefas, eventos ou valores abaixo podem estar incompletos."
+            onRetry={() => { if (e1) r1(); if (e2) r2(); if (e3) r3(); if (e4) r4(); }}
+          />
+        )}
         {/* Hero */}
         <div className="mb-6 flex items-start justify-between gap-4 flex-wrap animate-fade-in">
           <div>

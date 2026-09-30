@@ -199,7 +199,7 @@ const InboxPage = () => {
 
   // Fetch all conversations (no status filter) so selectedConv stays valid after status change
   const { data: allConversations = [], isLoading: loadingConvs, isError: convsError, refetch: refetchConvs } = useInboxConversations();
-  const { data: messages = [], isLoading: loadingMsgs } = useInboxMessages(selectedConversationId || undefined);
+  const { data: messages = [], isLoading: loadingMsgs, isError: msgsError, refetch: refetchMsgs } = useInboxMessages(selectedConversationId || undefined);
   const displayedMessages = dedupeMessages(
     (messages as any[]).filter((m) => !(m as any).is_note),
   );
@@ -762,6 +762,8 @@ const InboxPage = () => {
                 <div className="flex justify-center py-10">
                   <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-primary" />
                 </div>
+              ) : msgsError ? (
+                <ErrorState compact title="Não foi possível carregar as mensagens" onRetry={() => refetchMsgs()} />
               ) : displayedMessages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-10 text-sm">Nenhuma mensagem ainda.</div>
               ) : (

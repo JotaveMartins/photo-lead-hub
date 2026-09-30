@@ -54,7 +54,7 @@ const ClienteDetailPage = () => {
   const [novaCobrancaOpen, setNovaCobrancaOpen] = useState(false);
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const { data: clienteTasks = [] } = useClienteTasks(id);
-  const { data: contratos = [] } = useContratosByClienteId(id);
+  const { data: contratos = [], isError: contratosError, refetch: refetchContratos } = useContratosByClienteId(id);
   const { data: todasEntregas = [] } = useEntregas();
   const entregas = todasEntregas.filter((e) => e.cliente_id === id);
   const createTask = useCreateLeadTask();
@@ -91,7 +91,7 @@ const ClienteDetailPage = () => {
     enabled: !!id && !!effectiveUserId,
   });
 
-  const { data: eventos = [] } = useQuery({
+  const { data: eventos = [], isError: eventosError, refetch: refetchEventos } = useQuery({
     queryKey: ["events-cliente", id],
     queryFn: async () => {
       if (!id || !effectiveUserId) return [];
@@ -106,7 +106,7 @@ const ClienteDetailPage = () => {
     enabled: !!id && !!effectiveUserId,
   });
 
-  const { data: despesas = [] } = useQuery({
+  const { data: despesas = [], isError: despesasError, refetch: refetchDespesas } = useQuery({
     queryKey: ["despesas-cliente", id],
     queryFn: async () => {
       if (!id || !effectiveUserId) return [];
@@ -275,7 +275,9 @@ const ClienteDetailPage = () => {
           <div className="flex justify-end mb-3">
             <Button size="sm" className="gap-1" onClick={() => setNovoContratoOpen(true)}><Plus className="w-4 h-4" /> Novo Contrato</Button>
           </div>
-          {contratos.length === 0 ? (
+          {contratosError ? (
+            <ErrorState compact title="Não foi possível carregar os contratos" onRetry={() => refetchContratos()} />
+          ) : contratos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <FileText className="w-10 h-10 text-muted-foreground/30" />
               <p className="font-medium text-muted-foreground">Nenhum contrato vinculado</p>
@@ -375,7 +377,9 @@ const ClienteDetailPage = () => {
             </Card>
           </div>
           <Button variant="outline" className="w-full mb-6" onClick={() => navigate("/financeiro/despesas")}>Gerenciar Despesas</Button>
-          {despesas.length === 0 ? (
+          {despesasError ? (
+            <ErrorState compact title="Não foi possível carregar as despesas" onRetry={() => refetchDespesas()} />
+          ) : despesas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <TrendingDown className="w-10 h-10 text-muted-foreground/30" />
               <p className="font-medium text-muted-foreground">Nenhuma despesa vinculada</p>
@@ -442,7 +446,9 @@ const ClienteDetailPage = () => {
           <div className="flex justify-end mb-3">
             <Button size="sm" className="gap-1" onClick={() => navigate(`/agenda?novo=1&cliente=${id}`)}><Plus className="w-4 h-4" /> Novo Evento</Button>
           </div>
-          {eventos.length === 0 ? (
+          {eventosError ? (
+            <ErrorState compact title="Não foi possível carregar os eventos" onRetry={() => refetchEventos()} />
+          ) : eventos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <Calendar className="w-10 h-10 text-muted-foreground/30" />
               <p className="font-medium text-muted-foreground">Nenhum evento agendado</p>
