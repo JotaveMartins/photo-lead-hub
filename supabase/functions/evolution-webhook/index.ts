@@ -619,7 +619,13 @@ Deno.serve(async (req) => {
           }
         }
 
-        // B. IA conversacional DESATIVADA (Sprint 02). Reativar trocando AI_CONVERSATIONAL_ENABLED.
+        // B. IA conversacional DESATIVADA (Sprint 02).
+        // ATENÇÃO: trocar AI_CONVERSATIONAL_ENABLED para true NÃO basta para reativar.
+        // Desde a Sprint 02, conversas novas nascem com status 'open' (não 'pending_ai'),
+        // e a condição abaixo só dispara para 'pending_ai'. Uma reativação futura exige revisar:
+        //   1) o status inicial das conversas criadas neste webhook;
+        //   2) a condição de disparo da IA abaixo;
+        //   3) a interface do Inbox/Lead (botões e abas de IA foram removidos), se necessário.
         const AI_CONVERSATIONAL_ENABLED = false;
         if (AI_CONVERSATIONAL_ENABLED && conversation.status === 'pending_ai') {
           const { data: aiCfg } = await supabase

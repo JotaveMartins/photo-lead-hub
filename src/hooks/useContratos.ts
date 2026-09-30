@@ -103,6 +103,7 @@ export const useCreateContrato = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contratos"] });
+      queryClient.invalidateQueries({ queryKey: ["contratos-cliente"] });
     },
     onError: () => {
       toast.error("Erro ao criar contrato.");
