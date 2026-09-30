@@ -131,7 +131,7 @@ const AppRoutes = () => {
         <Route path="/galerias/:id" element={<GaleriaDetailPage />} />
         <Route path="/equipe" element={<Navigate to="/agenda?tab=equipe" replace />} />
         <Route path="/inbox" element={<InboxPage />} />
-        <Route path="/ia" element={<IAPage />} />
+        <Route path="/ia" element={<Navigate to="/inbox" replace />} />
         <Route path="/whatsapp" element={<WhatsAppConfigPage />} />
         <Route path="/integracoes" element={<IntegracoesPage />} />
         <Route path="/contratos" element={<ContratosPage />} />
