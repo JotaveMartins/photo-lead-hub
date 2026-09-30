@@ -14,6 +14,8 @@ import { useClientes } from "@/hooks/useClientes";
 import { usePackageServicesForPackage } from "@/hooks/usePackageServices";
 import { useIntegrationSettings, useAsaasCreateCharge } from "@/hooks/useIntegrationSettings";
 import { toast } from "sonner";
+import { FormActions } from "@/components/ui/form-actions";
+import { Switch } from "@/components/ui/switch";
 import { Zap, Copy, ExternalLink } from "lucide-react";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
 import CobrancaItemSelector from "./CobrancaItemSelector";
@@ -21,20 +23,15 @@ import CobrancaItemSelector from "./CobrancaItemSelector";
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
 
 const PagoToggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-  <div
-    onClick={() => onChange(!checked)}
-    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${checked ? "border-green-500/40 bg-green-500/5" : "border-border bg-muted/30 hover:bg-muted/60"}`}
-  >
+  <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer">
     <div className="flex-1">
       <p className="text-sm font-medium text-foreground">Já foi pago</p>
       <p className="text-xs text-muted-foreground">
         {checked ? "Será criada como paga (data de pagamento = vencimento)" : "A data de vencimento já passou. Marque se já foi pago."}
       </p>
     </div>
-    <div className={`w-10 h-5 rounded-full transition-colors relative ${checked ? "bg-green-500" : "bg-muted"}`}>
-      <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${checked ? "left-5" : "left-0.5"}`} />
-    </div>
-  </div>
+    <Switch checked={checked} onCheckedChange={onChange} aria-label="Já foi pago" />
+  </label>
 );
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
@@ -425,15 +422,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label className="text-xs">Nº Parcelas</Label>
-                    <select
-                      value={numParcelas}
-                      onChange={(e) => setNumParcelas(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-muted px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>{n}x</option>
-                      ))}
-                    </select>
+                    <SearchSelect value={String(numParcelas)} onChange={(v) => v && setNumParcelas(v)} allowEmpty={false} options={Array.from({ length: 24 }, (_, i) => i + 1).map((n) => ({ value: String(n), label: `${n}x` }))} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">1º Vencimento *</Label>
@@ -477,15 +466,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Parcelas</Label>
-                <select
-                  value={numParcelas}
-                  onChange={(e) => setNumParcelas(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  {Array.from({ length: 24 }, (_, i) => i + 2).map((n) => (
-                    <option key={n} value={n}>{n}x</option>
-                  ))}
-                </select>
+                <SearchSelect value={String(numParcelas)} onChange={(v) => v && setNumParcelas(v)} allowEmpty={false} options={Array.from({ length: 24 }, (_, i) => i + 2).map((n) => ({ value: String(n), label: `${n}x` }))} />
               </div>
               <div className="space-y-2">
                 <Label>1º Vencimento *</Label>
@@ -529,37 +510,31 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           )}
 
           {hasAsaas && (
-            <div
-              onClick={() => setEnviarAsaas((v) => !v)}
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${enviarAsaas ? "border-blue-500/40 bg-blue-500/5" : "border-border bg-muted/30 hover:bg-muted/60"}`}
-            >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${enviarAsaas ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground"}`}>
+            <label className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold bg-muted text-muted-foreground">
                 A$
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-blue-500" />
+                  <Zap className="w-3.5 h-3.5 text-primary" />
                   Gerar cobrança no Asaas
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {enviarAsaas ? "Será enviada ao Asaas e você receberá o link de pagamento" : "Clique para ativar"}
                 </p>
               </div>
-              <div className={`w-10 h-5 rounded-full transition-colors relative ${enviarAsaas ? "bg-blue-500" : "bg-muted"}`}>
-                <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${enviarAsaas ? "left-5" : "left-0.5"}`} />
-              </div>
-            </div>
+              <Switch checked={enviarAsaas} onCheckedChange={setEnviarAsaas} aria-label="Gerar cobrança no Asaas" />
+            </label>
           )}
 
-          <div className="flex gap-3 justify-end pt-4 border-t border-border">
-            {footerExtra}
-            <Button type="button" variant="outline" onClick={() => { onCancel?.(); onOpenChange(false); }} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={isPending}>
-              {isPending ? "Criando..." : "Criar cobrança"}
-            </Button>
-          </div>
+          <FormActions
+            className="pt-4 border-t border-border"
+            onCancel={() => { onCancel?.(); onOpenChange(false); }}
+            loading={isPending}
+            submitLabel="Criar cobrança"
+            loadingLabel="Criando..."
+            extra={footerExtra}
+          />
         </form>
       </DialogContent>
     </Dialog>

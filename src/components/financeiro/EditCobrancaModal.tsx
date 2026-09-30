@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import DatePickerField from "@/components/DatePickerField";
 import { useUpdateCobranca } from "@/hooks/useCobrancas";
 import { toast } from "sonner";
+import SearchSelect from "@/components/SearchSelect";
+import { FormActions } from "@/components/ui/form-actions";
 import type { Cobranca, PaymentMethod } from "@/hooks/useCobrancas";
 import CobrancaItemSelector from "./CobrancaItemSelector";
 
@@ -137,26 +139,11 @@ const EditCobrancaModal = ({ open, onOpenChange, cobranca }: EditCobrancaModalPr
             </div>
             <div className="space-y-2">
               <Label>Pagamento</Label>
-              <select
-                value={formaPagamento}
-                onChange={(e) => setFormaPagamento(e.target.value as PaymentMethod)}
-                className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                {PAYMENT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+              <SearchSelect value={formaPagamento} onChange={(v) => setFormaPagamento((v || "pix") as PaymentMethod)} allowEmpty={false} options={PAYMENT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t border-border">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={updateCobranca.isPending}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={updateCobranca.isPending}>
-              {updateCobranca.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </div>
+          <FormActions className="pt-4 border-t border-border" onCancel={() => onOpenChange(false)} loading={updateCobranca.isPending} />
         </form>
       </DialogContent>
     </Dialog>

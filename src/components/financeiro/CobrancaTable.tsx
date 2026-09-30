@@ -80,12 +80,16 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Excluir esta cobrança?")) return;
+  const [archiveId, setArchiveId] = useState<string | null>(null);
+  const handleDelete = (id: string) => setArchiveId(id);
+  const confirmArchive = async () => {
+    if (!archiveId) return;
     try {
-      await deleteCobranca.mutateAsync(id);
+      await deleteCobranca.mutateAsync(archiveId);
     } catch {
-      toast.error("Erro ao excluir cobrança");
+      toast.error("Erro ao arquivar cobrança");
+    } finally {
+      setArchiveId(null);
     }
   };
 
@@ -151,9 +155,9 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
                     {new Date(c.vencimento + "T12:00:00").toLocaleDateString("pt-BR")}
                   </td>
                   <td className="p-4">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_STYLES[effectiveStatus]}`}>
+                    <StatusBadge tone={effectiveStatus === "paga" ? "success" : effectiveStatus === "vencida" ? "danger" : "warning"}>
                       {effectiveStatus === "paga" ? "Paga" : effectiveStatus === "vencida" ? "Vencida" : "Aguardando"}
-                    </span>
+                    </StatusBadge>
                   </td>
                   <td className="p-4 text-center">
                     <Switch
@@ -168,7 +172,8 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => window.open((c as any).asaas_invoice_url, "_blank")}
-                              className="p-1.5 rounded-md hover:bg-blue-500/10 text-blue-500 transition-colors"
+                              className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors"
+                              aria-label="Abrir link Asaas"
                             >
                               <ExternalLink className="w-4 h-4" />
                             </button>
@@ -184,7 +189,8 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
                                 navigator.clipboard.writeText((c as any).asaas_pix_code);
                                 toast.success("Código PIX copiado!");
                               }}
-                              className="p-1.5 rounded-md hover:bg-blue-500/10 text-blue-500 transition-colors"
+                              className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors"
+                              aria-label="Copiar código PIX"
                             >
                               <Copy className="w-4 h-4" />
                             </button>
@@ -192,10 +198,10 @@ const CobrancaTable = ({ cobrancas, onEdit, search, filterStatus = "all", filter
                           <TooltipContent><p className="text-xs">Copiar código PIX</p></TooltipContent>
                         </Tooltip>
                       )}
-                      <button onClick={() => onEdit(c)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                      <button onClick={() => onEdit(c)} aria-label="Editar cobrança" title="Editar cobrança" className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(c.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                      <button onClick={() => handleDelete(c.id)} aria-label="Arquivar cobrança" title="Arquivar cobrança" className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
