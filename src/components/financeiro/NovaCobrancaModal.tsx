@@ -463,7 +463,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
 
           {/* ===== PARCELAS ONLY ===== */}
           {type === "parcelas" && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Parcelas</Label>
                 <SearchSelect value={String(numParcelas)} onChange={(v) => v && setNumParcelas(v)} allowEmpty={false} options={Array.from({ length: 24 }, (_, i) => i + 2).map((n) => ({ value: String(n), label: `${n}x` }))} />
@@ -487,7 +487,7 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
 
           {/* ===== UNICA ONLY ===== */}
           {type === "unica" && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Vencimento *</Label>
                 <DatePickerField value={vencimento} onChange={setVencimento} placeholder="dd/mm/aaaa" />

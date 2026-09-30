@@ -122,7 +122,7 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
               <Label>Nome *</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>WhatsApp</Label>
                 <Input value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} placeholder="(00) 00000-0000" maxLength={15} />
@@ -132,7 +132,7 @@ const NovoClienteModal = ({ open, onClose, initialData, onClienteCreated, lockOu
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>CPF/CNPJ</Label>
                 <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))} placeholder="000.000.000-00" maxLength={18} />
