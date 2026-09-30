@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +45,20 @@ const EditCobrancaModal = ({ open, onOpenChange, cobranca }: EditCobrancaModalPr
     }
   }, [cobranca]);
 
+  // Nome histórico do item vinculado (inclui arquivados, que não aparecem na lista ativa)
+  const { data: linkedName } = useQuery({
+    queryKey: ["cobranca-item-name", serviceId, packageId],
+    enabled: open && !!(serviceId || packageId),
+    queryFn: async () => {
+      if (serviceId) {
+        const { data } = await supabase.from("services").select("nome").eq("id", serviceId).maybeSingle();
+        return data?.nome ?? null;
+      }
+      const { data } = await supabase.from("packages").select("nome").eq("id", packageId!).maybeSingle();
+      return data?.nome ?? null;
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cobranca) return;
@@ -81,6 +97,7 @@ const EditCobrancaModal = ({ open, onOpenChange, cobranca }: EditCobrancaModalPr
           <CobrancaItemSelector
             serviceId={serviceId}
             packageId={packageId}
+            fallbackName={linkedName ?? undefined}
             onSelect={(item) => {
               // Trocar o item não sobrescreve descrição/valor (snapshot histórico)
               setServiceId(item.type === "service" ? item.id : null);
