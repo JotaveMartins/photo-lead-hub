@@ -787,6 +787,7 @@ export type Database = {
           name: string
           password_hash: string | null
           published_at: string | null
+          selection_limit: number | null
           slug: string
           status: Database["public"]["Enums"]["gallery_status"]
           storage_bytes: number
@@ -812,6 +813,7 @@ export type Database = {
           name: string
           password_hash?: string | null
           published_at?: string | null
+          selection_limit?: number | null
           slug: string
           status?: Database["public"]["Enums"]["gallery_status"]
           storage_bytes?: number
@@ -837,6 +839,7 @@ export type Database = {
           name?: string
           password_hash?: string | null
           published_at?: string | null
+          selection_limit?: number | null
           slug?: string
           status?: Database["public"]["Enums"]["gallery_status"]
           storage_bytes?: number
@@ -1030,6 +1033,42 @@ export type Database = {
             columns: ["gallery_id"]
             isOneToOne: false
             referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_selections: {
+        Row: {
+          created_at: string
+          gallery_id: string
+          id: string
+          media_id: string
+        }
+        Insert: {
+          created_at?: string
+          gallery_id: string
+          id?: string
+          media_id: string
+        }
+        Update: {
+          created_at?: string
+          gallery_id?: string
+          id?: string
+          media_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_selections_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_selections_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_media"
             referencedColumns: ["id"]
           },
         ]
@@ -2381,6 +2420,10 @@ export type Database = {
       set_gallery_password: {
         Args: { _gallery_id: string; _password: string }
         Returns: undefined
+      }
+      toggle_gallery_selection: {
+        Args: { _gallery_id: string; _media_id: string; _selected: boolean }
+        Returns: Json
       }
       verify_gallery_password: {
         Args: { _gallery_id: string; _password: string }
