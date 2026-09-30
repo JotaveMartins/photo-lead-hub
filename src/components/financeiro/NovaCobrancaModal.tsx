@@ -20,6 +20,7 @@ import ServiceModal from "@/components/ServiceModal";
 import PackageModal from "@/components/PackageModal";
 import { Plus, Zap, Copy, ExternalLink } from "lucide-react";
 import type { PaymentMethod, CobrancaInsert } from "@/hooks/useCobrancas";
+import CobrancaItemSelector from "./CobrancaItemSelector";
 
 type ModalType = "unica" | "parcelas" | "entrada_parcelas";
 
@@ -84,7 +85,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   const [valorEntrada, setValorEntrada] = useState("");
   const [formaPagamentoEntrada, setFormaPagamentoEntrada] = useState<PaymentMethod>("pix");
   const [vencimentoEntrada, setVencimentoEntrada] = useState("");
-  const [selectedItemName, setSelectedItemName] = useState("");
+  const [serviceId, setServiceId] = useState<string | null>(null);
+  const [packageId, setPackageId] = useState<string | null>(null);
   const [enviarAsaas, setEnviarAsaas] = useState(false);
   const [jaPago, setJaPago] = useState(false);
   const [jaPagoEntrada, setJaPagoEntrada] = useState(false);
@@ -110,7 +112,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
     setValorEntrada("");
     setFormaPagamentoEntrada("pix");
     setVencimentoEntrada("");
-    setSelectedItemName("");
+    setServiceId(null);
+    setPackageId(null);
     setEnviarAsaas(false);
     setJaPago(false);
     setJaPagoEntrada(false);
@@ -211,6 +214,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           status: jaPago && vencimentoPast ? "paga" : "aguardando",
           vencimento,
           cliente_id: clienteId || null,
+          service_id: serviceId,
+          package_id: packageId,
           ...(jaPago && vencimentoPast ? { data_pagamento: vencimento } : {}),
         } as any);
         toast.success("Cobrança criada com sucesso!");
@@ -237,6 +242,10 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             parcela_numero: i + 1,
             parcela_total: n,
             cliente_id: clienteId || null,
+            service_id: serviceId,
+            package_id: packageId,
+          service_id: serviceId,
+          package_id: packageId,
           } as any);
         }
         const batchResult = await createBatch.mutateAsync(items);
@@ -263,6 +272,8 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
           status: jaPagoEntrada && vencimentoEntradaPast ? "paga" : "aguardando",
           vencimento: vencimentoEntrada,
           cliente_id: clienteId || null,
+          service_id: serviceId,
+          package_id: packageId,
           ...(jaPagoEntrada && vencimentoEntradaPast ? { data_pagamento: vencimentoEntrada } : {}),
         } as any);
 
@@ -283,6 +294,10 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             parcela_numero: i + 1,
             parcela_total: n,
             cliente_id: clienteId || null,
+            service_id: serviceId,
+            package_id: packageId,
+          service_id: serviceId,
+          package_id: packageId,
           } as any);
         }
         const batchResult2 = await createBatch.mutateAsync(items);
@@ -331,13 +346,16 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
             onChange={setClienteId}
           />
 
-          <ItemSelector
-            onSelect={(name, price) => {
-              setDescricao(name);
-              setValor(String(price));
-              setSelectedItemName(name);
+          <CobrancaItemSelector
+            serviceId={serviceId}
+            packageId={packageId}
+            onSelect={(item) => {
+              setDescricao(item.name);
+              setValor(String(item.price));
+              setServiceId(item.type === "service" ? item.id : null);
+              setPackageId(item.type === "package" ? item.id : null);
             }}
-            selectedName={selectedItemName}
+            onClear={() => { setServiceId(null); setPackageId(null); }}
           />
 
           <div className="space-y-2">
@@ -556,140 +574,5 @@ const NovaCobrancaModal = ({ open, onOpenChange, type, initialClienteId, initial
   );
 };
 
-
-interface ItemSelectorProps {
-  onSelect: (name: string, price: number) => void;
-  selectedName: string;
-}
-
-const ItemSelector = ({ onSelect, selectedName }: ItemSelectorProps) => {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
-  const { data: services = [] } = useServices();
-  const { data: packages = [] } = usePackages();
-  const [serviceModalOpen, setServiceModalOpen] = useState(false);
-  const [packageModalOpen, setPackageModalOpen] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const formatCurrency = (v: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-
-  const s = search.toLowerCase();
-  const filteredServices = services.filter((sv) => sv.nome.toLowerCase().includes(s));
-  const filteredPackages = packages.filter((p) => !p.is_default && p.nome.toLowerCase().includes(s));
-
-  return (
-    <div className="space-y-2">
-      <Label>Serviço ou Pacote <span className="text-muted-foreground text-xs">opcional</span></Label>
-      <div ref={ref} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className={`flex h-10 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${selectedName ? "text-foreground" : "text-muted-foreground"}`}
-        >
-          {selectedName || "Vincular serviço ou pacote..."}
-          <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-        </button>
-
-        {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg">
-            <div className="p-2">
-              <div className="relative">
-                <input
-                  autoFocus
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar serviço ou pacote..."
-                  className={`w-full rounded-md border border-input bg-muted px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${search ? "pr-8" : ""}`}
-                />
-                {search && (
-                  <button
-                    type="button"
-                    aria-label="Limpar busca"
-                    onClick={() => setSearch("")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 transition-colors"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="max-h-56 overflow-y-auto">
-              {filteredServices.length > 0 && (
-                <>
-                  <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50">Serviços</p>
-                  {filteredServices.map((sv) => (
-                    <button
-                      type="button"
-                      key={`s-${sv.id}`}
-                      onClick={() => { onSelect(sv.nome, sv.valor_base); setOpen(false); setSearch(""); }}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center justify-between"
-                    >
-                      <span className="text-foreground">{sv.nome}</span>
-                      <span className="text-xs text-muted-foreground">{formatCurrency(sv.valor_base)}</span>
-                    </button>
-                  ))}
-                </>
-              )}
-              {filteredPackages.length > 0 && (
-                <>
-                  <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50">Pacotes</p>
-                  {filteredPackages.map((p) => (
-                    <button
-                      type="button"
-                      key={`p-${p.id}`}
-                      onClick={() => { onSelect(p.nome, p.preco_final || 0); setOpen(false); setSearch(""); }}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center justify-between"
-                    >
-                      <span className="text-foreground">{p.nome}</span>
-                      <span className="text-xs text-muted-foreground">{p.preco_final ? formatCurrency(p.preco_final) : "—"}</span>
-                    </button>
-                  ))}
-                </>
-              )}
-              {filteredServices.length === 0 && filteredPackages.length === 0 && (
-                <p className="px-3 py-2 text-sm text-muted-foreground text-center">Nenhum item encontrado</p>
-              )}
-            </div>
-            <div className="border-t border-border p-1.5 flex gap-1.5">
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setServiceModalOpen(true); }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded-md hover:bg-muted text-foreground transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5" /> Novo serviço
-              </button>
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setPackageModalOpen(true); }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded-md hover:bg-muted text-foreground transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5" /> Novo pacote
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-      <ServiceModal
-        open={serviceModalOpen}
-        onOpenChange={setServiceModalOpen}
-        onCreated={() => { setServiceModalOpen(false); setOpen(true); }}
-      />
-      <PackageModal
-        open={packageModalOpen}
-        onOpenChange={setPackageModalOpen}
-        onCreated={() => { setPackageModalOpen(false); setOpen(true); }}
-      />
-    </div>
-  );
-};
 
 export default NovaCobrancaModal;
