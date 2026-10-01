@@ -1,0 +1,2 @@
+CREATE POLICY "Admins manage all carousel renders" ON storage.objects FOR ALL TO authenticated USING (bucket_id = 'carousel-renders' AND public.has_role(auth.uid(),'admin')) WITH CHECK (bucket_id = 'carousel-renders' AND public.has_role(auth.uid(),'admin'));
+CREATE POLICY "Admins manage all scheduled posts" ON public.scheduled_posts FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
