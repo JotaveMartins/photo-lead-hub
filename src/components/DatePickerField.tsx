@@ -5,7 +5,7 @@ import { cn, parseLocalDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface DatePickerFieldProps {
   value: string; // YYYY-MM-DD
@@ -17,6 +17,8 @@ interface DatePickerFieldProps {
 
 const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", className, disabled }: DatePickerFieldProps) => {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const boundary = open ? (triggerRef.current?.closest('[role="dialog"]') as HTMLElement | null) : null;
 
   const selected = value ? parseLocalDate(value) : undefined;
 
@@ -36,6 +38,8 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
+          type="button"
           variant="outline"
           disabled={disabled}
           className={cn(
@@ -48,7 +52,7 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
           {selected ? format(selected, "dd/MM/yyyy", { locale: ptBR }) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start" side="top" onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent className="w-auto p-0" align="start" side="bottom" collisionPadding={8} collisionBoundary={boundary ?? undefined} onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
         <Calendar
           mode="single"
           selected={selected}
