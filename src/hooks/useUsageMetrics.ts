@@ -30,7 +30,21 @@ export const useUsageMetrics = (month: Date) => {
     enabled: isAdmin,
   });
 
-  const exclude = new Set(adminUserIds);
+  // Fora da medição: contas bloqueadas e contas só-CRM (plano básico)
+  const excluded = useQuery({
+    queryKey: ["usage-excluded-accounts"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .or("bloqueado.eq.true,plano_basico.eq.true");
+      if (error) throw error;
+      return (data ?? []).map((p) => p.user_id);
+    },
+  });
+
+  const exclude = new Set([...adminUserIds, ...(excluded.data ?? [])]);
   const filter = (rows: UsageRow[] | undefined) => (rows ?? []).filter((r) => !exclude.has(r.user_id));
 
   const accounts: ScoredAccount[] = scoreAccounts(filter(current.data)).sort((a, b) => b.score - a.score);
@@ -40,7 +54,7 @@ export const useUsageMetrics = (month: Date) => {
   return {
     accounts,
     previousByUser,
-    isLoading: current.isLoading || previous.isLoading,
+    isLoading: current.isLoading || previous.isLoading || excluded.isLoading,
     error: current.error || previous.error,
   };
 };
