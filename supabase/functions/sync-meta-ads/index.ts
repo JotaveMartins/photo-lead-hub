@@ -117,10 +117,12 @@ Deno.serve(async (req) => {
         .select("user_id, meta_ad_account_id")
         .not("meta_ad_account_id", "is", null);
       if (error) throw error;
-      accounts = (profiles || []).map((p: any) => ({
-        ad_account_id: p.meta_ad_account_id.startsWith("act_") ? p.meta_ad_account_id : `act_${p.meta_ad_account_id}`,
-        client_id: p.user_id,
-      }));
+      accounts = (profiles || [])
+        .filter((p: any) => /^(act_)?\d{6,}$/.test(String(p.meta_ad_account_id).trim()))
+        .map((p: any) => {
+          const id = String(p.meta_ad_account_id).trim();
+          return { ad_account_id: id.startsWith("act_") ? id : `act_${id}`, client_id: p.user_id };
+        });
     }
 
     let totalFetched = 0;
@@ -140,7 +142,15 @@ Deno.serve(async (req) => {
 
         const todayLocal = fmtInTz(now, accountTz);
         const yesterdayLocal = addDaysStr(todayLocal, -1);
-        const since = explicitSince || yesterdayLocal;
+        // Conta recém-vinculada (sem histórico): busca os últimos 180 dias
+        let since = explicitSince || yesterdayLocal;
+        if (!explicitSince) {
+          const { count } = await supabase
+            .from("meta_daily_ads")
+            .select("id", { count: "exact", head: true })
+            .eq("ad_account_id", ad_account_id);
+          if (!count) since = addDaysStr(todayLocal, -180);
+        }
         const until = explicitUntil || todayLocal;
 
         // 1. Get campaign objectives
