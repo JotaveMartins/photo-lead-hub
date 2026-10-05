@@ -31,7 +31,8 @@ type AdocaoStatus = "Engajado" | "Uso parcial" | "Inativo";
 
 const adocaoStatus = (a: ScoredAccount): AdocaoStatus => {
   if (!a.row.acessou_no_mes) return "Inativo";
-  return a.score >= 10 ? "Engajado" : "Uso parcial";
+  // Engajado exige movimentar o pipeline no mês
+  return Number(a.row.pipeline ?? 0) > 0 && a.score >= 10 ? "Engajado" : "Uso parcial";
 };
 
 const STATUS_CLASS: Record<AdocaoStatus, string> = {
