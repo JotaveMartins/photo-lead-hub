@@ -30,17 +30,21 @@ export const useUsageMetrics = (month: Date) => {
     enabled: isAdmin,
   });
 
-  // Fora da medição: contas bloqueadas e contas só-CRM (plano básico)
+  // Fora da medição: contas bloqueadas, só-CRM (plano básico) e conta tester da Meta
   const excluded = useQuery({
     queryKey: ["usage-excluded-accounts"],
     enabled: isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .or("bloqueado.eq.true,plano_basico.eq.true");
-      if (error) throw error;
-      return (data ?? []).map((p) => p.user_id);
+      const [profilesRes, testersRes] = await Promise.all([
+        supabase.from("profiles").select("user_id").or("bloqueado.eq.true,plano_basico.eq.true"),
+        supabase.from("user_roles").select("user_id").eq("role", "tester" as any),
+      ]);
+      if (profilesRes.error) throw profilesRes.error;
+      if (testersRes.error) throw testersRes.error;
+      return [
+        ...(profilesRes.data ?? []).map((p) => p.user_id),
+        ...(testersRes.data ?? []).map((r) => r.user_id),
+      ];
     },
   });
 
