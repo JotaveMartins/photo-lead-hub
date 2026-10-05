@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.gallery-public]
 verify_jwt = false
+
+[functions.bi-whatsapp-leads]
+verify_jwt = false
