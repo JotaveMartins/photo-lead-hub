@@ -7,7 +7,9 @@ const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 const normName = (s: string) =>
-  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' e ').replace(/[^a-z0-9]+/g, ' ').trim()
+// Chave tolerante: remove apenas sufixos genéricos no fim do nome ("Fotografia", "Fotografias", "Fotógrafo").
+const looseName = (s: string) => normName(s).replace(/(\s+(fotografias?|fotografo))+$/, '').trim()
 const normId = (s: string) => s.replace(/^act_/, '').trim()
 const isNumericId = (s: string | null) => !!s && /^\d{5,}$/.test(normId(s))
 
@@ -31,17 +33,21 @@ Deno.serve(async (req) => {
   if (error) return json({ error: error.message }, 500)
 
   const byName = new Map<string, typeof profiles>()
+  const byLoose = new Map<string, typeof profiles>()
   for (const p of profiles ?? []) {
     const k = normName(p.nome ?? '')
     if (!k) continue
     byName.set(k, [...(byName.get(k) ?? []), p])
+    const l = looseName(p.nome ?? '')
+    if (l) byLoose.set(l, [...(byLoose.get(l) ?? []), p])
   }
   const usedIds = new Set((profiles ?? []).filter((p) => isNumericId(p.meta_ad_account_id)).map((p) => normId(p.meta_ad_account_id!)))
 
   const results: any[] = []
   for (const it of items) {
     const acc = normId(it.account_id)
-    const matches = byName.get(normName(it.name)) ?? []
+    let matches = byName.get(normName(it.name)) ?? []
+    if (matches.length === 0) matches = byLoose.get(looseName(it.name)) ?? []
     if (!/^\d{5,}$/.test(acc)) { results.push({ ...it, status: 'id_invalido' }); continue }
     if (matches.length === 0) { results.push({ ...it, status: 'sem_cliente_no_crm' }); continue }
     if (matches.length > 1) { results.push({ ...it, status: 'nome_ambiguo' }); continue }
