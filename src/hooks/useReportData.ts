@@ -19,6 +19,19 @@ interface UseReportDataParams {
 
 export const ALL_CLIENTS = "__all__";
 
+// Busca todas as linhas em páginas (o servidor devolve no máximo 1000 por vez)
+const fetchAll = async <T,>(build: () => any): Promise<T[]> => {
+  const size = 1000;
+  const out: T[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await build().order("id").range(from, from + size - 1);
+    if (error) throw error;
+    out.push(...((data ?? []) as T[]));
+    if (!data || data.length < size) break;
+  }
+  return out;
+};
+
 export const useReportData = (params: UseReportDataParams = {}) => {
   const { user } = useAuth();
   const effectiveUserId = useEffectiveUserId();
@@ -30,7 +43,8 @@ export const useReportData = (params: UseReportDataParams = {}) => {
   const leadsQuery = useQuery({
     queryKey: ["report-leads", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
     queryFn: async () => {
-      let query = supabase.from("leads").select("*");
+      const build = () => {
+        let query = supabase.from("leads").select("*");
 
       // Admin: "__all__" = consolidado (exclui contas de administrador — dados fictícios)
       if (isConsolidated) {
@@ -44,9 +58,9 @@ export const useReportData = (params: UseReportDataParams = {}) => {
         query = query.eq("user_id", effectiveUserId!);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as ReportLead[];
+        return query;
+      };
+      return fetchAll<ReportLead>(build);
     },
     enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
   });
@@ -54,7 +68,8 @@ export const useReportData = (params: UseReportDataParams = {}) => {
   const tasksQuery = useQuery({
     queryKey: ["report-tasks", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
     queryFn: async () => {
-      let query = supabase.from("lead_tasks").select("*");
+      const build = () => {
+        let query = supabase.from("lead_tasks").select("*");
 
       if (isConsolidated) {
         if (adminUserIds.length > 0) {
@@ -66,9 +81,9 @@ export const useReportData = (params: UseReportDataParams = {}) => {
         query = query.eq("user_id", effectiveUserId!);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as ReportTask[];
+        return query;
+      };
+      return fetchAll<ReportTask>(build);
     },
     enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
   });
