@@ -19,8 +19,9 @@ export interface UsageRow {
 }
 
 export type PillarKey =
-  | "leads"
   | "pipeline"
+  | "dias_ativos"
+  | "leads"
   | "tarefas"
   | "inbox"
   | "financeiro"
@@ -31,12 +32,13 @@ export type PillarKey =
   | "estudio";
 
 export const PILLARS: { key: PillarKey; label: string; weight: number; hint: string }[] = [
-  { key: "leads", label: "Leads", weight: 3, hint: "Leads criados no mês" },
-  { key: "pipeline", label: "Pipeline", weight: 3, hint: "Alterações manuais nos leads (etapas e campos)" },
+  { key: "pipeline", label: "Pipeline", weight: 8, hint: "Alterações manuais nos leads (etapas e campos)" },
+  { key: "dias_ativos", label: "Acessos", weight: 4, hint: "Dias em que acessou o CRM no mês" },
   { key: "tarefas", label: "Tarefas", weight: 3, hint: "Tarefas concluídas no mês" },
-  { key: "inbox", label: "Inbox", weight: 3, hint: "Mensagens enviadas pelo WhatsApp" },
+  { key: "leads", label: "Leads", weight: 2, hint: "Leads cadastrados manualmente (sem os automáticos do WhatsApp)" },
   { key: "financeiro", label: "Financeiro", weight: 2, hint: "Cobranças e despesas lançadas" },
   { key: "agenda", label: "Agenda", weight: 2, hint: "Eventos criados" },
+  { key: "inbox", label: "Inbox", weight: 1, hint: "Mensagens enviadas pelo WhatsApp (inclui as do celular)" },
   { key: "clientes", label: "Clientes", weight: 1, hint: "Clientes cadastrados" },
   { key: "entregas", label: "Entregas", weight: 1, hint: "Entregas criadas ou movidas de etapa" },
   { key: "contratos", label: "Contratos", weight: 1, hint: "Contratos criados" },
@@ -85,8 +87,10 @@ export const scoreAccounts = (rows: UsageRow[]): ScoredAccount[] => {
       weighted += s * p.weight;
     });
     let score = Math.round(weighted / totalWeight);
-    // Sem nenhum acesso no mês o score não pode passar de 10
-    if (!row.acessou_no_mes && score > 10) score = Math.min(score, 10);
+    // Sem acesso real ao CRM no mês (só WhatsApp/automação) o score não passa de 5
+    if (!row.acessou_no_mes) score = Math.min(score, 5);
+    // Sem nenhuma movimentação no pipeline, não chega a "engajado"
+    if (Number(row.pipeline ?? 0) === 0) score = Math.min(score, 35);
 
     const totals = PILLARS.map((p) => ({ key: p.key, n: Number(row[p.key] ?? 0) }));
     const total = totals.reduce((s, t) => s + t.n, 0);
