@@ -118,28 +118,30 @@ const EntregasPage = () => {
           />
       </div>
 
-      {isLoading ? (
+      {isLoading || stagesLoading ? (
         <ColumnsSkeleton columns={4} />
       ) : isError ? (
         <ErrorState title="Não foi possível carregar as entregas" onRetry={() => refetch()} />
+      ) : stagesError || stages.length === 0 ? (
+        <ErrorState title="Não foi possível carregar as etapas do funil" onRetry={() => refetchStages()} />
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4 xl:overflow-visible">
-          {ENTREGA_ETAPAS.map((col) => {
-            const items = filtered.filter((e) => e.etapa === col.etapa);
+          {stages.map((col) => {
+            const items = filtered.filter((e) => e.stage_id === col.id);
             return (
               <div
-                key={col.etapa}
-                onDragOver={(ev) => { ev.preventDefault(); setDragOver(col.etapa); }}
-                onDragLeave={() => setDragOver((c) => (c === col.etapa ? null : c))}
-                onDrop={(ev) => handleDrop(col.etapa, ev.dataTransfer.getData("text/plain"))}
+                key={col.id}
+                onDragOver={(ev) => { ev.preventDefault(); setDragOver(col.id); }}
+                onDragLeave={() => setDragOver((c) => (c === col.id ? null : c))}
+                onDrop={(ev) => handleDrop(col, ev.dataTransfer.getData("text/plain"))}
                 className={`flex-shrink-0 w-72 xl:flex-1 xl:w-auto xl:min-w-0 bg-card border rounded-xl flex flex-col transition-colors ${
-                  dragOver === col.etapa ? "border-primary bg-primary/5" : "border-border"
+                  dragOver === col.id ? "border-primary bg-primary/5" : "border-border"
                 }`}
               >
                 <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />
-                    <span className="text-sm font-semibold text-foreground truncate">{col.label}</span>
+                    <div className={`w-2.5 h-2.5 rounded-full ${deliveryStageColorClass(col.color_key)}`} />
+                    <span className="text-sm font-semibold text-foreground truncate">{col.name}</span>
                   </div>
                   <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">{items.length}</span>
                 </div>
