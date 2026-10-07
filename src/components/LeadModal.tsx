@@ -8,27 +8,17 @@ import InteresseSelect from "@/components/InteresseSelect";
 import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
+import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
-type LeadStatus = Database["public"]["Enums"]["lead_status"];
 
 const whatsappSchema = z.string().min(7, "WhatsApp deve ter pelo menos 7 dígitos").max(15, "WhatsApp deve ter no máximo 15 dígitos").regex(/^\d+$/, "WhatsApp deve conter apenas números");
 const nomeSchema = z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100);
 
 const ORIGEM_OPTIONS = [
   "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
-];
-
-const statusOptions: { value: LeadStatus; label: string }[] = [
-  { value: "Novo Lead", label: "Novo Lead" },
-  { value: "Contato Iniciado", label: "Contato Iniciado" },
-  { value: "Proposta Enviada", label: "Proposta Enviada" },
-  { value: "Follow-up", label: "Follow-up" },
-  { value: "Contrato Enviado", label: "Contrato Enviado" },
-  { value: "Fechado Ganho", label: "Fechado Ganho" },
-  { value: "Fechado Perdido", label: "Fechado Perdido" },
 ];
 
 interface LeadModalProps {
@@ -44,7 +34,7 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [interesse, setInteresse] = useState("");
-  const [status, setStatus] = useState<LeadStatus>("Novo Lead");
+  const [stageId, setStageId] = useState("");
   const [origem, setOrigem] = useState("");
   const [dataEvento, setDataEvento] = useState("");
   const [dataContato, setDataContato] = useState("");
@@ -53,6 +43,7 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
 
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
+  const { stages, leadStage } = usePipelineStages();
 
   // Extract YYYY-MM-DD from any date/timestamp string to avoid timezone shifts
   const toDateOnly = (v: string | null | undefined): string => 
