@@ -110,16 +110,16 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
     }
   };
 
-  const bulkOptions =
-    bulkField === "origem" ? ORIGEM_OPTIONS
-    : bulkField === "interesse" ? interesseOptions
-    : STATUS_OPTIONS;
+  const bulkOptions: { value: string; label: string }[] =
+    bulkField === "origem" ? ORIGEM_OPTIONS.map((o) => ({ value: o, label: o }))
+    : bulkField === "interesse" ? interesseOptions.map((o) => ({ value: o, label: o }))
+    : stages.map((s) => ({ value: s.id, label: s.name }));
 
   const handleBulkApply = async () => {
     if (!bulkValue || selectedIds.size === 0) return;
     await bulkUpdate.mutateAsync({
       ids: Array.from(selectedIds),
-      updates: { [bulkField]: bulkValue } as any,
+      updates: { [bulkField === "status" ? "stage_id" : bulkField]: bulkValue } as any,
     });
     setSelectedIds(new Set());
     setBulkValue("");
@@ -149,7 +149,7 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
             >
               <option value="origem">Origem</option>
               <option value="interesse">Interesse</option>
-              <option value="status">Status</option>
+              <option value="status">Etapa</option>
             </select>
             <select
               value={bulkValue}
@@ -157,8 +157,8 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
               className="text-sm bg-background border border-border rounded-md px-2 py-1 text-foreground min-w-[160px]"
             >
               <option value="">Selecione um valor…</option>
-              {bulkOptions.map((opt: string) => (
-                <option key={opt} value={opt}>{opt}</option>
+              {bulkOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
             <Button
@@ -193,15 +193,13 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setStatusFilter("all")}>Todos</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Novo Lead")}>Novo Lead</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Contato Iniciado")}>Contato Iniciado</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Proposta Enviada")}>Proposta Enviada</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Follow-up")}>Follow-up</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Contrato Enviado")}>Contrato Enviado</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Fechado Ganho")}>Fechado Ganho</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter("Fechado Perdido")}>Fechado Perdido</DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-56 max-h-72 overflow-y-auto">
+                  <DropdownMenuItem onClick={() => setStatusFilter("all")}>Todas as etapas</DropdownMenuItem>
+                  {stages.map((s) => (
+                    <DropdownMenuItem key={s.id} onClick={() => setStatusFilter(s.id)}>
+                      {s.name}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -284,7 +282,15 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <LeadStatusBadgeDB status={lead.status} />
+                      {(() => {
+                        const stage = stageById(lead.stage_id);
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${stageBadgeStyles(stage)}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${pipelineStageColorClass(stage?.color_key)}`} />
+                            {stage?.name || "—"}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-4">
                       {lead.data_evento ? (
