@@ -13,7 +13,7 @@ import TasksSection from "@/components/reports/TasksSection";
 import MetaAdsSection from "@/components/reports/MetaAdsSection";
 import RevenueCompositionSection from "@/components/reports/RevenueCompositionSection";
 import { parseLocalDate } from "@/lib/utils";
-import { buildLeadPipelineFacts } from "@/lib/leadPipelineReporting";
+import { buildLeadPipelineFacts, buildHistoryByLead, getFirstStageEntry } from "@/lib/leadPipelineReporting";
 import { format } from "date-fns";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
 
@@ -130,34 +130,83 @@ const RelatoriosPage = () => {
   }, [leadSets]);
 
   // === Funnel ===
-  const funnelSteps = useMemo(() => [
-    { label: "Leads", value: kpis.created },
-    { label: "Contato Iniciado", value: kpis.contato },
-    { label: "Proposta", value: kpis.propostas },
-    { label: "Contrato Enviado", value: kpis.contratos },
-    { label: "Ganho", value: kpis.ganhos },
-  ], [kpis]);
+  const isConsolidated = isAdmin && clienteUserId === "__all__";
+
+  // Primeira entrada por etapa (para o funil individual dinâmico e drill-downs)
+  const stageEntrySets = useMemo(() => {
+    const historyByLead = buildHistoryByLead(stageHistory);
+    const out = new Map<string, { leads: ReportLead[]; dates: Record<string, string | null> }>();
+    for (const s of stages) {
+      const ls: ReportLead[] = [];
+      const dates: Record<string, string | null> = {};
+      for (const l of leads) {
+        const ts = getFirstStageEntry(historyByLead.get(l.id), s.id);
+        if (inRange(ts)) { ls.push(l); dates[l.id] = ts; }
+      }
+      out.set(s.id, { leads: ls, dates });
+    }
+    return out;
+  }, [stages, leads, stageHistory, dateRange]);
+
+  // Consolidado: leads únicos com entrada em qualquer etapa open/proposal no período
+  const negociacaoSet = useMemo(() => {
+    const ids = new Set<string>();
+    stageHistory.forEach((e) => {
+      if ((e.to_stage_role === "open" || e.to_stage_role === "proposal") && inRange(e.entered_at)) ids.add(e.lead_id);
+    });
+    return leads.filter((l) => ids.has(l.id));
+  }, [leads, stageHistory, dateRange]);
+
+  const funnelSteps = useMemo(() => {
+    if (isConsolidated) {
+      // Funil consolidado universal: etapas personalizadas de contas diferentes
+      // nunca se misturam. Perdidos fica fora do funil linear.
+      return [
+        { label: "Leads Captados", value: kpis.created },
+        { label: "Em Negociação", value: negociacaoSet.length },
+        { label: "Vendas Ganhas", value: kpis.ganhos },
+      ];
+    }
+    // Individual: funil usa as pipeline_stages atuais da conta (lead/open/proposal/won),
+    // em ordem, com o nome atual de cada etapa. Lost fica fora do funil linear.
+    return stages
+      .filter((s) => s.stage_role !== "lost")
+      .sort((a, b) => a.position - b.position)
+      .map((s) => ({
+        label: s.name,
+        value: s.stage_role === "lead" ? kpis.created : (stageEntrySets.get(s.id)?.leads.length ?? 0),
+      }));
+  }, [isConsolidated, kpis, stages, stageEntrySets, negociacaoSet]);
 
   const handleFunnelClick = (label: string) => {
-    const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string; dates: Record<string, string | null> }> = {
-      "Leads": { leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
-      "Contato Iniciado": { leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em", dates: derivedDates.contato },
-      "Proposta": { leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em", dates: derivedDates.propostas },
-      "Contrato Enviado": { leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em", dates: derivedDates.contratos },
-      "Ganho": { leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
-    };
-    const item = map[label];
-    if (item) setDrillDown({ title: label, ...item });
+    if (isConsolidated) {
+      const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string; dates: Record<string, string | null> }> = {
+        "Leads Captados": { leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
+        "Em Negociação": { leads: negociacaoSet, dateField: "created_at", dateLabel: "Criado em", dates: derivedDates.created },
+        "Vendas Ganhas": { leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
+      };
+      const item = map[label];
+      if (item) setDrillDown({ title: label, ...item });
+      return;
+    }
+    const stage = stages.find((s) => s.name === label && s.stage_role !== "lost");
+    if (!stage) return;
+    if (stage.stage_role === "lead") {
+      setDrillDown({ title: label, leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created });
+      return;
+    }
+    const set = stageEntrySets.get(stage.id);
+    if (set) setDrillDown({ title: label, leads: set.leads, dateField: "created_at", dateLabel: "Entrada em", dates: set.dates });
   };
 
   const handleKpiClick = (key: string) => {
     const map: Record<string, { title: string; leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string; dates: Record<string, string | null> }> = {
-      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
-      "Contato Iniciado": { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em", dates: derivedDates.contato },
-      "Propostas": { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em", dates: derivedDates.propostas },
-      "Contratos Enviados": { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em", dates: derivedDates.contratos },
-      "Ganhos": { title: "Negócios Ganhos", leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
-      "Perdidos": { title: "Negócios Perdidos", leads: leadSets.perdidos, dateField: "data_entrada_fechado_perdido", dateLabel: "Perdido em", dates: derivedDates.perdidos },
+      created: { title: "Leads Criados", leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
+      contato: { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em", dates: derivedDates.contato },
+      propostas: { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em", dates: derivedDates.propostas },
+      contratos: { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em", dates: derivedDates.contratos },
+      ganhos: { title: "Negócios Ganhos", leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
+      perdidos: { title: "Negócios Perdidos", leads: leadSets.perdidos, dateField: "data_entrada_fechado_perdido", dateLabel: "Perdido em", dates: derivedDates.perdidos },
     };
     const item = map[key];
     if (item) setDrillDown(item);
@@ -316,18 +365,31 @@ const RelatoriosPage = () => {
 
   const fmtCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  // KPI cards: fixos Leads Criados / Ganhos / Perdidos. Na visão individual,
+  // Contato/Proposta/Contrato aparecem somente se a etapa correspondente existe
+  // na conta, usando o nome atual da etapa.
+  const contatoStage = !isConsolidated ? stages.find((s) => s.legacy_status === "Contato Iniciado") : null;
+  const contratoStage = !isConsolidated ? stages.find((s) => s.legacy_status === "Contrato Enviado") : null;
+  const proposalStageRow = !isConsolidated ? stages.find((s) => s.stage_role === "proposal") : null;
+
   const kpiCards = [
-    { label: "Leads Criados", value: kpis.created, icon: Users, color: "text-primary" },
-    { label: "Contato Iniciado", value: kpis.contato, icon: PhoneCall, color: "text-blue-400" },
-    { label: "Propostas", value: kpis.propostas, icon: FileText, color: "text-yellow-500" },
-    { label: "Contratos Enviados", value: kpis.contratos, icon: Send, color: "text-orange-400" },
-    { label: "Ganhos", value: kpis.ganhos, icon: Trophy, color: "text-green-500" },
-    { label: "Perdidos", value: kpis.perdidos, icon: XCircle, color: "text-destructive" },
+    { key: "created", label: "Leads Criados", value: kpis.created, icon: Users, color: "text-primary" },
+    ...(isConsolidated || contatoStage
+      ? [{ key: "contato", label: contatoStage?.name ?? "Contato Iniciado", value: kpis.contato, icon: PhoneCall, color: "text-blue-400" }]
+      : []),
+    ...(isConsolidated || proposalStageRow
+      ? [{ key: "propostas", label: proposalStageRow?.name ?? "Propostas", value: kpis.propostas, icon: FileText, color: "text-yellow-500" }]
+      : []),
+    ...(isConsolidated || contratoStage
+      ? [{ key: "contratos", label: contratoStage?.name ?? "Contratos Enviados", value: kpis.contratos, icon: Send, color: "text-orange-400" }]
+      : []),
+    { key: "ganhos", label: "Ganhos", value: kpis.ganhos, icon: Trophy, color: "text-green-500" },
+    { key: "perdidos", label: "Perdidos", value: kpis.perdidos, icon: XCircle, color: "text-destructive" },
   ];
 
   const revenueCards = [
-    { label: "Receita Total", value: fmtCurrency(kpis.receita), icon: DollarSign, clickKey: "Ganhos" },
-    { label: "Ticket Médio", value: fmtCurrency(kpis.ticket), icon: TrendingUp, clickKey: "Ganhos" },
+    { label: "Receita Total", value: fmtCurrency(kpis.receita), icon: DollarSign, clickKey: "ganhos" },
+    { label: "Ticket Médio", value: fmtCurrency(kpis.ticket), icon: TrendingUp, clickKey: "ganhos" },
     { label: "Taxa de Conversão", value: `${kpis.taxa.toFixed(1)}%`, icon: Percent, clickKey: null },
   ];
 
@@ -364,9 +426,9 @@ const RelatoriosPage = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
         {kpiCards.map((c) => (
           <div
-            key={c.label}
+            key={c.key}
             className={`bg-card border border-border rounded-xl p-4 transition-colors ${c.value > 0 ? "cursor-pointer hover:border-primary/50" : ""}`}
-            onClick={() => c.value > 0 && handleKpiClick(c.label)}
+            onClick={() => c.value > 0 && handleKpiClick(c.key)}
           >
             <div className="flex items-center gap-2 mb-1">
               <c.icon className={`w-4 h-4 ${c.color}`} />

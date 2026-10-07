@@ -36,6 +36,13 @@
       "when": 1791401021032,
       "tag": "0004_lead_pipeline_customization_sprint03",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791406562740,
+      "tag": "0005_reorder_pipeline_stages_reject_duplicates",
+      "breakpoints": true
     }
   ]
 }

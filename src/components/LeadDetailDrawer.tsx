@@ -441,6 +441,8 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   // Lead to cliente flow state
    const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
    const [ganhoPrevStageId, setGanhoPrevStageId] = useState<string | null>(null);
+   const [ganhoTargetStageId, setGanhoTargetStageId] = useState<string | null>(null);
+   const [ganhoExtraFields, setGanhoExtraFields] = useState<Record<string, any>>({});
    const [activeTab, setActiveTab] = useState<"historico" | "conversa">("historico");
 
   const { stages, stageById, proposalStage, wonStage, lostStage, followUpStage } = usePipelineStages();
@@ -548,8 +550,11 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       setRequiredFieldsOpen(true);
       return;
     }
-    // Legado: mover para a etapa âncora de proposta ativa a sequência de Follow-up
+    // Legado: mover para a etapa âncora de proposta ativa a sequência de Follow-up.
+    // Registra primeiro a entrada na proposta para o histórico ficar:
+    // etapa anterior -> proposal -> Follow-up.
     if (target.legacy_status === "Proposta Enviada" && followUpStage) {
+      await updateLead.mutateAsync({ id: lead.id, stage_id: target.id } as any);
       await updateLead.mutateAsync({ id: lead.id, stage_id: followUpStage.id } as any);
       setFollowUpMode("activate");
       setFollowUpNextNumber(1);
@@ -557,8 +562,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       return;
     }
     if (target.stage_role === "won") {
+      // Entrada definitiva em won somente ao concluir o LeadToClienteFlow (onConfirm).
       setGanhoPrevStageId(lead.stage_id);
-      await updateLead.mutateAsync({ id: lead.id, stage_id: stageId } as any);
+      setGanhoTargetStageId(stageId);
+      setGanhoExtraFields({});
       setLeadToClienteFlowOpen(true);
       return;
     }
@@ -589,7 +596,9 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     if (!lead || !pendingStageId) return;
     const pendingStage = stageById(pendingStageId);
     if (pendingStage?.legacy_status === "Proposta Enviada" && followUpStage) {
-      await updateLead.mutateAsync({ id: lead.id, stage_id: followUpStage.id, ...fields } as any);
+      // Entra na proposta primeiro (com os campos), depois segue para Follow-up.
+      await updateLead.mutateAsync({ id: lead.id, stage_id: pendingStage.id, ...fields } as any);
+      await updateLead.mutateAsync({ id: lead.id, stage_id: followUpStage.id } as any);
       setRequiredFieldsOpen(false);
       setPendingStageId(null);
       setFollowUpMode("activate");
@@ -598,8 +607,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       return;
     }
     if (pendingStage?.stage_role === "won") {
+      // Campos validados; a entrada em won só acontece ao concluir o fluxo (onConfirm).
       setGanhoPrevStageId(lead.stage_id);
-      await updateLead.mutateAsync({ id: lead.id, stage_id: pendingStageId, ...fields } as any);
+      setGanhoTargetStageId(pendingStageId);
+      setGanhoExtraFields(fields);
       setRequiredFieldsOpen(false);
       setPendingStageId(null);
       setLeadToClienteFlowOpen(true);
@@ -1142,11 +1153,16 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     <LeadToClienteFlow
       lead={lead}
       open={leadToClienteFlowOpen}
-      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStageId(null); }}
-      onCancel={() => {
-        if (lead && ganhoPrevStageId) {
-          updateLead.mutate({ id: lead.id, stage_id: ganhoPrevStageId, data_entrada_fechado_ganho: null } as any);
+      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStageId(null); setGanhoTargetStageId(null); setGanhoExtraFields({}); }}
+      onConfirm={() => {
+        // Ganho confirmado: agora sim o lead entra definitivamente na etapa won.
+        if (lead && ganhoTargetStageId) {
+          updateLead.mutate({ id: lead.id, stage_id: ganhoTargetStageId, ...ganhoExtraFields } as any);
         }
+      }}
+      onCancel={() => {
+        // Cancelado antes da conclusão: o lead nunca saiu da etapa anterior,
+        // então não há evento de won no histórico nem venda fantasma.
       }}
     />
     </>

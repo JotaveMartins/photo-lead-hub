@@ -95,6 +95,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
   const [leadToClienteExtraFields, setLeadToClienteExtraFields] = useState<Record<string, any>>({});
   const [ganhoPrevStageId, setGanhoPrevStageId] = useState<string | null>(null);
+  const [ganhoTargetStageId, setGanhoTargetStageId] = useState<string | null>(null);
   const [ganhoContratoId, setGanhoContratoId] = useState<string | null>(null);
   const createContrato = useCreateContrato();
 
@@ -233,23 +234,29 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       // Ponte legada: proposta padrão -> Follow-up, somente quando ambas as etapas
       // legadas existem na conta. Etapa proposal personalizada: lead permanece nela.
       if (stage.legacy_status === "Proposta Enviada" && followUpStage) {
-        updateLead.mutate({ id: lead.id, stage_id: followUpStage.id, ...extraFields } as any, {
+        // Registra a entrada na proposta ANTES de seguir para Follow-up,
+        // para que o histórico tenha: etapa anterior -> proposal -> Follow-up.
+        updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any, {
           onSuccess: () => {
-            setFollowUpLead(lead);
-            setFollowUpModalOpen(true);
+            updateLead.mutate({ id: lead.id, stage_id: followUpStage.id } as any, {
+              onSuccess: () => {
+                setFollowUpLead(lead);
+                setFollowUpModalOpen(true);
+              }
+            });
           }
         });
       } else {
         updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any);
       }
     } else if (stage.stage_role === "won") {
-      // Contrato agora é opcional e criado dentro do LeadToClienteFlow (Sprint 02).
+      // A entrada definitiva em won acontece SOMENTE quando o LeadToClienteFlow
+      // é concluído (onConfirm). Cancelar antes não gera evento histórico de won.
       setGanhoContratoId(null);
       setGanhoPrevStageId(lead.stage_id);
+      setGanhoTargetStageId(stage.id);
       setLeadToClienteExtraFields(extraFields || {});
-      updateLead.mutate({ id: lead.id, stage_id: stage.id, ...(extraFields || {}) } as any, {
-        onSuccess: () => setLeadToClienteLead(lead),
-      });
+      setLeadToClienteLead(lead);
     } else {
       updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any);
     }
@@ -695,14 +702,19 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       <LeadToClienteFlow
         lead={leadToClienteLead}
         open={!!leadToClienteLead}
-        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStageId(null); setGanhoContratoId(null); }}
-        onCancel={async () => {
+        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStageId(null); setGanhoTargetStageId(null); setGanhoContratoId(null); }}
+        onConfirm={() => {
+          // Ganho confirmado: agora sim o lead entra definitivamente na etapa won.
           const lead = leadToClienteLead;
-          const prevStageId = ganhoPrevStageId;
-          const contratoId = ganhoContratoId;
-          if (lead && prevStageId) {
-            updateLead.mutate({ id: lead.id, stage_id: prevStageId, data_entrada_fechado_ganho: null } as any);
+          const targetId = ganhoTargetStageId;
+          if (lead && targetId) {
+            updateLead.mutate({ id: lead.id, stage_id: targetId, ...leadToClienteExtraFields } as any);
           }
+        }}
+        onCancel={async () => {
+          // Cancelado antes da conclusão: o lead nunca saiu da etapa anterior,
+          // então não há evento de won no histórico nem venda fantasma.
+          const contratoId = ganhoContratoId;
           if (contratoId) {
             await supabase.from("contratos").update({ deleted_at: new Date().toISOString() }).eq("id", contratoId);
             queryClient.invalidateQueries({ queryKey: ["contratos"] });
