@@ -440,6 +440,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
   // Lead to cliente flow state
    const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
+   const [ganhoLead, setGanhoLead] = useState<any>(null);
    const [ganhoPrevStageId, setGanhoPrevStageId] = useState<string | null>(null);
    const [ganhoTargetStageId, setGanhoTargetStageId] = useState<string | null>(null);
    const [ganhoExtraFields, setGanhoExtraFields] = useState<Record<string, any>>({});
@@ -566,6 +567,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       setGanhoPrevStageId(lead.stage_id);
       setGanhoTargetStageId(stageId);
       setGanhoExtraFields({});
+      setGanhoLead(lead);
       setLeadToClienteFlowOpen(true);
       return;
     }
@@ -607,10 +609,14 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       return;
     }
     if (pendingStage?.stage_role === "won") {
-      // Campos validados; a entrada em won só acontece ao concluir o fluxo (onConfirm).
+      // Salva os campos ANTES de abrir o fluxo (sem mover a etapa), para que
+      // cobrança/contrato recebam os dados atualizados. A entrada em won só
+      // acontece ao concluir o fluxo (onConfirm).
+      await updateLead.mutateAsync({ id: lead.id, ...fields } as any);
       setGanhoPrevStageId(lead.stage_id);
       setGanhoTargetStageId(pendingStageId);
-      setGanhoExtraFields(fields);
+      setGanhoExtraFields({});
+      setGanhoLead({ ...lead, ...fields });
       setRequiredFieldsOpen(false);
       setPendingStageId(null);
       setLeadToClienteFlowOpen(true);
@@ -1151,13 +1157,13 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       hasFutureTasks={pendingTasks.length > 0}
     />
     <LeadToClienteFlow
-      lead={lead}
+      lead={ganhoLead ?? lead}
       open={leadToClienteFlowOpen}
-      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStageId(null); setGanhoTargetStageId(null); setGanhoExtraFields({}); }}
+      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoLead(null); setGanhoPrevStageId(null); setGanhoTargetStageId(null); setGanhoExtraFields({}); }}
       onConfirm={() => {
         // Ganho confirmado: agora sim o lead entra definitivamente na etapa won.
         if (lead && ganhoTargetStageId) {
-          updateLead.mutate({ id: lead.id, stage_id: ganhoTargetStageId, ...ganhoExtraFields } as any);
+          updateLead.mutate({ id: lead.id, stage_id: ganhoTargetStageId } as any);
         }
       }}
       onCancel={() => {
