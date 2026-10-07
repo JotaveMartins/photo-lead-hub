@@ -225,17 +225,19 @@ const RelatoriosPage = () => {
       const startTs = candidates.length
         ? candidates.reduce((a, b) => (new Date(a).getTime() < new Date(b).getTime() ? a : b))
         : null;
-      if (startTs && l.data_entrada_proposta_enviada && inRange(l.data_entrada_proposta_enviada)) {
-        const diff = (new Date(l.data_entrada_proposta_enviada).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) leadToProposal.push({ lead: l, startTs, endTs: l.data_entrada_proposta_enviada, days: diff });
+      const propostaTs = facts.get(l.id)?.propostaTs ?? null;
+      const wonTs = facts.get(l.id)?.wonTs ?? null;
+      if (startTs && propostaTs && inRange(propostaTs)) {
+        const diff = (new Date(propostaTs).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
+        if (diff >= 0) leadToProposal.push({ lead: l, startTs, endTs: propostaTs, days: diff });
       }
-      if (l.data_entrada_proposta_enviada && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
-        const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(l.data_entrada_proposta_enviada).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) proposalToWon.push({ lead: l, startTs: l.data_entrada_proposta_enviada, endTs: l.data_entrada_fechado_ganho, days: diff });
+      if (propostaTs && wonTs && inRange(wonTs)) {
+        const diff = (new Date(wonTs).getTime() - new Date(propostaTs).getTime()) / (1000 * 60 * 60 * 24);
+        if (diff >= 0) proposalToWon.push({ lead: l, startTs: propostaTs, endTs: wonTs, days: diff });
       }
-      if (startTs && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
-        const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) leadToWon.push({ lead: l, startTs, endTs: l.data_entrada_fechado_ganho, days: diff });
+      if (startTs && wonTs && inRange(wonTs)) {
+        const diff = (new Date(wonTs).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
+        if (diff >= 0) leadToWon.push({ lead: l, startTs, endTs: wonTs, days: diff });
       }
     });
     const avg = (xs: ConversionItem[]) => (xs.length ? xs.reduce((s, x) => s + x.days, 0) / xs.length : null);
@@ -245,7 +247,7 @@ const RelatoriosPage = () => {
       leadToWon: avg(leadToWon),
       items: { leadToProposal, proposalToWon, leadToWon },
     };
-  }, [leads, dateRange]);
+  }, [leads, dateRange, facts]);
 
   const handleConversionClick = (key: "leadToProposal" | "proposalToWon" | "leadToWon") => {
     const map = {
@@ -279,6 +281,7 @@ const RelatoriosPage = () => {
       leads: filtered,
       dateField: "data_entrada_fechado_perdido",
       dateLabel: "Perdido em",
+      dates: derivedDates.perdidos,
     });
   };
 
@@ -461,6 +464,7 @@ const RelatoriosPage = () => {
         leads={drillDown?.leads || []}
         dateField={drillDown?.dateField || "created_at"}
         dateLabel={drillDown?.dateLabel || "Data"}
+        dates={drillDown?.dates}
       />
 
       <ConversionDrillDown
