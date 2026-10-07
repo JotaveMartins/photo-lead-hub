@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   sortPipelineStages,
-  getOpenStages,
-  getFirstStageAfterLead,
+  openPipelineStages,
+  firstStageAfterLead,
   isTerminalStage,
   pipelineStageColorClass,
+  stageById,
   type PipelineStage,
 } from "@/lib/pipelineStages";
 
@@ -36,31 +37,35 @@ describe("pipelineStages helpers", () => {
     expect(sorted.map((s) => s.id)).toEqual(["lead", "contato", "proposta", "follow", "won", "lost"]);
   });
 
-  it("getOpenStages exclui etapas terminais", () => {
-    const open = getOpenStages(defaultStages);
+  it("openPipelineStages exclui etapas terminais", () => {
+    const open = openPipelineStages(defaultStages);
     expect(open.map((s) => s.id)).toEqual(["lead", "contato", "proposta", "follow"]);
   });
 
-  it("getFirstStageAfterLead retorna a primeira etapa após a âncora lead", () => {
-    expect(getFirstStageAfterLead(defaultStages)?.id).toBe("contato");
+  it("firstStageAfterLead retorna a primeira etapa após a âncora lead", () => {
+    expect(firstStageAfterLead(defaultStages)?.id).toBe("contato");
   });
 
-  it("getFirstStageAfterLead retorna null sem etapa lead", () => {
+  it("firstStageAfterLead retorna undefined sem etapa lead", () => {
     const semLead = defaultStages.filter((s) => s.stage_role !== "lead");
-    expect(getFirstStageAfterLead(semLead)).toBeNull();
+    expect(firstStageAfterLead(semLead)).toBeUndefined();
   });
 
   it("isTerminalStage identifica won e lost", () => {
-    expect(isTerminalStage(defaultStages.find((s) => s.id === "won"))).toBe(true);
-    expect(isTerminalStage(defaultStages.find((s) => s.id === "lost"))).toBe(true);
-    expect(isTerminalStage(defaultStages.find((s) => s.id === "contato"))).toBe(false);
-    expect(isTerminalStage(null)).toBe(false);
+    expect(isTerminalStage(defaultStages.find((s) => s.id === "won")!)).toBe(true);
+    expect(isTerminalStage(defaultStages.find((s) => s.id === "lost")!)).toBe(true);
+    expect(isTerminalStage(defaultStages.find((s) => s.id === "contato")!)).toBe(false);
+  });
+
+  it("stageById resolve a etapa pelo id", () => {
+    expect(stageById(defaultStages, "proposta")?.name).toBe("Proposta Enviada");
+    expect(stageById(defaultStages, null)).toBeUndefined();
+    expect(stageById(defaultStages, "inexistente")).toBeUndefined();
   });
 
   it("pipelineStageColorClass usa tokens conhecidos e fallback", () => {
     expect(pipelineStageColorClass("stage-3")).toBe("bg-[hsl(var(--stage-3))]");
     expect(pipelineStageColorClass("status-success")).toBe("bg-[hsl(var(--status-success))]");
     expect(pipelineStageColorClass("cor-invalida")).toBe("bg-[hsl(var(--stage-1))]");
-    expect(pipelineStageColorClass(null)).toBe("bg-[hsl(var(--stage-1))]");
   });
 });
