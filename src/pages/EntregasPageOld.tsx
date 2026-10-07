@@ -92,6 +92,10 @@ const EntregasPage = () => {
         title="Funil de Entregas"
         description="Acompanhe o pós-venda: do ensaio à entrega final"
         secondaryActions={
+          <>
+          <Button variant="outline" onClick={() => setStagesOpen(true)} className="gap-2">
+            <Settings2 className="w-4 h-4" /> Configurar etapas
+          </Button>
           <GenericTrashBin
             title="Entregas arquivadas"
             entityName="entrega"
