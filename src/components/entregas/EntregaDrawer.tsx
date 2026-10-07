@@ -138,9 +138,9 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
               <SearchSelect
                 label="Etapa"
                 required
-                options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
-                value={etapa}
-                onChange={(v) => v && setEtapa(v as EntregaEtapa)}
+                options={stages.map((s) => ({ value: s.id, label: s.name }))}
+                value={stageId}
+                onChange={(v) => v && setStageId(v)}
                 allowEmpty={false}
                 placeholder="Selecione a etapa"
                 searchPlaceholder="Buscar etapa..."
