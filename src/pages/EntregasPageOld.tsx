@@ -103,6 +103,7 @@ const EntregasPage = () => {
             onRestore={(id) => restoreEntrega.mutate(id)}
             isRestoring={restoreEntrega.isPending}
           />
+          </>
         }
         action={
           <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova entrega</Button>
