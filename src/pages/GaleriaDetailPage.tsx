@@ -28,7 +28,9 @@ import DatePickerField from "@/components/DatePickerField";
 import { Textarea } from "@/components/ui/textarea";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
-import { ENTREGA_ETAPAS, useEntrega, useUpdateEntrega, type EntregaEtapa } from "@/hooks/useEntregas";
+import { useEntrega, useUpdateEntrega } from "@/hooks/useEntregas";
+import { useDeliveryStages } from "@/hooks/useDeliveryStages";
+import { deliveredStage } from "@/lib/deliveryStages";
 
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
@@ -99,7 +101,7 @@ const GaleriaDetailPage = () => {
 
   // Dados da entrega
   const { data: services = [] } = useServices();
-  const [etapa, setEtapa] = useState<EntregaEtapa | "">("");
+  const [stageId, setStageId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [dataEnsaio, setDataEnsaio] = useState("");
   const [dataPrevia, setDataPrevia] = useState("");
