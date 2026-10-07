@@ -255,8 +255,16 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       setGanhoContratoId(null);
       setGanhoPrevStageId(lead.stage_id);
       setGanhoTargetStageId(stage.id);
-      setLeadToClienteExtraFields(extraFields || {});
-      setLeadToClienteLead(lead);
+      setLeadToClienteExtraFields({});
+      // Salva os campos do RequiredFieldsModal ANTES de abrir o fluxo (sem mover
+      // a etapa), para que cobrança/contrato recebam os dados atualizados.
+      if (extraFields && Object.keys(extraFields).length > 0) {
+        updateLead.mutate({ id: lead.id, ...extraFields } as any, {
+          onSuccess: () => setLeadToClienteLead({ ...lead, ...extraFields }),
+        });
+      } else {
+        setLeadToClienteLead(lead);
+      }
     } else {
       updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any);
     }
@@ -708,7 +716,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           const lead = leadToClienteLead;
           const targetId = ganhoTargetStageId;
           if (lead && targetId) {
-            updateLead.mutate({ id: lead.id, stage_id: targetId, ...leadToClienteExtraFields } as any);
+            updateLead.mutate({ id: lead.id, stage_id: targetId } as any);
           }
         }}
         onCancel={async () => {
