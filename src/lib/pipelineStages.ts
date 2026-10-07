@@ -11,6 +11,12 @@ export const PIPELINE_STAGE_COLOR_KEYS = [
   "stage-4",
   "stage-5",
   "stage-6",
+  "stage-7",
+  "stage-8",
+  "stage-9",
+  "stage-10",
+  "stage-11",
+  "stage-12",
 ] as const;
 
 export type PipelineStageColorKey = (typeof PIPELINE_STAGE_COLOR_KEYS)[number];

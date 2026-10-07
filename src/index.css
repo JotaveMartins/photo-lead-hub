@@ -54,6 +54,12 @@
     --stage-4: 265 85% 65%;   /* Proposta Enviada — roxo */
     --stage-5: 38 92% 50%;    /* Follow-up — âmbar */
     --stage-6: 22 92% 55%;    /* Contrato Enviado — laranja */
+    --stage-7: 330 80% 60%;   /* rosa */
+    --stage-8: 152 70% 42%;   /* verde-água */
+    --stage-9: 245 75% 65%;   /* índigo */
+    --stage-10: 80 75% 45%;   /* lima */
+    --stage-11: 30 60% 45%;   /* bronze */
+    --stage-12: 200 90% 42%;  /* azul-petróleo */
 
     /* Funil de entregas */
     --delivery-1: 215 20% 55%;
