@@ -12,6 +12,14 @@ export type ReportProfile = Pick<
   Tables<"profiles">,
   "user_id" | "nome" | "email" | "created_at" | "meta_ad_account_id"
 >;
+export type ReportStage = Pick<
+  Tables<"pipeline_stages">,
+  "id" | "user_id" | "name" | "color_key" | "position" | "stage_role" | "legacy_status"
+>;
+export type ReportStageHistory = Pick<
+  Tables<"lead_stage_history">,
+  "lead_id" | "to_stage_id" | "to_stage_role" | "entered_at"
+>;
 
 interface UseReportDataParams {
   clienteUserId?: string;
@@ -89,6 +97,51 @@ export const useReportData = (params: UseReportDataParams = {}) => {
   });
 
 
+  // Sprint 02: etapas do funil e histórico de movimentações (fonte semântica dos relatórios)
+  const stagesQuery = useQuery({
+    queryKey: ["report-pipeline-stages", effectiveUserId, isAdmin, params.clienteUserId],
+    queryFn: async () => {
+      const build = () => {
+        let query = supabase
+          .from("pipeline_stages")
+          .select("id, user_id, name, color_key, position, stage_role, legacy_status");
+        if (isConsolidated) {
+          // consolidado: precisa das etapas de todas as contas para classificar cada lead
+        } else if (isAdmin && params.clienteUserId) {
+          query = query.eq("user_id", params.clienteUserId);
+        } else {
+          query = query.eq("user_id", effectiveUserId!);
+        }
+        return query;
+      };
+      return fetchAll<ReportStage>(build);
+    },
+    enabled: !!effectiveUserId,
+  });
+
+  const historyQuery = useQuery({
+    queryKey: ["report-lead-stage-history", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
+    queryFn: async () => {
+      const build = () => {
+        let query = supabase
+          .from("lead_stage_history")
+          .select("lead_id, to_stage_id, to_stage_role, entered_at");
+        if (isConsolidated) {
+          if (adminUserIds.length > 0) {
+            query = query.not("user_id", "in", `(${adminUserIds.join(",")})`);
+          }
+        } else if (isAdmin && params.clienteUserId) {
+          query = query.eq("user_id", params.clienteUserId);
+        } else {
+          query = query.eq("user_id", effectiveUserId!);
+        }
+        return query;
+      };
+      return fetchAll<ReportStageHistory>(build);
+    },
+    enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
+  });
+
   const profilesQuery = useQuery({
     queryKey: ["report-profiles", user?.id, isAdmin],
     queryFn: async () => {
@@ -106,7 +159,13 @@ export const useReportData = (params: UseReportDataParams = {}) => {
     leads: leadsQuery.data ?? [],
     tasks: tasksQuery.data ?? [],
     profiles: profilesQuery.data ?? [],
-    isLoading: leadsQuery.isLoading || tasksQuery.isLoading,
+    stages: stagesQuery.data ?? [],
+    stageHistory: historyQuery.data ?? [],
+    isLoading:
+      leadsQuery.isLoading ||
+      tasksQuery.isLoading ||
+      stagesQuery.isLoading ||
+      historyQuery.isLoading,
     isAdmin,
   };
 };
