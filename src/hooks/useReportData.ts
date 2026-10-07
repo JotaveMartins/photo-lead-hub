@@ -5,6 +5,7 @@ import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAdminAccounts } from "@/hooks/useAdminAccounts";
 import type { Tables } from "@/integrations/supabase/types";
+import type { PipelineStageRow, StageHistoryEventRow } from "@/lib/leadPipelineReporting";
 
 export type ReportLead = Tables<"leads">;
 export type ReportTask = Tables<"lead_tasks">;
@@ -12,14 +13,8 @@ export type ReportProfile = Pick<
   Tables<"profiles">,
   "user_id" | "nome" | "email" | "created_at" | "meta_ad_account_id"
 >;
-export type ReportStage = Pick<
-  Tables<"pipeline_stages">,
-  "id" | "user_id" | "name" | "color_key" | "position" | "stage_role" | "legacy_status"
->;
-export type ReportStageHistory = Pick<
-  Tables<"lead_stage_history">,
-  "lead_id" | "to_stage_id" | "to_stage_role" | "entered_at"
->;
+export type ReportStage = PipelineStageRow;
+export type ReportStageHistory = StageHistoryEventRow;
 
 interface UseReportDataParams {
   clienteUserId?: string;
