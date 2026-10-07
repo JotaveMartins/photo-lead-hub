@@ -46,11 +46,11 @@ const StageEditorList = ({ stages, onRename, onColorChange, onMove, onDelete, bu
         return (
           <li
             key={s.id}
-            className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5"
+            className="flex flex-wrap items-center gap-x-2 gap-y-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5"
           >
             <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${deliveryStageColorClass(s.color_key)}`} />
 
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[8rem] flex-1">
               {editing ? (
                 <div className="flex items-center gap-1.5">
                   <Input
@@ -73,7 +73,7 @@ const StageEditorList = ({ stages, onRename, onColorChange, onMove, onDelete, bu
                 </div>
               ) : (
                 <>
-                  <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                  <p className="text-sm font-medium text-foreground">{s.name}</p>
                   {isFirstOpen && (
                     <p className="text-[11px] text-muted-foreground">Etapa inicial · novas entregas entram aqui</p>
                   )}
