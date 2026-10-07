@@ -214,7 +214,7 @@ const PipelineStagesSheet = ({ open, onClose }: Props) => {
                           <Button
                             size="icon" variant="ghost" className="h-8 w-8"
                             onClick={() => handleMove(s.id, "up")}
-                            disabled={busy || idx === 0 || isLead || terminal || stages[idx - 1]?.stage_role === "lead" === false && false || isTerminalStage(stages[idx - 1]) || stages[idx - 1]?.stage_role === "lead"}
+                            disabled={busy || idx === 0 || isLead || terminal || isTerminalStage(stages[idx - 1]) || stages[idx - 1]?.stage_role === "lead"}
                             aria-label="Mover para cima"
                           >
                             <ArrowUp className="w-4 h-4" />
