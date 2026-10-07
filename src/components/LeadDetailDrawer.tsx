@@ -663,8 +663,9 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
   if (!lead) return null;
 
+  const currentStage = stageById(lead.stage_id);
   const stageDate = (() => {
-    switch (lead.status) {
+    switch (currentStage?.legacy_status) {
       case "Novo Lead": return lead.data_entrada_novo_lead;
       case "Contato Iniciado": return lead.data_entrada_contato_iniciado;
       case "Proposta Enviada": return lead.data_entrada_proposta_enviada;
@@ -744,13 +745,13 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
             </SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <StageSelect value={lead.status} onChange={handleStatusChange} />
+            <StageSelect value={lead.stage_id} onChange={handleStatusChange} />
             {stageDate && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Nesta etapa há {formatStageDuration(stageDate)}
               </span>
             )}
-            {lead.status === "Novo Lead" && !lead.iniciar_atendimento && (
+            {currentStage?.stage_role === "lead" && !lead.iniciar_atendimento && (
               <Button size="sm" className="bg-gradient-primary hover:opacity-90 gap-1 h-7 text-xs"
                 onClick={async () => {
                   await updateLead.mutateAsync({ id: lead.id, iniciar_atendimento: true });
@@ -765,7 +766,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                </span>
              )}
  
-            {lead.status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
+            {currentStage?.legacy_status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
               <Button size="sm" variant="outline" className="gap-1 h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => {
                   const completedFollowUps = tasks.filter(t => t.title.startsWith("Follow-up") && t.completed).length;
@@ -820,7 +821,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
               <DatePickerField value={lead.data_proposta || ""} onChange={(v) => handleFieldSave("data_proposta", v || null)} className="h-8 text-xs w-[150px]" />
             </div>
 
-            {lead.status === "Fechado Perdido" && (
+            {currentStage?.stage_role === "lost" && (
               <div className="space-y-3 pt-2 border-t border-border">
                 <InlineSelectField label="Motivo da Perda" value={lead.motivo_perda || ""}
                   options={["Sem orçamento disponível", "Fechou com outro fotógrafo", "Sem resposta", "Cancelou ou adiou o evento", "Data indisponível", "Lead desqualificado", "Outro"]}
