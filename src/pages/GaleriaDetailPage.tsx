@@ -60,6 +60,7 @@ const GaleriaDetailPage = () => {
   const updateGallery = useUpdateGallery();
   const deleteGallery = useDeleteGallery();
   const updateEntrega = useUpdateEntrega();
+  const { data: stages = [] } = useDeliveryStages();
   const createSection = useCreateSection();
   const updateSection = useUpdateSection();
   const deleteSection = useDeleteSection();
@@ -288,7 +289,7 @@ const GaleriaDetailPage = () => {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-display text-2xl font-bold text-foreground">{gallery.name}</h1>
-            {entrega && <Badge variant="secondary">{entrega.etapa}</Badge>}
+            {entrega && <Badge variant="secondary">{stages.find((s) => s.id === entrega.stage_id)?.name ?? ""}</Badge>}
             {published && <Badge>Publicada</Badge>}
             {gallery.gallery_type === "selection" && (
               <StatusBadge tone={selStatus.tone}>
