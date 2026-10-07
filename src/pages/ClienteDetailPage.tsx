@@ -26,7 +26,9 @@ import { Input } from "@/components/ui/input";
 import DatePickerField from "@/components/DatePickerField";
 import { parseLocalDate } from "@/lib/utils";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
-import { useEntregas, ENTREGA_ETAPAS, type Entrega } from "@/hooks/useEntregas";
+import { useEntregas, type Entrega } from "@/hooks/useEntregas";
+import { useDeliveryStages } from "@/hooks/useDeliveryStages";
+import { deliveryStageColorClass } from "@/lib/deliveryStages";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -494,7 +496,7 @@ const ClienteDetailPage = () => {
           ) : (
             <div className="space-y-2">
               {entregas.map((e) => {
-                const col = ENTREGA_ETAPAS.find((s) => s.etapa === e.etapa);
+                const col = deliveryStages.find((s) => s.id === e.stage_id);
                 return (
                   <div
                     key={e.id}
