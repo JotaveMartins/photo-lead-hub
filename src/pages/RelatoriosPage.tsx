@@ -13,6 +13,7 @@ import TasksSection from "@/components/reports/TasksSection";
 import MetaAdsSection from "@/components/reports/MetaAdsSection";
 import RevenueCompositionSection from "@/components/reports/RevenueCompositionSection";
 import { parseLocalDate } from "@/lib/utils";
+import { buildLeadPipelineFacts } from "@/lib/leadPipelineReporting";
 import { format } from "date-fns";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
 
@@ -21,6 +22,8 @@ type DrillDown = {
   leads: ReportLead[];
   dateField: keyof ReportLead;
   dateLabel: string;
+  /** Datas derivadas do histórico de etapas (lead_id -> timestamp), sem gravar em leads */
+  dates?: Record<string, string | null>;
 } | null;
 
 const RelatoriosPage = () => {
@@ -39,7 +42,7 @@ const RelatoriosPage = () => {
     averageDays: number | null;
   } | null>(null);
 
-  const { leads: allLeads, tasks, profiles, isLoading, isAdmin } = useReportData({ clienteUserId });
+  const { leads: allLeads, tasks, profiles, stages, stageHistory, isLoading, isAdmin } = useReportData({ clienteUserId });
   const planoBasico = usePlanoBasico();
 
   const dateRange = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
@@ -74,15 +77,42 @@ const RelatoriosPage = () => {
     return d >= dateRange.start && d < dateRange.end;
   };
 
+  // === Fatos derivados do histórico de etapas (Sprint 02) ===
+  // Fonte semântica: pipeline_stages (stage_role/legacy_status) + lead_stage_history.
+  // Regras universais não dependem do nome visível da etapa; reentradas não duplicam.
+  const facts = useMemo(
+    () => buildLeadPipelineFacts(leads, stages, stageHistory),
+    [leads, stages, stageHistory],
+  );
+  const factTs = (leadId: string, key: keyof ReturnType<typeof buildLeadPipelineFacts> extends never ? never : "contatoTs" | "propostaTs" | "contratoTs" | "wonTs" | "lostTs") =>
+    facts.get(leadId)?.[key] ?? null;
+
   // === Filtered lead sets (reusable for drill-down) ===
   const leadSets = useMemo(() => ({
     created: leads.filter((l) => inRange((l as any).data_contato ?? l.created_at)),
-    contato: leads.filter((l) => inRange(l.data_entrada_contato_iniciado)),
-    propostas: leads.filter((l) => inRange(l.data_entrada_proposta_enviada)),
-    contratos: leads.filter((l) => inRange(l.data_entrada_contrato_enviado)),
-    ganhos: leads.filter((l) => inRange(l.data_entrada_fechado_ganho)),
-    perdidos: leads.filter((l) => inRange(l.data_entrada_fechado_perdido)),
-  }), [leads, dateRange]);
+    contato: leads.filter((l) => inRange(facts.get(l.id)?.contatoTs ?? null)),
+    propostas: leads.filter((l) => inRange(facts.get(l.id)?.propostaTs ?? null)),
+    contratos: leads.filter((l) => inRange(facts.get(l.id)?.contratoTs ?? null)),
+    ganhos: leads.filter((l) => inRange(facts.get(l.id)?.wonTs ?? null)),
+    perdidos: leads.filter((l) => inRange(facts.get(l.id)?.lostTs ?? null)),
+  }), [leads, dateRange, facts]);
+
+  // Datas derivadas por conjunto (para o drill-down, sem gravar em leads)
+  const derivedDates = useMemo(() => {
+    const build = (key: "contatoTs" | "propostaTs" | "contratoTs" | "wonTs" | "lostTs", set: ReportLead[]) => {
+      const out: Record<string, string | null> = {};
+      set.forEach((l) => { out[l.id] = facts.get(l.id)?.[key] ?? null; });
+      return out;
+    };
+    return {
+      created: Object.fromEntries(leadSets.created.map((l) => [l.id, (l as any).data_contato ?? l.created_at])) as Record<string, string | null>,
+      contato: build("contatoTs", leadSets.contato),
+      propostas: build("propostaTs", leadSets.propostas),
+      contratos: build("contratoTs", leadSets.contratos),
+      ganhos: build("wonTs", leadSets.ganhos),
+      perdidos: build("lostTs", leadSets.perdidos),
+    };
+  }, [leadSets, facts]);
 
   // === KPIs ===
   const kpis = useMemo(() => {
