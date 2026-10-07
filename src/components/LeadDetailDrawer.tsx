@@ -17,7 +17,7 @@ import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAiActive } from "@/hooks/useAiActive";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
-import { pipelineStageColorClass, type PipelineStage, type StageRole } from "@/lib/pipelineStages";
+import { pipelineStageColorClass, type PipelineStage, type PipelineStageRole } from "@/lib/pipelineStages";
 import { useAiGlobalActive } from "@/hooks/useAiGlobalActive";
 import { useQueryClient } from "@tanstack/react-query";
 import LeadColorTagPicker from "@/components/LeadColorTagPicker";
@@ -444,7 +444,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
    const [activeTab, setActiveTab] = useState<"historico" | "conversa">("historico");
 
   const { stages, stageById, proposalStage, wonStage, lostStage, followUpStage } = usePipelineStages();
-  const REQUIRED_FIELDS_ROLES: StageRole[] = ["proposal", "won"];
+  const REQUIRED_FIELDS_ROLES: PipelineStageRole[] = ["proposal", "won"];
 
   // When user opens the "Conversa" tab, mark all inbox conversations for this
   // lead as read so the red badge on the Kanban card disappears.
@@ -1085,7 +1085,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
     <RequiredFieldsModal
       open={requiredFieldsOpen}
-      onOpenChange={(open) => { setRequiredFieldsOpen(open); if (!open) setPendingStatus(null); }}
+      onOpenChange={(open) => { setRequiredFieldsOpen(open); if (!open) setPendingStageId(null); }}
       leadName={lead?.nome || ""}
       targetStatus={pendingStageId ? stageById(pendingStageId)?.name || "" : ""}
       currentValor={lead?.valor ?? null}

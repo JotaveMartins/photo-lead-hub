@@ -1,27 +1,30 @@
 import { useLeads } from "@/hooks/useLeads";
+import { usePipelineStages } from "@/hooks/usePipelineStages";
+import type { PipelineStage } from "@/lib/pipelineStages";
 import { MessageSquare, UserPlus, Calendar, CheckCircle, Send, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const RecentActivityDB = () => {
   const { data: leads = [] } = useLeads();
+  const { stageById } = usePipelineStages();
 
   const recentLeads = leads
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 5);
 
-  const getActivityIcon = (status: string) => {
-    switch (status) {
-      case "Fechado Ganho": return <CheckCircle className="w-4 h-4 text-status-success" />;
-      case "Fechado Perdido": return <XCircle className="w-4 h-4 text-status-danger" />;
-      case "Proposta Enviada": return <Send className="w-4 h-4 text-status-warning" />;
-      case "Contato Iniciado": return <MessageSquare className="w-4 h-4 text-status-info" />;
+  const getActivityIcon = (stage: PipelineStage | null | undefined) => {
+    switch (stage?.stage_role) {
+      case "won": return <CheckCircle className="w-4 h-4 text-status-success" />;
+      case "lost": return <XCircle className="w-4 h-4 text-status-danger" />;
+      case "proposal": return <Send className="w-4 h-4 text-status-warning" />;
+      case "open": return <MessageSquare className="w-4 h-4 text-status-info" />;
       default: return <UserPlus className="w-4 h-4 text-primary" />;
     }
   };
 
   const getActivityText = (lead: typeof recentLeads[0]) => {
-    return `${lead.nome} — ${lead.status}`;
+    return `${lead.nome} — ${stageById(lead.stage_id)?.name || lead.status}`;
   };
 
   return (
@@ -38,7 +41,7 @@ const RecentActivityDB = () => {
           {recentLeads.map((lead) => (
             <div key={lead.id} className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                {getActivityIcon(lead.status)}
+                {getActivityIcon(stageById(lead.stage_id))}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground truncate">{getActivityText(lead)}</p>
