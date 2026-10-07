@@ -429,7 +429,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [newTaskDate, setNewTaskDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [newTaskTime, setNewTaskTime] = useState("");
   const [requiredFieldsOpen, setRequiredFieldsOpen] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<LeadStatus | null>(null);
+  const [pendingStageId, setPendingStageId] = useState<string | null>(null);
   // Follow-up modal state
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [followUpMode, setFollowUpMode] = useState<"activate" | "next">("activate");
@@ -438,10 +438,11 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
   // Lead to cliente flow state
    const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
-   const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
+   const [ganhoPrevStageId, setGanhoPrevStageId] = useState<string | null>(null);
    const [activeTab, setActiveTab] = useState<"historico" | "conversa">("historico");
 
-  const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
+  const { stages, stageById, proposalStage, wonStage, lostStage, followUpStage } = usePipelineStages();
+  const REQUIRED_FIELDS_ROLES: StageRole[] = ["proposal", "won"];
 
   // When user opens the "Conversa" tab, mark all inbox conversations for this
   // lead as read so the red badge on the Kanban card disappears.
@@ -527,46 +528,49 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     setNewNote("");
   };
 
-  const handleStatusChange = async (status: LeadStatus) => {
+  const handleStatusChange = async (stageId: string) => {
     if (!lead) return;
-    if (status === "Fechado Perdido") {
+    const target = stageById(stageId);
+    if (!target) return;
+    if (target.stage_role === "lost") {
       setLossReasonOpen(true);
       return;
     }
-    const isProposalTarget = status === "Proposta Enviada";
-    const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(status) && (
+    const isProposalTarget = target.stage_role === "proposal";
+    const needsRequiredFields = REQUIRED_FIELDS_ROLES.includes(target.stage_role) && (
       (!lead.valor || lead.valor <= 0) ||
       (isProposalTarget && (!lead.data_proposta || !lead.interesse || !lead.origem))
     );
     if (needsRequiredFields) {
-      setPendingStatus(status);
+      setPendingStageId(stageId);
       setRequiredFieldsOpen(true);
       return;
     }
-    if (status === "Proposta Enviada") {
-      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus });
+    // Legado: mover para a etapa âncora de proposta ativa a sequência de Follow-up
+    if (target.legacy_status === "Proposta Enviada" && followUpStage) {
+      await updateLead.mutateAsync({ id: lead.id, stage_id: followUpStage.id } as any);
       setFollowUpMode("activate");
       setFollowUpNextNumber(1);
       setFollowUpModalOpen(true);
       return;
     }
-    if (status === "Fechado Ganho") {
-      setGanhoPrevStatus(lead.status as LeadStatus);
-      await updateLead.mutateAsync({ id: lead.id, status });
+    if (target.stage_role === "won") {
+      setGanhoPrevStageId(lead.stage_id);
+      await updateLead.mutateAsync({ id: lead.id, stage_id: stageId } as any);
       setLeadToClienteFlowOpen(true);
       return;
     }
-    await updateLead.mutateAsync({ id: lead.id, status });
+    await updateLead.mutateAsync({ id: lead.id, stage_id: stageId } as any);
   };
 
   const handleLossReasonConfirm = async (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => {
-    if (!lead) return;
+    if (!lead || !lostStage) return;
     await updateLead.mutateAsync({
       id: lead.id,
-      status: "Fechado Perdido" as LeadStatus,
+      stage_id: lostStage.id,
       motivo_perda: data.motivo_perda,
       observacao_perda: data.observacao_perda,
-    });
+    } as any);
     if (data.deleteFutureTasks) {
       const { supabase } = await import("@/integrations/supabase/client");
       await supabase
@@ -580,27 +584,28 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   };
 
   const handleRequiredFieldsConfirm = async (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
-    if (!lead || !pendingStatus) return;
-    if (pendingStatus === "Proposta Enviada") {
-      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus, ...fields });
+    if (!lead || !pendingStageId) return;
+    const pendingStage = stageById(pendingStageId);
+    if (pendingStage?.legacy_status === "Proposta Enviada" && followUpStage) {
+      await updateLead.mutateAsync({ id: lead.id, stage_id: followUpStage.id, ...fields } as any);
       setRequiredFieldsOpen(false);
-      setPendingStatus(null);
+      setPendingStageId(null);
       setFollowUpMode("activate");
       setFollowUpNextNumber(1);
       setFollowUpModalOpen(true);
       return;
     }
-    if (pendingStatus === "Fechado Ganho") {
-      setGanhoPrevStatus(lead.status as LeadStatus);
-      await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
+    if (pendingStage?.stage_role === "won") {
+      setGanhoPrevStageId(lead.stage_id);
+      await updateLead.mutateAsync({ id: lead.id, stage_id: pendingStageId, ...fields } as any);
       setRequiredFieldsOpen(false);
-      setPendingStatus(null);
+      setPendingStageId(null);
       setLeadToClienteFlowOpen(true);
       return;
     }
-    await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
+    await updateLead.mutateAsync({ id: lead.id, stage_id: pendingStageId, ...fields } as any);
     setRequiredFieldsOpen(false);
-    setPendingStatus(null);
+    setPendingStageId(null);
   };
 
   const handleCompleteTask = (task: any) => {
