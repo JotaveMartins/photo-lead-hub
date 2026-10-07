@@ -67,6 +67,11 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
     }
   }, [lead, open, prefillNome, prefillWhatsapp]);
 
+  // Garante etapa inicial padrão para novos leads quando as etapas carregam
+  useEffect(() => {
+    if (!lead && !stageId && leadStage) setStageId(leadStage.id);
+  }, [lead, stageId, leadStage]);
+
   const resetForm = () => {
     setNome(""); setWhatsapp(""); setInteresse(""); setStageId(leadStage?.id || ""); setOrigem("");
     // Default Data do Contato to today (local YYYY-MM-DD) for new leads
