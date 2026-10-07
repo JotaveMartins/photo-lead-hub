@@ -262,9 +262,14 @@ const GaleriaDetailPage = () => {
 
   const marcarEntregue = async () => {
     if (!entrega) return;
+    const delivered = deliveredStage(stages);
+    if (!delivered) {
+      toast.error("Não foi possível localizar a etapa final do funil");
+      return;
+    }
     await updateEntrega.mutateAsync({
       id: entrega.id,
-      etapa: "Entregue",
+      stage_id: delivered.id,
       data_entrega_final: entrega.data_entrega_final ?? format(new Date(), "yyyy-MM-dd"),
     });
     toast.success("Entrega marcada como entregue");
