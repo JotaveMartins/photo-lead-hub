@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import { useNavigate } from "react-router-dom";
-import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images } from "lucide-react";
+import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
