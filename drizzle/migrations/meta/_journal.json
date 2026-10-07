@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791393597387,
+      "tag": "0000_delivery_stages_custom_funnel",
+      "breakpoints": true
+    }
+  ]
+}
