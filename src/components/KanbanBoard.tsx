@@ -415,12 +415,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         className="flex gap-3 overflow-x-auto overflow-y-visible pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {(statusFilter === "open"
-          ? ACTIVE_COLUMNS.filter((c) => c.status !== "Triagem Feita" || aiActive)
+          ? openStages.filter((s) => s.legacy_status !== "Triagem Feita" || aiActive)
           : statusFilter === "won"
-          ? CLOSED_COLUMNS.filter((c) => c.status === "Fechado Ganho")
-          : CLOSED_COLUMNS.filter((c) => c.status === "Fechado Perdido")
+          ? (wonStage ? [wonStage] : [])
+          : (lostStage ? [lostStage] : [])
         ).map((col) => {
-          const columnLeadsUnsorted = filteredLeads.filter((l) => l.status === col.status);
+          const columnLeadsUnsorted = filteredLeads.filter((l) => l.stage_id === col.id);
           const getNextTaskTime = (leadId: string): number => {
             const ts = pendingTasks
               .filter((t) => t.lead_id === leadId)
@@ -431,24 +431,24 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           const columnLeads = [...columnLeadsUnsorted].sort(
             (a, b) => getNextTaskTime(a.id) - getNextTaskTime(b.id)
           );
-          const isDragOver = dragOverColumn === col.status;
-          const totalValue = getColumnValue(col.status);
+          const isDragOver = dragOverColumn === col.id;
+          const totalValue = getColumnValue(col.id);
 
           return (
             <div
-              key={col.status}
+              key={col.id}
               className={`flex-shrink-0 w-72 xl:flex-1 xl:w-auto xl:min-w-0 bg-card border rounded-xl flex flex-col transition-colors ${
                 isDragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
-              onDragOver={(e) => handleDragOver(e, col.status)}
+              onDragOver={(e) => handleDragOver(e, col.id)}
               onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, col.status)}
+              onDrop={(e) => handleDrop(e, col.id)}
             >
               {/* Column header */}
               <div className="p-3 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />
-                  <span className="text-sm font-semibold text-foreground">{col.label}</span>
+                  <div className={`w-2.5 h-2.5 rounded-full ${pipelineStageColorClass(col.color_key)}`} />
+                  <span className="text-sm font-semibold text-foreground">{col.name}</span>
                   <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                     {columnLeads.length}
                   </span>
@@ -467,7 +467,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                   const taskStatus = getLeadTaskStatus(lead.id, pendingTasks);
                   const taskConfig = TASK_STATUS_CONFIG[taskStatus];
 
-                   const isTriagem = lead.status === "Triagem Feita";
+                    const isTriagem = stageById(lead.stage_id)?.legacy_status === "Triagem Feita";
                    return (
                      <div
                        key={lead.id}
