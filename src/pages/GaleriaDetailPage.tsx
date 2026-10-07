@@ -133,7 +133,7 @@ const GaleriaDetailPage = () => {
 
   useEffect(() => {
     if (!entrega) return;
-    setEtapa(entrega.etapa as EntregaEtapa);
+    setStageId(entrega.stage_id ?? "");
     setServiceId(entrega.service_id ?? "");
     setDataEnsaio(entrega.data_ensaio ?? "");
     setDataPrevia(entrega.data_previa_prevista ?? "");
@@ -234,7 +234,7 @@ const GaleriaDetailPage = () => {
       await updateEntrega.mutateAsync({
         id: entrega.id,
         titulo: name.trim() || entrega.titulo,
-        etapa: (etapa || entrega.etapa) as EntregaEtapa,
+        stage_id: stageId || entrega.stage_id,
         cliente_id: clienteId || null,
         service_id: serviceId || null,
         data_ensaio: dataEnsaio || null,
