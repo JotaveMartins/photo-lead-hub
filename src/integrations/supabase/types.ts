@@ -2608,6 +2608,32 @@ export type Database = {
           user_id: string
         }[]
       }
+      create_pipeline_stage: {
+        Args: {
+          _color_key: string
+          _name: string
+          _role?: string
+          _user_id: string
+        }
+        Returns: {
+          color_key: string
+          created_at: string
+          id: string
+          legacy_status: Database["public"]["Enums"]["lead_status"] | null
+          name: string
+          position: number
+          stage_role: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pipeline_stages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      delete_pipeline_stage: { Args: { _id: string }; Returns: undefined }
       ensure_default_delivery_stages: {
         Args: { _user_id: string }
         Returns: undefined
@@ -2641,6 +2667,10 @@ export type Database = {
         Args: { _gallery_id: string }
         Returns: undefined
       }
+      reorder_pipeline_stages: {
+        Args: { _ids: string[]; _user_id: string }
+        Returns: undefined
+      }
       set_gallery_password: {
         Args: { _gallery_id: string; _password: string }
         Returns: undefined
@@ -2648,6 +2678,26 @@ export type Database = {
       toggle_gallery_selection: {
         Args: { _gallery_id: string; _media_id: string; _selected: boolean }
         Returns: Json
+      }
+      update_pipeline_stage: {
+        Args: { _color_key?: string; _id: string; _name?: string }
+        Returns: {
+          color_key: string
+          created_at: string
+          id: string
+          legacy_status: Database["public"]["Enums"]["lead_status"] | null
+          name: string
+          position: number
+          stage_role: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pipeline_stages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       verify_gallery_password: {
         Args: { _gallery_id: string; _password: string }

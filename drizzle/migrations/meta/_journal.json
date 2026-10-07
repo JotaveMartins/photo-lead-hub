@@ -29,6 +29,13 @@
       "when": 1791398737208,
       "tag": "0003_fix_lead_stage_history_trigger_update",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791401021032,
+      "tag": "0004_lead_pipeline_customization_sprint03",
+      "breakpoints": true
     }
   ]
 }
