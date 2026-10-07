@@ -24,22 +24,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import LeadColorTagPicker from "@/components/LeadColorTagPicker";
 import { useLeadAdminTags, tagColorClass } from "@/hooks/useLeadAdminTags";
 
+import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { pipelineStageColorClass, isTerminalStage, type PipelineStage } from "@/lib/pipelineStages";
+
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
-
-const ACTIVE_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
-  { status: "Novo Lead", label: "Novo Lead", color: "bg-[hsl(var(--stage-1))]" },
-  { status: "Contato Iniciado", label: "Contato Iniciado", color: "bg-[hsl(var(--stage-2))]" },
-  { status: "Triagem Feita", label: "Triagem Feita", color: "bg-[hsl(var(--stage-3))]" },
-  { status: "Proposta Enviada", label: "Proposta Enviada", color: "bg-[hsl(var(--stage-4))]" },
-  { status: "Follow-up", label: "Follow-up", color: "bg-[hsl(var(--stage-5))]" },
-  { status: "Contrato Enviado", label: "Contrato Enviado", color: "bg-[hsl(var(--stage-6))]" },
-];
-
-const CLOSED_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
-  { status: "Fechado Ganho", label: "Ganho", color: "bg-[hsl(var(--status-success))]" },
-  { status: "Fechado Perdido", label: "Perdido", color: "bg-[hsl(var(--status-danger))]" },
-];
 
 const ORIGEM_OPTIONS = [
   "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
@@ -72,6 +61,7 @@ const TASK_STATUS_CONFIG: Record<TaskStatus, { color: string; bg: string; label:
 
 const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: leads = [], isLoading } = useLeads();
+  const { stages, openStages, wonStage, lostStage, stageById } = usePipelineStages();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const { data: interesseOptions = [] } = useInteresseOptions();
   const { data: aiActive = false } = useAiActive();
@@ -82,7 +72,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const createFollowUp = useCreateFollowUpTask();
   const queryClient = useQueryClient();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | "DELETE" | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | "DELETE" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
@@ -91,7 +81,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const [statusFilter, setStatusFilter] = useState<"open" | "won" | "lost">("open");
   const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
-  const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
+  const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<PipelineStage | null>(null);
   // Follow-up modal state
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
@@ -104,11 +94,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   // Lead to cliente flow state
   const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
   const [leadToClienteExtraFields, setLeadToClienteExtraFields] = useState<Record<string, any>>({});
-  const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
+  const [ganhoPrevStageId, setGanhoPrevStageId] = useState<string | null>(null);
   const [ganhoContratoId, setGanhoContratoId] = useState<string | null>(null);
   const createContrato = useCreateContrato();
 
-  const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
+  // Etapa de follow-up resolvida pela ponte legada (nunca pelo nome)
+  const followUpStage = stages.find((s) => s.legacy_status === "Follow-up");
 
   // Refs for synchronized horizontal scrollbars (real board + floating proxy)
   const boardRef = useRef<HTMLDivElement>(null);
