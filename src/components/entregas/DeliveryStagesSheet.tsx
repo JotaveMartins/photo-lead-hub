@@ -87,7 +87,7 @@ const DeliveryStagesSheet = ({ open, onClose }: Props) => {
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-card border-border">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto bg-card border-border">
           <SheetHeader>
             <SheetTitle className="text-foreground">Etapas do Funil de Entregas</SheetTitle>
             <SheetDescription>
