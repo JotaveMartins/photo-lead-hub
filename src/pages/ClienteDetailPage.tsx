@@ -58,6 +58,7 @@ const ClienteDetailPage = () => {
   const { data: clienteTasks = [] } = useClienteTasks(id);
   const { data: contratos = [], isError: contratosError, refetch: refetchContratos } = useContratosByClienteId(id);
   const { data: todasEntregas = [] } = useEntregas();
+  const { data: deliveryStages = [] } = useDeliveryStages();
   const entregas = todasEntregas.filter((e) => e.cliente_id === id);
   const createTask = useCreateLeadTask();
   const completeTask = useCompleteLeadTask();
