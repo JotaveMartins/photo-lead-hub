@@ -14,13 +14,13 @@ import { useNavigate } from "react-router-dom";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
 import {
-  ENTREGA_ETAPAS,
   useCreateEntrega,
   useUpdateEntrega,
   useDeleteEntrega,
   type Entrega,
-  type EntregaEtapa,
 } from "@/hooks/useEntregas";
+import { useDeliveryStages } from "@/hooks/useDeliveryStages";
+import { firstOpenStage } from "@/lib/deliveryStages";
 
 interface Props {
   open: boolean;
@@ -39,8 +39,10 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   const { data: galeria } = useGalleryByEntrega(entrega?.id);
   const createGallery = useCreateGallery();
 
+  const { data: stages = [] } = useDeliveryStages();
+
   const [titulo, setTitulo] = useState("");
-  const [etapa, setEtapa] = useState<EntregaEtapa>("Ensaio Realizado");
+  const [stageId, setStageId] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [dataEnsaio, setDataEnsaio] = useState("");
