@@ -218,6 +218,7 @@ const PipelineStagesSheet = ({ open, onClose }: Props) => {
                               />
                             ))}
                           </div>
+                          )}
                           <Button
                             size="icon" variant="ghost" className="h-8 w-8"
                             onClick={() => handleMove(s.id, "up")}
