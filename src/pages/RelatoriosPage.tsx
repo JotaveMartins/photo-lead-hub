@@ -13,6 +13,7 @@ import TasksSection from "@/components/reports/TasksSection";
 import MetaAdsSection from "@/components/reports/MetaAdsSection";
 import RevenueCompositionSection from "@/components/reports/RevenueCompositionSection";
 import { parseLocalDate } from "@/lib/utils";
+import { buildLeadPipelineFacts } from "@/lib/leadPipelineReporting";
 import { format } from "date-fns";
 import { usePlanoBasico } from "@/hooks/usePlanoBasico";
 
@@ -21,6 +22,8 @@ type DrillDown = {
   leads: ReportLead[];
   dateField: keyof ReportLead;
   dateLabel: string;
+  /** Datas derivadas do histórico de etapas (lead_id -> timestamp), sem gravar em leads */
+  dates?: Record<string, string | null>;
 } | null;
 
 const RelatoriosPage = () => {
@@ -39,7 +42,7 @@ const RelatoriosPage = () => {
     averageDays: number | null;
   } | null>(null);
 
-  const { leads: allLeads, tasks, profiles, isLoading, isAdmin } = useReportData({ clienteUserId });
+  const { leads: allLeads, tasks, profiles, stages, stageHistory, isLoading, isAdmin } = useReportData({ clienteUserId });
   const planoBasico = usePlanoBasico();
 
   const dateRange = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
@@ -74,15 +77,39 @@ const RelatoriosPage = () => {
     return d >= dateRange.start && d < dateRange.end;
   };
 
+  // === Fatos derivados do histórico de etapas (Sprint 02) ===
+  // Fonte semântica: pipeline_stages (stage_role/legacy_status) + lead_stage_history.
+  // Regras universais não dependem do nome visível da etapa; reentradas não duplicam.
+  const facts = useMemo(
+    () => buildLeadPipelineFacts(leads, stages, stageHistory),
+    [leads, stages, stageHistory],
+  );
   // === Filtered lead sets (reusable for drill-down) ===
   const leadSets = useMemo(() => ({
     created: leads.filter((l) => inRange((l as any).data_contato ?? l.created_at)),
-    contato: leads.filter((l) => inRange(l.data_entrada_contato_iniciado)),
-    propostas: leads.filter((l) => inRange(l.data_entrada_proposta_enviada)),
-    contratos: leads.filter((l) => inRange(l.data_entrada_contrato_enviado)),
-    ganhos: leads.filter((l) => inRange(l.data_entrada_fechado_ganho)),
-    perdidos: leads.filter((l) => inRange(l.data_entrada_fechado_perdido)),
-  }), [leads, dateRange]);
+    contato: leads.filter((l) => inRange(facts.get(l.id)?.contatoTs ?? null)),
+    propostas: leads.filter((l) => inRange(facts.get(l.id)?.propostaTs ?? null)),
+    contratos: leads.filter((l) => inRange(facts.get(l.id)?.contratoTs ?? null)),
+    ganhos: leads.filter((l) => inRange(facts.get(l.id)?.wonTs ?? null)),
+    perdidos: leads.filter((l) => inRange(facts.get(l.id)?.lostTs ?? null)),
+  }), [leads, dateRange, facts]);
+
+  // Datas derivadas por conjunto (para o drill-down, sem gravar em leads)
+  const derivedDates = useMemo(() => {
+    const build = (key: "contatoTs" | "propostaTs" | "contratoTs" | "wonTs" | "lostTs", set: ReportLead[]) => {
+      const out: Record<string, string | null> = {};
+      set.forEach((l) => { out[l.id] = facts.get(l.id)?.[key] ?? null; });
+      return out;
+    };
+    return {
+      created: Object.fromEntries(leadSets.created.map((l) => [l.id, (l as any).data_contato ?? l.created_at])) as Record<string, string | null>,
+      contato: build("contatoTs", leadSets.contato),
+      propostas: build("propostaTs", leadSets.propostas),
+      contratos: build("contratoTs", leadSets.contratos),
+      ganhos: build("wonTs", leadSets.ganhos),
+      perdidos: build("lostTs", leadSets.perdidos),
+    };
+  }, [leadSets, facts]);
 
   // === KPIs ===
   const kpis = useMemo(() => {
@@ -112,25 +139,25 @@ const RelatoriosPage = () => {
   ], [kpis]);
 
   const handleFunnelClick = (label: string) => {
-    const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
-      "Leads": { leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato" },
-      "Contato Iniciado": { leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
-      "Proposta": { leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
-      "Contrato Enviado": { leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
-      "Ganho": { leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em" },
+    const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string; dates: Record<string, string | null> }> = {
+      "Leads": { leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
+      "Contato Iniciado": { leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em", dates: derivedDates.contato },
+      "Proposta": { leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em", dates: derivedDates.propostas },
+      "Contrato Enviado": { leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em", dates: derivedDates.contratos },
+      "Ganho": { leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
     };
     const item = map[label];
     if (item) setDrillDown({ title: label, ...item });
   };
 
   const handleKpiClick = (key: string) => {
-    const map: Record<string, { title: string; leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
-      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato" },
-      "Contato Iniciado": { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
-      "Propostas": { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
-      "Contratos Enviados": { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
-      "Ganhos": { title: "Negócios Ganhos", leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em" },
-      "Perdidos": { title: "Negócios Perdidos", leads: leadSets.perdidos, dateField: "data_entrada_fechado_perdido", dateLabel: "Perdido em" },
+    const map: Record<string, { title: string; leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string; dates: Record<string, string | null> }> = {
+      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
+      "Contato Iniciado": { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em", dates: derivedDates.contato },
+      "Propostas": { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em", dates: derivedDates.propostas },
+      "Contratos Enviados": { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em", dates: derivedDates.contratos },
+      "Ganhos": { title: "Negócios Ganhos", leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
+      "Perdidos": { title: "Negócios Perdidos", leads: leadSets.perdidos, dateField: "data_entrada_fechado_perdido", dateLabel: "Perdido em", dates: derivedDates.perdidos },
     };
     const item = map[key];
     if (item) setDrillDown(item);
@@ -174,14 +201,15 @@ const RelatoriosPage = () => {
   const { revenueDailyData } = useMemo(() => {
     const map: Record<string, number> = {};
     leads.forEach((l) => {
-      if (inRange(l.data_entrada_fechado_ganho) && l.valor) {
-        const key = bucketHelpers.bucketKey(new Date(l.data_entrada_fechado_ganho!));
+      const wonTs = facts.get(l.id)?.wonTs ?? null;
+      if (inRange(wonTs) && l.valor) {
+        const key = bucketHelpers.bucketKey(new Date(wonTs!));
         map[key] = (map[key] || 0) + l.valor;
       }
     });
     const ordered = bucketHelpers.orderedBuckets();
     return { revenueDailyData: ordered.filter((d) => map[d]).map((d) => ({ date: d, receita: map[d] })) };
-  }, [leads, dateRange, bucketHelpers]);
+  }, [leads, dateRange, bucketHelpers, facts]);
 
   // === Conversion time ===
   const conversionTimes = useMemo(() => {
@@ -197,17 +225,19 @@ const RelatoriosPage = () => {
       const startTs = candidates.length
         ? candidates.reduce((a, b) => (new Date(a).getTime() < new Date(b).getTime() ? a : b))
         : null;
-      if (startTs && l.data_entrada_proposta_enviada && inRange(l.data_entrada_proposta_enviada)) {
-        const diff = (new Date(l.data_entrada_proposta_enviada).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) leadToProposal.push({ lead: l, startTs, endTs: l.data_entrada_proposta_enviada, days: diff });
+      const propostaTs = facts.get(l.id)?.propostaTs ?? null;
+      const wonTs = facts.get(l.id)?.wonTs ?? null;
+      if (startTs && propostaTs && inRange(propostaTs)) {
+        const diff = (new Date(propostaTs).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
+        if (diff >= 0) leadToProposal.push({ lead: l, startTs, endTs: propostaTs, days: diff });
       }
-      if (l.data_entrada_proposta_enviada && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
-        const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(l.data_entrada_proposta_enviada).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) proposalToWon.push({ lead: l, startTs: l.data_entrada_proposta_enviada, endTs: l.data_entrada_fechado_ganho, days: diff });
+      if (propostaTs && wonTs && inRange(wonTs)) {
+        const diff = (new Date(wonTs).getTime() - new Date(propostaTs).getTime()) / (1000 * 60 * 60 * 24);
+        if (diff >= 0) proposalToWon.push({ lead: l, startTs: propostaTs, endTs: wonTs, days: diff });
       }
-      if (startTs && l.data_entrada_fechado_ganho && inRange(l.data_entrada_fechado_ganho)) {
-        const diff = (new Date(l.data_entrada_fechado_ganho).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
-        if (diff >= 0) leadToWon.push({ lead: l, startTs, endTs: l.data_entrada_fechado_ganho, days: diff });
+      if (startTs && wonTs && inRange(wonTs)) {
+        const diff = (new Date(wonTs).getTime() - new Date(startTs).getTime()) / (1000 * 60 * 60 * 24);
+        if (diff >= 0) leadToWon.push({ lead: l, startTs, endTs: wonTs, days: diff });
       }
     });
     const avg = (xs: ConversionItem[]) => (xs.length ? xs.reduce((s, x) => s + x.days, 0) / xs.length : null);
@@ -217,7 +247,7 @@ const RelatoriosPage = () => {
       leadToWon: avg(leadToWon),
       items: { leadToProposal, proposalToWon, leadToWon },
     };
-  }, [leads, dateRange]);
+  }, [leads, dateRange, facts]);
 
   const handleConversionClick = (key: "leadToProposal" | "proposalToWon" | "leadToWon") => {
     const map = {
@@ -251,6 +281,7 @@ const RelatoriosPage = () => {
       leads: filtered,
       dateField: "data_entrada_fechado_perdido",
       dateLabel: "Perdido em",
+      dates: derivedDates.perdidos,
     });
   };
 
@@ -433,6 +464,7 @@ const RelatoriosPage = () => {
         leads={drillDown?.leads || []}
         dateField={drillDown?.dateField || "created_at"}
         dateLabel={drillDown?.dateLabel || "Data"}
+        dates={drillDown?.dates}
       />
 
       <ConversionDrillDown

@@ -12,6 +12,8 @@ interface ReportDrillDownProps {
   leads: Lead[];
   dateField?: keyof Lead;
   dateLabel?: string;
+  /** Datas derivadas (lead_id -> timestamp); têm prioridade sobre dateField */
+  dates?: Record<string, string | null>;
 }
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -20,7 +22,7 @@ const fmtDate = (d: string | null) => {
   return new Date(d).toLocaleDateString("pt-BR");
 };
 
-const ReportDrillDown = ({ open, onOpenChange, title, leads, dateField = "created_at", dateLabel = "Data" }: ReportDrillDownProps) => {
+const ReportDrillDown = ({ open, onOpenChange, title, leads, dateField = "created_at", dateLabel = "Data", dates }: ReportDrillDownProps) => {
   const navigate = useNavigate();
   const totalValue = leads.reduce((s, l) => s + (l.valor || 0), 0);
 
@@ -80,7 +82,7 @@ const ReportDrillDown = ({ open, onOpenChange, title, leads, dateField = "create
                 )}
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  {dateLabel}: {fmtDate(lead[dateField] as string | null)}
+                  {dateLabel}: {fmtDate(dates?.[lead.id] ?? (lead[dateField] as string | null))}
                 </span>
               </div>
               {lead.status === "Fechado Perdido" && lead.motivo_perda && (
