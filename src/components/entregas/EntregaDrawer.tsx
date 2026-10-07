@@ -66,8 +66,15 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
     setObs(entrega?.observacoes ?? "");
   }, [open, entrega, defaultClienteId]);
 
+  // Nova entrega: pré-seleciona a primeira etapa open.
+  useEffect(() => {
+    if (!open || entrega || stageId || stages.length === 0) return;
+    const first = firstOpenStage(stages);
+    if (first) setStageId(first.id);
+  }, [open, entrega, stageId, stages]);
+
   const saving = createEntrega.isPending || updateEntrega.isPending;
-  const isValid = Boolean(titulo.trim() && etapa && clienteId);
+  const isValid = Boolean(titulo.trim() && stageId && clienteId);
 
   const handleSave = async () => {
     if (!isValid) {
@@ -76,7 +83,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
     }
     const payload = {
       titulo: titulo.trim(),
-      etapa,
+      stage_id: stageId,
       cliente_id: clienteId,
       service_id: serviceId || null,
       data_ensaio: dataEnsaio || null,
