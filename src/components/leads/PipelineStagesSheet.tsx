@@ -189,7 +189,14 @@ const PipelineStagesSheet = ({ open, onClose }: Props) => {
 
                       {!editing && (
                         <div className="flex items-center gap-1 shrink-0">
-                          <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Cor da etapa">
+                          {terminal ? (
+                            <span
+                              className={cn("w-6 h-6 rounded-full shrink-0", pipelineStageColorClass(s.color_key))}
+                              title={s.stage_role === "won" ? "Cor fixa da etapa de ganho" : "Cor fixa da etapa de perda"}
+                              aria-label="Cor fixa"
+                            />
+                          ) : (
+                          <div className="flex items-center gap-1.5 flex-wrap" role="radiogroup" aria-label="Cor da etapa">
                             {PIPELINE_STAGE_COLOR_KEYS.map((key) => (
                               <button
                                 key={key}
@@ -211,6 +218,7 @@ const PipelineStagesSheet = ({ open, onClose }: Props) => {
                               />
                             ))}
                           </div>
+                          )}
                           <Button
                             size="icon" variant="ghost" className="h-8 w-8"
                             onClick={() => handleMove(s.id, "up")}

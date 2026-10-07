@@ -11,21 +11,37 @@ export const PIPELINE_STAGE_COLOR_KEYS = [
   "stage-4",
   "stage-5",
   "stage-6",
+  "stage-7",
+  "stage-8",
+  "stage-9",
+  "stage-10",
+  "stage-11",
+  "stage-12",
 ] as const;
 
 export type PipelineStageColorKey = (typeof PIPELINE_STAGE_COLOR_KEYS)[number];
 
-/** Mapeia color_key -> classe visual (tokens HSL do tema). */
-export const pipelineStageColorClass = (colorKey: string): string => {
-  if (
-    (PIPELINE_STAGE_COLOR_KEYS as readonly string[]).includes(colorKey) ||
-    colorKey === "status-success" ||
-    colorKey === "status-danger"
-  ) {
-    return `bg-[hsl(var(--${colorKey}))]`;
-  }
-  return "bg-[hsl(var(--stage-1))]";
+/** Mapeia color_key -> classe visual (tokens HSL do tema).
+ *  Classes literais para o Tailwind incluí-las no CSS compilado. */
+const PIPELINE_STAGE_COLOR_CLASSES: Record<string, string> = {
+  "stage-1": "bg-[hsl(var(--stage-1))]",
+  "stage-2": "bg-[hsl(var(--stage-2))]",
+  "stage-3": "bg-[hsl(var(--stage-3))]",
+  "stage-4": "bg-[hsl(var(--stage-4))]",
+  "stage-5": "bg-[hsl(var(--stage-5))]",
+  "stage-6": "bg-[hsl(var(--stage-6))]",
+  "stage-7": "bg-[hsl(var(--stage-7))]",
+  "stage-8": "bg-[hsl(var(--stage-8))]",
+  "stage-9": "bg-[hsl(var(--stage-9))]",
+  "stage-10": "bg-[hsl(var(--stage-10))]",
+  "stage-11": "bg-[hsl(var(--stage-11))]",
+  "stage-12": "bg-[hsl(var(--stage-12))]",
+  "status-success": "bg-[hsl(var(--status-success))]",
+  "status-danger": "bg-[hsl(var(--status-danger))]",
 };
+
+export const pipelineStageColorClass = (colorKey: string): string =>
+  PIPELINE_STAGE_COLOR_CLASSES[colorKey] ?? PIPELINE_STAGE_COLOR_CLASSES["stage-1"];
 
 /** Ordena por position ASC. */
 export const sortPipelineStages = <T extends Pick<PipelineStage, "position">>(stages: T[]): T[] =>

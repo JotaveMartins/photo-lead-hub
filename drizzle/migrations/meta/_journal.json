@@ -43,6 +43,13 @@
       "when": 1791406562740,
       "tag": "0005_reorder_pipeline_stages_reject_duplicates",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791408325031,
+      "tag": "0006_pipeline_stage_colors_fixed_terminal",
+      "breakpoints": true
     }
   ]
 }
