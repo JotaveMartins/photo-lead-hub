@@ -31,8 +31,10 @@ const EntregasPage = () => {
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<Entrega | null>(null);
-  const [dragOver, setDragOver] = useState<EntregaEtapa | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+  const [stagesOpen, setStagesOpen] = useState(false);
+  const { data: stages = [], isLoading: stagesLoading, isError: stagesError, refetch: refetchStages } = useDeliveryStages();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
