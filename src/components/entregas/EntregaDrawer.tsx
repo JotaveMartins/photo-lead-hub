@@ -55,7 +55,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   useEffect(() => {
     if (!open) return;
     setTitulo(entrega?.titulo ?? "");
-    setEtapa((entrega?.etapa as EntregaEtapa) ?? "Ensaio Realizado");
+    setStageId(entrega?.stage_id ?? "");
     setClienteId(entrega?.cliente_id ?? defaultClienteId ?? "");
     setServiceId(entrega?.service_id ?? "");
     setDataEnsaio(entrega?.data_ensaio ?? "");
