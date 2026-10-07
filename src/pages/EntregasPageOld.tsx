@@ -152,7 +152,8 @@ const EntregasPage = () => {
                   )}
                   {items.map((e) => {
                     const prevista = e.data_entrega_prevista ? parseLocalDate(e.data_entrega_prevista) : null;
-                    const atrasada = !!prevista && e.etapa !== "Entregue" && isBefore(prevista, today);
+                    const entregaStage = stages.find((s) => s.id === e.stage_id);
+                    const atrasada = !!prevista && !entregaStage?.stage_role.includes("delivered") && isBefore(prevista, today);
                     const info = covers[e.id];
                     return (
                       <div
@@ -238,6 +239,7 @@ const EntregasPage = () => {
         onClose={() => { setDrawerOpen(false); setSelected(null); }}
         entrega={selected}
       />
+      <DeliveryStagesSheet open={stagesOpen} onClose={() => setStagesOpen(false)} />
     </div>
   );
 };
