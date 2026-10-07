@@ -73,7 +73,7 @@ const StageEditorList = ({ stages, onRename, onColorChange, onMove, onDelete, bu
                 </div>
               ) : (
                 <>
-                  <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                  <p className="text-sm font-medium text-foreground">{s.name}</p>
                   {isFirstOpen && (
                     <p className="text-[11px] text-muted-foreground">Etapa inicial · novas entregas entram aqui</p>
                   )}
