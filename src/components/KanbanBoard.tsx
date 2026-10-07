@@ -197,9 +197,9 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   }, [leads, searchQuery, origemFilter, interesseFilter, tarefaFilter, pendingTasks]);
 
 
-  const getColumnValue = (status: LeadStatus) => {
+  const getColumnValue = (stageId: string) => {
     return filteredLeads
-      .filter((l) => l.status === status)
+      .filter((l) => l.stage_id === stageId)
       .reduce((sum, l) => sum + (l.valor || 0), 0);
   };
 
@@ -218,57 +218,62 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     setIsDragging(false);
   };
 
-  const handleDragOver = (e: React.DragEvent, status: LeadStatus) => {
+  const handleDragOver = (e: React.DragEvent, stageId: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    setDragOverColumn(status);
+    setDragOverColumn(stageId);
   };
 
   const handleDragLeave = () => {
     setDragOverColumn(null);
   };
 
-  const moveLeadToStatus = (lead: Lead, newStatus: LeadStatus, extraFields?: Record<string, any>) => {
-    if (newStatus === "Proposta Enviada") {
-      updateLead.mutate({ id: lead.id, status: "Follow-up" as LeadStatus, ...extraFields }, {
-        onSuccess: () => {
-          setFollowUpLead(lead);
-          setFollowUpModalOpen(true);
-        }
-      });
-    } else if (newStatus === "Fechado Ganho") {
-      // Cria um contrato mínimo a partir dos dados do lead e abre o fluxo
-      setGanhoContratoId(null);
+  const moveLeadToStage = (lead: Lead, stage: PipelineStage, extraFields?: Record<string, any>) => {
+    if (stage.stage_role === "proposal") {
+      // Ponte legada: proposta padrão -> Follow-up, somente quando ambas as etapas
+      // legadas existem na conta. Etapa proposal personalizada: lead permanece nela.
+      if (stage.legacy_status === "Proposta Enviada" && followUpStage) {
+        updateLead.mutate({ id: lead.id, stage_id: followUpStage.id, ...extraFields } as any, {
+          onSuccess: () => {
+            setFollowUpLead(lead);
+            setFollowUpModalOpen(true);
+          }
+        });
+      } else {
+        updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any);
+      }
+    } else if (stage.stage_role === "won") {
       // Contrato agora é opcional e criado dentro do LeadToClienteFlow (Sprint 02).
-      setGanhoPrevStatus(lead.status as LeadStatus);
+      setGanhoContratoId(null);
+      setGanhoPrevStageId(lead.stage_id);
       setLeadToClienteExtraFields(extraFields || {});
-      updateLead.mutate({ id: lead.id, status: "Fechado Ganho" as LeadStatus, ...(extraFields || {}) }, {
+      updateLead.mutate({ id: lead.id, stage_id: stage.id, ...(extraFields || {}) } as any, {
         onSuccess: () => setLeadToClienteLead(lead),
       });
     } else {
-      updateLead.mutate({ id: lead.id, status: newStatus, ...extraFields });
+      updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any);
     }
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: LeadStatus) => {
+  const handleDrop = (e: React.DragEvent, stageId: string) => {
     e.preventDefault();
     setDragOverColumn(null);
-    if (draggedLeadId) {
+    const stage = stageById(stageId);
+    if (draggedLeadId && stage) {
       const lead = leads.find((l) => l.id === draggedLeadId);
-      if (lead && lead.status !== newStatus) {
-        if (newStatus === "Fechado Perdido") {
+      if (lead && lead.stage_id !== stageId) {
+        if (stage.stage_role === "lost") {
           setLossReasonLead(lead);
           setLossReasonOpen(true);
         } else {
-          const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(newStatus) && (
-            (!lead.valor || lead.valor <= 0) ||
-            ((newStatus === "Proposta Enviada") && (!lead.data_proposta || !lead.interesse || !lead.origem))
-          );
+          const needsValor = stage.stage_role === "proposal" || stage.stage_role === "won" || stage.legacy_status === "Contrato Enviado";
+          const needsRequiredFields = (needsValor && (!lead.valor || lead.valor <= 0)) ||
+            (stage.stage_role === "proposal" && (!lead.data_proposta || !lead.interesse || !lead.origem));
           if (needsRequiredFields) {
             setRequiredFieldsLead(lead);
-            setRequiredFieldsTarget(newStatus);
+            setRequiredFieldsTarget(stage);
           } else {
-            moveLeadToStatus(lead, newStatus);
+            moveLeadToStage(lead, stage);
           }
         }
       }
@@ -278,15 +283,15 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   };
 
   const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => {
-    if (lossReasonLead) {
+    if (lossReasonLead && lostStage) {
       const leadId = lossReasonLead.id;
       const shouldDelete = data.deleteFutureTasks;
       updateLead.mutate({
         id: leadId,
-        status: "Fechado Perdido" as LeadStatus,
+        stage_id: lostStage.id,
         motivo_perda: data.motivo_perda,
         observacao_perda: data.observacao_perda,
-      }, {
+      } as any, {
         onSuccess: async () => {
           if (shouldDelete) {
             await supabase
@@ -305,7 +310,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const handleRequiredFieldsConfirm = (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
     if (requiredFieldsLead && requiredFieldsTarget) {
-      moveLeadToStatus(requiredFieldsLead, requiredFieldsTarget, fields);
+      moveLeadToStage(requiredFieldsLead, requiredFieldsTarget, fields);
       setRequiredFieldsLead(null);
       setRequiredFieldsTarget(null);
     }
