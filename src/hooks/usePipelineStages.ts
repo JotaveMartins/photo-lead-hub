@@ -9,6 +9,7 @@ import {
   lostStage,
   proposalStage,
   openPipelineStages,
+  firstStageAfterLead,
   stageById,
   type PipelineStage,
   type PipelineStageColorKey,
@@ -43,6 +44,9 @@ export const usePipelineStages = () => {
     wonStage: wonStage(stages),
     lostStage: lostStage(stages),
     openStages: openPipelineStages(stages),
+    firstStageAfterLead: firstStageAfterLead(stages),
+    /** Etapa legada "Follow-up" (ponte da sequência de follow-up pós-proposta). */
+    followUpStage: stages.find((s) => s.legacy_status === "Follow-up"),
   };
 };
 
