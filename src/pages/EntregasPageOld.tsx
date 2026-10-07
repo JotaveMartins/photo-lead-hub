@@ -153,7 +153,7 @@ const EntregasPage = () => {
                   {items.map((e) => {
                     const prevista = e.data_entrega_prevista ? parseLocalDate(e.data_entrega_prevista) : null;
                     const entregaStage = stages.find((s) => s.id === e.stage_id);
-                    const atrasada = !!prevista && !entregaStage?.stage_role.includes("delivered") && isBefore(prevista, today);
+                    const atrasada = !!prevista && !(entregaStage && isDeliveredStage(entregaStage)) && isBefore(prevista, today);
                     const info = covers[e.id];
                     return (
                       <div
