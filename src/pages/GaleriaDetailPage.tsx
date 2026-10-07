@@ -703,9 +703,9 @@ const GaleriaDetailPage = () => {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <SearchSelect
                     label="Etapa"
-                    options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
-                    value={etapa}
-                    onChange={(v) => v && setEtapa(v as EntregaEtapa)}
+                    options={stages.map((s) => ({ value: s.id, label: s.name }))}
+                    value={stageId}
+                    onChange={(v) => v && setStageId(v)}
                     allowEmpty={false}
                     placeholder="Selecione a etapa"
                     searchPlaceholder="Buscar etapa..."
@@ -783,7 +783,7 @@ const GaleriaDetailPage = () => {
                     <Copy className="mr-2 h-4 w-4" /> Copiar
                   </Button>
                 </div>
-                {entrega && entrega.etapa !== "Entregue" && (
+                {entrega && entrega.stage_id !== deliveredStage(stages)?.id && (
                   <Button className="w-full" onClick={marcarEntregue} disabled={updateEntrega.isPending}>
                     Marcar entrega como entregue
                   </Button>
