@@ -84,9 +84,6 @@ const RelatoriosPage = () => {
     () => buildLeadPipelineFacts(leads, stages, stageHistory),
     [leads, stages, stageHistory],
   );
-  const factTs = (leadId: string, key: keyof ReturnType<typeof buildLeadPipelineFacts> extends never ? never : "contatoTs" | "propostaTs" | "contratoTs" | "wonTs" | "lostTs") =>
-    facts.get(leadId)?.[key] ?? null;
-
   // === Filtered lead sets (reusable for drill-down) ===
   const leadSets = useMemo(() => ({
     created: leads.filter((l) => inRange((l as any).data_contato ?? l.created_at)),
@@ -142,25 +139,25 @@ const RelatoriosPage = () => {
   ], [kpis]);
 
   const handleFunnelClick = (label: string) => {
-    const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
-      "Leads": { leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato" },
-      "Contato Iniciado": { leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
-      "Proposta": { leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
-      "Contrato Enviado": { leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
-      "Ganho": { leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em" },
+    const map: Record<string, { leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string; dates: Record<string, string | null> }> = {
+      "Leads": { leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
+      "Contato Iniciado": { leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em", dates: derivedDates.contato },
+      "Proposta": { leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em", dates: derivedDates.propostas },
+      "Contrato Enviado": { leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em", dates: derivedDates.contratos },
+      "Ganho": { leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
     };
     const item = map[label];
     if (item) setDrillDown({ title: label, ...item });
   };
 
   const handleKpiClick = (key: string) => {
-    const map: Record<string, { title: string; leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string }> = {
-      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato" },
-      "Contato Iniciado": { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em" },
-      "Propostas": { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em" },
-      "Contratos Enviados": { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em" },
-      "Ganhos": { title: "Negócios Ganhos", leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em" },
-      "Perdidos": { title: "Negócios Perdidos", leads: leadSets.perdidos, dateField: "data_entrada_fechado_perdido", dateLabel: "Perdido em" },
+    const map: Record<string, { title: string; leads: ReportLead[]; dateField: keyof ReportLead; dateLabel: string; dates: Record<string, string | null> }> = {
+      "Leads Criados": { title: "Leads Criados", leads: leadSets.created, dateField: "data_contato" as keyof ReportLead, dateLabel: "Data do Contato", dates: derivedDates.created },
+      "Contato Iniciado": { title: "Contato Iniciado", leads: leadSets.contato, dateField: "data_entrada_contato_iniciado", dateLabel: "Contato em", dates: derivedDates.contato },
+      "Propostas": { title: "Propostas Enviadas", leads: leadSets.propostas, dateField: "data_entrada_proposta_enviada", dateLabel: "Proposta em", dates: derivedDates.propostas },
+      "Contratos Enviados": { title: "Contratos Enviados", leads: leadSets.contratos, dateField: "data_entrada_contrato_enviado", dateLabel: "Contrato em", dates: derivedDates.contratos },
+      "Ganhos": { title: "Negócios Ganhos", leads: leadSets.ganhos, dateField: "data_entrada_fechado_ganho", dateLabel: "Ganho em", dates: derivedDates.ganhos },
+      "Perdidos": { title: "Negócios Perdidos", leads: leadSets.perdidos, dateField: "data_entrada_fechado_perdido", dateLabel: "Perdido em", dates: derivedDates.perdidos },
     };
     const item = map[key];
     if (item) setDrillDown(item);
@@ -204,14 +201,15 @@ const RelatoriosPage = () => {
   const { revenueDailyData } = useMemo(() => {
     const map: Record<string, number> = {};
     leads.forEach((l) => {
-      if (inRange(l.data_entrada_fechado_ganho) && l.valor) {
-        const key = bucketHelpers.bucketKey(new Date(l.data_entrada_fechado_ganho!));
+      const wonTs = facts.get(l.id)?.wonTs ?? null;
+      if (inRange(wonTs) && l.valor) {
+        const key = bucketHelpers.bucketKey(new Date(wonTs!));
         map[key] = (map[key] || 0) + l.valor;
       }
     });
     const ordered = bucketHelpers.orderedBuckets();
     return { revenueDailyData: ordered.filter((d) => map[d]).map((d) => ({ date: d, receita: map[d] })) };
-  }, [leads, dateRange, bucketHelpers]);
+  }, [leads, dateRange, bucketHelpers, facts]);
 
   // === Conversion time ===
   const conversionTimes = useMemo(() => {
