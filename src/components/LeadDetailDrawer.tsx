@@ -16,6 +16,8 @@ import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLead
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAiActive } from "@/hooks/useAiActive";
+import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { pipelineStageColorClass, type PipelineStage, type StageRole } from "@/lib/pipelineStages";
 import { useAiGlobalActive } from "@/hooks/useAiGlobalActive";
 import { useQueryClient } from "@tanstack/react-query";
 import LeadColorTagPicker from "@/components/LeadColorTagPicker";
