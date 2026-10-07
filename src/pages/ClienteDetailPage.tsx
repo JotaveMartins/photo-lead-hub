@@ -26,7 +26,9 @@ import { Input } from "@/components/ui/input";
 import DatePickerField from "@/components/DatePickerField";
 import { parseLocalDate } from "@/lib/utils";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
-import { useEntregas, ENTREGA_ETAPAS, type Entrega } from "@/hooks/useEntregas";
+import { useEntregas, type Entrega } from "@/hooks/useEntregas";
+import { useDeliveryStages } from "@/hooks/useDeliveryStages";
+import { deliveryStageColorClass } from "@/lib/deliveryStages";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -56,6 +58,7 @@ const ClienteDetailPage = () => {
   const { data: clienteTasks = [] } = useClienteTasks(id);
   const { data: contratos = [], isError: contratosError, refetch: refetchContratos } = useContratosByClienteId(id);
   const { data: todasEntregas = [] } = useEntregas();
+  const { data: deliveryStages = [] } = useDeliveryStages();
   const entregas = todasEntregas.filter((e) => e.cliente_id === id);
   const createTask = useCreateLeadTask();
   const completeTask = useCompleteLeadTask();
@@ -494,7 +497,7 @@ const ClienteDetailPage = () => {
           ) : (
             <div className="space-y-2">
               {entregas.map((e) => {
-                const col = ENTREGA_ETAPAS.find((s) => s.etapa === e.etapa);
+                const col = deliveryStages.find((s) => s.id === e.stage_id);
                 return (
                   <div
                     key={e.id}
@@ -510,8 +513,8 @@ const ClienteDetailPage = () => {
                       </p>
                     </div>
                     <span className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
-                      <span className={`w-2.5 h-2.5 rounded-full ${col?.color || "bg-muted"}`} />
-                      {e.etapa}
+                      <span className={`w-2.5 h-2.5 rounded-full ${col ? deliveryStageColorClass(col.color_key) : "bg-muted"}`} />
+                      {col?.name ?? ""}
                     </span>
                   </div>
                 );

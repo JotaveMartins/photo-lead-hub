@@ -464,6 +464,88 @@ export type Database = {
           },
         ]
       }
+      delivery_stage_history: {
+        Row: {
+          changed_at: string
+          delivery_id: string
+          from_stage_id: string | null
+          id: string
+          to_stage_id: string
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          delivery_id: string
+          from_stage_id?: string | null
+          id?: string
+          to_stage_id: string
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          delivery_id?: string
+          from_stage_id?: string | null
+          id?: string
+          to_stage_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_stage_history_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "entregas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_stages: {
+        Row: {
+          color_key: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          stage_role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color_key: string
+          created_at?: string
+          id?: string
+          name: string
+          position: number
+          stage_role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color_key?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          stage_role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       despesas: {
         Row: {
           categoria: string
@@ -570,6 +652,7 @@ export type Database = {
           link_galeria: string | null
           observacoes: string | null
           service_id: string | null
+          stage_id: string | null
           titulo: string
           updated_at: string
           user_id: string
@@ -595,6 +678,7 @@ export type Database = {
           link_galeria?: string | null
           observacoes?: string | null
           service_id?: string | null
+          stage_id?: string | null
           titulo?: string
           updated_at?: string
           user_id: string
@@ -620,6 +704,7 @@ export type Database = {
           link_galeria?: string | null
           observacoes?: string | null
           service_id?: string | null
+          stage_id?: string | null
           titulo?: string
           updated_at?: string
           user_id?: string
@@ -651,6 +736,13 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -2402,6 +2494,10 @@ export type Database = {
           ultimo_acesso: string
           user_id: string
         }[]
+      }
+      ensure_default_delivery_stages: {
+        Args: { _user_id: string }
+        Returns: undefined
       }
       finalize_gallery_selection: {
         Args: { _gallery_id: string }

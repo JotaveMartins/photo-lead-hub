@@ -4,18 +4,12 @@ import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
+/** @deprecated Legado. A fonte oficial da etapa é stage_id -> delivery_stages (useDeliveryStages). */
 export type EntregaEtapa = Database["public"]["Enums"]["entrega_etapa"];
 export type Entrega = Database["public"]["Tables"]["entregas"]["Row"] & {
   clientes?: { nome: string; whatsapp: string | null } | null;
   services?: { nome: string } | null;
 };
-
-export const ENTREGA_ETAPAS: { etapa: EntregaEtapa; label: string; color: string }[] = [
-  { etapa: "Ensaio Realizado", label: "Ensaio Realizado", color: "bg-[hsl(var(--delivery-2))]" },
-  { etapa: "Em edição", label: "Em edição", color: "bg-[hsl(var(--delivery-3))]" },
-  { etapa: "Pronto para entrega", label: "Pronto para entrega", color: "bg-[hsl(var(--delivery-4))]" },
-  { etapa: "Entregue", label: "Entregue", color: "bg-[hsl(var(--delivery-5))]" },
-];
 
 export const useEntrega = (id?: string | null) =>
   useQuery({

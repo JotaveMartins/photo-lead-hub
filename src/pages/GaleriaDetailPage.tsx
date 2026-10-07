@@ -28,7 +28,9 @@ import DatePickerField from "@/components/DatePickerField";
 import { Textarea } from "@/components/ui/textarea";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
-import { ENTREGA_ETAPAS, useEntrega, useUpdateEntrega, type EntregaEtapa } from "@/hooks/useEntregas";
+import { useEntrega, useUpdateEntrega } from "@/hooks/useEntregas";
+import { useDeliveryStages } from "@/hooks/useDeliveryStages";
+import { deliveredStage } from "@/lib/deliveryStages";
 
 import { parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
@@ -58,6 +60,7 @@ const GaleriaDetailPage = () => {
   const updateGallery = useUpdateGallery();
   const deleteGallery = useDeleteGallery();
   const updateEntrega = useUpdateEntrega();
+  const { data: stages = [] } = useDeliveryStages();
   const createSection = useCreateSection();
   const updateSection = useUpdateSection();
   const deleteSection = useDeleteSection();
@@ -99,7 +102,7 @@ const GaleriaDetailPage = () => {
 
   // Dados da entrega
   const { data: services = [] } = useServices();
-  const [etapa, setEtapa] = useState<EntregaEtapa | "">("");
+  const [stageId, setStageId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [dataEnsaio, setDataEnsaio] = useState("");
   const [dataPrevia, setDataPrevia] = useState("");
@@ -131,7 +134,7 @@ const GaleriaDetailPage = () => {
 
   useEffect(() => {
     if (!entrega) return;
-    setEtapa(entrega.etapa as EntregaEtapa);
+    setStageId(entrega.stage_id ?? "");
     setServiceId(entrega.service_id ?? "");
     setDataEnsaio(entrega.data_ensaio ?? "");
     setDataPrevia(entrega.data_previa_prevista ?? "");
@@ -232,7 +235,7 @@ const GaleriaDetailPage = () => {
       await updateEntrega.mutateAsync({
         id: entrega.id,
         titulo: name.trim() || entrega.titulo,
-        etapa: (etapa || entrega.etapa) as EntregaEtapa,
+        stage_id: stageId || entrega.stage_id,
         cliente_id: clienteId || null,
         service_id: serviceId || null,
         data_ensaio: dataEnsaio || null,
@@ -260,9 +263,14 @@ const GaleriaDetailPage = () => {
 
   const marcarEntregue = async () => {
     if (!entrega) return;
+    const delivered = deliveredStage(stages);
+    if (!delivered) {
+      toast.error("Não foi possível localizar a etapa final do funil");
+      return;
+    }
     await updateEntrega.mutateAsync({
       id: entrega.id,
-      etapa: "Entregue",
+      stage_id: delivered.id,
       data_entrega_final: entrega.data_entrega_final ?? format(new Date(), "yyyy-MM-dd"),
     });
     toast.success("Entrega marcada como entregue");
@@ -281,7 +289,7 @@ const GaleriaDetailPage = () => {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-display text-2xl font-bold text-foreground">{gallery.name}</h1>
-            {entrega && <Badge variant="secondary">{entrega.etapa}</Badge>}
+            {entrega && <Badge variant="secondary">{stages.find((s) => s.id === entrega.stage_id)?.name ?? ""}</Badge>}
             {published && <Badge>Publicada</Badge>}
             {gallery.gallery_type === "selection" && (
               <StatusBadge tone={selStatus.tone}>
@@ -695,9 +703,9 @@ const GaleriaDetailPage = () => {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <SearchSelect
                     label="Etapa"
-                    options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
-                    value={etapa}
-                    onChange={(v) => v && setEtapa(v as EntregaEtapa)}
+                    options={stages.map((s) => ({ value: s.id, label: s.name }))}
+                    value={stageId}
+                    onChange={(v) => v && setStageId(v)}
                     allowEmpty={false}
                     placeholder="Selecione a etapa"
                     searchPlaceholder="Buscar etapa..."
@@ -775,7 +783,7 @@ const GaleriaDetailPage = () => {
                     <Copy className="mr-2 h-4 w-4" /> Copiar
                   </Button>
                 </div>
-                {entrega && entrega.etapa !== "Entregue" && (
+                {entrega && entrega.stage_id !== deliveredStage(stages)?.id && (
                   <Button className="w-full" onClick={marcarEntregue} disabled={updateEntrega.isPending}>
                     Marcar entrega como entregue
                   </Button>

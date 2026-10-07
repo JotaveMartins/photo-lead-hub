@@ -3,13 +3,16 @@ import { useMemo, useState } from "react";
 import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton, ColumnsSkeleton } from "@/components/ui/list-skeleton";
 import { useNavigate } from "react-router-dom";
-import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images } from "lucide-react";
+import { Plus, Camera, CalendarDays, AlertTriangle, Package, Images, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import EntregaDrawer from "@/components/entregas/EntregaDrawer";
 import GenericTrashBin from "@/components/GenericTrashBin";
 import { PageHeader } from "@/components/ui/page-header";
-import { ENTREGA_ETAPAS, useEntregas, useDeletedEntregas, useRestoreEntrega, useUpdateEntrega, type Entrega, type EntregaEtapa } from "@/hooks/useEntregas";
+import { useEntregas, useDeletedEntregas, useRestoreEntrega, useUpdateEntrega, type Entrega } from "@/hooks/useEntregas";
+import { useDeliveryStages } from "@/hooks/useDeliveryStages";
+import { deliveryStageColorClass, isDeliveredStage, type DeliveryStage } from "@/lib/deliveryStages";
+import DeliveryStagesSheet from "@/components/entregas/DeliveryStagesSheet";
 import { useEntregaCovers, useCreateGallery } from "@/hooks/useGalleries";
 import { parseLocalDate } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
@@ -28,8 +31,10 @@ const EntregasPage = () => {
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<Entrega | null>(null);
-  const [dragOver, setDragOver] = useState<EntregaEtapa | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+  const [stagesOpen, setStagesOpen] = useState(false);
+  const { data: stages = [], isLoading: stagesLoading, isError: stagesError, refetch: refetchStages } = useDeliveryStages();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -41,16 +46,16 @@ const EntregasPage = () => {
     );
   }, [entregas, search]);
 
-  const handleDrop = async (etapa: EntregaEtapa, id: string) => {
+  const handleDrop = async (stage: DeliveryStage, id: string) => {
     setDragOver(null);
     const entrega = entregas.find((e) => e.id === id);
-    if (!entrega || entrega.etapa === etapa) return;
-    const updates: any = { id, etapa };
-    if (etapa === "Entregue" && !entrega.data_entrega_final) {
+    if (!entrega || entrega.stage_id === stage.id) return;
+    const updates: any = { id, stage_id: stage.id };
+    if (isDeliveredStage(stage) && !entrega.data_entrega_final) {
       updates.data_entrega_final = format(new Date(), "yyyy-MM-dd");
     }
     await updateEntrega.mutateAsync(updates);
-    toast.success(`Movido para "${etapa}"`);
+    toast.success(`Movido para "${stage.name}"`);
   };
 
   const openNew = () => { setSelected(null); setDrawerOpen(true); };
@@ -87,6 +92,10 @@ const EntregasPage = () => {
         title="Funil de Entregas"
         description="Acompanhe o pós-venda: do ensaio à entrega final"
         secondaryActions={
+          <>
+          <Button variant="outline" onClick={() => setStagesOpen(true)} className="gap-2">
+            <Settings2 className="w-4 h-4" /> Configurar etapas
+          </Button>
           <GenericTrashBin
             title="Entregas arquivadas"
             entityName="entrega"
@@ -94,6 +103,7 @@ const EntregasPage = () => {
             onRestore={(id) => restoreEntrega.mutate(id)}
             isRestoring={restoreEntrega.isPending}
           />
+          </>
         }
         action={
           <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova entrega</Button>
@@ -108,28 +118,30 @@ const EntregasPage = () => {
           />
       </div>
 
-      {isLoading ? (
+      {isLoading || stagesLoading ? (
         <ColumnsSkeleton columns={4} />
       ) : isError ? (
         <ErrorState title="Não foi possível carregar as entregas" onRetry={() => refetch()} />
+      ) : stagesError || stages.length === 0 ? (
+        <ErrorState title="Não foi possível carregar as etapas do funil" onRetry={() => refetchStages()} />
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4 xl:overflow-visible">
-          {ENTREGA_ETAPAS.map((col) => {
-            const items = filtered.filter((e) => e.etapa === col.etapa);
+          {stages.map((col) => {
+            const items = filtered.filter((e) => e.stage_id === col.id);
             return (
               <div
-                key={col.etapa}
-                onDragOver={(ev) => { ev.preventDefault(); setDragOver(col.etapa); }}
-                onDragLeave={() => setDragOver((c) => (c === col.etapa ? null : c))}
-                onDrop={(ev) => handleDrop(col.etapa, ev.dataTransfer.getData("text/plain"))}
+                key={col.id}
+                onDragOver={(ev) => { ev.preventDefault(); setDragOver(col.id); }}
+                onDragLeave={() => setDragOver((c) => (c === col.id ? null : c))}
+                onDrop={(ev) => handleDrop(col, ev.dataTransfer.getData("text/plain"))}
                 className={`flex-shrink-0 w-72 xl:flex-1 xl:w-auto xl:min-w-0 bg-card border rounded-xl flex flex-col transition-colors ${
-                  dragOver === col.etapa ? "border-primary bg-primary/5" : "border-border"
+                  dragOver === col.id ? "border-primary bg-primary/5" : "border-border"
                 }`}
               >
                 <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />
-                    <span className="text-sm font-semibold text-foreground truncate">{col.label}</span>
+                    <div className={`w-2.5 h-2.5 rounded-full ${deliveryStageColorClass(col.color_key)}`} />
+                    <span className="text-sm font-semibold text-foreground truncate">{col.name}</span>
                   </div>
                   <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">{items.length}</span>
                 </div>
@@ -140,7 +152,8 @@ const EntregasPage = () => {
                   )}
                   {items.map((e) => {
                     const prevista = e.data_entrega_prevista ? parseLocalDate(e.data_entrega_prevista) : null;
-                    const atrasada = !!prevista && e.etapa !== "Entregue" && isBefore(prevista, today);
+                    const entregaStage = stages.find((s) => s.id === e.stage_id);
+                    const atrasada = !!prevista && !(entregaStage && isDeliveredStage(entregaStage)) && isBefore(prevista, today);
                     const info = covers[e.id];
                     return (
                       <div
@@ -226,6 +239,7 @@ const EntregasPage = () => {
         onClose={() => { setDrawerOpen(false); setSelected(null); }}
         entrega={selected}
       />
+      <DeliveryStagesSheet open={stagesOpen} onClose={() => setStagesOpen(false)} />
     </div>
   );
 };

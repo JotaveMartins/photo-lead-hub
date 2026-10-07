@@ -14,13 +14,13 @@ import { useNavigate } from "react-router-dom";
 import { useClientes } from "@/hooks/useClientes";
 import { useServices } from "@/hooks/useServices";
 import {
-  ENTREGA_ETAPAS,
   useCreateEntrega,
   useUpdateEntrega,
   useDeleteEntrega,
   type Entrega,
-  type EntregaEtapa,
 } from "@/hooks/useEntregas";
+import { useDeliveryStages } from "@/hooks/useDeliveryStages";
+import { firstOpenStage } from "@/lib/deliveryStages";
 
 interface Props {
   open: boolean;
@@ -39,8 +39,10 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   const { data: galeria } = useGalleryByEntrega(entrega?.id);
   const createGallery = useCreateGallery();
 
+  const { data: stages = [] } = useDeliveryStages();
+
   const [titulo, setTitulo] = useState("");
-  const [etapa, setEtapa] = useState<EntregaEtapa>("Ensaio Realizado");
+  const [stageId, setStageId] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [dataEnsaio, setDataEnsaio] = useState("");
@@ -53,7 +55,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
   useEffect(() => {
     if (!open) return;
     setTitulo(entrega?.titulo ?? "");
-    setEtapa((entrega?.etapa as EntregaEtapa) ?? "Ensaio Realizado");
+    setStageId(entrega?.stage_id ?? "");
     setClienteId(entrega?.cliente_id ?? defaultClienteId ?? "");
     setServiceId(entrega?.service_id ?? "");
     setDataEnsaio(entrega?.data_ensaio ?? "");
@@ -64,8 +66,15 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
     setObs(entrega?.observacoes ?? "");
   }, [open, entrega, defaultClienteId]);
 
+  // Nova entrega: pré-seleciona a primeira etapa open.
+  useEffect(() => {
+    if (!open || entrega || stageId || stages.length === 0) return;
+    const first = firstOpenStage(stages);
+    if (first) setStageId(first.id);
+  }, [open, entrega, stageId, stages]);
+
   const saving = createEntrega.isPending || updateEntrega.isPending;
-  const isValid = Boolean(titulo.trim() && etapa && clienteId);
+  const isValid = Boolean(titulo.trim() && stageId && clienteId);
 
   const handleSave = async () => {
     if (!isValid) {
@@ -74,7 +83,7 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
     }
     const payload = {
       titulo: titulo.trim(),
-      etapa,
+      stage_id: stageId,
       cliente_id: clienteId,
       service_id: serviceId || null,
       data_ensaio: dataEnsaio || null,
@@ -129,9 +138,9 @@ const EntregaDrawer = ({ open, onClose, entrega, defaultClienteId }: Props) => {
               <SearchSelect
                 label="Etapa"
                 required
-                options={ENTREGA_ETAPAS.map((s) => ({ value: s.etapa, label: s.label }))}
-                value={etapa}
-                onChange={(v) => v && setEtapa(v as EntregaEtapa)}
+                options={stages.map((s) => ({ value: s.id, label: s.name }))}
+                value={stageId}
+                onChange={(v) => v && setStageId(v)}
                 allowEmpty={false}
                 placeholder="Selecione a etapa"
                 searchPlaceholder="Buscar etapa..."
