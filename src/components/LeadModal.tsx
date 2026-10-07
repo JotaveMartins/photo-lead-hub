@@ -173,10 +173,19 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
                 onChange={(e) => setStageId(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
-                {stages.map((opt) => (
-                  <option key={opt.id} value={opt.id}>{opt.name}</option>
-                ))}
+                {stages
+                  // Edição direta apenas para lead/open. Proposta, ganho e perda
+                  // exigem os fluxos do Kanban/Drawer (validações e modais).
+                  .filter((opt) => opt.stage_role === "lead" || opt.stage_role === "open" || opt.id === stageId)
+                  .map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
               </select>
+              {stages.find((s) => s.id === stageId && s.stage_role !== "lead" && s.stage_role !== "open") && (
+                <p className="text-xs text-muted-foreground">
+                  Para mover para proposta, ganho ou perda, use o Kanban ou a ficha do lead.
+                </p>
+              )}
             </div>
           )}
             <div className="space-y-2">

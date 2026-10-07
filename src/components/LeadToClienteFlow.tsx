@@ -39,6 +39,8 @@ interface LeadToClienteFlowProps {
   onClose: () => void;
   /** Chamado quando o usuário cancela antes de cadastrar o cliente (desfaz o "ganho"). */
   onCancel?: () => void;
+  /** Chamado quando o fluxo é concluído ("Confirmar e Concluir") — momento de registrar o ganho. */
+  onConfirm?: () => void;
 }
 
 const COBRANCA_LABELS: Record<CobrancaType, string> = {
@@ -47,7 +49,7 @@ const COBRANCA_LABELS: Record<CobrancaType, string> = {
   entrada_parcelas: "Entrada + Parcelas",
 };
 
-const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowProps) => {
+const LeadToClienteFlow = ({ lead, open, onClose, onCancel, onConfirm }: LeadToClienteFlowProps) => {
   const [step, setStep] = useState<"cliente" | "tipo" | "cobranca" | "contrato" | "evento" | "confirmacao">("cliente");
   const [contratoFormOpen, setContratoFormOpen] = useState(false);
   const [contratoWasCreated, setContratoWasCreated] = useState(false);
@@ -135,6 +137,7 @@ const LeadToClienteFlow = ({ lead, open, onClose, onCancel }: LeadToClienteFlowP
 
   const handleClose = (cancelled = false) => {
     if (cancelled && !createdClienteId) onCancel?.();
+    if (!cancelled) onConfirm?.();
     setStep("cliente");
     setCreatedClienteId(null);
     setCreatedClienteNome("");

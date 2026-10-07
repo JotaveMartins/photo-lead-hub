@@ -113,7 +113,9 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
   const bulkOptions: { value: string; label: string }[] =
     bulkField === "origem" ? ORIGEM_OPTIONS.map((o) => ({ value: o, label: o }))
     : bulkField === "interesse" ? interesseOptions.map((o) => ({ value: o, label: o }))
-    : stages.map((s) => ({ value: s.id, label: s.name }));
+    // Edição em massa de etapa: somente lead/open. Proposta, ganho e perda
+    // possuem fluxos próprios (validações, modais) no Kanban/Drawer.
+    : stages.filter((s) => s.stage_role === "lead" || s.stage_role === "open").map((s) => ({ value: s.id, label: s.name }));
 
   const handleBulkApply = async () => {
     if (!bulkValue || selectedIds.size === 0) return;
