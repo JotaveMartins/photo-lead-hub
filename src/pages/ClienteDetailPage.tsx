@@ -512,8 +512,8 @@ const ClienteDetailPage = () => {
                       </p>
                     </div>
                     <span className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
-                      <span className={`w-2.5 h-2.5 rounded-full ${col?.color || "bg-muted"}`} />
-                      {e.etapa}
+                      <span className={`w-2.5 h-2.5 rounded-full ${col ? deliveryStageColorClass(col.color_key) : "bg-muted"}`} />
+                      {col?.name ?? ""}
                     </span>
                   </div>
                 );
