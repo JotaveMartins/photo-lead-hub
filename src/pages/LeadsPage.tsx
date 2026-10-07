@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Users, LayoutGrid, List, Bell } from "lucide-react";
+import { Plus, Users, LayoutGrid, List, Bell, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LeadsTableDB from "@/components/LeadsTableDB";
 import LeadModal from "@/components/LeadModal";
 import KanbanBoard from "@/components/KanbanBoard";
 import LeadDetailDrawer from "@/components/LeadDetailDrawer";
 import TrashBin from "@/components/TrashBin";
+import PipelineStagesSheet from "@/components/leads/PipelineStagesSheet";
 import { useLeads } from "@/hooks/useLeads";
+import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useAllPendingTasks, useCompleteLeadTask } from "@/hooks/useLeadTasks";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,7 +25,9 @@ const LeadsPage = () => {
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [stagesSheetOpen, setStagesSheetOpen] = useState(false);
   const { data: leads = [] } = useLeads();
+  const { stageById } = usePipelineStages();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const completeTask = useCompleteLeadTask();
 
@@ -47,7 +51,10 @@ const LeadsPage = () => {
     })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  const activeLeads = leads.filter((l) => l.status !== "Fechado Ganho" && l.status !== "Fechado Perdido");
+  const activeLeads = leads.filter((l) => {
+    const role = stageById(l.stage_id)?.stage_role;
+    return role !== "won" && role !== "lost";
+  });
 
   const handleTaskClick = (leadId: string) => {
     const lead = leads.find((item) => item.id === leadId);
@@ -70,6 +77,15 @@ const LeadsPage = () => {
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <TrashBin />
+
+          <Button
+            variant="outline"
+            onClick={() => setStagesSheetOpen(true)}
+            className="gap-2 h-10 border-border"
+          >
+            <Settings2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Configurar etapas</span>
+          </Button>
 
           <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
             <PopoverTrigger asChild>
@@ -167,6 +183,7 @@ const LeadsPage = () => {
 
       <LeadModal open={isModalOpen} onOpenChange={setIsModalOpen} />
       <LeadDetailDrawer lead={selectedLead} open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)} />
+      <PipelineStagesSheet open={stagesSheetOpen} onClose={() => setStagesSheetOpen(false)} />
     </>
   );
 };

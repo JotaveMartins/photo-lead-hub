@@ -8,27 +8,17 @@ import InteresseSelect from "@/components/InteresseSelect";
 import DatePickerField from "@/components/DatePickerField";
 import SearchSelect from "@/components/SearchSelect";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
+import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
-type LeadStatus = Database["public"]["Enums"]["lead_status"];
 
 const whatsappSchema = z.string().min(7, "WhatsApp deve ter pelo menos 7 dígitos").max(15, "WhatsApp deve ter no máximo 15 dígitos").regex(/^\d+$/, "WhatsApp deve conter apenas números");
 const nomeSchema = z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100);
 
 const ORIGEM_OPTIONS = [
   "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
-];
-
-const statusOptions: { value: LeadStatus; label: string }[] = [
-  { value: "Novo Lead", label: "Novo Lead" },
-  { value: "Contato Iniciado", label: "Contato Iniciado" },
-  { value: "Proposta Enviada", label: "Proposta Enviada" },
-  { value: "Follow-up", label: "Follow-up" },
-  { value: "Contrato Enviado", label: "Contrato Enviado" },
-  { value: "Fechado Ganho", label: "Fechado Ganho" },
-  { value: "Fechado Perdido", label: "Fechado Perdido" },
 ];
 
 interface LeadModalProps {
@@ -44,7 +34,7 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [interesse, setInteresse] = useState("");
-  const [status, setStatus] = useState<LeadStatus>("Novo Lead");
+  const [stageId, setStageId] = useState("");
   const [origem, setOrigem] = useState("");
   const [dataEvento, setDataEvento] = useState("");
   const [dataContato, setDataContato] = useState("");
@@ -53,6 +43,7 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
 
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
+  const { stages, leadStage } = usePipelineStages();
 
   // Extract YYYY-MM-DD from any date/timestamp string to avoid timezone shifts
   const toDateOnly = (v: string | null | undefined): string => 
@@ -63,7 +54,7 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
       setNome(lead.nome);
       setWhatsapp(lead.whatsapp);
       setInteresse(lead.interesse || "");
-      setStatus(lead.status);
+      setStageId(lead.stage_id || "");
       setOrigem(lead.origem || "");
       setDataEvento(toDateOnly(lead.data_evento));
       setDataContato(toDateOnly((lead as any).data_contato));
@@ -76,8 +67,13 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
     }
   }, [lead, open, prefillNome, prefillWhatsapp]);
 
+  // Garante etapa inicial padrão para novos leads quando as etapas carregam
+  useEffect(() => {
+    if (!lead && !stageId && leadStage) setStageId(leadStage.id);
+  }, [lead, stageId, leadStage]);
+
   const resetForm = () => {
-    setNome(""); setWhatsapp(""); setInteresse(""); setStatus("Novo Lead"); setOrigem("");
+    setNome(""); setWhatsapp(""); setInteresse(""); setStageId(leadStage?.id || ""); setOrigem("");
     // Default Data do Contato to today (local YYYY-MM-DD) for new leads
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -110,7 +106,7 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
         nome,
         whatsapp: whatsapp.replace(/\D/g, ""),
         interesse: interesse || null,
-        status,
+        stage_id: stageId || leadStage?.id || null,
         origem: origem || null,
         data_evento: dataEvento || null,
         data_contato: dataContato || null,
@@ -171,14 +167,14 @@ const LeadModal = ({ open, onOpenChange, lead, prefillNome, prefillWhatsapp, onC
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {lead && (
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>Etapa</Label>
               <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as LeadStatus)}
+                value={stageId}
+                onChange={(e) => setStageId(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
-                {statusOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                {stages.map((opt) => (
+                  <option key={opt.id} value={opt.id}>{opt.name}</option>
                 ))}
               </select>
             </div>

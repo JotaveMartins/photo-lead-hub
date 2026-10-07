@@ -16,6 +16,8 @@ import { useLeadTasks, useCompleteLeadTask, useUncompleteLeadTask, useCreateLead
 import { useLeadHistory, useCreateLeadHistory } from "@/hooks/useLeadHistory";
 import { useLeads, useUpdateLead, useDeleteLead } from "@/hooks/useLeads";
 import { useAiActive } from "@/hooks/useAiActive";
+import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { pipelineStageColorClass, type PipelineStage, type StageRole } from "@/lib/pipelineStages";
 import { useAiGlobalActive } from "@/hooks/useAiGlobalActive";
 import { useQueryClient } from "@tanstack/react-query";
 import LeadColorTagPicker from "@/components/LeadColorTagPicker";
@@ -40,53 +42,33 @@ const ORIGEM_OPTIONS = [
   "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
 ];
 
-const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
-  { value: "Novo Lead", label: "Novo Lead" },
-   { value: "Contato Iniciado", label: "Contato Iniciado" },
-   { value: "Triagem Feita", label: "Triagem Feita" },
-  { value: "Proposta Enviada", label: "Proposta Enviada" },
-  { value: "Follow-up", label: "Follow-up" },
-  { value: "Contrato Enviado", label: "Contrato Enviado" },
-  { value: "Fechado Ganho", label: "Fechado Ganho" },
-  { value: "Fechado Perdido", label: "Fechado Perdido" },
-];
-
-const getStageStyles = (status: LeadStatus) => {
-  switch (status) {
-    case "Fechado Ganho":
-      return "bg-status-success/15 text-status-success border-status-success/30 dot-bg-status-success";
-    case "Fechado Perdido":
-      return "bg-status-danger/15 text-status-danger border-status-danger/30 dot-bg-status-danger";
-    case "Proposta Enviada":
-    case "Follow-up":
-      return "bg-status-warning/15 text-status-warning border-status-warning/30 dot-bg-status-warning";
-    case "Contato Iniciado":
-    case "Triagem Feita":
-    case "Contrato Enviado":
-      return "bg-status-info/15 text-status-info border-status-info/30 dot-bg-status-info";
+const getStageStyles = (stage: PipelineStage | null | undefined) => {
+  if (!stage) return "bg-muted text-muted-foreground border-border";
+  switch (stage.stage_role) {
+    case "won":
+      return "bg-status-success/15 text-status-success border-status-success/30";
+    case "lost":
+      return "bg-status-danger/15 text-status-danger border-status-danger/30";
+    case "proposal":
+      return "bg-status-warning/15 text-status-warning border-status-warning/30";
     default:
-      return "bg-muted text-muted-foreground border-border dot-bg-muted-foreground";
+      return "bg-status-info/15 text-status-info border-status-info/30";
   }
 };
 
-const StageDot = ({ status }: { status: LeadStatus }) => {
-  const color =
-    status === "Fechado Ganho" ? "bg-status-success"
-    : status === "Fechado Perdido" ? "bg-status-danger"
-    : status === "Proposta Enviada" || status === "Follow-up" ? "bg-status-warning"
-    : status === "Contato Iniciado" || status === "Triagem Feita" || status === "Contrato Enviado" ? "bg-status-info"
-    : "bg-muted-foreground";
-  return <span className={`w-1.5 h-1.5 rounded-full ${color}`} />;
+const StageDot = ({ stage }: { stage: PipelineStage | null | undefined }) => {
+  return <span className={`w-1.5 h-1.5 rounded-full ${pipelineStageColorClass(stage?.color_key)}`} />;
 };
 
 interface StageSelectProps {
-  value: LeadStatus;
-  onChange: (v: LeadStatus) => void;
+  value: string | null;
+  onChange: (stageId: string) => void;
 }
 const StageSelect = ({ value, onChange }: StageSelectProps) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { data: aiActive = false } = useAiActive();
+  const { stages } = usePipelineStages();
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -94,9 +76,10 @@ const StageSelect = ({ value, onChange }: StageSelectProps) => {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-  const styles = getStageStyles(value);
-  const visibleStatusOptions = STATUS_OPTIONS.filter(
-    (opt) => opt.value !== "Triagem Feita" || aiActive || value === "Triagem Feita"
+  const current = stages.find((s) => s.id === value) || null;
+  const styles = getStageStyles(current);
+  const visibleStages = stages.filter(
+    (s) => s.legacy_status !== "Triagem Feita" || aiActive || s.id === value
   );
   return (
     <div ref={ref} className="relative">
@@ -105,21 +88,21 @@ const StageSelect = ({ value, onChange }: StageSelectProps) => {
         onClick={() => setOpen((v) => !v)}
         className={`inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs font-medium border transition-colors hover:opacity-90 ${styles}`}
       >
-        <StageDot status={value} />
-        {value}
+        <StageDot stage={current} />
+        {current?.name || "Sem etapa"}
         <ChevronDown className="w-3 h-3 opacity-70" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-popover shadow-lg overflow-hidden">
-          {visibleStatusOptions.map((opt) => (
+        <div className="absolute left-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-popover shadow-lg overflow-hidden max-h-72 overflow-y-auto">
+          {visibleStages.map((opt) => (
             <button
-              key={opt.value}
+              key={opt.id}
               type="button"
-              onClick={() => { setOpen(false); if (opt.value !== value) onChange(opt.value); }}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${opt.value === value ? "bg-muted/60" : ""}`}
+              onClick={() => { setOpen(false); if (opt.id !== value) onChange(opt.id); }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted ${opt.id === value ? "bg-muted/60" : ""}`}
             >
-              <StageDot status={opt.value} />
-              <span className="text-foreground">{opt.label}</span>
+              <StageDot stage={opt} />
+              <span className="text-foreground">{opt.name}</span>
             </button>
           ))}
         </div>
@@ -448,7 +431,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [newTaskDate, setNewTaskDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [newTaskTime, setNewTaskTime] = useState("");
   const [requiredFieldsOpen, setRequiredFieldsOpen] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<LeadStatus | null>(null);
+  const [pendingStageId, setPendingStageId] = useState<string | null>(null);
   // Follow-up modal state
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [followUpMode, setFollowUpMode] = useState<"activate" | "next">("activate");
@@ -457,10 +440,11 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   const [lossReasonOpen, setLossReasonOpen] = useState(false);
   // Lead to cliente flow state
    const [leadToClienteFlowOpen, setLeadToClienteFlowOpen] = useState(false);
-   const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
+   const [ganhoPrevStageId, setGanhoPrevStageId] = useState<string | null>(null);
    const [activeTab, setActiveTab] = useState<"historico" | "conversa">("historico");
 
-  const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
+  const { stages, stageById, proposalStage, wonStage, lostStage, followUpStage } = usePipelineStages();
+  const REQUIRED_FIELDS_ROLES: StageRole[] = ["proposal", "won"];
 
   // When user opens the "Conversa" tab, mark all inbox conversations for this
   // lead as read so the red badge on the Kanban card disappears.
@@ -546,46 +530,49 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     setNewNote("");
   };
 
-  const handleStatusChange = async (status: LeadStatus) => {
+  const handleStatusChange = async (stageId: string) => {
     if (!lead) return;
-    if (status === "Fechado Perdido") {
+    const target = stageById(stageId);
+    if (!target) return;
+    if (target.stage_role === "lost") {
       setLossReasonOpen(true);
       return;
     }
-    const isProposalTarget = status === "Proposta Enviada";
-    const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(status) && (
+    const isProposalTarget = target.stage_role === "proposal";
+    const needsRequiredFields = REQUIRED_FIELDS_ROLES.includes(target.stage_role) && (
       (!lead.valor || lead.valor <= 0) ||
       (isProposalTarget && (!lead.data_proposta || !lead.interesse || !lead.origem))
     );
     if (needsRequiredFields) {
-      setPendingStatus(status);
+      setPendingStageId(stageId);
       setRequiredFieldsOpen(true);
       return;
     }
-    if (status === "Proposta Enviada") {
-      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus });
+    // Legado: mover para a etapa âncora de proposta ativa a sequência de Follow-up
+    if (target.legacy_status === "Proposta Enviada" && followUpStage) {
+      await updateLead.mutateAsync({ id: lead.id, stage_id: followUpStage.id } as any);
       setFollowUpMode("activate");
       setFollowUpNextNumber(1);
       setFollowUpModalOpen(true);
       return;
     }
-    if (status === "Fechado Ganho") {
-      setGanhoPrevStatus(lead.status as LeadStatus);
-      await updateLead.mutateAsync({ id: lead.id, status });
+    if (target.stage_role === "won") {
+      setGanhoPrevStageId(lead.stage_id);
+      await updateLead.mutateAsync({ id: lead.id, stage_id: stageId } as any);
       setLeadToClienteFlowOpen(true);
       return;
     }
-    await updateLead.mutateAsync({ id: lead.id, status });
+    await updateLead.mutateAsync({ id: lead.id, stage_id: stageId } as any);
   };
 
   const handleLossReasonConfirm = async (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => {
-    if (!lead) return;
+    if (!lead || !lostStage) return;
     await updateLead.mutateAsync({
       id: lead.id,
-      status: "Fechado Perdido" as LeadStatus,
+      stage_id: lostStage.id,
       motivo_perda: data.motivo_perda,
       observacao_perda: data.observacao_perda,
-    });
+    } as any);
     if (data.deleteFutureTasks) {
       const { supabase } = await import("@/integrations/supabase/client");
       await supabase
@@ -599,27 +586,28 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
   };
 
   const handleRequiredFieldsConfirm = async (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
-    if (!lead || !pendingStatus) return;
-    if (pendingStatus === "Proposta Enviada") {
-      await updateLead.mutateAsync({ id: lead.id, status: "Follow-up" as LeadStatus, ...fields });
+    if (!lead || !pendingStageId) return;
+    const pendingStage = stageById(pendingStageId);
+    if (pendingStage?.legacy_status === "Proposta Enviada" && followUpStage) {
+      await updateLead.mutateAsync({ id: lead.id, stage_id: followUpStage.id, ...fields } as any);
       setRequiredFieldsOpen(false);
-      setPendingStatus(null);
+      setPendingStageId(null);
       setFollowUpMode("activate");
       setFollowUpNextNumber(1);
       setFollowUpModalOpen(true);
       return;
     }
-    if (pendingStatus === "Fechado Ganho") {
-      setGanhoPrevStatus(lead.status as LeadStatus);
-      await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
+    if (pendingStage?.stage_role === "won") {
+      setGanhoPrevStageId(lead.stage_id);
+      await updateLead.mutateAsync({ id: lead.id, stage_id: pendingStageId, ...fields } as any);
       setRequiredFieldsOpen(false);
-      setPendingStatus(null);
+      setPendingStageId(null);
       setLeadToClienteFlowOpen(true);
       return;
     }
-    await updateLead.mutateAsync({ id: lead.id, status: pendingStatus, ...fields });
+    await updateLead.mutateAsync({ id: lead.id, stage_id: pendingStageId, ...fields } as any);
     setRequiredFieldsOpen(false);
-    setPendingStatus(null);
+    setPendingStageId(null);
   };
 
   const handleCompleteTask = (task: any) => {
@@ -677,8 +665,9 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
 
   if (!lead) return null;
 
+  const currentStage = stageById(lead.stage_id);
   const stageDate = (() => {
-    switch (lead.status) {
+    switch (currentStage?.legacy_status) {
       case "Novo Lead": return lead.data_entrada_novo_lead;
       case "Contato Iniciado": return lead.data_entrada_contato_iniciado;
       case "Proposta Enviada": return lead.data_entrada_proposta_enviada;
@@ -758,13 +747,13 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
             </SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex items-center gap-3 flex-wrap">
-            <StageSelect value={lead.status} onChange={handleStatusChange} />
+            <StageSelect value={lead.stage_id} onChange={handleStatusChange} />
             {stageDate && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Nesta etapa há {formatStageDuration(stageDate)}
               </span>
             )}
-            {lead.status === "Novo Lead" && !lead.iniciar_atendimento && (
+            {currentStage?.stage_role === "lead" && !lead.iniciar_atendimento && (
               <Button size="sm" className="bg-gradient-primary hover:opacity-90 gap-1 h-7 text-xs"
                 onClick={async () => {
                   await updateLead.mutateAsync({ id: lead.id, iniciar_atendimento: true });
@@ -779,7 +768,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
                </span>
              )}
  
-            {lead.status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
+            {currentStage?.legacy_status === "Follow-up" && pendingTasks.filter(t => t.title.startsWith("Follow-up")).length === 0 && (
               <Button size="sm" variant="outline" className="gap-1 h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => {
                   const completedFollowUps = tasks.filter(t => t.title.startsWith("Follow-up") && t.completed).length;
@@ -834,7 +823,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
               <DatePickerField value={lead.data_proposta || ""} onChange={(v) => handleFieldSave("data_proposta", v || null)} className="h-8 text-xs w-[150px]" />
             </div>
 
-            {lead.status === "Fechado Perdido" && (
+            {currentStage?.stage_role === "lost" && (
               <div className="space-y-3 pt-2 border-t border-border">
                 <InlineSelectField label="Motivo da Perda" value={lead.motivo_perda || ""}
                   options={["Sem orçamento disponível", "Fechou com outro fotógrafo", "Sem resposta", "Cancelou ou adiou o evento", "Data indisponível", "Lead desqualificado", "Outro"]}
@@ -1098,7 +1087,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       open={requiredFieldsOpen}
       onOpenChange={(open) => { setRequiredFieldsOpen(open); if (!open) setPendingStatus(null); }}
       leadName={lead?.nome || ""}
-      targetStatus={pendingStatus || ""}
+      targetStatus={pendingStageId ? stageById(pendingStageId)?.name || "" : ""}
       currentValor={lead?.valor ?? null}
       currentDataProposta={lead?.data_proposta ?? null}
       currentDataEvento={lead?.data_evento ?? null}
@@ -1153,10 +1142,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     <LeadToClienteFlow
       lead={lead}
       open={leadToClienteFlowOpen}
-      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStatus(null); }}
+      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStageId(null); }}
       onCancel={() => {
-        if (lead && ganhoPrevStatus) {
-          updateLead.mutate({ id: lead.id, status: ganhoPrevStatus, data_entrada_fechado_ganho: null } as any);
+        if (lead && ganhoPrevStageId) {
+          updateLead.mutate({ id: lead.id, stage_id: ganhoPrevStageId, data_entrada_fechado_ganho: null } as any);
         }
       }}
     />

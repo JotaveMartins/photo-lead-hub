@@ -24,22 +24,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import LeadColorTagPicker from "@/components/LeadColorTagPicker";
 import { useLeadAdminTags, tagColorClass } from "@/hooks/useLeadAdminTags";
 
+import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { pipelineStageColorClass, isTerminalStage, type PipelineStage } from "@/lib/pipelineStages";
+
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type LeadStatus = Database["public"]["Enums"]["lead_status"];
-
-const ACTIVE_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
-  { status: "Novo Lead", label: "Novo Lead", color: "bg-[hsl(var(--stage-1))]" },
-  { status: "Contato Iniciado", label: "Contato Iniciado", color: "bg-[hsl(var(--stage-2))]" },
-  { status: "Triagem Feita", label: "Triagem Feita", color: "bg-[hsl(var(--stage-3))]" },
-  { status: "Proposta Enviada", label: "Proposta Enviada", color: "bg-[hsl(var(--stage-4))]" },
-  { status: "Follow-up", label: "Follow-up", color: "bg-[hsl(var(--stage-5))]" },
-  { status: "Contrato Enviado", label: "Contrato Enviado", color: "bg-[hsl(var(--stage-6))]" },
-];
-
-const CLOSED_COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
-  { status: "Fechado Ganho", label: "Ganho", color: "bg-[hsl(var(--status-success))]" },
-  { status: "Fechado Perdido", label: "Perdido", color: "bg-[hsl(var(--status-danger))]" },
-];
 
 const ORIGEM_OPTIONS = [
   "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro"
@@ -72,6 +61,7 @@ const TASK_STATUS_CONFIG: Record<TaskStatus, { color: string; bg: string; label:
 
 const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const { data: leads = [], isLoading } = useLeads();
+  const { stages, openStages, wonStage, lostStage, stageById } = usePipelineStages();
   const { data: pendingTasks = [] } = useAllPendingTasks();
   const { data: interesseOptions = [] } = useInteresseOptions();
   const { data: aiActive = false } = useAiActive();
@@ -82,7 +72,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   const createFollowUp = useCreateFollowUpTask();
   const queryClient = useQueryClient();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | "DELETE" | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | "DELETE" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
@@ -91,7 +81,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const [statusFilter, setStatusFilter] = useState<"open" | "won" | "lost">("open");
   const [requiredFieldsLead, setRequiredFieldsLead] = useState<Lead | null>(null);
-  const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<LeadStatus | null>(null);
+  const [requiredFieldsTarget, setRequiredFieldsTarget] = useState<PipelineStage | null>(null);
   // Follow-up modal state
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
@@ -104,11 +94,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   // Lead to cliente flow state
   const [leadToClienteLead, setLeadToClienteLead] = useState<Lead | null>(null);
   const [leadToClienteExtraFields, setLeadToClienteExtraFields] = useState<Record<string, any>>({});
-  const [ganhoPrevStatus, setGanhoPrevStatus] = useState<LeadStatus | null>(null);
+  const [ganhoPrevStageId, setGanhoPrevStageId] = useState<string | null>(null);
   const [ganhoContratoId, setGanhoContratoId] = useState<string | null>(null);
   const createContrato = useCreateContrato();
 
-  const REQUIRED_FIELDS_STATUSES: LeadStatus[] = ["Proposta Enviada", "Contrato Enviado", "Fechado Ganho"];
+  // Etapa de follow-up resolvida pela ponte legada (nunca pelo nome)
+  const followUpStage = stages.find((s) => s.legacy_status === "Follow-up");
 
   // Refs for synchronized horizontal scrollbars (real board + floating proxy)
   const boardRef = useRef<HTMLDivElement>(null);
@@ -206,9 +197,9 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   }, [leads, searchQuery, origemFilter, interesseFilter, tarefaFilter, pendingTasks]);
 
 
-  const getColumnValue = (status: LeadStatus) => {
+  const getColumnValue = (stageId: string) => {
     return filteredLeads
-      .filter((l) => l.status === status)
+      .filter((l) => l.stage_id === stageId)
       .reduce((sum, l) => sum + (l.valor || 0), 0);
   };
 
@@ -227,57 +218,62 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
     setIsDragging(false);
   };
 
-  const handleDragOver = (e: React.DragEvent, status: LeadStatus) => {
+  const handleDragOver = (e: React.DragEvent, stageId: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    setDragOverColumn(status);
+    setDragOverColumn(stageId);
   };
 
   const handleDragLeave = () => {
     setDragOverColumn(null);
   };
 
-  const moveLeadToStatus = (lead: Lead, newStatus: LeadStatus, extraFields?: Record<string, any>) => {
-    if (newStatus === "Proposta Enviada") {
-      updateLead.mutate({ id: lead.id, status: "Follow-up" as LeadStatus, ...extraFields }, {
-        onSuccess: () => {
-          setFollowUpLead(lead);
-          setFollowUpModalOpen(true);
-        }
-      });
-    } else if (newStatus === "Fechado Ganho") {
-      // Cria um contrato mínimo a partir dos dados do lead e abre o fluxo
-      setGanhoContratoId(null);
+  const moveLeadToStage = (lead: Lead, stage: PipelineStage, extraFields?: Record<string, any>) => {
+    if (stage.stage_role === "proposal") {
+      // Ponte legada: proposta padrão -> Follow-up, somente quando ambas as etapas
+      // legadas existem na conta. Etapa proposal personalizada: lead permanece nela.
+      if (stage.legacy_status === "Proposta Enviada" && followUpStage) {
+        updateLead.mutate({ id: lead.id, stage_id: followUpStage.id, ...extraFields } as any, {
+          onSuccess: () => {
+            setFollowUpLead(lead);
+            setFollowUpModalOpen(true);
+          }
+        });
+      } else {
+        updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any);
+      }
+    } else if (stage.stage_role === "won") {
       // Contrato agora é opcional e criado dentro do LeadToClienteFlow (Sprint 02).
-      setGanhoPrevStatus(lead.status as LeadStatus);
+      setGanhoContratoId(null);
+      setGanhoPrevStageId(lead.stage_id);
       setLeadToClienteExtraFields(extraFields || {});
-      updateLead.mutate({ id: lead.id, status: "Fechado Ganho" as LeadStatus, ...(extraFields || {}) }, {
+      updateLead.mutate({ id: lead.id, stage_id: stage.id, ...(extraFields || {}) } as any, {
         onSuccess: () => setLeadToClienteLead(lead),
       });
     } else {
-      updateLead.mutate({ id: lead.id, status: newStatus, ...extraFields });
+      updateLead.mutate({ id: lead.id, stage_id: stage.id, ...extraFields } as any);
     }
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: LeadStatus) => {
+  const handleDrop = (e: React.DragEvent, stageId: string) => {
     e.preventDefault();
     setDragOverColumn(null);
-    if (draggedLeadId) {
+    const stage = stageById(stageId);
+    if (draggedLeadId && stage) {
       const lead = leads.find((l) => l.id === draggedLeadId);
-      if (lead && lead.status !== newStatus) {
-        if (newStatus === "Fechado Perdido") {
+      if (lead && lead.stage_id !== stageId) {
+        if (stage.stage_role === "lost") {
           setLossReasonLead(lead);
           setLossReasonOpen(true);
         } else {
-          const needsRequiredFields = REQUIRED_FIELDS_STATUSES.includes(newStatus) && (
-            (!lead.valor || lead.valor <= 0) ||
-            ((newStatus === "Proposta Enviada") && (!lead.data_proposta || !lead.interesse || !lead.origem))
-          );
+          const needsValor = stage.stage_role === "proposal" || stage.stage_role === "won" || stage.legacy_status === "Contrato Enviado";
+          const needsRequiredFields = (needsValor && (!lead.valor || lead.valor <= 0)) ||
+            (stage.stage_role === "proposal" && (!lead.data_proposta || !lead.interesse || !lead.origem));
           if (needsRequiredFields) {
             setRequiredFieldsLead(lead);
-            setRequiredFieldsTarget(newStatus);
+            setRequiredFieldsTarget(stage);
           } else {
-            moveLeadToStatus(lead, newStatus);
+            moveLeadToStage(lead, stage);
           }
         }
       }
@@ -287,15 +283,15 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
   };
 
   const handleLossReasonConfirm = (data: { motivo_perda: string; observacao_perda: string | null; deleteFutureTasks: boolean }) => {
-    if (lossReasonLead) {
+    if (lossReasonLead && lostStage) {
       const leadId = lossReasonLead.id;
       const shouldDelete = data.deleteFutureTasks;
       updateLead.mutate({
         id: leadId,
-        status: "Fechado Perdido" as LeadStatus,
+        stage_id: lostStage.id,
         motivo_perda: data.motivo_perda,
         observacao_perda: data.observacao_perda,
-      }, {
+      } as any, {
         onSuccess: async () => {
           if (shouldDelete) {
             await supabase
@@ -314,7 +310,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
 
   const handleRequiredFieldsConfirm = (fields: { valor: number; data_proposta?: string; data_evento?: string; interesse?: string; origem?: string }) => {
     if (requiredFieldsLead && requiredFieldsTarget) {
-      moveLeadToStatus(requiredFieldsLead, requiredFieldsTarget, fields);
+      moveLeadToStage(requiredFieldsLead, requiredFieldsTarget, fields);
       setRequiredFieldsLead(null);
       setRequiredFieldsTarget(null);
     }
@@ -419,12 +415,12 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         className="flex gap-3 overflow-x-auto overflow-y-visible pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {(statusFilter === "open"
-          ? ACTIVE_COLUMNS.filter((c) => c.status !== "Triagem Feita" || aiActive)
+          ? openStages.filter((s) => s.legacy_status !== "Triagem Feita" || aiActive)
           : statusFilter === "won"
-          ? CLOSED_COLUMNS.filter((c) => c.status === "Fechado Ganho")
-          : CLOSED_COLUMNS.filter((c) => c.status === "Fechado Perdido")
+          ? (wonStage ? [wonStage] : [])
+          : (lostStage ? [lostStage] : [])
         ).map((col) => {
-          const columnLeadsUnsorted = filteredLeads.filter((l) => l.status === col.status);
+          const columnLeadsUnsorted = filteredLeads.filter((l) => l.stage_id === col.id);
           const getNextTaskTime = (leadId: string): number => {
             const ts = pendingTasks
               .filter((t) => t.lead_id === leadId)
@@ -435,24 +431,24 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
           const columnLeads = [...columnLeadsUnsorted].sort(
             (a, b) => getNextTaskTime(a.id) - getNextTaskTime(b.id)
           );
-          const isDragOver = dragOverColumn === col.status;
-          const totalValue = getColumnValue(col.status);
+          const isDragOver = dragOverColumn === col.id;
+          const totalValue = getColumnValue(col.id);
 
           return (
             <div
-              key={col.status}
+              key={col.id}
               className={`flex-shrink-0 w-72 xl:flex-1 xl:w-auto xl:min-w-0 bg-card border rounded-xl flex flex-col transition-colors ${
                 isDragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
-              onDragOver={(e) => handleDragOver(e, col.status)}
+              onDragOver={(e) => handleDragOver(e, col.id)}
               onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, col.status)}
+              onDrop={(e) => handleDrop(e, col.id)}
             >
               {/* Column header */}
               <div className="p-3 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />
-                  <span className="text-sm font-semibold text-foreground">{col.label}</span>
+                  <div className={`w-2.5 h-2.5 rounded-full ${pipelineStageColorClass(col.color_key)}`} />
+                  <span className="text-sm font-semibold text-foreground">{col.name}</span>
                   <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                     {columnLeads.length}
                   </span>
@@ -471,7 +467,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                   const taskStatus = getLeadTaskStatus(lead.id, pendingTasks);
                   const taskConfig = TASK_STATUS_CONFIG[taskStatus];
 
-                   const isTriagem = lead.status === "Triagem Feita";
+                    const isTriagem = stageById(lead.stage_id)?.legacy_status === "Triagem Feita";
                    return (
                      <div
                        key={lead.id}
@@ -569,24 +565,24 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       {isDragging && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-fade-in">
           <div className="flex gap-3 max-w-5xl mx-auto">
-            {CLOSED_COLUMNS.map((col) => {
-              const isDragOverCol = dragOverColumn === col.status;
+            {[wonStage, lostStage].filter((s): s is PipelineStage => !!s).map((col) => {
+              const isDragOverCol = dragOverColumn === col.id;
               return (
                 <div
-                  key={col.status}
+                  key={col.id}
                   className={`flex-1 border-2 border-dashed rounded-xl p-4 flex items-center justify-center gap-2 transition-all ${
                     isDragOverCol
-                      ? col.status === "Fechado Ganho"
+                      ? col.stage_role === "won"
                         ? "border-[hsl(var(--status-success))] bg-[hsl(var(--status-success))]/10 text-[hsl(var(--status-success))]"
                         : "border-[hsl(var(--status-danger))] bg-[hsl(var(--status-danger))]/10 text-[hsl(var(--status-danger))]"
                       : "border-border text-muted-foreground bg-card/80 backdrop-blur-sm"
                   }`}
-                  onDragOver={(e) => handleDragOver(e, col.status)}
+                  onDragOver={(e) => handleDragOver(e, col.id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, col.status)}
+                  onDrop={(e) => handleDrop(e, col.id)}
                 >
-                  <div className={`w-3 h-3 rounded-full ${col.color}`} />
-                  <span className="font-semibold text-sm">{col.label}</span>
+                  <div className={`w-3 h-3 rounded-full ${pipelineStageColorClass(col.color_key)}`} />
+                  <span className="font-semibold text-sm">{col.name}</span>
                 </div>
               );
             })}
@@ -665,7 +661,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         open={!!requiredFieldsLead}
         onOpenChange={(open) => { if (!open) { setRequiredFieldsLead(null); setRequiredFieldsTarget(null); } }}
         leadName={requiredFieldsLead?.nome || ""}
-        targetStatus={requiredFieldsTarget || ""}
+        targetStatus={requiredFieldsTarget?.name || ""}
         currentValor={requiredFieldsLead?.valor ?? null}
         currentDataProposta={requiredFieldsLead?.data_proposta ?? null}
         currentDataEvento={requiredFieldsLead?.data_evento ?? null}
@@ -699,13 +695,13 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       <LeadToClienteFlow
         lead={leadToClienteLead}
         open={!!leadToClienteLead}
-        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStatus(null); setGanhoContratoId(null); }}
+        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStageId(null); setGanhoContratoId(null); }}
         onCancel={async () => {
           const lead = leadToClienteLead;
-          const prev = ganhoPrevStatus;
+          const prevStageId = ganhoPrevStageId;
           const contratoId = ganhoContratoId;
-          if (lead && prev) {
-            updateLead.mutate({ id: lead.id, status: prev, data_entrada_fechado_ganho: null } as any);
+          if (lead && prevStageId) {
+            updateLead.mutate({ id: lead.id, stage_id: prevStageId, data_entrada_fechado_ganho: null } as any);
           }
           if (contratoId) {
             await supabase.from("contratos").update({ deleted_at: new Date().toISOString() }).eq("id", contratoId);
