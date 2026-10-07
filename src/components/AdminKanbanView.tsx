@@ -4,19 +4,9 @@ import { Phone, Calendar, DollarSign } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Database } from "@/integrations/supabase/types";
 import { parseLocalDate } from "@/lib/utils";
+import { pipelineStageColorClass, type PipelineStage } from "@/lib/pipelineStages";
 
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
-type LeadStatus = Database["public"]["Enums"]["lead_status"];
-
-const COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
-  { status: "Novo Lead", label: "Novo Lead", color: "bg-[hsl(var(--status-info))]" },
-  { status: "Contato Iniciado", label: "Contato Iniciado", color: "bg-[hsl(var(--status-warning))]" },
-  { status: "Proposta Enviada", label: "Proposta Enviada", color: "bg-primary" },
-  { status: "Follow-up", label: "Follow-up", color: "bg-[hsl(var(--status-warning))]" },
-  { status: "Contrato Enviado", label: "Contrato Enviado", color: "bg-accent" },
-  { status: "Fechado Ganho", label: "Ganho", color: "bg-[hsl(var(--status-success))]" },
-  { status: "Fechado Perdido", label: "Perdido", color: "bg-[hsl(var(--status-danger))]" },
-];
 
 interface AdminKanbanViewProps {
   open: boolean;
@@ -40,6 +30,20 @@ const AdminKanbanView = ({ open, onOpenChange, userId, userName }: AdminKanbanVi
     enabled: open && !!userId,
   });
 
+  const { data: stages = [] } = useQuery({
+    queryKey: ["admin-pipeline-stages", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pipeline_stages")
+        .select("*")
+        .eq("user_id", userId)
+        .order("position", { ascending: true });
+      if (error) throw error;
+      return data as PipelineStage[];
+    },
+    enabled: open && !!userId,
+  });
+
   const formatDate = (d: string | null) => {
     if (!d) return null;
     return parseLocalDate(d).toLocaleDateString("pt-BR");
@@ -59,19 +63,19 @@ const AdminKanbanView = ({ open, onOpenChange, userId, userName }: AdminKanbanVi
           <div className="text-center text-muted-foreground py-8">Carregando...</div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-4 flex-1" style={{ minHeight: "50vh" }}>
-            {COLUMNS.map((col) => {
-              const columnLeads = leads.filter((l) => l.status === col.status);
+            {stages.map((col) => {
+              const columnLeads = leads.filter((l) => l.stage_id === col.id);
               const totalValue = columnLeads.reduce((sum, l) => sum + (l.valor || 0), 0);
 
               return (
                 <div
-                  key={col.status}
+                  key={col.id}
                   className="flex-shrink-0 w-64 bg-card border border-border rounded-xl flex flex-col"
                 >
                   <div className="p-3 border-b border-border">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />
-                      <span className="text-sm font-semibold text-foreground">{col.label}</span>
+                      <div className={`w-2.5 h-2.5 rounded-full ${pipelineStageColorClass(col.color_key)}`} />
+                      <span className="text-sm font-semibold text-foreground">{col.name}</span>
                       <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                         {columnLeads.length}
                       </span>
