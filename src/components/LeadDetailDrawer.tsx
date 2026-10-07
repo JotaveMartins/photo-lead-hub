@@ -1085,7 +1085,7 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
       open={requiredFieldsOpen}
       onOpenChange={(open) => { setRequiredFieldsOpen(open); if (!open) setPendingStatus(null); }}
       leadName={lead?.nome || ""}
-      targetStatus={pendingStatus || ""}
+      targetStatus={pendingStageId ? stageById(pendingStageId)?.name || "" : ""}
       currentValor={lead?.valor ?? null}
       currentDataProposta={lead?.data_proposta ?? null}
       currentDataEvento={lead?.data_evento ?? null}
@@ -1140,10 +1140,10 @@ const LeadDetailDrawer = ({ lead: leadProp, open, onOpenChange }: LeadDetailDraw
     <LeadToClienteFlow
       lead={lead}
       open={leadToClienteFlowOpen}
-      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStatus(null); }}
+      onClose={() => { setLeadToClienteFlowOpen(false); setGanhoPrevStageId(null); }}
       onCancel={() => {
-        if (lead && ganhoPrevStatus) {
-          updateLead.mutate({ id: lead.id, status: ganhoPrevStatus, data_entrada_fechado_ganho: null } as any);
+        if (lead && ganhoPrevStageId) {
+          updateLead.mutate({ id: lead.id, stage_id: ganhoPrevStageId, data_entrada_fechado_ganho: null } as any);
         }
       }}
     />
