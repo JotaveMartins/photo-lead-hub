@@ -97,7 +97,7 @@ const DeliveryStagesSheet = ({ open, onClose }: Props) => {
 
           <div className="mt-5 space-y-5">
             {isLoading ? (
-              <ListSkeleton items={4} />
+              <ListSkeleton rows={4} />
             ) : isError ? (
               <ErrorState
                 title="Não foi possível carregar as etapas do funil"
