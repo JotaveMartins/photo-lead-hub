@@ -1511,6 +1511,73 @@ export type Database = {
           },
         ]
       }
+      lead_stage_history: {
+        Row: {
+          created_at: string
+          entered_at: string
+          from_stage_id: string | null
+          from_stage_name: string | null
+          from_stage_role: string | null
+          id: string
+          lead_id: string
+          source: string
+          to_stage_id: string | null
+          to_stage_name: string
+          to_stage_role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entered_at: string
+          from_stage_id?: string | null
+          from_stage_name?: string | null
+          from_stage_role?: string | null
+          id?: string
+          lead_id: string
+          source: string
+          to_stage_id?: string | null
+          to_stage_name: string
+          to_stage_role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entered_at?: string
+          from_stage_id?: string | null
+          from_stage_name?: string | null
+          from_stage_role?: string | null
+          id?: string
+          lead_id?: string
+          source?: string
+          to_stage_id?: string | null
+          to_stage_name?: string
+          to_stage_role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stage_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_tasks: {
         Row: {
           cliente_id: string | null
@@ -1614,6 +1681,7 @@ export type Database = {
           observacao_perda: string | null
           origem: string | null
           package_id: string | null
+          stage_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
           triagem_at: string | null
           unread_count: number | null
@@ -1662,6 +1730,7 @@ export type Database = {
           observacao_perda?: string | null
           origem?: string | null
           package_id?: string | null
+          stage_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           triagem_at?: string | null
           unread_count?: number | null
@@ -1710,6 +1779,7 @@ export type Database = {
           observacao_perda?: string | null
           origem?: string | null
           package_id?: string | null
+          stage_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           triagem_at?: string | null
           unread_count?: number | null
@@ -1725,6 +1795,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
             referencedColumns: ["id"]
           },
           {
@@ -2012,6 +2089,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipeline_stages: {
+        Row: {
+          color_key: string
+          created_at: string
+          id: string
+          legacy_status: Database["public"]["Enums"]["lead_status"] | null
+          name: string
+          position: number
+          stage_role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color_key: string
+          created_at?: string
+          id?: string
+          legacy_status?: Database["public"]["Enums"]["lead_status"] | null
+          name: string
+          position: number
+          stage_role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color_key?: string
+          created_at?: string
+          id?: string
+          legacy_status?: Database["public"]["Enums"]["lead_status"] | null
+          name?: string
+          position?: number
+          stage_role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -2496,6 +2609,10 @@ export type Database = {
         }[]
       }
       ensure_default_delivery_stages: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      ensure_default_pipeline_stages: {
         Args: { _user_id: string }
         Returns: undefined
       }

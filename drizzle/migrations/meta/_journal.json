@@ -15,6 +15,13 @@
       "when": 1791397137455,
       "tag": "0001_fix_entrega_stage_history_after_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791398450777,
+      "tag": "0002_lead_pipeline_stages_foundation",
+      "breakpoints": true
     }
   ]
 }
