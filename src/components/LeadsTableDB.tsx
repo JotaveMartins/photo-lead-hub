@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Filter, Phone, MoreHorizontal, Calendar, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { useLeads, useDeleteLead, useBulkUpdateLeads } from "@/hooks/useLeads";
 import { useInteresseOptions } from "@/hooks/useInteresseOptions";
+import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { pipelineStageColorClass, type PipelineStage } from "@/lib/pipelineStages";
 import { Checkbox } from "@/components/ui/checkbox";
-import LeadStatusBadgeDB from "./LeadStatusBadgeDB";
 import LeadModal from "./LeadModal";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
@@ -32,10 +33,15 @@ const ORIGEM_OPTIONS = [
   "Instagram", "Facebook", "Google", "Tráfego Pago", "Indicação", "Site", "WhatsApp", "Evento", "Outro",
 ];
 
-const STATUS_OPTIONS = [
-  "Novo Lead", "Contato Iniciado", "Triagem Feita", "Proposta Enviada",
-  "Follow-up", "Contrato Enviado", "Fechado Ganho", "Fechado Perdido",
-];
+const stageBadgeStyles = (stage: PipelineStage | null | undefined) => {
+  if (!stage) return "bg-muted text-muted-foreground border-border";
+  switch (stage.stage_role) {
+    case "won": return "bg-status-success/15 text-status-success border-status-success/30";
+    case "lost": return "bg-status-danger/15 text-status-danger border-status-danger/30";
+    case "proposal": return "bg-status-warning/15 text-status-warning border-status-warning/30";
+    default: return "bg-status-info/15 text-status-info border-status-info/30";
+  }
+};
 
 interface LeadsTableDBProps {
   onLeadClick?: (lead: Lead) => void;
@@ -53,6 +59,7 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
 
   const { data: leads = [], isLoading } = useLeads();
   const { data: interesseOptions = [] } = useInteresseOptions();
+  const { stages, stageById } = usePipelineStages();
   const deleteLead = useDeleteLead();
   const bulkUpdate = useBulkUpdateLeads();
 
@@ -61,7 +68,7 @@ const LeadsTableDB = ({ onLeadClick }: LeadsTableDBProps) => {
     const matchesSearch = !q ||
       normalizeText(lead.nome).includes(q) ||
       normalizeText(lead.whatsapp).includes(q);
-    const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || lead.stage_id === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
