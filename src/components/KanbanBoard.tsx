@@ -565,24 +565,24 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       {isDragging && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-fade-in">
           <div className="flex gap-3 max-w-5xl mx-auto">
-            {CLOSED_COLUMNS.map((col) => {
-              const isDragOverCol = dragOverColumn === col.status;
+            {[wonStage, lostStage].filter((s): s is PipelineStage => !!s).map((col) => {
+              const isDragOverCol = dragOverColumn === col.id;
               return (
                 <div
-                  key={col.status}
+                  key={col.id}
                   className={`flex-1 border-2 border-dashed rounded-xl p-4 flex items-center justify-center gap-2 transition-all ${
                     isDragOverCol
-                      ? col.status === "Fechado Ganho"
+                      ? col.stage_role === "won"
                         ? "border-[hsl(var(--status-success))] bg-[hsl(var(--status-success))]/10 text-[hsl(var(--status-success))]"
                         : "border-[hsl(var(--status-danger))] bg-[hsl(var(--status-danger))]/10 text-[hsl(var(--status-danger))]"
                       : "border-border text-muted-foreground bg-card/80 backdrop-blur-sm"
                   }`}
-                  onDragOver={(e) => handleDragOver(e, col.status)}
+                  onDragOver={(e) => handleDragOver(e, col.id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, col.status)}
+                  onDrop={(e) => handleDrop(e, col.id)}
                 >
-                  <div className={`w-3 h-3 rounded-full ${col.color}`} />
-                  <span className="font-semibold text-sm">{col.label}</span>
+                  <div className={`w-3 h-3 rounded-full ${pipelineStageColorClass(col.color_key)}`} />
+                  <span className="font-semibold text-sm">{col.name}</span>
                 </div>
               );
             })}
@@ -661,7 +661,7 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
         open={!!requiredFieldsLead}
         onOpenChange={(open) => { if (!open) { setRequiredFieldsLead(null); setRequiredFieldsTarget(null); } }}
         leadName={requiredFieldsLead?.nome || ""}
-        targetStatus={requiredFieldsTarget || ""}
+        targetStatus={requiredFieldsTarget?.name || ""}
         currentValor={requiredFieldsLead?.valor ?? null}
         currentDataProposta={requiredFieldsLead?.data_proposta ?? null}
         currentDataEvento={requiredFieldsLead?.data_evento ?? null}
@@ -695,13 +695,13 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
       <LeadToClienteFlow
         lead={leadToClienteLead}
         open={!!leadToClienteLead}
-        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStatus(null); setGanhoContratoId(null); }}
+        onClose={() => { setLeadToClienteLead(null); setLeadToClienteExtraFields({}); setGanhoPrevStageId(null); setGanhoContratoId(null); }}
         onCancel={async () => {
           const lead = leadToClienteLead;
-          const prev = ganhoPrevStatus;
+          const prevStageId = ganhoPrevStageId;
           const contratoId = ganhoContratoId;
-          if (lead && prev) {
-            updateLead.mutate({ id: lead.id, status: prev, data_entrada_fechado_ganho: null } as any);
+          if (lead && prevStageId) {
+            updateLead.mutate({ id: lead.id, stage_id: prevStageId, data_entrada_fechado_ganho: null } as any);
           }
           if (contratoId) {
             await supabase.from("contratos").update({ deleted_at: new Date().toISOString() }).eq("id", contratoId);
