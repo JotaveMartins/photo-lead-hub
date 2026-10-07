@@ -46,16 +46,16 @@ const EntregasPage = () => {
     );
   }, [entregas, search]);
 
-  const handleDrop = async (etapa: EntregaEtapa, id: string) => {
+  const handleDrop = async (stage: DeliveryStage, id: string) => {
     setDragOver(null);
     const entrega = entregas.find((e) => e.id === id);
-    if (!entrega || entrega.etapa === etapa) return;
-    const updates: any = { id, etapa };
-    if (etapa === "Entregue" && !entrega.data_entrega_final) {
+    if (!entrega || entrega.stage_id === stage.id) return;
+    const updates: any = { id, stage_id: stage.id };
+    if (isDeliveredStage(stage) && !entrega.data_entrega_final) {
       updates.data_entrega_final = format(new Date(), "yyyy-MM-dd");
     }
     await updateEntrega.mutateAsync(updates);
-    toast.success(`Movido para "${etapa}"`);
+    toast.success(`Movido para "${stage.name}"`);
   };
 
   const openNew = () => { setSelected(null); setDrawerOpen(true); };
