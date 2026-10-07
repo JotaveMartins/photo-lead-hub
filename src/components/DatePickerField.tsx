@@ -5,7 +5,8 @@ import { cn, parseLocalDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { Portal as PopoverPortal } from "@radix-ui/react-popover";
 
 interface DatePickerFieldProps {
   value: string; // YYYY-MM-DD
@@ -17,8 +18,6 @@ interface DatePickerFieldProps {
 
 const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", className, disabled }: DatePickerFieldProps) => {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const boundary = open ? (triggerRef.current?.closest('[role="dialog"]') as HTMLElement | null) : null;
 
   const selected = value ? parseLocalDate(value) : undefined;
 
@@ -38,7 +37,6 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          ref={triggerRef}
           type="button"
           variant="outline"
           disabled={disabled}
@@ -52,7 +50,9 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
           {selected ? format(selected, "dd/MM/yyyy", { locale: ptBR }) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start" side="bottom" collisionPadding={8} collisionBoundary={boundary ?? undefined} onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
+      {/* Portal: renderiza fora do modal para o calendário não ser cortado pela rolagem do diálogo */}
+      <PopoverPortal>
+      <PopoverContent className="w-auto p-0" align="start" side="bottom" collisionPadding={8} onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
         <Calendar
           mode="single"
           selected={selected}
@@ -74,6 +74,7 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
           </Button>
         </div>
       </PopoverContent>
+      </PopoverPortal>
     </Popover>
   );
 };
