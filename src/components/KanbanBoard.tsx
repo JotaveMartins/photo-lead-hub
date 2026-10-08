@@ -483,6 +483,9 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                   const taskConfig = TASK_STATUS_CONFIG[taskStatus];
 
                     const isTriagem = stageById(lead.stage_id)?.legacy_status === "Triagem Feita";
+                    const isFollowUpCol = col.legacy_status === "Follow-up";
+                    const followUpsFeitos = [lead.follow_up_1, lead.follow_up_2, lead.follow_up_3, lead.follow_up_4, lead.follow_up_5].filter(Boolean).length;
+                    const followUpAtual = Math.min(followUpsFeitos + 1, 5);
                    return (
                      <div
                        key={lead.id}
