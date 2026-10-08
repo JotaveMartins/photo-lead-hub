@@ -483,6 +483,9 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                   const taskConfig = TASK_STATUS_CONFIG[taskStatus];
 
                     const isTriagem = stageById(lead.stage_id)?.legacy_status === "Triagem Feita";
+                    const isFollowUpCol = col.legacy_status === "Follow-up";
+                    const followUpsFeitos = [lead.follow_up_1, lead.follow_up_2, lead.follow_up_3, lead.follow_up_4, lead.follow_up_5].filter(Boolean).length;
+                    const followUpAtual = Math.min(followUpsFeitos + 1, 5);
                    return (
                      <div
                        key={lead.id}
@@ -565,6 +568,21 @@ const KanbanBoard = ({ onLeadClick }: KanbanBoardProps) => {
                             <Calendar className="w-3 h-3" />
                             {formatDate(lead.data_evento)}
                           </p>
+                        )}
+                        {isFollowUpCol && (
+                          <div className="flex items-center gap-1.5 pt-0.5">
+                            <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-full px-1.5 py-0.5">
+                              Follow-up {followUpAtual}/5
+                            </span>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <span
+                                  key={n}
+                                  className={`w-1.5 h-1.5 rounded-full ${n <= followUpsFeitos ? "bg-amber-500" : "bg-muted-foreground/30"}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>

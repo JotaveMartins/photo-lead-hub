@@ -243,7 +243,7 @@ const PipelineStagesSheet = ({ open, onClose }: Props) => {
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          {!isLead && !terminal && (
+                          {!isLead && !terminal && !["Contato Iniciado", "Follow-up"].includes(s.legacy_status ?? "") && (
                             <Button
                               size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive"
                               onClick={() => handleDeleteRequest(s)}
