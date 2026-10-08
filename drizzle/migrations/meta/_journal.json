@@ -50,6 +50,13 @@
       "when": 1791408325031,
       "tag": "0006_pipeline_stage_colors_fixed_terminal",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791469594636,
+      "tag": "0007_protect_contato_iniciado_followup_stages",
+      "breakpoints": true
     }
   ]
 }
