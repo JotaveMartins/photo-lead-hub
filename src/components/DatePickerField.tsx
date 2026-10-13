@@ -52,7 +52,15 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
       </PopoverTrigger>
       {/* Portal: renderiza fora do modal para o calendário não ser cortado pela rolagem do diálogo */}
       <PopoverPortal>
-      <PopoverContent className="w-auto p-0" align="start" side="bottom" collisionPadding={8} onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent
+        className="w-auto p-0 max-h-[var(--radix-popover-content-available-height)] overflow-y-auto overscroll-contain"
+        align="start"
+        side="bottom"
+        sticky="always"
+        collisionPadding={12}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <Calendar
           mode="single"
           selected={selected}
