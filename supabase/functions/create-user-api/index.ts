@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
       req.headers.get('x-api-key') ||
       (authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7) : '')
 
-    if (providedKey !== expectedKey) {
+    const n8nKey = Deno.env.get('CRM_API_KEY_N8N')
+    if (!providedKey || (providedKey !== expectedKey && providedKey !== n8nKey)) {
       return json({ error: 'Não autorizado' }, 401)
     }
 
