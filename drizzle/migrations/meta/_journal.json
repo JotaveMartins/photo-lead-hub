@@ -57,6 +57,13 @@
       "when": 1791469594636,
       "tag": "0007_protect_contato_iniciado_followup_stages",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792786032904,
+      "tag": "0008_multiple_instagram_accounts",
+      "breakpoints": true
     }
   ]
 }
