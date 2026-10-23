@@ -118,8 +118,9 @@ export const buildLeadPipelineFacts = <T extends { id: string; user_id: string }
       contatoTs: contatoStage ? getFirstStageEntry(events, contatoStage) : null,
       propostaTs: getFirstRoleEntry(events, "proposal"),
       contratoTs: contratoStage ? getFirstStageEntry(events, contratoStage) : null,
-      wonTs: getFirstRoleEntry(events, "won"),
-      lostTs: getFirstRoleEntry(events, "lost"),
+      // Data de fechamento editada no lead (manual/retroativa) tem prioridade sobre o histórico
+      wonTs: (lead as any).data_entrada_fechado_ganho ?? getFirstRoleEntry(events, "won"),
+      lostTs: (lead as any).data_entrada_fechado_perdido ?? getFirstRoleEntry(events, "lost"),
     });
   }
   return facts;

@@ -129,3 +129,11 @@ describe("leadPipelineReporting", () => {
     expect(counts[2].count).toBe(0);
   });
 });
+
+describe("data de ganho manual", () => {
+  it("usa data_entrada_fechado_ganho do lead em vez da data do histórico", () => {
+    const leads = [{ id: "l1", user_id: USER, data_entrada_fechado_ganho: "2026-09-01T15:00:00Z" }];
+    const history = [ev("l1", "s-won", "won", "2026-10-23T12:21:11Z")];
+    expect(buildLeadPipelineFacts(leads, stages, history).get("l1")?.wonTs).toBe("2026-09-01T15:00:00Z");
+  });
+});
