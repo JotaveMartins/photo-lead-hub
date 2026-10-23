@@ -47,6 +47,8 @@ export async function publishPost(postId: string) {
       .from('social_accounts')
       .select('instagram_user_id, access_token, token_expires_at, username')
       .eq('id', post.social_account_id)
+      .eq('user_id', post.user_id)
+      .eq('provider', 'instagram')
       .maybeSingle();
     if (!account?.access_token || !account.instagram_user_id) {
       throw new Error('Conta do Instagram não conectada');

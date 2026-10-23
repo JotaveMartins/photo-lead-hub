@@ -24,6 +24,8 @@ export interface ScheduledPost {
   last_error: string | null;
   instagram_media_id: string | null;
   published_at: string | null;
+  social_account_id: string | null;
+  accountUsername: string | null;
   caption: string | null;
   projectId: string | null;
   projectName: string;
@@ -32,12 +34,12 @@ export interface ScheduledPost {
 
 /* ---------------- Instagram account ---------------- */
 
-export const useInstagramAccount = () => {
+export const useInstagramAccounts = () => {
   const userId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["instagram-account", userId],
-    queryFn: async (): Promise<InstagramAccount | null> => {
-      if (!userId) return null;
+    queryKey: ["instagram-accounts", userId],
+    queryFn: async (): Promise<InstagramAccount[]> => {
+      if (!userId) return [];
       const { data, error } = await supabase
         .from("social_accounts")
         .select(
@@ -45,9 +47,9 @@ export const useInstagramAccount = () => {
         )
         .eq("user_id", userId)
         .eq("provider", "instagram")
-        .maybeSingle();
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as InstagramAccount | null;
+      return (data ?? []) as InstagramAccount[];
     },
     enabled: !!userId,
   });
@@ -76,7 +78,11 @@ export const useConnectInstagram = () => {
 
       return new Promise<boolean>((resolve, reject) => {
         const handler = (ev: MessageEvent) => {
-          if (ev.data?.type === "instagram-auth") {
+          if (
+            ev.source === popup &&
+            ev.origin === new URL(import.meta.env.VITE_SUPABASE_URL).origin &&
+            ev.data?.type === "instagram-auth"
+          ) {
             cleanup();
             ev.data.success ? resolve(true) : reject(new Error("Conexão cancelada ou falhou"));
           }
@@ -94,7 +100,7 @@ export const useConnectInstagram = () => {
         window.addEventListener("message", handler);
       });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["instagram-account"] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["instagram-accounts"] }),
   });
 };
 
@@ -102,15 +108,19 @@ export const useDisconnectInstagram = () => {
   const queryClient = useQueryClient();
   const userId = useEffectiveUserId();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (accountId: string) => {
       const { error } = await supabase
         .from("social_accounts")
         .delete()
+        .eq("id", accountId)
         .eq("user_id", userId!)
         .eq("provider", "instagram");
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["instagram-account"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["instagram-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] });
+    },
   });
 };
 
@@ -126,7 +136,8 @@ export const useScheduledPosts = () => {
         .from("scheduled_posts")
         .select(
           `id, carousel_id, scheduled_at, timezone, status, attempts, last_error,
-           instagram_media_id, published_at,
+           instagram_media_id, published_at, social_account_id,
+           social_accounts ( username ),
            carousels ( legenda, rendered_slides, project_id, projects ( nome ) )`,
         )
         .eq("user_id", userId)
@@ -143,6 +154,8 @@ export const useScheduledPosts = () => {
         last_error: row.last_error,
         instagram_media_id: row.instagram_media_id,
         published_at: row.published_at,
+        social_account_id: row.social_account_id,
+        accountUsername: row.social_accounts?.username ?? null,
         caption: row.carousels?.legenda ?? null,
         projectId: row.carousels?.project_id ?? null,
         projectName: row.carousels?.projects?.nome ?? "Projeto",

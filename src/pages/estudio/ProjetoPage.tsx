@@ -8,6 +8,8 @@ import UploadArea from "@/components/studio/UploadArea";
 import CarouselEditor from "@/components/studio/CarouselEditor";
 import ScheduleModal, { ScheduleMode } from "@/components/studio/ScheduleModal";
 import PostPreviewModal from "@/components/studio/PostPreviewModal";
+import InstagramAccountSelect from "@/components/studio/InstagramAccountSelect";
+import { canPublishToInstagram, selectedInstagramAccount } from "@/lib/instagramAccounts";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -31,7 +33,7 @@ import { exportCarousel } from "@/lib/carouselExport";
 import { renderCarouselToStorage } from "@/lib/renderCarouselToStorage";
 import {
   useCarouselScheduledPost,
-  useInstagramAccount,
+  useInstagramAccounts,
   usePublishPost,
   useSchedulePost,
 } from "@/hooks/useSocial";
@@ -72,7 +74,9 @@ const ProjetoPage = () => {
   const savedSnapshot = useRef<string>("");
 
   const userId = useEffectiveUserId();
-  const { data: instagram } = useInstagramAccount();
+  const { data: instagramAccounts = [], isLoading: accountsLoading, isError: accountsError } = useInstagramAccounts();
+  const [selectedAccountId, setSelectedAccountId] = useState("");
+  const instagram = selectedInstagramAccount(instagramAccounts, selectedAccountId);
   const schedulePost = useSchedulePost();
   const publishPost = usePublishPost();
   const activePost = useCarouselScheduledPost(carouselId ?? carousel?.id);
@@ -214,10 +218,11 @@ const ProjetoPage = () => {
 
   const handleGenerateCaption = () => runCaptionGeneration();
 
-  const handleSchedule = async (mode: ScheduleMode, scheduledAtISO: string | null) => {
+  const handleSchedule = async (mode: ScheduleMode, scheduledAtISO: string | null, accountId: string) => {
     const cid = carouselId ?? carousel?.id;
     if (!cid || !slides?.length) return toast.error("Salve o carrossel antes de publicar");
-    if (!instagram?.id) return toast.error("Conecte sua conta do Instagram");
+    const account = instagramAccounts.find((item) => item.id === accountId);
+    if (accountsError || !account || !canPublishToInstagram(account)) return toast.error("Escolha um perfil conectado do Instagram");
     if (!userId) return;
 
     setPublishBusy(mode === "now" ? "publicando" : "agendando");
@@ -231,13 +236,13 @@ const ProjetoPage = () => {
       const when = mode === "now" ? new Date().toISOString() : scheduledAtISO!;
       const postId = await schedulePost.mutateAsync({
         carouselId: cid,
-        socialAccountId: instagram.id,
+        socialAccountId: account.id,
         scheduledAt: when,
       });
 
       if (mode === "now") {
         await publishPost.mutateAsync(postId);
-        toast.success("Publicação realizada com sucesso no Instagram");
+        toast.success(`Publicação realizada com sucesso em @${account.username ?? account.instagram_user_id}`);
       } else {
         toast.success(
           `Publicação agendada para ${format(new Date(when), "dd/MM 'às' HH:mm", { locale: ptBR })}`,
@@ -340,6 +345,16 @@ const ProjetoPage = () => {
 
       {slides && slides.length > 0 && (
         <section className="border-t border-border/50 pt-8">
+          <div className="mb-5 max-w-md">
+            <InstagramAccountSelect
+              accounts={instagramAccounts}
+              value={instagram?.id ?? ""}
+              onChange={setSelectedAccountId}
+              disabled={!!publishBusy}
+              loading={accountsLoading}
+              error={accountsError}
+            />
+          </div>
           {readOnly && (
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/60 p-4">
               <div className="flex items-center gap-2.5">
@@ -351,9 +366,13 @@ const ProjetoPage = () => {
                       : "Publicar no Instagram"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {instagram?.username
+                    {activePost
+                      ? `Perfil agendado: ${activePost.accountUsername ? `@${activePost.accountUsername}` : "perfil desconectado"}`
+                      : instagram?.username
                       ? `Conta conectada: @${instagram.username}`
-                      : "Conecte sua conta em Configurações → Integrações"}
+                      : instagramAccounts.length
+                        ? "Escolha o perfil acima ou ao agendar"
+                        : "Conecte sua conta em Configurações → Integrações"}
                   </p>
                 </div>
               </div>
@@ -410,7 +429,11 @@ const ProjetoPage = () => {
       <ScheduleModal
         open={scheduleOpen}
         onClose={() => setScheduleOpen(false)}
-        account={instagram}
+        accounts={instagramAccounts}
+        selectedAccountId={selectedAccountId}
+        onAccountChange={setSelectedAccountId}
+        accountsLoading={accountsLoading}
+        accountsError={accountsError}
         slideCount={slides?.length ?? 0}
         caption={caption}
         imageUrls={(slides ?? [])

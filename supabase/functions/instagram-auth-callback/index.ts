@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       access_token: accessToken,
       token_expires_at: new Date(Date.now() + (expiresIn - 60) * 1000).toISOString(),
       status: 'connected',
-    }, { onConflict: 'user_id,provider' });
+    }, { onConflict: 'user_id,provider,instagram_user_id' });
 
     if (error) {
       console.error('social_accounts upsert error', error);

@@ -23,6 +23,9 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const body = await req.json().catch(() => ({}));
+    if (typeof body.social_account_id !== 'string' || !body.social_account_id) {
+      return json({ status: 'error', message: 'Selecione o perfil do Instagram.' }, 400);
+    }
     let uid = user.id;
     if (body?.target_user_id && body.target_user_id !== user.id) {
       const { data: isAdmin } = await admin.rpc('has_role', { _user_id: user.id, _role: 'admin' });
@@ -30,9 +33,11 @@ Deno.serve(async (req) => {
       uid = body.target_user_id;
     }
 
-    const { data: acc } = await admin.from('social_accounts')
-      .select('access_token, instagram_user_id')
+    const { data: acc, error: accountError } = await admin.from('social_accounts')
+      .select('id, access_token, instagram_user_id')
+      .eq('id', body.social_account_id)
       .eq('user_id', uid).eq('provider', 'instagram').maybeSingle();
+    if (accountError) throw accountError;
     if (!acc?.access_token) {
       return json({ status: 'error', message: 'Nenhum Instagram conectado nesta conta.' }, 400);
     }
@@ -46,11 +51,12 @@ Deno.serve(async (req) => {
       return json({ status: 'error', message: 'O token do Instagram expirou ou faltam permissões. Reconecte.' }, 400);
     }
 
-    await admin.from('social_accounts').update({
+    const { error: updateError } = await admin.from('social_accounts').update({
       username: data.username ?? null,
       profile_picture_url: data.profile_picture_url ?? null,
       status: 'connected',
-    }).eq('user_id', uid).eq('provider', 'instagram');
+    }).eq('id', acc.id).eq('user_id', uid).eq('provider', 'instagram');
+    if (updateError) throw updateError;
 
     return json({
       status: 'ok',

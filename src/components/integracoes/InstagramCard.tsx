@@ -1,165 +1,109 @@
 import { useState } from "react";
-import { Instagram, CheckCircle2, AlertCircle, Loader2, Plug } from "lucide-react";
+import { Instagram, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
-import {
-  useInstagramAccount,
-  useConnectInstagram,
-  useDisconnectInstagram,
-} from "@/hooks/useSocial";
+import { useInstagramAccounts, useConnectInstagram, useDisconnectInstagram } from "@/hooks/useSocial";
+import { canPublishToInstagram } from "@/lib/instagramAccounts";
 
 const InstagramCard = () => {
-  const { data: account, isLoading } = useInstagramAccount();
+  const { data: accounts = [], isLoading, isError, refetch } = useInstagramAccounts();
   const connect = useConnectInstagram();
   const disconnect = useDisconnectInstagram();
-  const [testing, setTesting] = useState(false);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string }>>({});
   const queryClient = useQueryClient();
   const userId = useEffectiveUserId();
-  const [testResult, setTestResult] = useState<
-    { ok: true; username: string | null; id: string } | { ok: false; message: string } | null
-  >(null);
 
-  const handleTest = async () => {
-    setTesting(true);
-    setTestResult(null);
+  const handleTest = async (accountId: string) => {
+    setTestingId(accountId);
+    setTestResults((results) => {
+      const next = { ...results };
+      delete next[accountId];
+      return next;
+    });
     try {
       const { data, error } = await supabase.functions.invoke("test-instagram-connection", {
-        body: { target_user_id: userId },
+        body: { target_user_id: userId, social_account_id: accountId },
       });
-      if (error || data?.status !== "ok") {
-        const message = data?.message ?? "Não foi possível conectar à API do Instagram.";
-        setTestResult({ ok: false, message });
-        toast.error(message);
-        return;
-      }
-      setTestResult({ ok: true, username: data.username, id: data.instagram_user_id });
-      queryClient.invalidateQueries({ queryKey: ["instagram-account"] });
-      toast.success(`Conexão funcionando — @${data.username}`);
-    } catch {
-      const message = "Erro ao testar a conexão com o Instagram.";
-      setTestResult({ ok: false, message });
+      if (error || data?.status !== "ok") throw new Error(data?.message ?? "Não foi possível testar este perfil. Tente reconectá-lo.");
+      const message = `Conexão funcionando — @${data.username}`;
+      setTestResults((results) => ({ ...results, [accountId]: { ok: true, message } }));
+      queryClient.invalidateQueries({ queryKey: ["instagram-accounts"] });
+      toast.success(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao testar a conexão com o Instagram.";
+      setTestResults((results) => ({ ...results, [accountId]: { ok: false, message } }));
       toast.error(message);
     } finally {
-      setTesting(false);
+      setTestingId(null);
     }
   };
 
-  const expired =
-    !!account?.token_expires_at && new Date(account.token_expires_at) < new Date();
-  const isConnected = !!account && !expired;
+  const handleConnect = () => connect.mutate(undefined, {
+    onSuccess: (ok) => ok && toast.success("Perfil do Instagram conectado com sucesso"),
+    onError: (error) => toast.error(error.message ?? "Erro ao conectar"),
+  });
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-pink-500/10 flex items-center justify-center overflow-hidden">
-            {account?.profile_picture_url ? (
-              <img src={account.profile_picture_url} alt="" className="w-9 h-9 object-cover" />
-            ) : (
-              <Instagram className="w-5 h-5 text-pink-500" />
-            )}
-          </div>
-          <div>
-            <p className="font-semibold text-foreground text-sm">Instagram</p>
-            <p className="text-xs text-muted-foreground">
-              {isConnected
-                ? `@${account?.username ?? account?.instagram_user_id}`
-                : "Publique e agende carrosséis direto do Estúdio IA"}
-            </p>
-          </div>
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <Instagram className="h-5 w-5 text-pink-500" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Instagram</p>
+          <p className="text-xs text-muted-foreground">Conecte seus perfis e escolha em qual publicar no Estúdio IA.</p>
         </div>
-        {isConnected ? (
-          <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Conectado
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <AlertCircle className="w-3.5 h-3.5" />
-            {expired ? "Token expirado" : "Não conectado"}
-          </span>
-        )}
       </div>
 
-      {isConnected && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm space-y-1">
-          <p className="font-semibold text-emerald-500">Instagram conectado</p>
-          <p className="text-foreground">@{account?.username ?? "—"}</p>
-          <p className="text-xs text-muted-foreground">Instagram ID: {account?.instagram_user_id ?? "—"}</p>
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando perfis...</p>}
+      {isError && (
+        <div role="alert" className="text-sm text-destructive">
+          Não foi possível carregar os perfis. <Button variant="ghost" size="sm" onClick={() => refetch()}>Tentar novamente</Button>
         </div>
       )}
-
-      {!isConnected && (
-        <div className="rounded-lg bg-muted/50 border border-border p-3 text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Requisitos:</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>Conta Profissional (Comercial ou Criador de Conteúdo)</li>
-            <li>Permissões de leitura do perfil e publicação de conteúdo</li>
-          </ul>
-        </div>
+      {!isLoading && !isError && !accounts.length && (
+        <p className="text-xs text-muted-foreground">Conecte uma conta Profissional (Comercial ou Criador de Conteúdo) com permissão de publicação.</p>
       )}
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" disabled={testing} onClick={handleTest}>
-          {testing ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          ) : (
-            <Plug className="mr-1.5 h-4 w-4" />
-          )}
-          Testar conexão
-        </Button>
-        {isConnected && (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disconnect.isPending}
-            onClick={() =>
-              disconnect.mutate(undefined, {
-                onSuccess: () => toast.success("Instagram desconectado"),
-                onError: (e: any) => toast.error(e?.message ?? "Erro ao desconectar"),
-              })
-            }
-          >
-            Desconectar
-          </Button>
-        )}
-        <Button
-          size="sm"
-          disabled={isLoading || connect.isPending}
-          onClick={() =>
-            connect.mutate(undefined, {
-              onSuccess: (ok) => ok && toast.success("Instagram conectado com sucesso"),
-              onError: (e: any) => toast.error(e?.message ?? "Erro ao conectar"),
-            })
-          }
-        >
+      {accounts.map((account) => {
+        const connected = canPublishToInstagram(account);
+        const result = testResults[account.id];
+        return (
+          <div key={account.id} className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center gap-3">
+              {account.profile_picture_url && <img src={account.profile_picture_url} alt="" className="h-9 w-9 rounded-full object-cover" />}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">@{account.username ?? account.instagram_user_id}</p>
+                <p className={`text-xs ${connected ? "text-emerald-500" : "text-amber-500"}`}>
+                  {connected ? "Conectado" : "Reconexão necessária"}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="outline" size="sm" disabled={!!testingId || disconnect.isPending} onClick={() => handleTest(account.id)}>
+                {testingId === account.id && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                Testar conexão
+              </Button>
+              <Button variant="outline" size="sm" disabled={disconnect.isPending || !!testingId} onClick={() => disconnect.mutate(account.id, {
+                onSuccess: () => toast.success("Perfil desconectado"),
+                onError: (error) => toast.error(error.message ?? "Erro ao desconectar"),
+              })}>Desconectar</Button>
+              <Button variant="outline" size="sm" disabled={connect.isPending} onClick={handleConnect}>Reconectar</Button>
+            </div>
+            {result && <p role="status" className={`text-xs ${result.ok ? "text-emerald-500" : "text-destructive"}`}>{result.message}</p>}
+          </div>
+        );
+      })}
+
+      <p className="text-xs text-muted-foreground">Ao conectar novamente o mesmo perfil, sua conexão será atualizada. Para adicionar outro, autorize com o perfil desejado no Instagram.</p>
+      <div className="flex justify-end">
+        <Button size="sm" disabled={isLoading || connect.isPending} onClick={handleConnect}>
           {connect.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-          {isConnected ? "Reconectar" : "Conectar Instagram"}
+          {accounts.length ? "Conectar outro Instagram" : "Conectar Instagram"}
         </Button>
       </div>
-
-      {testResult && (
-        <div
-          className={`rounded-lg border p-3 text-xs ${
-            testResult.ok
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-              : "border-destructive/30 bg-destructive/10 text-destructive"
-          }`}
-        >
-          {testResult.ok ? (
-            <>
-              <p className="font-medium">Conexão funcionando</p>
-              <p className="text-foreground/80 mt-0.5">
-                Conta: @{testResult.username} · ID: {testResult.id}
-              </p>
-            </>
-          ) : (
-            <p className="font-medium">{"message" in testResult ? testResult.message : ""}</p>
-          )}
-        </div>
-      )}
     </div>
   );
 };

@@ -28,7 +28,6 @@ import {
   PostStatus,
   ScheduledPost,
   useCancelPost,
-  useInstagramAccount,
   usePublishPost,
   useReschedulePost,
   useScheduledPosts,
@@ -56,7 +55,6 @@ const CalendarioPage = () => {
   const [selected, setSelected] = useState<ScheduledPost | null>(null);
 
   const { data: posts = [], isLoading } = useScheduledPosts();
-  const { data: account } = useInstagramAccount();
   const publish = usePublishPost();
   const cancel = useCancelPost();
   const reschedule = useReschedulePost();
@@ -89,8 +87,7 @@ const CalendarioPage = () => {
             Calendário de conteúdo
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Acompanhe os carrosséis agendados e publicados
-            {account?.username && ` em @${account.username}`}
+            Acompanhe os carrosséis agendados e publicados nos seus perfis do Instagram
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -137,7 +134,7 @@ const CalendarioPage = () => {
                     onClick={() => setSelected(p)}
                     className={`w-full truncate rounded px-1.5 py-1 text-left text-[11px] font-medium ${statusStyles[p.status]}`}
                   >
-                    {format(new Date(p.scheduled_at), "HH:mm")} · {p.projectName}
+                    {format(new Date(p.scheduled_at), "HH:mm")} · {p.projectName}{p.accountUsername && ` · @${p.accountUsername}`}
                   </button>
                 ))}
               </div>
@@ -165,6 +162,7 @@ const CalendarioPage = () => {
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(p.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} ·{" "}
                     {p.slideCount} imagem(ns)
+                    {p.accountUsername ? ` · @${p.accountUsername}` : " · Perfil desconectado"}
                     {p.last_error && <span className="text-destructive"> · {p.last_error}</span>}
                   </p>
                 </div>
@@ -237,6 +235,7 @@ const CalendarioPage = () => {
               <p className="text-xs text-muted-foreground">
                 {format(new Date(selected.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} ·{" "}
                 {statusLabel[selected.status]}
+                {selected.accountUsername ? ` · @${selected.accountUsername}` : " · Perfil desconectado"}
               </p>
             </div>
             {selected.caption && (

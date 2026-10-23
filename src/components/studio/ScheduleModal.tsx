@@ -13,20 +13,26 @@ import {
 import DatePickerField from "@/components/DatePickerField";
 import TimePickerField from "@/components/TimePickerField";
 import { InstagramAccount } from "@/hooks/useSocial";
+import InstagramAccountSelect from "./InstagramAccountSelect";
+import { canPublishToInstagram, selectedInstagramAccount } from "@/lib/instagramAccounts";
 
 export type ScheduleMode = "schedule" | "now";
 
 interface ScheduleModalProps {
   open: boolean;
   onClose: () => void;
-  account?: InstagramAccount | null;
+  accounts: InstagramAccount[];
+  selectedAccountId: string;
+  onAccountChange: (id: string) => void;
+  accountsLoading?: boolean;
+  accountsError?: boolean;
   slideCount: number;
   caption: string;
   imageUrls?: string[];
   busyLabel?: string | null;
   initialDate?: string;
   initialTime?: string;
-  onConfirm: (mode: ScheduleMode, scheduledAtISO: string | null) => void;
+  onConfirm: (mode: ScheduleMode, scheduledAtISO: string | null, accountId: string) => void;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -34,7 +40,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const ScheduleModal = ({
   open,
   onClose,
-  account,
+  accounts,
+  selectedAccountId,
+  onAccountChange,
+  accountsLoading,
+  accountsError,
   slideCount,
   caption,
   imageUrls = [],
@@ -58,7 +68,8 @@ const ScheduleModal = ({
 
   const scheduledAt = date && time ? new Date(`${date}T${time}:00`) : null;
   const inPast = !!scheduledAt && scheduledAt.getTime() < Date.now();
-  const connected = !!account && account.status === "connected";
+  const account = selectedInstagramAccount(accounts, selectedAccountId);
+  const connected = !!account && canPublishToInstagram(account) && !accountsLoading && !accountsError;
   const busy = !!busyLabel;
   const hashtags = (caption.match(/#[\p{L}\p{N}_]+/gu) ?? []).join(" ");
   const captionText = caption.replace(/#[\p{L}\p{N}_]+/gu, "").trim();
@@ -76,6 +87,15 @@ const ScheduleModal = ({
         </DialogHeader>
 
         <div className="min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-5 py-4">
+          <InstagramAccountSelect
+            id="schedule-instagram-profile"
+            accounts={accounts}
+            value={account?.id ?? ""}
+            onChange={onAccountChange}
+            disabled={busy}
+            loading={accountsLoading}
+            error={accountsError}
+          />
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-pink-500/10">
               {account?.profile_picture_url ? (
@@ -86,7 +106,7 @@ const ScheduleModal = ({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
-                {connected ? `@${account?.username ?? account?.instagram_user_id}` : "Nenhuma conta conectada"}
+                {connected ? `@${account?.username ?? account?.instagram_user_id}` : "Selecione um perfil conectado"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {slideCount} imagem(ns) · legenda com {caption.length} caracteres
@@ -118,7 +138,7 @@ const ScheduleModal = ({
 
           {!connected && (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
-              Conecte sua conta profissional do Instagram em Configurações → Integrações antes de publicar.
+              Escolha um perfil conectado para publicar. Se necessário, conecte ou reconecte seus perfis em Configurações → Integrações.
             </p>
           )}
 
@@ -142,7 +162,7 @@ const ScheduleModal = ({
           <Button
             variant="outline"
             disabled={busy || !connected}
-            onClick={() => onConfirm("now", null)}
+            onClick={() => connected && onConfirm("now", null, account.id)}
           >
             {busyLabel === "publicando" ? (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -154,8 +174,8 @@ const ScheduleModal = ({
           <Button
             disabled={busy || !connected || !scheduledAt || inPast}
             onClick={() => {
-              if (!scheduledAt) return toast.error("Escolha data e horário");
-              onConfirm("schedule", scheduledAt.toISOString());
+              if (!scheduledAt || !connected) return toast.error("Escolha um perfil, data e horário");
+              onConfirm("schedule", scheduledAt.toISOString(), account.id);
             }}
           >
             {busyLabel === "agendando" ? (
