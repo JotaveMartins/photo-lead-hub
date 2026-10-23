@@ -57,10 +57,12 @@ describe("Instagram profile selection", () => {
     const publish = screen.getByRole("button", { name: "Publicar no Instagram" });
     expect(publish).toBeDisabled();
     expect(screen.getByRole("button", { name: "Agendar publicação" })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Perfil do Instagram"), { target: { value: "pessoal" } });
+    fireEvent.click(screen.getByLabelText("Perfil do Instagram"));
+    fireEvent.click(screen.getByRole("option", { name: "@pessoal" }));
     fireEvent.click(publish);
     expect(onConfirm).toHaveBeenLastCalledWith("now", null, "pessoal");
-    fireEvent.change(screen.getByLabelText("Perfil do Instagram"), { target: { value: "studio" } });
+    fireEvent.click(screen.getByLabelText("Perfil do Instagram"));
+    fireEvent.click(screen.getByRole("option", { name: "@studio" }));
     fireEvent.click(publish);
     expect(onConfirm).toHaveBeenLastCalledWith("now", null, "studio");
   });
@@ -68,7 +70,8 @@ describe("Instagram profile selection", () => {
   it("passes the chosen profile and date when scheduling", () => {
     const onConfirm = vi.fn();
     render(<Publication onConfirm={onConfirm} />);
-    fireEvent.change(screen.getByLabelText("Perfil do Instagram"), { target: { value: "pessoal" } });
+    fireEvent.click(screen.getByLabelText("Perfil do Instagram"));
+    fireEvent.click(screen.getByRole("option", { name: "@pessoal" }));
     fireEvent.click(screen.getByRole("button", { name: "Agendar publicação" }));
     expect(onConfirm).toHaveBeenCalledWith("schedule", new Date("2099-12-25T10:30:00").toISOString(), "pessoal");
   });
@@ -81,7 +84,8 @@ describe("Instagram profile selection", () => {
 
   it("disables expired profiles and defaults to the only usable profile", () => {
     render(<Publication profiles={[accounts[0], profile("expired", { token_expires_at: "2000-01-01" })]} />);
-    expect(screen.getByLabelText("Perfil do Instagram")).toHaveValue("studio");
+    expect(screen.getByLabelText("Perfil do Instagram")).toHaveTextContent("@studio");
+    fireEvent.click(screen.getByLabelText("Perfil do Instagram"));
     expect(screen.getByRole("option", { name: /@expired/ })).toBeDisabled();
   });
 

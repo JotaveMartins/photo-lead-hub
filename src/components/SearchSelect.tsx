@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ export interface SearchSelectOption {
   value: string;
   label: string;
   hint?: string | null;
+  disabled?: boolean;
 }
 
 interface SearchSelectProps {
@@ -20,6 +21,8 @@ interface SearchSelectProps {
   allowEmpty?: boolean;
   emptyLabel?: string;
   required?: boolean;
+  disabled?: boolean;
+  id?: string;
 }
 
 const SearchSelect = ({
@@ -32,7 +35,12 @@ const SearchSelect = ({
   allowEmpty = true,
   emptyLabel = "Nenhum",
   required = false,
+  disabled = false,
+  id,
 }: SearchSelectProps) => {
+  const generatedId = useId();
+  const triggerId = id ?? generatedId;
+  const listId = `${triggerId}-options`;
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -126,7 +134,7 @@ const SearchSelect = ({
   return (
     <div className={cn("space-y-2")}>
       {label && (
-        <Label>
+        <Label htmlFor={triggerId}>
           {label} {required && <span className="text-destructive">*</span>}
         </Label>
       )}
@@ -134,9 +142,15 @@ const SearchSelect = ({
         {/* Trigger */}
         <button
           ref={triggerRef}
+          id={triggerId}
           type="button"
+          role="combobox"
+          aria-expanded={open && !disabled}
+          aria-controls={open && !disabled ? listId : undefined}
+          aria-haspopup="listbox"
+          disabled={disabled}
           onClick={() => { setOpen(!open); setSearch(""); }}
-          className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className={selected ? "text-foreground" : "text-muted-foreground"}>
             {selected ? selected.label : placeholder}
@@ -145,7 +159,7 @@ const SearchSelect = ({
         </button>
 
         {/* Dropdown */}
-        {open && pos && createPortal(
+        {open && !disabled && pos && createPortal(
           <div
             ref={dropdownRef}
             style={{
@@ -170,11 +184,13 @@ const SearchSelect = ({
               />
             </div>
 
-            <div className="max-h-52 overflow-y-auto py-1">
+            <div id={listId} role="listbox" className="max-h-52 overflow-y-auto py-1">
               {/* Empty / none option */}
               {allowEmpty && (
                 <button
                   type="button"
+                  role="option"
+                  aria-selected={!value}
                   onClick={() => { onChange(""); setOpen(false); setSearch(""); }}
                   className={cn(
                     "w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-muted/60 transition-colors",
@@ -190,9 +206,12 @@ const SearchSelect = ({
                 <button
                   type="button"
                   key={o.value}
+                  role="option"
+                  aria-selected={value === o.value}
+                  disabled={o.disabled}
                   onClick={() => { onChange(o.value); setOpen(false); setSearch(""); }}
                   className={cn(
-                    "w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-muted/60 transition-colors",
+                    "w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-muted/60 transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                     value === o.value ? "text-foreground font-medium bg-muted/40" : "text-foreground"
                   )}
                 >
