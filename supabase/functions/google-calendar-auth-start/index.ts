@@ -8,7 +8,7 @@ const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID')!;
 
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/google-calendar-auth-callback`;
 const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/calendar.events.owned',
   'https://www.googleapis.com/auth/userinfo.email',
   'openid',
 ].join(' ');
