@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import Sidebar from "@/components/Sidebar";
-import { TutorialModal, HelpButton } from "@/components/TutorialModal";
-import VersionAnnouncementModal from "@/components/VersionAnnouncementModal";
+import { HelpButton } from "@/components/TutorialModal";
+import WelcomeModal from "@/components/WelcomeModal";
 import { X, Menu } from "lucide-react";
 import logo from "@/assets/logo.png";
 import {
@@ -168,8 +168,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </main>
       {!isTester && (
         <>
-          <TutorialModal />
-          <VersionAnnouncementModal />
+          {!isImpersonating && <WelcomeModal />}
           <HelpButton pageTutorial={pageTutorial} pageKey={pageKey} key={`${location.pathname}:${pageKey ?? ""}`} />
         </>
       )}
