@@ -7,6 +7,8 @@ import {
   MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon, RefreshCw,
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
+import InboxConversationDate from "@/components/chat/InboxConversationDate";
+import type { InboxMessageMatch } from "@/lib/inboxMessageSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -67,13 +69,6 @@ const formatMsgDate = (ts: string | null): string => {
   if (isToday(d)) return format(d, "HH:mm");
   if (isYesterday(d)) return `Ontem ${format(d, "HH:mm")}`;
   return format(d, "dd/MM HH:mm", { locale: ptBR });
-};
-
-const formatConvDate = (ts: string): string => {
-  const d = new Date(ts);
-  if (isToday(d)) return format(d, "HH:mm");
-  if (isYesterday(d)) return "Ontem";
-  return format(d, "dd/MM", { locale: ptBR });
 };
 
 const getMatchSnippet = (text: string, term: string, maxLen = 80): string => {
@@ -213,7 +208,7 @@ const InboxPage = () => {
   const selectedConv = allConversations.find((c) => c.id === selectedConversationId) ?? null;
   const activeInstance = instances.find((i) => i.status === "connected");
 
-  const { data: messageMatchMap = new Map(), isFetching: searchingMessages } =
+  const { data: messageMatchMap = new Map<string, InboxMessageMatch>(), isFetching: searchingMessages } =
     useInboxMessageSearch(searchTerm);
 
   const hasSearch = searchTerm.trim().length > 0;
@@ -239,6 +234,7 @@ const InboxPage = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, () => {
         queryClient.invalidateQueries({ queryKey: ["inbox_messages"] });
         queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
+        queryClient.invalidateQueries({ queryKey: ["inbox_message_search"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "inbox_conversations" }, () => {
         queryClient.invalidateQueries({ queryKey: ["inbox_conversations"] });
@@ -516,13 +512,11 @@ const InboxPage = () => {
                     <h3 className="font-semibold text-foreground truncate text-sm max-w-[140px]">
                       {displayContactName(conv as any) || displayContactNumber(conv as any)}
                     </h3>
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-1">
-                      {formatConvDate(conv.updated_at)}
-                    </span>
+                    <InboxConversationDate updatedAt={conv.updated_at} match={messageMatchMap.get(conv.id)} />
                   </div>
                   <p className="text-xs text-muted-foreground truncate mb-1.5">
                     {(() => {
-                      const matchedBody = messageMatchMap.get(conv.id);
+                      const matchedBody = messageMatchMap.get(conv.id)?.body;
                       if (matchedBody) {
                         return (
                           <span className="text-foreground/80">
