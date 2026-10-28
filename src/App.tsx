@@ -71,7 +71,7 @@ const ProtectedLayout = () => {
 };
 
 const isTesterAllowed = (pathname: string) =>
-  pathname.startsWith("/estudio") || pathname === "/integracoes";
+  pathname.startsWith("/estudio") || pathname === "/integracoes" || pathname === "/agenda";
 
 const EstudioProtectedLayout = () => {
   const { user, loading } = useAuth();

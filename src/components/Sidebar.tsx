@@ -247,6 +247,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
           {isTester ? (
             <div className="space-y-0.5">
               {renderItem({ id: 'estudio', label: 'Estúdio IA', icon: Sparkles })}
+              {renderItem({ id: 'agenda', label: 'Agenda', icon: Calendar })}
               {renderItem({ id: 'integracoes', label: 'Integrações', icon: Plug })}
             </div>
           ) : (
