@@ -7,6 +7,7 @@ import {
   MoreVertical, ChevronDown, Paperclip, Loader2, Film, Mic, FileText, Image as ImageIcon, RefreshCw,
 } from "lucide-react";
 import { MediaBubble } from "@/components/chat/MediaBubble";
+import InboxAnalysisDialog from "@/components/chat/InboxAnalysisDialog";
 import InboxConversationDate from "@/components/chat/InboxConversationDate";
 import type { InboxMessageMatch } from "@/lib/inboxMessageSearch";
 import { Button } from "@/components/ui/button";
@@ -450,6 +451,9 @@ const InboxPage = () => {
           onValueChange={setSearchTerm}
         />
       </div>
+
+      {/* Atendimento analysis uses the current account, independently of the list filter. */}
+      <div className="px-3 pb-3"><InboxAnalysisDialog key={effectiveUserId} initialMessage={searchTerm} /></div>
 
       {/* Tabs */}
       <div className="flex border-b border-border">

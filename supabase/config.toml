@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.bi-whatsapp-leads]
 verify_jwt = false
+
+[functions.analyze-inbox-service]
+verify_jwt = false
