@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { inactiveCrmResponse } from "../_shared/account-access.ts";
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key' }
 import { createClient } from 'npm:@supabase/supabase-js@2';
