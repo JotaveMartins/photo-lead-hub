@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 
@@ -43,6 +44,11 @@ export async function publishPost(postId: string) {
     .eq('id', post.id);
 
   try {
+    const inactive = await inactiveCrmResponse(admin, post.user_id, corsHeaders);
+    if (inactive) {
+      const reason = await inactive.json();
+      throw new Error(reason.error || "Não foi possível verificar o acesso ao CRM");
+    }
     const { data: account } = await admin
       .from('social_accounts')
       .select('instagram_user_id, access_token, token_expires_at, username')

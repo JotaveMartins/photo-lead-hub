@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildQrDataUrl } from "../_shared/qrcode.ts";
 
@@ -20,6 +21,9 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization")!;
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) return new Response("Unauthorized", { status: 401 });
+    const inactive = await inactiveCrmResponse(supabase, user.id, corsHeaders);
+    if (inactive) return inactive;
+
 
     const { action, instanceName, instanceId, targetInstanceId } = await req.json();
     const { data: settingsRow } = await supabase

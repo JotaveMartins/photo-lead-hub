@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 
@@ -50,6 +51,9 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const inactive = await inactiveCrmResponse(supabase, user.id, corsHeaders);
+    if (inactive) return inactive;
+
 
     const { origin } = await req.json().catch(() => ({ origin: '' }));
 

@@ -2587,6 +2587,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_crm_account_access: {
+        Args: { p_user_id?: string }
+        Returns: Json
+      }
+      admin_list_crm_access: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      admin_manage_crm_access: {
+        Args: { p_user_id: string; p_action: string; p_days?: number; p_note?: string }
+        Returns: Json
+      }
+      has_active_crm_access: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+
       admin_usage_metrics: {
         Args: { month_start: string }
         Returns: {

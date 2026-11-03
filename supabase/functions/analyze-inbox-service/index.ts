@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { ANALYSIS_PROMPT, prepareSample, validateReport, type SampleConversation } from "./report.ts";
 
@@ -33,6 +34,9 @@ Deno.serve(async (req) => {
       const { data: isAdmin, error } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (error || !isAdmin) return json({ error: "Você não pode analisar atendimentos de outra conta." }, 403);
     }
+    const inactive = await inactiveCrmResponse(admin, user.id, corsHeaders);
+    if (inactive) return inactive;
+
     const { data, error } = await admin.rpc("get_inbox_analysis_sample", {
       p_user_id: targetUserId, p_entry_message: body.entry_message.trim(),
     });

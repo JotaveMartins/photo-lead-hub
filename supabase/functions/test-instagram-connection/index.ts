@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 
@@ -32,6 +33,9 @@ Deno.serve(async (req) => {
       if (!isAdmin) return json({ status: 'error', message: 'Sem permissão.' }, 403);
       uid = body.target_user_id;
     }
+
+    const inactive = await inactiveCrmResponse(admin, user.id, corsHeaders);
+    if (inactive) return inactive;
 
     const { data: acc, error: accountError } = await admin.from('social_accounts')
       .select('id, access_token, instagram_user_id')

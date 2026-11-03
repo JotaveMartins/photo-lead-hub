@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -130,6 +131,10 @@ Deno.serve(async (req) => {
 
     for (const { ad_account_id, client_id } of accounts) {
       try {
+        if (client_id && await inactiveCrmResponse(supabase, client_id, corsHeaders)) {
+          perAccount.push({ ad_account_id, skipped: true, reason: "crm_access_required" });
+          continue;
+        }
         // 0. Get account timezone so day boundaries match Ads Manager
         let accountTz = "America/Sao_Paulo";
         try {

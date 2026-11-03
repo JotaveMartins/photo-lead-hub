@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -42,6 +43,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    const inactive = await inactiveCrmResponse(supabase, user.id, corsHeaders);
+    if (inactive) return inactive;
 
     const { cobranca_id } = await req.json();
     if (!cobranca_id) return json({ error: "cobranca_id obrigatório" }, 400);

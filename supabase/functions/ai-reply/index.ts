@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
  import { createClient } from "npm:@supabase/supabase-js@2";
  
  const corsHeaders = {
@@ -93,6 +94,8 @@ async function transcribeAudio(mediaUrl: string, provider: string, apiKey: strin
        throw new Error("lead_id or conversation_id required");
      }
 
+    const inactive = await inactiveCrmResponse(supabase, userId!, corsHeaders);
+    if (inactive) return inactive;
      const { data: aiConfig } = await supabase.from("ai_config").select("*").eq("user_id", userId).maybeSingle();
      if (!aiConfig) throw new Error("AI config not found");
      // Skip if AI is globally disabled and not manually enabled for this conversation

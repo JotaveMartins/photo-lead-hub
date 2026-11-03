@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -325,6 +326,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const inactive = await inactiveCrmResponse(supabase, conv.user_id, corsHeaders);
+      if (inactive) return inactive;
       let inst: { id: string; name: string; user_id: string } | null = null;
       if (conv.instance_id) {
         const { data } = await supabase
@@ -397,6 +400,10 @@ Deno.serve(async (req) => {
       const results: any[] = [];
       for (const inst of instances || []) {
         try {
+          if (await inactiveCrmResponse(supabase, inst.user_id, corsHeaders)) {
+            results.push({ instance: inst.name, skipped: true, reason: "crm_access_required" });
+            continue;
+          }
           const r = await syncForInstance(supabase, inst, baseUrl, apiKey, {
             sinceTimestamp,
             take: 200,

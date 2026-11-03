@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
  import { createClient } from "npm:@supabase/supabase-js@2";
  
  const corsHeaders = {
@@ -24,6 +25,9 @@
       .single();
 
     if (instError || !instance) throw new Error("Instance not found");
+    const inactive = await inactiveCrmResponse(supabase, instance.user_id, corsHeaders);
+    if (inactive) return inactive;
+
 
     let remoteJid = "";
 

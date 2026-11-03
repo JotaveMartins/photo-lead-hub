@@ -4,6 +4,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import Sidebar from "@/components/Sidebar";
 import { HelpButton } from "@/components/TutorialModal";
+import TrialBanner from "@/components/account/TrialBanner";
 import WelcomeModal from "@/components/WelcomeModal";
 import { X, Menu } from "lucide-react";
 import logo from "@/assets/logo.png";
@@ -164,6 +165,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </div>
       <main className="lg:ml-64 px-3 py-4 sm:p-6 lg:p-8">
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-glow pointer-events-none opacity-50" />
+        <TrialBanner impersonating={isImpersonating} />
         {children}
       </main>
       {!isTester && (

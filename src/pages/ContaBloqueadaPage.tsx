@@ -1,6 +1,8 @@
-import { Lock } from "lucide-react";
+import { Lock, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
+import { supportUrl } from "@/lib/accountAccess";
 import logo from "@/assets/logo.png";
 
 
@@ -20,14 +22,16 @@ const ContaBloqueadaPage = () => {
           Acesso temporariamente bloqueado
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Sua assinatura do CRM está inativa no momento, por isso o acesso à conta foi suspenso.
-          Seus dados continuam salvos e são restaurados assim que a assinatura for reativada.
+          O acesso à sua conta foi suspenso. Seus dados continuam salvos.
+          Fale com a nossa equipe para verificar a situação e voltar a usar o CRM.
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
           Para voltar a usar o sistema, fale com a nossa equipe e reative seu plano.
         </p>
 
-        <div className="mt-6">
+        <div className="mt-6 space-y-2">
+          <Button asChild className="w-full"><a href={supportUrl()} target="_blank" rel="noopener noreferrer"><MessageCircle className="mr-2 h-4 w-4" />Falar com a equipe</a></Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/assinatura">Ver planos</Link></Button>
           <Button variant="ghost" className="w-full text-muted-foreground" onClick={signOut}>
             Sair
           </Button>

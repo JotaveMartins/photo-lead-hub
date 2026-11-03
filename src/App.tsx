@@ -9,6 +9,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAccountBlocked } from "@/hooks/useAccountBlocked";
 import ContaBloqueadaPage from "@/pages/ContaBloqueadaPage";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
+import AccountAccessGate from "@/components/account/AccountAccessGate";
+import AssinaturaPage from "./pages/AssinaturaPage";
 import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
 import LeadsPage from "./pages/LeadsPage";
@@ -63,10 +65,12 @@ const ProtectedLayout = () => {
   }
 
   return (
-    <DashboardLayout>
-      <WhatsAppDisconnectWatcher />
-      <Outlet />
-    </DashboardLayout>
+    <AccountAccessGate>
+      <DashboardLayout>
+        <WhatsAppDisconnectWatcher />
+        <Outlet />
+      </DashboardLayout>
+    </AccountAccessGate>
   );
 };
 
@@ -84,9 +88,11 @@ const EstudioProtectedLayout = () => {
   if (!hasEstudio) return <Navigate to="/leads" replace />;
 
   return (
-    <DashboardLayout>
-      <Outlet />
-    </DashboardLayout>
+    <AccountAccessGate>
+      <DashboardLayout>
+        <Outlet />
+      </DashboardLayout>
+    </AccountAccessGate>
   );
 };
 
@@ -109,6 +115,8 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/cadastro" element={<Auth mode="signup" />} />
+      <Route path="/assinatura" element={<AssinaturaPage />} />
       <Route path="/g/:slug" element={<GaleriaPublicaPage />} />
       <Route path="/galeria/:slug" element={<GaleriaPublicaPage />} />
 

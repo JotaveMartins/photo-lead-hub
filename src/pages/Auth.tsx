@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CRM_PLANS } from "@/lib/accountAccess";
 import logo from "@/assets/logo.png";
 
 const emailSchema = z.string().email("Email inválido").max(255);
 const passwordSchema = z.string().min(1, "Senha é obrigatória").max(100);
 const nomeSchema = z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100);
 
-const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+const Auth = ({ mode = "login" }: { mode?: "login" | "signup" }) => {
+  const [isLogin, setIsLogin] = useState(mode === "login");
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  useEffect(() => { setIsLogin(mode === "login"); setConfirmationSent(false); }, [mode]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
@@ -37,6 +40,7 @@ const Auth = () => {
       passwordSchema.parse(password);
       if (!isLogin) {
         nomeSchema.parse(nome);
+        z.string().min(8, "Use uma senha com pelo menos 8 caracteres").max(100).parse(password);
       }
 
       if (isLogin) {
@@ -52,7 +56,7 @@ const Auth = () => {
           navigate("/");
         }
       } else {
-        const { error } = await signUp(email, password, nome);
+        const { error, needsEmailConfirmation } = await signUp(email, password, nome);
         if (error) {
           if (error.message.includes("User already registered")) {
             toast.error("Este email já está cadastrado. Tente fazer login.");
@@ -60,18 +64,36 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
-          toast.success("Conta criada com sucesso! Você já pode usar o sistema.");
-          navigate("/");
+          if (needsEmailConfirmation) {
+            setConfirmationSent(true);
+          } else {
+            toast.success("Conta criada! Seu teste grátis de 60 dias começou.");
+            navigate("/");
+          }
         }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
+      } else {
+        toast.error(error instanceof Error ? error.message : "Não foi possível concluir. Tente novamente.");
       }
     } finally {
       setLoading(false);
     }
   };
+
+  if (confirmationSent) return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center space-y-4">
+        <img src={logo} alt="CRM" className="mx-auto h-14 w-14 object-contain" />
+        <h1 className="text-2xl font-semibold">Confirme seu e-mail</h1>
+        <p className="text-sm text-muted-foreground">Enviamos as instruções de confirmação para {email}. Confira também a pasta de spam.</p>
+        <p className="text-sm text-muted-foreground">Os 60 dias grátis começam após a confirmação do cadastro. Nenhum cartão é necessário e não há cobrança automática.</p>
+        <Button onClick={() => { setConfirmationSent(false); setIsLogin(true); navigate("/auth"); }}>Voltar para o login</Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -93,10 +115,17 @@ const Auth = () => {
             <p className="text-muted-foreground mt-2">
               {isLogin
                 ? "Entre para acessar seu CRM"
-                : "Comece a gerenciar seus leads"}
+                : "Experimente o CRM grátis por 60 dias"}
             </p>
           </div>
 
+          {!isLogin && <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+            <p className="text-sm font-semibold text-primary">60 dias grátis, sem cartão</p>
+            <p className="text-xs text-muted-foreground">Depois do teste, fale com a equipe se quiser continuar. Sem cobrança automática.</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {CRM_PLANS.map((plan) => <p key={plan.id}><strong>{plan.price}</strong> por {plan.period}</p>)}
+            </div>
+          </div>}
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
@@ -145,7 +174,7 @@ const Auth = () => {
               className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-glow"
               disabled={loading}
             >
-              {loading ? "Carregando..." : isLogin ? "Entrar" : "Criar conta"}
+              {loading ? "Carregando..." : isLogin ? "Entrar" : "Começar meu teste grátis"}
             </Button>
           </form>
 
@@ -153,7 +182,7 @@ const Auth = () => {
           <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => navigate(isLogin ? "/cadastro" : "/auth")}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               {isLogin

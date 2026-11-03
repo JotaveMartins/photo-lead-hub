@@ -4,6 +4,7 @@ import { runInNewContext } from "node:vm";
 import { webcrypto } from "node:crypto";
 import { TextEncoder, TextDecoder } from "node:util";
 import ts from "typescript";
+import { inactiveCrmResponse } from "../../supabase/functions/_shared/account-access";
 import { describe, expect, it, vi } from "vitest";
 
 // Execute the actual Edge Function handlers with injected Supabase/Meta services.
@@ -14,7 +15,7 @@ function loadFunction(name: string, client: unknown, fetchMock = vi.fn()) {
   const exports: Record<string, (...args: unknown[]) => Promise<unknown>> = {};
   let handler: (req: Request) => Promise<Response>;
   runInNewContext(code, {
-    exports, require: () => ({ createClient: () => client, corsHeaders: {} }),
+    exports, require: (name: string) => name.includes("account-access.ts") ? { inactiveCrmResponse } : ({ createClient: () => client, corsHeaders: {} }),
     Deno: { env: { get: (key: string) => ({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "test-signing-key" })[key] ?? "test" }, serve: (fn: typeof handler) => { handler = fn; } },
     fetch: fetchMock, Request, Response, URL, URLSearchParams, TextEncoder, TextDecoder,
     crypto: webcrypto, atob, btoa, console: { error: vi.fn() }, setTimeout,
@@ -64,6 +65,7 @@ describe("Instagram Edge Functions", () => {
     const updateQuery = { eq: vi.fn((key, value) => { updates.push([key, value]); return updateQuery; }), then: (resolve: (value: unknown) => unknown) => Promise.resolve({ error: null }).then(resolve) };
     const app = loadFunction("test-instagram-connection", {
       auth: { getUser: async () => ({ data: { user: { id: "owner" } } }) },
+      rpc: async () => ({ data: true, error: null }),
       from: () => ({ ...query, update: () => updateQuery }),
     }, vi.fn().mockResolvedValue(json({ user_id: "ig-b", username: "segundo" })));
     const response = await app.handle(new Request("https://example.test", { method: "POST", headers: { Authorization: "Bearer test" }, body: JSON.stringify({ social_account_id: "profile-b" }) }));
@@ -91,6 +93,7 @@ describe("Instagram Edge Functions", () => {
     const accountFilters: Record<string, unknown>[] = [];
     const fetchMock = vi.fn().mockImplementation(async (url: string) => json({ id: url.endsWith("/media_publish") ? "published" : "container" }));
     const client = {
+      rpc: async () => ({ data: true, error: null }),
       from: (table: string) => {
         const filters: Record<string, unknown> = {};
         const query = {

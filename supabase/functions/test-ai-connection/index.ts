@@ -1,3 +1,5 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +10,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const authorization = req.headers.get("Authorization");
+    if (!authorization) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: corsHeaders });
+    const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authorization } },
+    });
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError || !user) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: corsHeaders });
+    const inactive = await inactiveCrmResponse(client, user.id, corsHeaders);
+    if (inactive) return inactive;
     const { provider, api_key, model } = await req.json();
     if (!provider || !api_key) {
       return new Response(JSON.stringify({ ok: false, error: "provider e api_key são obrigatórios" }), {

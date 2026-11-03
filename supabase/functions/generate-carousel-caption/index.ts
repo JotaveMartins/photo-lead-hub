@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   CATEGORIES,
@@ -152,6 +153,9 @@ Deno.serve(async (req) => {
     });
     const { data: userData } = await userClient.auth.getUser();
     if (!userData?.user) return json({ error: "Não autenticado" }, 401);
+    const inactive = await inactiveCrmResponse(userClient, userData.user.id, corsHeaders);
+    if (inactive) return inactive;
+
 
     const body = await req.json().catch(() => ({}));
     const projectId: string | undefined = body.project_id;

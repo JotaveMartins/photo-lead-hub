@@ -1,3 +1,4 @@
+import { inactiveCrmResponse } from "../_shared/account-access.ts";
 // Camada de armazenamento das galerias (Cloudflare R2 via S3 API).
 // As credenciais do R2 vivem apenas aqui, nunca no frontend.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
@@ -73,6 +74,9 @@ Deno.serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData?.user;
     if (!user) return json({ error: "Não autorizado" }, 401);
+    const inactive = await inactiveCrmResponse(admin, user.id, corsHeaders);
+    if (inactive) return inactive;
+
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action as string;

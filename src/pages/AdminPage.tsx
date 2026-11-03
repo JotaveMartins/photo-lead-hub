@@ -18,6 +18,7 @@ import EditAdminUserModal from "@/components/admin/EditAdminUserModal";
 import { usePrivacyMode, maskName, maskEmail } from "@/hooks/usePrivacyMode";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import AccountAccessTab from "@/components/admin/AccountAccessTab";
 import UsageTab from "@/components/admin/UsageTab";
 import { useUsageMetrics } from "@/hooks/useUsageMetrics";
 
@@ -245,11 +246,13 @@ const AdminPage = () => {
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="uso">Uso</TabsTrigger>
+          <TabsTrigger value="acessos">Acessos e testes</TabsTrigger>
           {isSuperAdmin && <TabsTrigger value="configuracoes">Configurações</TabsTrigger>}
         </TabsList>
         <TabsContent value="clientes" className="mt-6">
           {clientesContent}
         </TabsContent>
+        <TabsContent value="acessos" className="mt-6"><AccountAccessTab /></TabsContent>
         <TabsContent value="uso" className="mt-6">
           <UsageTab />
         </TabsContent>
