@@ -8,6 +8,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   account: ScoredAccount | null;
+  accountName?: string;
   previous: ScoredAccount | null;
   monthLabel: string;
 }
@@ -25,7 +26,7 @@ const Delta = ({ current, prev }: { current: number; prev?: number }) => {
   );
 };
 
-const UsageDetailDrawer = ({ open, onOpenChange, account, previous, monthLabel }: Props) => {
+const UsageDetailDrawer = ({ open, onOpenChange, account, accountName, previous, monthLabel }: Props) => {
   if (!account) return null;
   const { row, score, pillarScores, top, bottom } = account;
 
@@ -38,7 +39,7 @@ const UsageDetailDrawer = ({ open, onOpenChange, account, previous, monthLabel }
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{row.nome || row.email || "Conta"}</SheetTitle>
+          <SheetTitle>{accountName ?? (row.nome || row.email || "Conta")}</SheetTitle>
         </SheetHeader>
 
         <div className="mt-4 space-y-6">

@@ -16,7 +16,7 @@ const fetchMetrics = async (monthStart: string): Promise<UsageRow[]> => {
  */
 export const useUsageMetrics = (month: Date) => {
   const { isAdmin } = useUserRole();
-  const { adminUserIds } = useAdminAccounts();
+  const { adminUserIds, isLoading: loadingAdmins, error: adminError, refetch: refetchAdmins } = useAdminAccounts();
 
   const current = useQuery({
     queryKey: ["usage-metrics", monthStartISO(month)],
@@ -58,7 +58,8 @@ export const useUsageMetrics = (month: Date) => {
   return {
     accounts,
     previousByUser,
-    isLoading: current.isLoading || previous.isLoading || excluded.isLoading,
-    error: current.error || previous.error,
+    isLoading: current.isLoading || previous.isLoading || excluded.isLoading || loadingAdmins,
+    error: current.error || previous.error || excluded.error || adminError,
+    refetch: () => Promise.all([current.refetch(), previous.refetch(), excluded.refetch(), refetchAdmins()]),
   };
 };

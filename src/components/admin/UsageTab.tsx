@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useUsageMetrics } from "@/hooks/useUsageMetrics";
 import { PILLARS, pillarLabel, type ScoredAccount } from "@/lib/usageScore";
+import UsageAdoptionSummary from "@/components/admin/UsageAdoptionSummary";
+import { adoptionStatus as adocaoStatus, type AdoptionStatus as AdocaoStatus } from "@/lib/usageAdoption";
+import { ErrorState } from "@/components/ui/error-state";
 import UsageDetailDrawer from "@/components/admin/UsageDetailDrawer";
 import { usePrivacyMode, maskName } from "@/hooks/usePrivacyMode";
 
@@ -27,14 +30,6 @@ const ScoreDelta = ({ current, prev }: { current: number; prev?: number }) => {
   );
 };
 
-type AdocaoStatus = "Engajado" | "Uso parcial" | "Inativo";
-
-const adocaoStatus = (a: ScoredAccount): AdocaoStatus => {
-  if (!a.row.acessou_no_mes) return "Inativo";
-  // Engajado exige movimentar o pipeline no mês
-  return Number(a.row.pipeline ?? 0) > 0 && a.score >= 10 ? "Engajado" : "Uso parcial";
-};
-
 const STATUS_CLASS: Record<AdocaoStatus, string> = {
   Engajado: "bg-green-500/10 text-green-500 border-green-500/30",
   "Uso parcial": "bg-amber-500/10 text-amber-500 border-amber-500/30",
@@ -50,7 +45,7 @@ const StatusBadge = ({ status }: { status: AdocaoStatus }) => (
 const UsageTab = () => {
   const [month, setMonth] = useState<Date>(lastClosedMonth());
   const [selected, setSelected] = useState<ScoredAccount | null>(null);
-  const { accounts, previousByUser, isLoading } = useUsageMetrics(month);
+  const { accounts, previousByUser, isLoading, error, refetch } = useUsageMetrics(month);
   const { enabled: privacy } = usePrivacyMode();
 
   const monthLabel = format(month, "MMMM 'de' yyyy", { locale: ptBR });
@@ -91,6 +86,8 @@ const UsageTab = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (error) return <ErrorState title="Não foi possível carregar o uso das contas" description="Atualize os dados antes de definir as prioridades da equipe." onRetry={() => refetch()} />;
 
   return (
     <>
@@ -141,6 +138,9 @@ const UsageTab = () => {
         </div>
       </div>
 
+
+      {!isLoading && <UsageAdoptionSummary key={format(month, "yyyy-MM")} accounts={accounts} previousByUser={previousByUser}
+        monthLabel={monthLabel} privacy={privacy} currentMonth={isCurrentOrFuture} onSelect={setSelected} />}
 
       <div className="rounded-lg border bg-card overflow-x-auto">
         <Table>
@@ -208,6 +208,7 @@ const UsageTab = () => {
         open={!!selected}
         onOpenChange={(v) => { if (!v) setSelected(null); }}
         account={selected}
+        accountName={selected && privacy ? maskName(accounts.findIndex((account) => account.row.user_id === selected.row.user_id)) : undefined}
         previous={selected ? previousByUser.get(selected.row.user_id) ?? null : null}
         monthLabel={monthLabel}
       />

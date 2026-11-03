@@ -44,6 +44,8 @@ export const useAdminAccounts = () => {
     adminUserIds: query.data?.userIds ?? [],
     adminAdAccountIds: query.data?.adAccountIds ?? [],
     isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
     isReady: !isAdmin || query.isSuccess,
   };
 };
