@@ -1,4 +1,4 @@
-import QRCode from "npm:qrcode@1.5.4";
+import QRCode from "https://esm.sh/qrcode@1.5.4";
 
 // Evolution API sometimes returns a ready-made "base64" PNG data URI, and
 // sometimes only the raw "code" string (the QR payload itself) — e.g. when

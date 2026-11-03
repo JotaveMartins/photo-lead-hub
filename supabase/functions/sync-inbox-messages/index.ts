@@ -18,7 +18,8 @@ const whatsappMatchKey = (v: string | null | undefined) => {
   return d;
 };
 
-type SB = ReturnType<typeof createClient>;
+// deno-lint-ignore no-explicit-any
+type SB = any;
 
 interface EvolutionMsg {
   key?: { id?: string; remoteJid?: string; fromMe?: boolean; remoteJidAlt?: string; senderPn?: string };
