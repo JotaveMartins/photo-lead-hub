@@ -64,6 +64,13 @@
       "when": 1792786032904,
       "tag": "0008_multiple_instagram_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793729891340,
+      "tag": "0009_crm_trial_access",
+      "breakpoints": true
     }
   ]
 }
