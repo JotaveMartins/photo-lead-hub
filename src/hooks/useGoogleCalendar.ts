@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { toast } from "sonner";
+import { googleCalendarErrorMessage } from "@/lib/googleCalendarOAuth";
 
 export const useGoogleCalendarConnection = () => {
   const userId = useEffectiveUserId();
@@ -45,11 +46,12 @@ export const useConnectGoogleCalendar = () => {
 
       return new Promise<boolean>((resolve, reject) => {
         const handler = (ev: MessageEvent) => {
-          if (ev.data?.type === "google-calendar-auth") {
+          if (ev.source === popup && ev.origin === window.location.origin &&
+              ev.data?.type === "google-calendar-auth" && typeof ev.data.success === "boolean") {
             window.removeEventListener("message", handler);
             clearInterval(closedCheck);
             if (ev.data.success) resolve(true);
-            else reject(new Error("Conexão cancelada ou falhou"));
+            else reject(new Error(googleCalendarErrorMessage(ev.data.reason)));
           }
         };
         window.addEventListener("message", handler);
@@ -57,15 +59,14 @@ export const useConnectGoogleCalendar = () => {
           if (popup.closed) {
             clearInterval(closedCheck);
             window.removeEventListener("message", handler);
-            // Resolve true; the query refetch will determine actual state.
             resolve(false);
           }
         }, 500);
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["google-calendar-connection"] });
-      toast.success("Google Agenda conectado!");
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["google-calendar-connection"] }),
+    onSuccess: (connected) => {
+      if (connected) toast.success("Google Agenda conectado!");
     },
     onError: (error: Error) => {
       toast.error("Erro ao conectar: " + error.message);
