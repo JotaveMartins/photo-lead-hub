@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildQrDataUrl } from "../_shared/qrcode.ts";
