@@ -464,6 +464,69 @@ export type Database = {
           },
         ]
       }
+      crm_access_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          new_access: Json
+          note: string
+          previous_access: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_access: Json
+          note?: string
+          previous_access?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_access?: Json
+          note?: string
+          previous_access?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_account_access: {
+        Row: {
+          mode: string
+          plan: string | null
+          trial_ends_at: string | null
+          trial_started_at: string | null
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          mode: string
+          plan?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          mode?: string
+          plan?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       delivery_stage_history: {
         Row: {
           changed_at: string
@@ -2587,6 +2650,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_crm_access: { Args: never; Returns: Json }
+      admin_manage_crm_access: {
+        Args: {
+          p_action: string
+          p_days?: number
+          p_note?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       admin_usage_metrics: {
         Args: { month_start: string }
         Returns: {
@@ -2646,6 +2719,7 @@ export type Database = {
         Args: { _gallery_id: string }
         Returns: Json
       }
+      get_crm_account_access: { Args: { p_user_id?: string }; Returns: Json }
       get_public_gallery: {
         Args: { _slug: string }
         Returns: {
@@ -2656,6 +2730,7 @@ export type Database = {
           name: string
         }[]
       }
+      has_active_crm_access: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
