@@ -33,6 +33,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreateLead } from "@/hooks/useLeads";
 import LeadModal from "@/components/LeadModal";
+import LeadColorTagPicker from "@/components/LeadColorTagPicker";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -599,6 +600,9 @@ const InboxPage = () => {
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
+              {selectedConv.lead_id && (
+                <LeadColorTagPicker key={selectedConv.lead_id} leadId={selectedConv.lead_id} showLabel />
+              )}
               {selectedConv.lead_id ? (
                 <Button
                   variant="outline" size="sm" className="h-9 text-xs hidden sm:flex"
