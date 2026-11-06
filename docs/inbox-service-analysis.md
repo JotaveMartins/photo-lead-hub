@@ -50,7 +50,13 @@ O botão de download gera o arquivo localmente com jsPDF, carregado sob demanda.
 
 ## Implantação no Lovable Cloud
 
-1. Aplicar `supabase/migrations/20261029190000_inbox_service_analysis.sql`.
+1. No Lovable Cloud, aplicar `drizzle/migrations/0011_restore_inbox_analysis_sample.sql`,
+   já registrada em `drizzle/migrations/meta/_journal.json`. Para ambientes com
+   Supabase CLI, a mesma correção está em
+   `supabase/migrations/20261106120000_restore_inbox_analysis_sample.sql`.
+   São alternativas equivalentes, não duas migrações obrigatórias. A aplicação
+   pode ser repetida sem apagar dados. Ela cria/repara a função, mantém execução
+   exclusiva pelo service-role e solicita a atualização do cache REST.
 2. Publicar `analyze-inbox-service`, incluindo seu módulo `report.ts` e a
    configuração de `supabase/config.toml`. A função valida a sessão explicitamente.
 3. Confirmar que a chave do provedor já configurado para o CRM está disponível
@@ -77,3 +83,31 @@ A migração foi exercitada em PostgreSQL local com conversas de duas contas,
 frases posteriores à abertura, notas e grupos: somente os 20 inícios elegíveis
 mais recentes foram selecionados. A geração com o provedor real e o acesso ao
 banco gerenciado ainda exigem validação após implantação no Lovable Cloud.
+
+## Erro ao selecionar os atendimentos
+
+A implementação inicial tinha o RPC apenas em `supabase/migrations`, sem entrada
+no histórico Drizzle usado pelo Lovable. Isso pode deixar a função ausente no
+Cloud mesmo com o botão e a Edge Function disponíveis. A migração 0011 instala
+esse RPC também pelo caminho do Lovable e corrige a normalização SQL de espaços,
+tabs e quebras de linha com `[[:space:]]+`.
+
+O erro antigo da interface era genérico para qualquer falha do RPC, portanto não
+comprova sozinho que a função está ausente. Após republicar `analyze-inbox-service`,
+função ausente (`PGRST202`/`42883`) informa `INBOX_ANALYSIS_NOT_INSTALLED`. Outras
+falhas retornam `INBOX_ANALYSIS_QUERY_FAILED`. Somente o código do banco é
+registrado no log; históricos e credenciais não são registrados.
+
+Para validar no Cloud, aplicar a migração, republicar `analyze-inbox-service` e,
+com sessão autenticada, gerar uma análise de uma mensagem inicial conhecida.
+Conferir a prévia e o download do PDF. Sem correspondência deve haver aviso de
+nenhuma conversa, sem chamada à IA. Não é necessário trocar regras de RLS.
+
+Teste local do SQL real com dados fictícios:
+
+```sh
+node scripts/test-inbox-analysis-db.mjs
+```
+
+Esse teste não acessa clientes nem o banco remoto. A verificação no Cloud e a
+chamada real ao provedor de IA continuam necessárias após a implantação.

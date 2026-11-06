@@ -40,7 +40,17 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.rpc("get_inbox_analysis_sample", {
       p_user_id: targetUserId, p_entry_message: body.entry_message.trim(),
     });
-    if (error) return json({ error: "Não foi possível selecionar os atendimentos. Verifique se a migração da análise foi aplicada." }, 500);
+    if (error) {
+      // Log only the database code, never histories, user input or credentials.
+      console.error("inbox_analysis_sample_failed", { code: error.code });
+      const missingFunction = error.code === "PGRST202" || error.code === "42883";
+      return json({
+        code: missingFunction ? "INBOX_ANALYSIS_NOT_INSTALLED" : "INBOX_ANALYSIS_QUERY_FAILED",
+        error: missingFunction
+          ? "A busca da análise ainda não foi instalada no banco. Peça ao administrador para aplicar a migração 0011_restore_inbox_analysis_sample no Lovable Cloud."
+          : "Não foi possível consultar os atendimentos. Tente novamente. Se persistir, peça ao suporte para verificar os logs da análise.",
+      }, missingFunction ? 503 : 500);
+    }
     const conversations = data as SampleConversation[];
     if (!Array.isArray(conversations) || !conversations.length) {
       return json({ error: "Nenhuma conversa começa com essa mensagem. Confira o texto e a pontuação." }, 404);

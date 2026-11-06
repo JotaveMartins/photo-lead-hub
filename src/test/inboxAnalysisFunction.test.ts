@@ -12,9 +12,9 @@ const report = {
   summary: "Processo observado", stages: [1,2,3].map((n) => ({ title: `Etapa ${n}`, observed: "Há uma pergunta", suggestedMessage: "Olá, [nome]" })),
   strengths: [], improvements: [], limitations: [], cases: [{ conversation: "Conversa 01", observed: "Sem resposta adicional", nextStep: "Retomar" }],
 };
-function setup({ isAdmin = false, selected = sample, provider = "openai", responseStatus = 200, active = true } = {}) {
+function setup({ isAdmin = false, selected = sample, provider = "openai", responseStatus = 200, active = true, sampleError = null as null | { code: string } } = {}) {
   let handler: (request: Request) => Promise<Response>;
-  const rpc = vi.fn(async (name: string) => ({ data: name === "has_role" ? isAdmin : name === "has_active_crm_access" ? active : selected, error: null }));
+  const rpc = vi.fn(async (name: string) => ({ data: name === "has_role" ? isAdmin : name === "has_active_crm_access" ? active : selected, error: name === "get_inbox_analysis_sample" ? sampleError : null }));
   const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: { value: { provider, openai_model: "gpt-4o" } }, error: null }) };
   const client = { auth: { getUser: async () => ({ data: { user: { id: owner } }, error: null }) }, rpc, from: () => query };
   const fetchMock = vi.fn(async (_url: string, _options: unknown) => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(report) } }] }), { status: responseStatus }));
@@ -22,7 +22,7 @@ function setup({ isAdmin = false, selected = sample, provider = "openai", respon
   runInNewContext(code, {
     exports: {}, require: (name: string) => name.includes("report.ts") ? reportHelpers : name.includes("account-access.ts") ? { inactiveCrmResponse } : { createClient: () => client },
     Deno: { env: { get: () => "test-value" }, serve: (fn: typeof handler) => { handler = fn; } },
-    Response, AbortSignal: { timeout: () => new AbortController().signal }, fetch: fetchMock,
+    console: { error: vi.fn() }, Response, AbortSignal: { timeout: () => new AbortController().signal }, fetch: fetchMock,
   });
   const call = (body: unknown, auth = true) => handler(new Request("https://example.test", { method: "POST", headers: auth ? { Authorization: "Bearer test" } : {}, body: JSON.stringify(body) }));
   return { call, rpc, fetchMock };
@@ -57,6 +57,20 @@ describe("Inbox analysis endpoint permissions and generation", () => {
     const app = setup({ active: false });
     expect((await app.call({ entry_message: "Olá, anúncio" })).status).toBe(403);
     expect(app.rpc).not.toHaveBeenCalledWith("get_inbox_analysis_sample", expect.anything());
+    expect(app.fetchMock).not.toHaveBeenCalled();
+  });
+  it("identifies a missing RPC without calling AI", async () => {
+    const app = setup({ sampleError: { code: "PGRST202" } });
+    const response = await app.call({ entry_message: "Olá, anúncio" });
+    expect(response.status).toBe(503);
+    expect((await response.json()).code).toBe("INBOX_ANALYSIS_NOT_INSTALLED");
+    expect(app.fetchMock).not.toHaveBeenCalled();
+  });
+  it("does not misdiagnose every database failure as a missing migration", async () => {
+    const app = setup({ sampleError: { code: "42501" } });
+    const response = await app.call({ entry_message: "Olá, anúncio" });
+    expect(response.status).toBe(500);
+    expect((await response.json()).code).toBe("INBOX_ANALYSIS_QUERY_FAILED");
     expect(app.fetchMock).not.toHaveBeenCalled();
   });
   it("does not call or charge AI when no conversation matches", async () => {
