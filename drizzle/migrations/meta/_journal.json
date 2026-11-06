@@ -85,6 +85,13 @@
       "when": 1793966400000,
       "tag": "0011_restore_inbox_analysis_sample",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793970355635,
+      "tag": "0012_reload_schema_after_inbox_analysis",
+      "breakpoints": true
     }
   ]
 }

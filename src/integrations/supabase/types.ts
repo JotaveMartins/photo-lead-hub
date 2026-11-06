@@ -2720,6 +2720,10 @@ export type Database = {
         Returns: Json
       }
       get_crm_account_access: { Args: { p_user_id?: string }; Returns: Json }
+      get_inbox_analysis_sample: {
+        Args: { p_entry_message: string; p_user_id: string }
+        Returns: Json
+      }
       get_public_gallery: {
         Args: { _slug: string }
         Returns: {
