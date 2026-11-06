@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CRM_PLANS } from "@/lib/accountAccess";
+import { adminClientReturnPath } from "@/lib/adminClientLink";
 import logo from "@/assets/logo.png";
 
 const emailSchema = z.string().email("Email inválido").max(255);
@@ -23,12 +24,14 @@ const Auth = ({ mode = "login" }: { mode?: "login" | "signup" }) => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = adminClientReturnPath(location.state?.returnTo);
 
   useEffect(() => {
     if (user) {
-      navigate("/");
+      navigate(returnTo, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, returnTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +56,7 @@ const Auth = ({ mode = "login" }: { mode?: "login" | "signup" }) => {
           }
         } else {
           toast.success("Login realizado com sucesso!");
-          navigate("/");
+          navigate(returnTo, { replace: true });
         }
       } else {
         const { error, needsEmailConfirmation } = await signUp(email, password, nome);
@@ -68,7 +71,7 @@ const Auth = ({ mode = "login" }: { mode?: "login" | "signup" }) => {
             setConfirmationSent(true);
           } else {
             toast.success("Conta criada! Seu teste grátis de 60 dias começou.");
-            navigate("/");
+            navigate(returnTo, { replace: true });
           }
         }
       }

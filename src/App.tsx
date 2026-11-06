@@ -17,6 +17,7 @@ import Auth from "./pages/Auth";
 import LeadsPage from "./pages/LeadsPage";
 import TarefasPage from "./pages/TarefasPage";
 import AdminPage from "./pages/AdminPage";
+import AdminClientEntryPage from "./pages/AdminClientEntryPage";
 import NotFound from "./pages/NotFound";
 import DespesasPage from "./pages/DespesasPage";
 import RelatoriosPage from "./pages/RelatoriosPage";
@@ -98,12 +99,15 @@ const EstudioProtectedLayout = () => {
 };
 
 const AdminProtectedLayout = () => {
+  const location = useLocation();
   const { user, loading } = useAuth();
   const { isAdmin, isLoading: isRoleLoading } = useUserRole();
 
   if (loading || isRoleLoading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/leads" replace />;
+  if (!user) return <Navigate to="/auth" state={{ returnTo: location.pathname }} replace />;
+  if (!isAdmin) return location.pathname.startsWith("/admin/clientes/")
+    ? <p role="alert" className="p-6">Acesso restrito aos administradores do CRM.</p>
+    : <Navigate to="/leads" replace />;
 
   return (
     <DashboardLayout>
@@ -151,6 +155,7 @@ const AppRoutes = () => {
       <Route element={<AdminProtectedLayout />}>
         <Route path="/anuncios" element={<AnunciosPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/clientes/:userId" element={<AdminClientEntryPage />} />
       </Route>
 
       <Route element={<EstudioProtectedLayout />}>

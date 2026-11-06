@@ -22,21 +22,43 @@ Deno.serve(async (req) => {
   if (typeof from !== 'string' || typeof to !== 'string' || !DATE.test(from) || !DATE.test(to))
     return json({ error: 'from/to inválidos' }, 400)
 
-  const norm = (s: string) => s.replace(/^act_/, '').trim()
+  const norm = (s: string) => s.trim().replace(/^act_/i, '')
   const wanted = [...new Set(accounts.map(norm).filter(Boolean))]
-  const result: Record<string, { in_crm: boolean; whatsapp_connected: boolean; leads: number }> = {}
-  for (const a of wanted) result[a] = { in_crm: false, whatsapp_connected: false, leads: 0 }
+  const result: Record<string, { in_crm: boolean; whatsapp_connected: boolean; leads: number; client_url: string | null }> = {}
+  for (const a of wanted) result[a] = { in_crm: false, whatsapp_connected: false, leads: 0, client_url: null }
   if (!wanted.length) return json({ accounts: result })
 
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   const variants = wanted.flatMap((a) => [a, `act_${a}`])
-  const { data: profiles, error } = await db.from('profiles').select('user_id, meta_ad_account_id').in('meta_ad_account_id', variants)
-  if (error) return json({ error: error.message }, 500)
+  // Read every match: the REST row limit must not hide an ambiguous mapping.
+  const profiles: { user_id: string; meta_ad_account_id: string | null }[] = []
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await db.from('profiles').select('user_id, meta_ad_account_id')
+      .in('meta_ad_account_id', variants).order('user_id').range(offset, offset + 999)
+    if (error) return json({ error: error.message }, 500)
+    profiles.push(...(data ?? []))
+    if (!data || data.length < 1000) break
+  }
 
+  const accountUsers = new Map<string, Set<string>>()
   const userToAcc = new Map<string, string>()
   for (const p of profiles ?? []) {
     const acc = norm(String(p.meta_ad_account_id))
-    if (result[acc]) { result[acc].in_crm = true; userToAcc.set(p.user_id, acc) }
+    if (result[acc]) {
+      result[acc].in_crm = true
+      userToAcc.set(p.user_id, acc)
+      const users = accountUsers.get(acc) ?? new Set<string>()
+      users.add(p.user_id)
+      accountUsers.set(acc, users)
+    }
+  }
+  for (const [acc, users] of accountUsers) {
+    if (users.size === 1) {
+      const userId = [...users][0]
+      // This is a navigation destination, never an authentication credential.
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
+        result[acc].client_url = `https://crm.avanzodigital.com.br/admin/clientes/${userId}`
+    }
   }
   const userIds = [...userToAcc.keys()]
   if (!userIds.length) return json({ accounts: result })
