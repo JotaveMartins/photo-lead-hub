@@ -81,7 +81,7 @@ export const useConnectInstagram = () => {
         const handler = (ev: MessageEvent) => {
           if (
             ev.source === popup &&
-            ev.origin === new URL(import.meta.env.VITE_SUPABASE_URL).origin &&
+            ev.origin === window.location.origin &&
             ev.data?.type === "instagram-auth"
           ) {
             cleanup();

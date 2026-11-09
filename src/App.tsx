@@ -11,6 +11,7 @@ import ContaBloqueadaPage from "@/pages/ContaBloqueadaPage";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import AccountAccessGate from "@/components/account/AccountAccessGate";
 import GoogleCalendarOAuthCallbackPage from "./pages/GoogleCalendarOAuthCallbackPage";
+import InstagramOAuthCallbackPage from "./pages/InstagramOAuthCallbackPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import { ReviewLocaleProvider, reviewLocaleFor } from "@/i18n/ReviewLocale";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -127,6 +128,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/oauth/google-calendar/callback" element={<GoogleCalendarOAuthCallbackPage />} />
+      <Route path="/oauth/instagram/callback" element={<InstagramOAuthCallbackPage />} />
       <Route path="/cadastro" element={<Auth mode="signup" />} />
       <Route path="/assinatura" element={<AssinaturaPage />} />
       <Route path="/g/:slug" element={<GaleriaPublicaPage />} />

@@ -49,7 +49,9 @@ describe("Instagram Edge Functions", () => {
         .mockResolvedValueOnce(json({ access_token: "long", expires_in: 3600 }))
         .mockResolvedValueOnce(json({ id, username }));
       const result = await app.handle(await callbackRequest());
-      expect(await result.text()).toContain("Instagram conectado!");
+      expect(result.status).toBe(303);
+      expect(result.headers.get("location")).toBe("https://crm.avanzodigital.com.br/oauth/instagram/callback?result=success");
+      expect(await result.text()).toBe("");
     }
     expect(rows.size).toBe(2);
     expect(rows.get("owner:instagram:ig-a")).toMatchObject({ id: "connection-1", username: "primeiro_atualizado" });
@@ -175,5 +177,47 @@ describe("Published Instagram permalink", () => {
     const { app, fetchMock } = publishing({ alreadyPublished: true });
     expect(await app.exports.publishPost("post")).toMatchObject({ alreadyPublished: true, media_id: "real-media-id" });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("Instagram callback redirect", () => {
+  async function stateFor(origin: string, ts = Date.now()) {
+    const payload = btoa(JSON.stringify({ uid: "owner", ts, origin }));
+    const key = await webcrypto.subtle.importKey("raw", new TextEncoder().encode("test-signing-key"), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await webcrypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+    return `${payload}.${Buffer.from(sig).toString("base64url")}`;
+  }
+  const req = async (params: Record<string, string>) => new Request(`https://example.supabase.co/functions/v1/instagram-auth-callback?${new URLSearchParams(params)}`);
+
+  it("redirects a successful connection to the signed CRM origin without tokens", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const fetchMock = vi.fn().mockResolvedValueOnce(json({ access_token: "short-token" }))
+      .mockResolvedValueOnce(json({ access_token: "long-token", expires_in: 3600 }))
+      .mockResolvedValueOnce(json({ id: "ig-1", username: "perfil" }));
+    const app = loadFunction("instagram-auth-callback", { from: () => ({ upsert }) }, fetchMock);
+    const result = await app.handle(await req({ code: "c", state: await stateFor("https://preview.example.test") }));
+    expect(result.status).toBe(303);
+    const location = result.headers.get("location")!;
+    expect(location).toBe("https://preview.example.test/oauth/instagram/callback?result=success");
+    expect(location).not.toContain("long-token");
+    expect(result.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("redirects a denied authorization without contacting Instagram or saving", async () => {
+    const fetchMock = vi.fn(); const from = vi.fn();
+    const app = loadFunction("instagram-auth-callback", { from }, fetchMock);
+    const result = await app.handle(await req({ error: "access_denied", error_description: "<script>x</script>", state: await stateFor("https://preview.example.test") }));
+    expect(result.headers.get("location")).toBe("https://preview.example.test/oauth/instagram/callback?result=error&reason=denied");
+    expect(fetchMock).not.toHaveBeenCalled(); expect(from).not.toHaveBeenCalled();
+  });
+
+  it("sends missing, forged or unsafe states to the production CRM", async () => {
+    const app = loadFunction("instagram-auth-callback", { from: vi.fn() }, vi.fn());
+    const missing = await app.handle(await req({}));
+    expect(missing.headers.get("location")).toBe("https://crm.avanzodigital.com.br/oauth/instagram/callback?result=error&reason=missing_parameters");
+    const forged = await app.handle(await req({ code: "c", state: "abc.def" }));
+    expect(forged.headers.get("location")).toBe("https://crm.avanzodigital.com.br/oauth/instagram/callback?result=error&reason=invalid_state");
+    const unsafe = await app.handle(await req({ error: "access_denied", state: await stateFor("javascript:alert(1)") }));
+    expect(unsafe.headers.get("location")).toBe("https://crm.avanzodigital.com.br/oauth/instagram/callback?result=error&reason=denied");
   });
 });
