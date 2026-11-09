@@ -2300,7 +2300,6 @@ export type Database = {
           carousel_id: string
           created_at: string
           id: string
-          instagram_permalink: string | null
           instagram_media_id: string | null
           last_error: string | null
           published_at: string | null
@@ -2316,7 +2315,6 @@ export type Database = {
           carousel_id: string
           created_at?: string
           id?: string
-          instagram_permalink?: string | null
           instagram_media_id?: string | null
           last_error?: string | null
           published_at?: string | null
@@ -2332,7 +2330,6 @@ export type Database = {
           carousel_id?: string
           created_at?: string
           id?: string
-          instagram_permalink?: string | null
           instagram_media_id?: string | null
           last_error?: string | null
           published_at?: string | null
