@@ -13,9 +13,10 @@ interface Props {
   privacy: boolean;
   currentMonth: boolean;
   onSelect: (account: ScoredAccount) => void;
+  populationLabel?: string;
 }
 
-const UsageAdoptionSummary = ({ accounts, previousByUser, monthLabel, privacy, currentMonth, onSelect }: Props) => {
+const UsageAdoptionSummary = ({ accounts, previousByUser, monthLabel, privacy, currentMonth, onSelect, populationLabel }: Props) => {
   const [showAll, setShowAll] = useState(false);
   const focus = useMemo(() => buildAdoptionFocus(accounts, previousByUser), [accounts, previousByUser]);
   const indices = new Map(accounts.map((account, index) => [account.row.user_id, index]));
@@ -29,7 +30,7 @@ const UsageAdoptionSummary = ({ accounts, previousByUser, monthLabel, privacy, c
   const criteria = "Critério atual: acesso ao CRM, movimentação do pipeline e score de pelo menos 10. A atividade do WhatsApp, sozinha, não comprova uso do CRM.";
   const copy = async () => {
     const text = [
-      `Foco da equipe | ${monthLabel}${currentMonth ? " (mês em andamento)" : ""}`,
+      `Foco da equipe${populationLabel ? ` | ${populationLabel}` : ""} | ${monthLabel}${currentMonth ? " (mês em andamento)" : ""}`,
       intro,
       ...focus.attention.map((item, index) => `${index + 1}. ${name(item.account)}\nFoco: ${item.focus}\nMotivo: ${item.reason}\nAção sugerida: ${item.action}`),
       criteria,
@@ -41,7 +42,7 @@ const UsageAdoptionSummary = ({ accounts, previousByUser, monthLabel, privacy, c
 
   return <section aria-label="Foco da equipe para aumentar a adoção" className="mb-6 rounded-xl border border-primary/20 bg-card p-4 sm:p-5 space-y-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 className="flex items-center gap-2 font-display text-lg font-semibold"><Target className="h-5 w-5 text-primary" />Foco da equipe</h2><p className="text-xs text-muted-foreground capitalize">{monthLabel}{currentMonth && " | mês em andamento"}</p></div>
+      <div><h2 className="flex items-center gap-2 font-display text-lg font-semibold"><Target className="h-5 w-5 text-primary" />Foco da equipe</h2><p className="text-xs text-muted-foreground capitalize">{monthLabel}{currentMonth && " | mês em andamento"}{populationLabel && ` | ${populationLabel}`}</p></div>
       <Button variant="outline" size="sm" onClick={copy} disabled={!focus.total}><ClipboardCopy className="mr-1 h-4 w-4" />Copiar resumo</Button>
     </div>
     <p className="text-sm leading-relaxed text-foreground">{intro}</p>

@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { ErrorState } from "@/components/ui/error-state";
+import { useState, useMemo, useEffect } from "react";
 import { BarChart3, Users, PhoneCall, FileText, Send, Trophy, XCircle, DollarSign, TrendingUp, Percent } from "lucide-react";
 import { useReportData, type ReportLead } from "@/hooks/useReportData";
 import ReportFilters, { PeriodOption, getDateRange } from "@/components/reports/ReportFilters";
@@ -42,8 +43,9 @@ const RelatoriosPage = () => {
     averageDays: number | null;
   } | null>(null);
 
-  const { leads: allLeads, tasks, profiles, stages, stageHistory, isLoading, isAdmin } = useReportData({ clienteUserId });
+  const { leads: allLeads, tasks, profiles, stages, stageHistory, isLoading, isAdmin, error, refetch, populationKey } = useReportData({ clienteUserId });
   const planoBasico = usePlanoBasico();
+  useEffect(() => { setDrillDown(null); setConversionDrill(null); }, [populationKey]);
 
   const dateRange = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
 
@@ -393,6 +395,7 @@ const RelatoriosPage = () => {
     { label: "Taxa de Conversão", value: `${kpis.taxa.toFixed(1)}%`, icon: Percent, clickKey: null },
   ];
 
+  if (error) return <ErrorState title="Não foi possível carregar os relatórios" description={isAdmin ? "Confira a classificação das contas antes de consultar o consolidado." : "Tente novamente para carregar os dados da sua conta."} onRetry={() => void refetch()} />;
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -409,6 +412,7 @@ const RelatoriosPage = () => {
           Relatórios
         </h1>
         <p className="text-muted-foreground mt-1">Análise de performance e conversão</p>
+        {isConsolidated && <p className="mt-1 text-xs text-muted-foreground">Somente clientes ativos. Testes grátis, contas bloqueadas, vencidas e internas ficam fora deste consolidado.</p>}
       </header>
 
       {/* Filters */}

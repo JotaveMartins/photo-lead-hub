@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useAdminAccounts } from "@/hooks/useAdminAccounts";
+import { useAdminAccountSegments } from "@/hooks/useAdminAccountSegments";
 import type { Tables } from "@/integrations/supabase/types";
 import type { PipelineStageRow, StageHistoryEventRow } from "@/lib/leadPipelineReporting";
 
@@ -39,21 +39,20 @@ export const useReportData = (params: UseReportDataParams = {}) => {
   const { user } = useAuth();
   const effectiveUserId = useEffectiveUserId();
   const { isAdmin } = useUserRole();
-  const { adminUserIds, isReady: adminAccountsReady } = useAdminAccounts();
+  const directory = useAdminAccountSegments();
+  const customerIds = directory.customerIds;
 
   const isConsolidated = isAdmin && params.clienteUserId === ALL_CLIENTS;
 
   const leadsQuery = useQuery({
-    queryKey: ["report-leads", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
+    queryKey: ["report-leads", effectiveUserId, isAdmin, params.clienteUserId, customerIds],
     queryFn: async () => {
       const build = () => {
         let query = supabase.from("leads").select("*");
 
-      // Admin: "__all__" = consolidado (exclui contas de administrador — dados fictícios)
+      // Consolidated reports use only the explicit active customer population.
       if (isConsolidated) {
-        if (adminUserIds.length > 0) {
-          query = query.not("user_id", "in", `(${adminUserIds.join(",")})`);
-        }
+        query = query.in("user_id", customerIds);
       } else if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
       } else {
@@ -63,21 +62,20 @@ export const useReportData = (params: UseReportDataParams = {}) => {
 
         return query;
       };
+      if (isConsolidated && !customerIds.length) return [];
       return fetchAll<ReportLead>(build);
     },
-    enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
+    enabled: !!effectiveUserId && (!isConsolidated || directory.isReady),
   });
 
   const tasksQuery = useQuery({
-    queryKey: ["report-tasks", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
+    queryKey: ["report-tasks", effectiveUserId, isAdmin, params.clienteUserId, customerIds],
     queryFn: async () => {
       const build = () => {
         let query = supabase.from("lead_tasks").select("*");
 
       if (isConsolidated) {
-        if (adminUserIds.length > 0) {
-          query = query.not("user_id", "in", `(${adminUserIds.join(",")})`);
-        }
+        query = query.in("user_id", customerIds);
       } else if (isAdmin && params.clienteUserId) {
         query = query.eq("user_id", params.clienteUserId);
       } else {
@@ -86,22 +84,23 @@ export const useReportData = (params: UseReportDataParams = {}) => {
 
         return query;
       };
+      if (isConsolidated && !customerIds.length) return [];
       return fetchAll<ReportTask>(build);
     },
-    enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
+    enabled: !!effectiveUserId && (!isConsolidated || directory.isReady),
   });
 
 
   // Sprint 02: etapas do funil e histórico de movimentações (fonte semântica dos relatórios)
   const stagesQuery = useQuery({
-    queryKey: ["report-pipeline-stages", effectiveUserId, isAdmin, params.clienteUserId],
+    queryKey: ["report-pipeline-stages", effectiveUserId, isAdmin, params.clienteUserId, customerIds],
     queryFn: async () => {
       const build = () => {
         let query = supabase
           .from("pipeline_stages")
           .select("id, user_id, name, color_key, position, stage_role, legacy_status");
         if (isConsolidated) {
-          // consolidado: precisa das etapas de todas as contas para classificar cada lead
+          query = query.in("user_id", customerIds);
         } else if (isAdmin && params.clienteUserId) {
           query = query.eq("user_id", params.clienteUserId);
         } else {
@@ -109,22 +108,21 @@ export const useReportData = (params: UseReportDataParams = {}) => {
         }
         return query;
       };
+      if (isConsolidated && !customerIds.length) return [];
       return fetchAll<ReportStage>(build);
     },
-    enabled: !!effectiveUserId,
+    enabled: !!effectiveUserId && (!isConsolidated || directory.isReady),
   });
 
   const historyQuery = useQuery({
-    queryKey: ["report-lead-stage-history", effectiveUserId, isAdmin, params.clienteUserId, adminUserIds],
+    queryKey: ["report-lead-stage-history", effectiveUserId, isAdmin, params.clienteUserId, customerIds],
     queryFn: async () => {
       const build = () => {
         let query = supabase
           .from("lead_stage_history")
           .select("lead_id, to_stage_id, to_stage_role, entered_at");
         if (isConsolidated) {
-          if (adminUserIds.length > 0) {
-            query = query.not("user_id", "in", `(${adminUserIds.join(",")})`);
-          }
+          query = query.in("user_id", customerIds);
         } else if (isAdmin && params.clienteUserId) {
           query = query.eq("user_id", params.clienteUserId);
         } else {
@@ -132,9 +130,10 @@ export const useReportData = (params: UseReportDataParams = {}) => {
         }
         return query;
       };
+      if (isConsolidated && !customerIds.length) return [];
       return fetchAll<ReportStageHistory>(build);
     },
-    enabled: !!effectiveUserId && (!isConsolidated || adminAccountsReady),
+    enabled: !!effectiveUserId && (!isConsolidated || directory.isReady),
   });
 
   const profilesQuery = useQuery({
@@ -153,14 +152,17 @@ export const useReportData = (params: UseReportDataParams = {}) => {
   return {
     leads: leadsQuery.data ?? [],
     tasks: tasksQuery.data ?? [],
-    profiles: profilesQuery.data ?? [],
+    profiles: directory.isReady ? (profilesQuery.data ?? []).filter(profile => customerIds.includes(profile.user_id)) : [],
     stages: stagesQuery.data ?? [],
     stageHistory: historyQuery.data ?? [],
     isLoading:
       leadsQuery.isLoading ||
       tasksQuery.isLoading ||
       stagesQuery.isLoading ||
-      historyQuery.isLoading,
+      historyQuery.isLoading || (isAdmin && directory.isLoading),
+    error: leadsQuery.error || tasksQuery.error || stagesQuery.error || historyQuery.error || profilesQuery.error || (isAdmin ? directory.error : null),
+    refetch: () => Promise.all([...(isAdmin ? [directory.refetch(), profilesQuery.refetch()] : []), leadsQuery.refetch(), tasksQuery.refetch(), stagesQuery.refetch(), historyQuery.refetch()]),
+    populationKey: isConsolidated ? customerIds.join(",") : params.clienteUserId || effectiveUserId || "",
     isAdmin,
   };
 };

@@ -1,18 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useAdminUsers = () => {
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const rows: Tables<"profiles">[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.from("profiles").select("*")
+          .order("created_at", { ascending: false }).order("id").range(offset, offset + 999);
+        if (error) throw error;
+        rows.push(...(data ?? []));
+        if (!data || data.length < 1000) return rows;
+      }
     },
   });
 
@@ -31,6 +34,9 @@ export const useAdminUsers = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-access"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-account-segments"] });
+      queryClient.invalidateQueries({ queryKey: ["usage-metrics"] });
     },
   });
 
@@ -46,8 +52,11 @@ export const useAdminUsers = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-crm-access"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-account-segments"] });
+      queryClient.invalidateQueries({ queryKey: ["usage-metrics"] });
     },
   });
 
-  return { users, isLoading, createUser, deleteUser };
+  return { users, isLoading, error, refetch, createUser, deleteUser };
 };

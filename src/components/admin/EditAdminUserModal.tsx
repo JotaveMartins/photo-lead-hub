@@ -110,7 +110,10 @@ const EditAdminUserModal = ({ open, onClose, user }: Props) => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-crm-access"] });
+      qc.invalidateQueries({ queryKey: ["admin-account-segments"] });
       qc.invalidateQueries({ queryKey: ["profiles-meta"] });
+      qc.invalidateQueries({ queryKey: ["report-profiles"] });
       qc.invalidateQueries({ queryKey: ["admin-user-estudio-role"] });
       qc.invalidateQueries({ queryKey: ["user-role-estudio"] });
       toast({ title: "Configurações atualizadas" });

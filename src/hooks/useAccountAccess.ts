@@ -20,7 +20,8 @@ export const useAccountAccess = (targetUserId?: string | null) => {
 };
 
 const adminAccessRowSchema = z.object({ nome: z.string().nullable(), email: z.string().nullable(), created_at: z.string(), access: accountAccessSchema });
-export const useAdminAccountAccess = () => useQuery({
+export const useAdminAccountAccess = (enabled = true) => useQuery({
+  enabled,
   queryKey: ["admin-crm-access"],
   queryFn: async () => {
     const { data, error } = await supabase.rpc("admin_list_crm_access");
@@ -43,6 +44,8 @@ export const useManageAccountAccess = () => {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["admin-crm-access"] });
       client.invalidateQueries({ queryKey: ["crm-account-access"] });
+      client.invalidateQueries({ queryKey: ["admin-account-segments"] });
+      client.invalidateQueries({ queryKey: ["report-profiles"] });
     },
   });
 };

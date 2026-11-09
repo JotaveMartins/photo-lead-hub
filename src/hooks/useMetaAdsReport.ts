@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useAdminAccounts } from "@/hooks/useAdminAccounts";
+import { useAdminAccountSegments } from "@/hooks/useAdminAccountSegments";
 
 export interface MetaAdsRow {
   date: string;
@@ -26,7 +26,9 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
   const { user } = useAuth();
   const effectiveUserId = useEffectiveUserId();
   const { isAdmin } = useUserRole();
-  const { adminUserIds, adminAdAccountIds, isReady: adminAccountsReady } = useAdminAccounts();
+  const directory = useAdminAccountSegments();
+  const customerIds = directory.customerIds;
+  const adIds = directory.customerAdAccountIds;
 
   // Admin: "__all__" = consolidado (sem filtro); vazio = dados da própria conta
   const targetUserId = isAdmin
@@ -36,17 +38,19 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
     : effectiveUserId;
 
   return useQuery({
-    queryKey: ["meta_ads_report", from, to, isAdmin, targetUserId, adminUserIds],
+    queryKey: ["meta_ads_report", from, to, isAdmin, targetUserId, customerIds, adIds],
     queryFn: async () => {
+      if (!targetUserId && !customerIds.length) return [];
       // Resolve the ad account linked to the target profile so rows that are not
       // linked by client_id still show up for that client.
       let adAccountIds: string[] | null = null;
       if (targetUserId) {
-        const { data: prof } = await supabase
+        const { data: prof, error: profileError } = await supabase
           .from("profiles")
           .select("meta_ad_account_id")
           .eq("user_id", targetUserId)
           .maybeSingle();
+        if (profileError) throw profileError;
         const acc = prof?.meta_ad_account_id;
         if (acc) {
           const bare = acc.startsWith("act_") ? acc.slice(4) : acc;
@@ -73,23 +77,25 @@ export function useMetaAdsReport(from: string, to: string, clienteUserId?: strin
             q = q.eq("client_id", targetUserId);
           }
         }
-        const { data, error } = await q;
+        if (!targetUserId) {
+          const matches = [`client_id.in.(${customerIds.join(",")})`];
+          if (adIds.length) matches.push(`and(client_id.is.null,ad_account_id.in.(${adIds.join(",")}))`);
+          q = q.or(matches.join(","));
+        }
+        const { data, error } = await q.order("id");
         if (error) throw error;
         if (!data || data.length === 0) break;
         all.push(...(data as MetaAdsRow[]));
         if (data.length < PAGE) break;
         offset += PAGE;
       }
-      // Consolidado (sem cliente selecionado): remove contas de administrador (dados fictícios)
-      if (!targetUserId && (adminUserIds.length > 0 || adminAdAccountIds.length > 0)) {
-        return all.filter(
-          (r) =>
-            !(r.client_id && adminUserIds.includes(r.client_id)) &&
-            !(r.ad_account_id && adminAdAccountIds.includes(r.ad_account_id)),
-        );
+      if (!targetUserId) {
+        const customers = new Set(customerIds);
+        const accounts = new Set(adIds);
+        return all.filter(row => row.client_id ? customers.has(row.client_id) : accounts.has(row.ad_account_id));
       }
       return all;
     },
-    enabled: !!user && (isAdmin || !!effectiveUserId) && (!!targetUserId || adminAccountsReady),
+    enabled: !!user && (isAdmin || !!effectiveUserId) && (!!targetUserId || directory.isReady),
   });
 }

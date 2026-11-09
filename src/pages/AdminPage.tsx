@@ -1,3 +1,8 @@
+import { ErrorState } from "@/components/ui/error-state";
+import AccountDirectoryFilters from "@/components/admin/AccountDirectoryFilters";
+import { useAdminAccountSegments } from "@/hooks/useAdminAccountSegments";
+import { accountSegmentLabel, directoryMatches, directorySearchMatches, isActiveCustomer, type DirectorySegment, type DirectoryStatus } from "@/lib/accountSegments";
+import { accessStatusLabel } from "@/lib/accountAccess";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -27,7 +32,22 @@ const AdminPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ user_id: string; nome: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<any | null>(null);
-  const { users, isLoading, deleteUser } = useAdminUsers();
+  const { users, isLoading, deleteUser, error: usersError, refetch: refetchUsers } = useAdminUsers();
+  const directory = useAdminAccountSegments();
+  const [segment, setSegment] = useState<DirectorySegment>("customers");
+  const [accessFilter, setAccessFilter] = useState<DirectoryStatus>("active");
+  const [search, setSearch] = useState("");
+  const visibleUsers = directory.isReady ? (users ?? []).filter(row => {
+    const account = directory.byUser.get(row.user_id);
+    return !!account && directoryMatches(account, { segment, status: accessFilter }) && directorySearchMatches(row, search);
+  }) : [];
+  const directoryAccounts = [...directory.byUser.values()];
+  const counts = {
+    customers: directoryAccounts.filter(isActiveCustomer).length,
+    trials: directoryAccounts.filter(a => a.segment === "trials" && !a.blocked && a.access?.allowed).length,
+    expiredTrials: directoryAccounts.filter(a => a.segment === "trials" && !a.blocked && a.access?.status === "expired").length,
+    blocked: directoryAccounts.filter(a => a.blocked).length,
+  };
   const { user: currentUser } = useAuth();
   const { startImpersonation } = useImpersonation();
   const { toast } = useToast();
@@ -40,9 +60,10 @@ const AdminPage = () => {
     return new Date(now.getFullYear(), now.getMonth() - 1, 1);
   }, []);
   const { accounts: usageAccounts } = useUsageMetrics(lastMonth);
+  const { accounts: trialUsageAccounts } = useUsageMetrics(lastMonth, "trials");
   const usageScores = useMemo(
-    () => new Map(usageAccounts.map((a) => [a.row.user_id, a.score])),
-    [usageAccounts],
+    () => new Map([...usageAccounts, ...trialUsageAccounts].map((a) => [a.row.user_id, a.score])),
+    [usageAccounts, trialUsageAccounts],
   );
 
 
@@ -57,6 +78,8 @@ const AdminPage = () => {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-account-segments"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-crm-access"] });
     toast({ title: block ? "Conta bloqueada" : "Conta desbloqueada" });
   };
 
@@ -90,7 +113,7 @@ const AdminPage = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Clientes</h1>
-          <p className="text-muted-foreground">Gerencie as contas dos seus clientes</p>
+          <p className="text-muted-foreground">Gerencie clientes, testes grátis e a situação de acesso de cada conta.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -108,6 +131,10 @@ const AdminPage = () => {
         </div>
       </div>
 
+      <AccountDirectoryFilters segment={segment} status={accessFilter} search={search} onSegment={setSegment} onStatus={setAccessFilter} onSearch={setSearch} counts={counts} ready={directory.isReady} />
+      <p className="mb-3 text-xs text-muted-foreground">{directory.isReady ? `${visibleUsers.length} conta(s) no filtro atual` : "Carregando classificação das contas..."} · Os relatórios consolidados consideram somente clientes ativos.</p>
+      <p className="mb-4 text-xs text-muted-foreground">Para converter um teste em cliente, libere o plano contratado em Acessos e testes. Bloquear uma conta não apaga seus dados.</p>
+      {(usersError || directory.error) && <ErrorState title="Não foi possível classificar as contas" description="Nenhuma conta será tratada automaticamente como cliente." onRetry={() => { void directory.refetch(); void refetchUsers(); }} />}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -124,18 +151,21 @@ const AdminPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {usersError || directory.error ? (
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Classificação indisponível. Use a opção de tentar novamente acima.</TableCell></TableRow>
+            ) : isLoading || directory.isLoading ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground">Carregando...</TableCell>
               </TableRow>
-            ) : users?.length === 0 ? (
+            ) : visibleUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground">Nenhuma conta encontrada para estes filtros</TableCell>
               </TableRow>
             ) : (
-              users?.map((user, idx) => {
+              visibleUsers.map((user, idx) => {
                 const displayName = privacy ? maskName(idx) : user.nome;
                 const displayEmail = privacy ? maskEmail() : user.email;
+                const account = directory.byUser.get(user.user_id)!;
                 return (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
@@ -147,6 +177,11 @@ const AdminPage = () => {
                         </span>
                       )}
                     </div>
+                    {account && <div className="mt-1 flex flex-wrap gap-1 text-[11px] text-muted-foreground">
+                      <span className="rounded border border-border px-1.5 py-0.5">{accountSegmentLabel(account.segment)}</span>
+                      <span className="rounded border border-border px-1.5 py-0.5">{account.blocked ? "Conta bloqueada" : account.access ? accessStatusLabel(account.access) : "Acesso não configurado"}</span>
+                      {account.segment === "trials" && account.access?.status === "trial" && <span className="py-0.5">{account.access!.days_remaining} dias restantes</span>}
+                    </div>}
                   </TableCell>
                   <TableCell>{displayEmail}</TableCell>
                   <TableCell>

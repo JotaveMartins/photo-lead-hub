@@ -4,6 +4,8 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Download, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { accessStatusLabel } from "@/lib/accountAccess";
+import type { UsagePopulation } from "@/lib/accountSegments";
 import { useUsageMetrics } from "@/hooks/useUsageMetrics";
 import { PILLARS, pillarLabel, type ScoredAccount } from "@/lib/usageScore";
 import UsageAdoptionSummary from "@/components/admin/UsageAdoptionSummary";
@@ -43,10 +45,16 @@ const StatusBadge = ({ status }: { status: AdocaoStatus }) => (
 );
 
 const UsageTab = () => {
+  const [population, setPopulation] = useState<UsagePopulation>("customers");
   const [month, setMonth] = useState<Date>(lastClosedMonth());
   const [selected, setSelected] = useState<ScoredAccount | null>(null);
-  const { accounts, previousByUser, isLoading, error, refetch } = useUsageMetrics(month);
+  const { accounts, accountDetails, previousByUser, isLoading, error, refetch } = useUsageMetrics(month, population);
   const { enabled: privacy } = usePrivacyMode();
+  const selectedAccount = selected ? accounts.find(account => account.row.user_id === selected.row.user_id) ?? null : null;
+  const switchPopulation = (value: UsagePopulation) => {
+    setPopulation(value); setSelected(null);
+    setMonth(value === "trials" ? new Date(new Date().getFullYear(), new Date().getMonth(), 1) : lastClosedMonth());
+  };
 
   const monthLabel = format(month, "MMMM 'de' yyyy", { locale: ptBR });
   const isCurrentOrFuture = month >= new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -82,7 +90,7 @@ const UsageTab = () => {
     const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `uso-crm-${format(month, "yyyy-MM")}.csv`;
+    a.download = `uso-crm-${population === "trials" ? "testes" : "clientes"}-${format(month, "yyyy-MM")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -93,8 +101,8 @@ const UsageTab = () => {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Uso do CRM</h1>
-          <p className="text-muted-foreground">Engajamento de cada conta no mês fechado</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{population === "trials" ? "Uso dos testes grátis" : "Uso dos clientes"}</h1>
+          <p className="text-muted-foreground">{population === "trials" ? "Acompanhe a adoção dos usuários de teste, incluindo testes vencidos. Contas bloqueadas ficam fora." : "Adoção dos clientes com plano ativo ou acesso anterior mantido. Testes e contas bloqueadas ou vencidas ficam fora."}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-border px-2 py-1">
@@ -119,28 +127,32 @@ const UsageTab = () => {
         </div>
       </div>
 
+      <div role="group" aria-label="Público do relatório de uso" className="mb-5 flex flex-wrap gap-2">
+        <Button variant={population === "customers" ? "default" : "outline"} aria-pressed={population === "customers"} onClick={() => switchPopulation("customers")}>Clientes</Button>
+        <Button variant={population === "trials" ? "default" : "outline"} aria-pressed={population === "trials"} onClick={() => switchPopulation("trials")}>Testes grátis</Button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Contas analisadas</p>
-          <p className="text-2xl font-bold text-foreground">{accounts.length}</p>
+          <p className="text-2xl font-bold text-foreground">{isLoading ? "..." : accounts.length}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Taxa de adoção</p>
-          <p className="text-2xl font-bold text-foreground">{taxaAdocao}%</p>
+          <p className="text-2xl font-bold text-foreground">{isLoading ? "..." : `${taxaAdocao}%`}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Score médio</p>
-          <p className="text-2xl font-bold text-foreground">{media}</p>
+          <p className="text-2xl font-bold text-foreground">{isLoading ? "..." : media}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Sem acesso no mês</p>
-          <p className="text-2xl font-bold text-foreground">{semAcesso}</p>
+          <p className="text-2xl font-bold text-foreground">{isLoading ? "..." : semAcesso}</p>
         </div>
       </div>
 
 
-      {!isLoading && <UsageAdoptionSummary key={format(month, "yyyy-MM")} accounts={accounts} previousByUser={previousByUser}
-        monthLabel={monthLabel} privacy={privacy} currentMonth={isCurrentOrFuture} onSelect={setSelected} />}
+      {!isLoading && <UsageAdoptionSummary key={`${population}-${format(month, "yyyy-MM")}`} accounts={accounts} previousByUser={previousByUser}
+        monthLabel={monthLabel} privacy={privacy} currentMonth={isCurrentOrFuture} onSelect={setSelected} populationLabel={population === "trials" ? "Testes grátis" : "Clientes ativos"} />}
 
       <div className="rounded-lg border bg-card overflow-x-auto">
         <Table>
@@ -170,6 +182,10 @@ const UsageTab = () => {
                 <TableRow key={a.row.user_id} className="cursor-pointer" onClick={() => setSelected(a)}>
                   <TableCell>
                     <p className="font-medium text-foreground">{privacy ? maskName(idx) : a.row.nome || "—"}</p>
+                    {population === "trials" && accountDetails.get(a.row.user_id)?.access && <p className="text-xs text-amber-500">
+                      {accessStatusLabel(accountDetails.get(a.row.user_id)!.access!)}
+                      {accountDetails.get(a.row.user_id)!.access!.status === "trial" && ` · ${accountDetails.get(a.row.user_id)!.access!.days_remaining} dias restantes`}
+                    </p>}
                     <p className="text-xs text-muted-foreground">
                       {a.row.acessou_no_mes ? "Acessou no mês" : "Sem acesso no mês"}
                     </p>
@@ -205,11 +221,11 @@ const UsageTab = () => {
       </div>
 
       <UsageDetailDrawer
-        open={!!selected}
+        open={!!selectedAccount}
         onOpenChange={(v) => { if (!v) setSelected(null); }}
-        account={selected}
-        accountName={selected && privacy ? maskName(accounts.findIndex((account) => account.row.user_id === selected.row.user_id)) : undefined}
-        previous={selected ? previousByUser.get(selected.row.user_id) ?? null : null}
+        account={selectedAccount}
+        accountName={selectedAccount && privacy ? maskName(accounts.findIndex((account) => account.row.user_id === selectedAccount.row.user_id)) : undefined}
+        previous={selectedAccount ? previousByUser.get(selectedAccount.row.user_id) ?? null : null}
         monthLabel={monthLabel}
       />
     </>

@@ -153,11 +153,11 @@ const ReportFilters = (props: ReportFiltersProps) => {
             value={props.clienteUserId}
             onChange={props.onClienteChange}
             options={[
-              { value: ALL_CLIENTS, label: "Todos os clientes (consolidado)" },
+              { value: ALL_CLIENTS, label: "Clientes ativos (consolidado)" },
               ...props.profiles.map((p) => ({ value: p.user_id, label: p.nome || p.email || "Sem nome" })),
             ]}
-            placeholder="Sem filtro"
-            emptyLabel="Sem filtro"
+            placeholder="Conta em visualização"
+            emptyLabel="Conta em visualização"
             allowEmpty
           />
         </div>
