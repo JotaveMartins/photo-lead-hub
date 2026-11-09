@@ -4,6 +4,8 @@ import english from "./en-review.json";
 
 export type ReviewLocale = "pt-BR" | "en";
 export const isReviewArea = (path: string) => path === "/integracoes" || path === "/estudio" || path.startsWith("/estudio/");
+/** Admins and Meta tester accounts see the review areas in English. */
+export const seesReviewEnglish = (roles: { isAdmin: boolean; isTester: boolean }) => roles.isAdmin || roles.isTester;
 export const reviewLocaleFor = (isAdmin: boolean, path: string): ReviewLocale => isAdmin && isReviewArea(path) ? "en" : "pt-BR";
 export const reviewText = (locale: ReviewLocale, source: string, values: readonly unknown[] = []) => {
   const text = locale === "en" ? (english as Record<string, string>)[source] ?? source : source;

@@ -2,9 +2,9 @@
 
 ## Escopo e comportamento
 
-O administrador autenticado vê inglês somente em `/integracoes`, `/estudio` e
-suas subrotas. Os demais usuários, inclusive testers sem papel admin, continuam
-em português. O papel é o existente no CRM; não se concedem privilégios ou novos
+O administrador e as contas tester (revisão da Meta) veem inglês somente em
+`/integracoes`, `/estudio` e suas subrotas. Os demais usuários continuam em
+português. O papel é o existente no CRM; não se concedem privilégios ou novos
 acessos para mudar o idioma. Um admin visualizando uma conta por impersonação
 continua admin e vê inglês nessas áreas. A conta cliente, acessada diretamente,
 continua em português.

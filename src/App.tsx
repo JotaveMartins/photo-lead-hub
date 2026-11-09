@@ -13,7 +13,7 @@ import AccountAccessGate from "@/components/account/AccountAccessGate";
 import GoogleCalendarOAuthCallbackPage from "./pages/GoogleCalendarOAuthCallbackPage";
 import InstagramOAuthCallbackPage from "./pages/InstagramOAuthCallbackPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
-import { ReviewLocaleProvider, reviewLocaleFor } from "@/i18n/ReviewLocale";
+import { ReviewLocaleProvider, reviewLocaleFor, seesReviewEnglish } from "@/i18n/ReviewLocale";
 import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
 import LeadsPage from "./pages/LeadsPage";
@@ -69,7 +69,7 @@ const ProtectedLayout = () => {
   }
 
   return (
-    <ReviewLocaleProvider locale={reviewLocaleFor(isAdmin, location.pathname)}>
+    <ReviewLocaleProvider locale={reviewLocaleFor(seesReviewEnglish({ isAdmin, isTester }), location.pathname)}>
       <AccountAccessGate>
         <DashboardLayout>
           <WhatsAppDisconnectWatcher />
@@ -86,7 +86,7 @@ const isTesterAllowed = (pathname: string) =>
 const EstudioProtectedLayout = () => {
   const location = useLocation();
   const { user, loading } = useAuth();
-  const { hasEstudio, isAdmin, isLoading: isRoleLoading } = useUserRole();
+  const { hasEstudio, isAdmin, isTester, isLoading: isRoleLoading } = useUserRole();
   const { isBlocked, isLoading: isBlockedLoading } = useAccountBlocked();
 
   if (loading || isRoleLoading || isBlockedLoading) return <LoadingScreen />;
@@ -95,7 +95,7 @@ const EstudioProtectedLayout = () => {
   if (!hasEstudio) return <Navigate to="/leads" replace />;
 
   return (
-    <ReviewLocaleProvider locale={reviewLocaleFor(isAdmin, location.pathname)}>
+    <ReviewLocaleProvider locale={reviewLocaleFor(seesReviewEnglish({ isAdmin, isTester }), location.pathname)}>
       <AccountAccessGate>
         <DashboardLayout>
           <Outlet />

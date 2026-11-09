@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ReviewLocaleProvider, reviewLocaleFor, reviewText } from "@/i18n/ReviewLocale";
+import { ReviewLocaleProvider, reviewLocaleFor, reviewText, seesReviewEnglish } from "@/i18n/ReviewLocale";
 import InstagramCard from "@/components/integracoes/InstagramCard";
 import ScheduleModal from "@/components/studio/ScheduleModal";
 import PostPreviewModal from "@/components/studio/PostPreviewModal";
@@ -92,4 +92,10 @@ describe("Photo feed publishing UI",()=>{
  it("rejects non-Instagram, script, profile and credential-bearing URLs",()=>{
   for(const url of ["javascript:alert(1)","https://instagram.com.evil.test/p/x/","https://www.instagram.com/user/","https://secret@www.instagram.com/p/x/"])expect(safeInstagramPermalink(url)).toBeNull();
  });
+});
+
+test("tester accounts see the review areas in English, regular clients do not",()=>{
+  expect(reviewLocaleFor(seesReviewEnglish({isAdmin:false,isTester:true}),"/integracoes")).toBe("en");
+  expect(reviewLocaleFor(seesReviewEnglish({isAdmin:false,isTester:true}),"/estudio/calendario")).toBe("en");
+  expect(reviewLocaleFor(seesReviewEnglish({isAdmin:false,isTester:false}),"/integracoes")).toBe("pt-BR");
 });
