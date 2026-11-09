@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { whatsappSentAt } from "../_shared/whatsapp-time.ts";
 import { buildQrDataUrl } from "../_shared/qrcode.ts";
 
 const normalizeWhatsApp = (value: string | null | undefined) => String(value || "").replace(/\D/g, "");
@@ -231,6 +232,7 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  const receivedAt = new Date().toISOString();
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -270,6 +272,12 @@ Deno.serve(async (req) => {
     if (event === "messages.upsert") {
       const message = data.message;
       const key = data.key;
+      const sentAt = whatsappSentAt(data.messageTimestamp, Date.parse(receivedAt));
+      console.log("whatsapp_delivery_timing", {
+        instance_id: instanceId, message_id: key?.id ?? null,
+        sent_at: sentAt, received_at: receivedAt,
+        delay_seconds: sentAt ? Math.round((Date.parse(receivedAt) - Date.parse(sentAt)) / 1000) : null,
+      });
       const remoteJid = key.remoteJid;
       const isGroup = remoteJid.endsWith("@g.us");
 
@@ -524,6 +532,7 @@ Deno.serve(async (req) => {
               .from("inbox_messages")
               .update({
                 whatsapp_message_id: key.id,
+                ...(sentAt ? { timestamp: sentAt } : {}),
                 media_url: resolvedMediaUrl,
                 media_mime_type: mediaMimeType,
                 media_filename: mediaFilename,
@@ -545,6 +554,8 @@ Deno.serve(async (req) => {
               body: content || null,
               direction: key.fromMe ? 'outbound' : 'inbound',
               whatsapp_message_id: key.id,
+              timestamp: sentAt ?? receivedAt,
+              created_at: receivedAt,
               read: key.fromMe,
               type,
               media_url: resolvedMediaUrl,

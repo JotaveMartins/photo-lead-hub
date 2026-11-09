@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import { sortInboxMessages } from "@/lib/inboxMessageOrder";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { buildInboxMessageMatches, type InboxMessageMatch } from "@/lib/inboxMessageSearch";
@@ -39,7 +40,7 @@ export const useInboxMessages = (conversationId?: string) => {
     queryFn: async () => {
       if (!conversationId) return [];
 
-      // Order by created_at (always set) — `timestamp` can be null for AI/webhook messages
+      // Fetch receipt order, then display original message time with a legacy fallback.
       const { data, error } = await supabase
         .from("inbox_messages")
         .select("*")
@@ -47,7 +48,7 @@ export const useInboxMessages = (conversationId?: string) => {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return sortInboxMessages(data ?? []);
     },
     enabled: !!conversationId,
     // Fallback polling in case realtime isn't delivering (e.g. table not in publication)

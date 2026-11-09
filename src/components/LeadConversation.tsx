@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { normalizeBrazilWhatsapp, whatsappMatchKey } from "@/lib/utils";
+import { sortInboxMessages } from "@/lib/inboxMessageOrder";
 import { dedupeMessages } from "@/lib/dedupeMessages";
 import { messageDayKey, formatMessageDayLabel } from "@/lib/formatMessageDay";
 
@@ -150,7 +151,7 @@ const LeadConversation = ({ leadId, leadWhatsapp }: Props) => {
     enabled: !!conv?.id,
   });
 
-  const displayedMessages = dedupeMessages(messages as any[]);
+  const displayedMessages = dedupeMessages(sortInboxMessages(messages as any[]));
 
   // ── Scroll to bottom ───────────────────────────────────────────────────────
   useEffect(() => {

@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.analyze-inbox-service]
 verify_jwt = false
+
+[functions.diagnose-whatsapp-delivery]
+verify_jwt = false

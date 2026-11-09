@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { whatsappSentAt } from "../_shared/whatsapp-time.ts";
 import { inactiveCrmResponse } from "../_shared/account-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -252,9 +253,7 @@ async function importMessage(
   }
 
   // Insert the message. Rely on unique index to guard against race conditions.
-  const ts = m.messageTimestamp
-    ? new Date((typeof m.messageTimestamp === "string" ? parseInt(m.messageTimestamp, 10) : m.messageTimestamp) * 1000).toISOString()
-    : new Date().toISOString();
+  const ts = whatsappSentAt(m.messageTimestamp) ?? new Date().toISOString();
 
   const { error: msgError } = await supabase
     .from("inbox_messages")
