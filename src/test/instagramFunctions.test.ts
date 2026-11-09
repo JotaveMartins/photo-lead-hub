@@ -193,13 +193,14 @@ describe("Instagram callback redirect", () => {
     const upsert = vi.fn().mockResolvedValue({ error: null });
     const fetchMock = vi.fn().mockResolvedValueOnce(json({ access_token: "short-token" }))
       .mockResolvedValueOnce(json({ access_token: "long-token", expires_in: 3600 }))
-      .mockResolvedValueOnce(json({ id: "ig-1", username: "perfil" }));
+      .mockResolvedValueOnce(json({ id: "ig-1", username: "perfil", account_type: "MEDIA_CREATOR" }));
     const app = loadFunction("instagram-auth-callback", { from: () => ({ upsert }) }, fetchMock);
     const result = await app.handle(await req({ code: "c", state: await stateFor("https://preview.example.test") }));
     expect(result.status).toBe(303);
     const location = result.headers.get("location")!;
     expect(location).toBe("https://preview.example.test/oauth/instagram/callback?result=success");
     expect(location).not.toContain("long-token");
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ instagram_user_id: "ig-1", account_type: "MEDIA_CREATOR" }), expect.anything());
     expect(result.headers.get("cache-control")).toBe("no-store");
   });
 

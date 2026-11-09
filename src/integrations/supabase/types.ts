@@ -2453,6 +2453,7 @@ export type Database = {
       social_accounts: {
         Row: {
           access_token: string | null
+          account_type: string | null
           created_at: string
           id: string
           instagram_user_id: string | null
@@ -2466,6 +2467,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          account_type?: string | null
           created_at?: string
           id?: string
           instagram_user_id?: string | null
@@ -2479,6 +2481,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          account_type?: string | null
           created_at?: string
           id?: string
           instagram_user_id?: string | null

@@ -134,6 +134,13 @@
       "when": 1794250800001,
       "tag": "0018_reload_schema_after_instagram_publication_permalink",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794250800002,
+      "tag": "0019_instagram_account_type",
+      "breakpoints": true
     }
   ]
 }

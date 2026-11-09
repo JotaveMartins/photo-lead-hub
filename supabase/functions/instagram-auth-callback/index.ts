@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
     // 3. profile
     const meRes = await fetch(
-      `https://graph.instagram.com/v21.0/me?fields=id,username,profile_picture_url&access_token=${accessToken}`,
+      `https://graph.instagram.com/v21.0/me?fields=id,username,account_type,profile_picture_url&access_token=${accessToken}`,
     );
     const me = await meRes.json();
     if (!meRes.ok || !me.id) {
@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
       instagram_user_id: String(me.id),
       username: me.username ?? null,
       profile_picture_url: me.profile_picture_url ?? null,
+      account_type: me.account_type ?? null,
       access_token: accessToken,
       token_expires_at: new Date(Date.now() + (expiresIn - 60) * 1000).toISOString(),
       status: 'connected',

@@ -7,6 +7,7 @@ export interface InstagramAccount {
   username: string | null;
   profile_picture_url: string | null;
   instagram_user_id: string | null;
+  account_type?: string | null;
   token_expires_at: string | null;
   status: string;
   created_at: string;
@@ -44,7 +45,7 @@ export const useInstagramAccounts = () => {
       const { data, error } = await supabase
         .from("social_accounts")
         .select(
-          "id, username, profile_picture_url, instagram_user_id, token_expires_at, status, created_at",
+          "id, username, profile_picture_url, instagram_user_id, account_type, token_expires_at, status, created_at",
         )
         .eq("user_id", userId)
         .eq("provider", "instagram")

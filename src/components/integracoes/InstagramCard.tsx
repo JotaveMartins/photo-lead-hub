@@ -87,7 +87,7 @@ const InstagramCard = () => {
         const result = testResults[account.id];
         const username = result?.ok ? result.username || account.username : account.username;
         const instagramId = result?.ok ? result.instagramId || account.instagram_user_id : account.instagram_user_id;
-        const accountType = result?.ok ? result.accountType : null;
+        const accountType = (result?.ok ? result.accountType : null) || account.account_type;
         const typeLabel = accountType === "BUSINESS" ? t("Profissional: Comercial")
           : accountType === "MEDIA_CREATOR" || accountType === "CREATOR" ? t("Profissional: Criador de Conteúdo")
           : accountType === "PERSONAL" ? t("Pessoal") : accountType || t("Não informado pelo Instagram");

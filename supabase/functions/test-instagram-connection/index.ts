@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
     const { error: updateError } = await admin.from('social_accounts').update({
       username: data.username ?? null,
       profile_picture_url: data.profile_picture_url ?? null,
+      account_type: data.account_type ?? null,
       status: 'connected',
     }).eq('id', acc.id).eq('user_id', uid).eq('provider', 'instagram');
     if (updateError) throw updateError;

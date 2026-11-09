@@ -10,17 +10,17 @@ import { safeInstagramPermalink } from "@/lib/instagramPublication";
 import { buildDemoCarousel, aiJsonToSlides } from "@/lib/carouselSchema";
 import type { InstagramAccount } from "@/hooks/useSocial";
 
-const mock = vi.hoisted(() => ({ invoke: vi.fn(), expired: false, username: "real_review_account" as string | null }));
+const mock = vi.hoisted(() => ({ invoke: vi.fn(), expired: false, username: "real_review_account" as string | null, accountType: null as string | null }));
 vi.mock("@/hooks/useEffectiveUserId", () => ({ useEffectiveUserId: () => "owner" }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: mock.invoke } } }));
 vi.mock("@/hooks/useSocial", () => ({
- useInstagramAccounts: () => ({ data: [{id:"profile",username:mock.username,instagram_user_id:"178900000000001",status:"connected",token_expires_at:mock.expired?"2000-01-01T00:00:00Z":null}],isLoading:false,isError:false,refetch:vi.fn() }),
+ useInstagramAccounts: () => ({ data: [{id:"profile",username:mock.username,instagram_user_id:"178900000000001",status:"connected",account_type:mock.accountType,token_expires_at:mock.expired?"2000-01-01T00:00:00Z":null}],isLoading:false,isError:false,refetch:vi.fn() }),
  useConnectInstagram: () => ({ mutate:vi.fn(),isPending:false }),useDisconnectInstagram: () => ({ mutate:vi.fn(),isPending:false }),
 }));
 const account: InstagramAccount={id:"profile",username:"real_review_account",instagram_user_id:"178900000000001",status:"connected",token_expires_at:null,created_at:"2026-01-01",profile_picture_url:null};
 const photo={id:"photo",project_id:"project",image_url:"original.jpg",storage_path:"original.jpg",filename:"photo.jpg",width:1080,height:1350,orientation:"portrait",upload_order:0,url:"https://images.test/original.jpg",thumbUrl:"https://images.test/thumbnail.jpg"};
 const caption="Ensaio real em família. #fotografia #familia";
-beforeEach(()=>{mock.expired=false;mock.username="real_review_account";mock.invoke.mockReset();});
+beforeEach(()=>{mock.expired=false;mock.accountType=null;mock.username="real_review_account";mock.invoke.mockReset();});
 afterEach(cleanup);
 const renderCard=(admin:boolean)=>render(<QueryClientProvider client={new QueryClient()}><ReviewLocaleProvider locale={reviewLocaleFor(admin,"/integracoes")}><InstagramCard /></ReviewLocaleProvider></QueryClientProvider>);
 
@@ -48,6 +48,11 @@ describe("Isolated administrator review locale",()=>{
   expect(await screen.findByText("Professional: Business")).toBeVisible();
   expect(screen.getByText("178900000000002")).toBeVisible();
   expect(mock.invoke).toHaveBeenCalledWith("test-instagram-connection",{body:{target_user_id:"owner",social_account_id:"profile"}});
+ });
+ it("shows the saved account type right after connecting, without a test",()=>{
+  mock.accountType="MEDIA_CREATOR";renderCard(true);
+  expect(screen.getByText("Professional: Creator")).toBeVisible();
+  expect(mock.invoke).not.toHaveBeenCalled();
  });
  it("keeps ordinary users in Portuguese",()=>{
   renderCard(false);expect(screen.getByRole("button",{name:"Testar conexão"})).toBeVisible();
