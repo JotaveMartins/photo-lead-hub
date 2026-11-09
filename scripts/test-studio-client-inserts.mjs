@@ -11,7 +11,7 @@ const allow=async sql=>{await db.exec(sql);checks++;};
 const deny=async sql=>{await assert.rejects(db.exec(sql),e=>e.code==='42501');checks++;};
 try {
  await db.exec(`
- CREATE SCHEMA auth; CREATE SCHEMA storage; CREATE ROLE authenticated;
+ CREATE SCHEMA auth; CREATE SCHEMA storage; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT current_setting('test.uid')::uuid $$;
  CREATE FUNCTION has_role(uuid,text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT $1 = '${admin}'::uuid AND $2 = 'admin' $$;
  CREATE FUNCTION storage.foldername(text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$ SELECT string_to_array($1,'/') $$;
@@ -21,14 +21,16 @@ try {
  CREATE TABLE carousels(id uuid PRIMARY KEY,user_id uuid,project_id uuid);
  CREATE TABLE carousel_slides(id uuid PRIMARY KEY,user_id uuid,carousel_id uuid);
  CREATE TABLE slide_photos(id uuid PRIMARY KEY,user_id uuid,slide_id uuid,photo_id uuid);
+ CREATE TABLE social_accounts(id uuid PRIMARY KEY,user_id uuid);
+ CREATE TABLE scheduled_posts(id uuid PRIMARY KEY,user_id uuid,carousel_id uuid,social_account_id uuid);
  CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(),bucket_id text,name text);
- GRANT USAGE ON SCHEMA auth,public,storage TO authenticated;
+ GRANT USAGE ON SCHEMA auth,public,storage TO authenticated,service_role;
  GRANT SELECT ON profiles TO authenticated;
- GRANT SELECT,INSERT ON projects,photos,carousels,carousel_slides,slide_photos,storage.objects TO authenticated;
+ GRANT SELECT,INSERT,UPDATE,DELETE ON projects,photos,carousels,carousel_slides,slide_photos,social_accounts,scheduled_posts,storage.objects TO authenticated,service_role;
  INSERT INTO profiles VALUES ('${admin}'),('${client}'),('${other}');
  INSERT INTO projects VALUES ('${id(1)}','${client}'),('${id(2)}','${other}');
  `);
- for(const table of ['projects','photos','carousels','carousel_slides','slide_photos']) {
+ for(const table of ['projects','photos','carousels','carousel_slides','slide_photos','scheduled_posts','social_accounts']) {
   await db.exec(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;
  CREATE POLICY own ON ${table} FOR ALL TO authenticated USING(user_id=auth.uid()) WITH CHECK(user_id=auth.uid());
  CREATE POLICY admin_read ON ${table} FOR SELECT TO authenticated USING(has_role(auth.uid(),'admin'));`);
@@ -37,6 +39,9 @@ try {
  const sql=readFileSync('supabase/migrations/20261109120000_studio_admin_create_for_client.sql','utf8');
  assert.equal(sql,readFileSync('drizzle/migrations/0013_studio_admin_create_for_client.sql','utf8'));
  await db.exec(sql); await db.exec(sql);
+ const boundary=readFileSync('supabase/migrations/20261109160000_studio_relationship_isolation.sql','utf8');
+ assert.equal(boundary,readFileSync('drizzle/migrations/0015_studio_relationship_isolation.sql','utf8'));
+ await db.exec(boundary); await db.exec(boundary);
  await db.exec(`SET ROLE authenticated; SET test.uid='${admin}';`);
  await allow(`INSERT INTO projects VALUES ('${id(3)}','${client}');`);
  await deny(`INSERT INTO projects VALUES ('${id(4)}','${id(99)}');`);
@@ -56,5 +61,37 @@ try {
  await deny(`INSERT INTO photos VALUES ('${id(12)}','${client}','${id(1)}');`);
  await deny(`INSERT INTO storage.objects(bucket_id,name) VALUES ('project-photos','${client}/${id(1)}/photo.jpg');`);
  await allow(`INSERT INTO projects VALUES ('${id(6)}','${other}');`);
- console.log(`PASS: ${checks} PostgreSQL checks for admin client inserts, parent ownership, upload paths, existing users, normal user isolation and repeatable migration.`);
+ // Build a legitimate graph for the ordinary user, then attack its references.
+ await allow(`INSERT INTO photos VALUES ('${id(61)}','${other}','${id(6)}');`);
+ await allow(`INSERT INTO carousels VALUES ('${id(62)}','${other}','${id(6)}');`);
+ await allow(`INSERT INTO carousel_slides VALUES ('${id(63)}','${other}','${id(62)}');`);
+ await allow(`INSERT INTO slide_photos VALUES ('${id(64)}','${other}','${id(63)}','${id(61)}');`);
+ await allow(`INSERT INTO social_accounts VALUES ('${id(70)}','${other}');`);
+ await db.exec(`RESET ROLE; INSERT INTO social_accounts VALUES ('${id(71)}','${client}');
+ INSERT INTO carousels VALUES ('${id(80)}','${other}','${id(1)}');
+ INSERT INTO scheduled_posts VALUES ('${id(81)}','${other}','${id(20)}','${id(71)}');`);
+ // Even another permissive legacy rule cannot reopen the relationship boundary.
+ for (const table of ['projects','photos','carousels','carousel_slides','slide_photos','scheduled_posts'])
+   await db.exec(`CREATE POLICY synthetic_open ON ${table} FOR ALL TO PUBLIC USING(true) WITH CHECK(true);`);
+ await db.exec(`SET ROLE authenticated; SET test.uid='${other}';`);
+ await deny(`INSERT INTO carousels VALUES ('${id(82)}','${other}','${id(1)}');`);
+ await deny(`INSERT INTO photos VALUES ('${id(83)}','${other}','${id(1)}');`);
+ await deny(`INSERT INTO carousel_slides VALUES ('${id(84)}','${other}','${id(20)}');`);
+ await deny(`INSERT INTO slide_photos VALUES ('${id(85)}','${other}','${id(63)}','${id(10)}');`);
+ await deny(`INSERT INTO scheduled_posts VALUES ('${id(86)}','${other}','${id(62)}','${id(71)}');`);
+ await deny(`INSERT INTO scheduled_posts VALUES ('${id(87)}','${other}','${id(20)}','${id(70)}');`);
+ await deny(`INSERT INTO scheduled_posts VALUES ('${id(88)}','${client}','${id(20)}','${id(71)}');`);
+ await deny(`UPDATE carousels SET project_id='${id(1)}' WHERE id='${id(62)}';`);
+ await allow(`INSERT INTO scheduled_posts VALUES ('${id(89)}','${other}','${id(62)}','${id(70)}');`);
+ await allow(`INSERT INTO scheduled_posts VALUES ('${id(90)}','${other}','${id(62)}',NULL);`);
+ const hidden=await db.query(`SELECT id FROM carousels WHERE id='${id(80)}'`);
+ assert.equal(hidden.rows.length,0); checks++;
+ const posts=await db.query(`SELECT id FROM scheduled_posts`);
+ assert.deepEqual(posts.rows.map(r=>r.id).sort(),[id(89),id(90)]); checks++;
+ await db.exec(`SET test.uid='${admin}';`);
+ const visible=await db.query(`SELECT id FROM scheduled_posts WHERE id='${id(81)}'`);
+ assert.equal(visible.rows.length,1); checks++;
+ await db.exec(`RESET ROLE; SET ROLE service_role;`);
+ await allow(`INSERT INTO scheduled_posts VALUES ('${id(91)}','${client}','${id(20)}','${id(71)}');`);
+ console.log(`PASS: ${checks} PostgreSQL checks for Studio ownership, foreign-parent and foreign-Instagram rejection, updates, restrictive policies, history with removed connections, admin support, service-role and repeatable migrations.`);
 } finally { await db.close(); }
