@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { PGlite } from '@electric-sql/pglite';
+const db = new PGlite();
+const admin='00000000-0000-0000-0000-000000000001';
+const client='00000000-0000-0000-0000-000000000002';
+const other='00000000-0000-0000-0000-000000000003';
+const id=n=>`10000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+let checks=0;
+const allow=async sql=>{await db.exec(sql);checks++;};
+const deny=async sql=>{await assert.rejects(db.exec(sql),e=>e.code==='42501');checks++;};
+try {
+ await db.exec(`
+ CREATE SCHEMA auth; CREATE SCHEMA storage; CREATE ROLE authenticated;
+ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT current_setting('test.uid')::uuid $$;
+ CREATE FUNCTION has_role(uuid,text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT $1 = '${admin}'::uuid AND $2 = 'admin' $$;
+ CREATE FUNCTION storage.foldername(text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$ SELECT string_to_array($1,'/') $$;
+ CREATE TABLE profiles(user_id uuid PRIMARY KEY);
+ CREATE TABLE projects(id uuid PRIMARY KEY,user_id uuid);
+ CREATE TABLE photos(id uuid PRIMARY KEY,user_id uuid,project_id uuid);
+ CREATE TABLE carousels(id uuid PRIMARY KEY,user_id uuid,project_id uuid);
+ CREATE TABLE carousel_slides(id uuid PRIMARY KEY,user_id uuid,carousel_id uuid);
+ CREATE TABLE slide_photos(id uuid PRIMARY KEY,user_id uuid,slide_id uuid,photo_id uuid);
+ CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(),bucket_id text,name text);
+ GRANT USAGE ON SCHEMA auth,public,storage TO authenticated;
+ GRANT SELECT ON profiles TO authenticated;
+ GRANT SELECT,INSERT ON projects,photos,carousels,carousel_slides,slide_photos,storage.objects TO authenticated;
+ INSERT INTO profiles VALUES ('${admin}'),('${client}'),('${other}');
+ INSERT INTO projects VALUES ('${id(1)}','${client}'),('${id(2)}','${other}');
+ `);
+ for(const table of ['projects','photos','carousels','carousel_slides','slide_photos']) {
+  await db.exec(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;
+ CREATE POLICY own ON ${table} FOR ALL TO authenticated USING(user_id=auth.uid()) WITH CHECK(user_id=auth.uid());
+ CREATE POLICY admin_read ON ${table} FOR SELECT TO authenticated USING(has_role(auth.uid(),'admin'));`);
+ }
+ await db.exec('ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;');
+ const sql=readFileSync('supabase/migrations/20261109120000_studio_admin_create_for_client.sql','utf8');
+ assert.equal(sql,readFileSync('drizzle/migrations/0013_studio_admin_create_for_client.sql','utf8'));
+ await db.exec(sql); await db.exec(sql);
+ await db.exec(`SET ROLE authenticated; SET test.uid='${admin}';`);
+ await allow(`INSERT INTO projects VALUES ('${id(3)}','${client}');`);
+ await deny(`INSERT INTO projects VALUES ('${id(4)}','${id(99)}');`);
+ await allow(`INSERT INTO photos VALUES ('${id(10)}','${client}','${id(1)}');`);
+ await deny(`INSERT INTO photos VALUES ('${id(11)}','${client}','${id(2)}');`);
+ await allow(`INSERT INTO carousels VALUES ('${id(20)}','${client}','${id(1)}');`);
+ await deny(`INSERT INTO carousels VALUES ('${id(21)}','${client}','${id(2)}');`);
+ await allow(`INSERT INTO carousel_slides VALUES ('${id(30)}','${client}','${id(20)}');`);
+ await deny(`INSERT INTO carousel_slides VALUES ('${id(31)}','${other}','${id(20)}');`);
+ await allow(`INSERT INTO slide_photos VALUES ('${id(40)}','${client}','${id(30)}','${id(10)}');`);
+ await deny(`INSERT INTO slide_photos VALUES ('${id(41)}','${other}','${id(30)}','${id(10)}');`);
+ await allow(`INSERT INTO storage.objects(bucket_id,name) VALUES ('project-photos','${client}/${id(1)}/photo.jpg');`);
+ await deny(`INSERT INTO storage.objects(bucket_id,name) VALUES ('project-photos','${client}/${id(2)}/photo.jpg');`);
+ await deny(`INSERT INTO storage.objects(bucket_id,name) VALUES ('other-bucket','${client}/${id(1)}/photo.jpg');`);
+ await db.exec(`SET test.uid='${other}';`);
+ await deny(`INSERT INTO projects VALUES ('${id(5)}','${client}');`);
+ await deny(`INSERT INTO photos VALUES ('${id(12)}','${client}','${id(1)}');`);
+ await deny(`INSERT INTO storage.objects(bucket_id,name) VALUES ('project-photos','${client}/${id(1)}/photo.jpg');`);
+ await allow(`INSERT INTO projects VALUES ('${id(6)}','${other}');`);
+ console.log(`PASS: ${checks} PostgreSQL checks for admin client inserts, parent ownership, upload paths, existing users, normal user isolation and repeatable migration.`);
+} finally { await db.close(); }

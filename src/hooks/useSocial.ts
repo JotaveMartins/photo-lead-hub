@@ -185,6 +185,13 @@ export const useSchedulePost = () => {
       socialAccountId: string;
       scheduledAt: string; // ISO
     }) => {
+      if (!userId) throw new Error("Conta não identificada");
+      const [carousel, account] = await Promise.all([
+        supabase.from("carousels").select("id").eq("id", input.carouselId).eq("user_id", userId).single(),
+        supabase.from("social_accounts").select("id").eq("id", input.socialAccountId).eq("user_id", userId).eq("provider", "instagram").single(),
+      ]);
+      if (carousel.error || !carousel.data || account.error || !account.data)
+        throw new Error("O carrossel e o perfil do Instagram precisam pertencer à conta selecionada.");
       const { data, error } = await supabase
         .from("scheduled_posts")
         .insert({

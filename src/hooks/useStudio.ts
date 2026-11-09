@@ -102,14 +102,16 @@ export const useProjects = () => {
 };
 
 export const useProject = (projectId?: string) => {
+  const userId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["studio-project", projectId],
-    enabled: !!projectId,
+    queryKey: ["studio-project", projectId, userId],
+    enabled: !!projectId && !!userId,
     queryFn: async (): Promise<StudioProject> => {
       const { data, error } = await supabase
         .from("projects")
         .select("*")
         .eq("id", projectId!)
+        .eq("user_id", userId!)
         .single();
       if (error) throw error;
       return data as any;
@@ -118,14 +120,16 @@ export const useProject = (projectId?: string) => {
 };
 
 export const useProjectPhotos = (projectId?: string) => {
+  const userId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["studio-photos", projectId],
-    enabled: !!projectId,
+    queryKey: ["studio-photos", projectId, userId],
+    enabled: !!projectId && !!userId,
     queryFn: async (): Promise<StudioPhoto[]> => {
       const { data, error } = await supabase
         .from("photos")
         .select("*")
         .eq("project_id", projectId!)
+        .eq("user_id", userId!)
         .order("upload_order", { ascending: true });
       if (error) throw error;
       // Ordem cronológica: nome do arquivo (numeração natural) e, em empate, ordem de envio.
@@ -150,16 +154,17 @@ export const useProjectPhotos = (projectId?: string) => {
 
 export const useCreateProject = () => {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const userId = useEffectiveUserId();
   return useMutation({
     mutationFn: async (input: {
       nome: string;
       tipo_ensaio: string;
       descricao: string;
     }) => {
+      if (!userId) throw new Error("Conta não identificada");
       const { data, error } = await supabase
         .from("projects")
-        .insert({ ...input, user_id: user!.id, status: "Rascunho" } as any)
+        .insert({ ...input, user_id: userId!, status: "Rascunho" } as any)
         .select()
         .single();
       if (error) throw error;
@@ -313,6 +318,14 @@ export const usePurgeProject = () => {
   });
 };
 
+// Never infer ownership from the logged-in admin or an Instagram selection.
+const requireStudioProjectOwner = async (projectId: string | undefined, userId: string | null) => {
+  if (!projectId || !userId) throw new Error("Projeto ou conta não identificado");
+  const { data, error } = await supabase.from("projects").select("id")
+    .eq("id", projectId).eq("user_id", userId).single();
+  if (error || !data) throw new Error("Este projeto não pertence à conta selecionada. Abra o projeto pela conta correta.");
+};
+
 const readImageSize = (file: File) =>
   new Promise<{ width: number; height: number }>((resolve) => {
     const img = new Image();
@@ -330,7 +343,7 @@ const readImageSize = (file: File) =>
 
 export const useUploadPhotos = (projectId?: string) => {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const userId = useEffectiveUserId();
   return useMutation({
     mutationFn: async ({
       files,
@@ -345,6 +358,7 @@ export const useUploadPhotos = (projectId?: string) => {
     }) => {
       const pid = overrideId ?? projectId;
       if (!pid) throw new Error("Projeto não identificado");
+      await requireStudioProjectOwner(pid, userId);
       // Nunca ultrapassa o limite: as fotos excedentes são simplesmente ignoradas.
       const remaining = Math.max(0, MAX_PHOTOS_PER_PROJECT - startOrder);
       const selected = files.length;
@@ -357,7 +371,7 @@ export const useUploadPhotos = (projectId?: string) => {
         const optimized = await optimizeImageFile(original);
         const file = optimized.file;
         const ext = file.name.split(".").pop() || "jpg";
-        const path = `${user!.id}/${pid}/${crypto.randomUUID()}.${ext}`;
+        const path = `${userId!}/${pid}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
           .upload(path, file, { contentType: file.type, upsert: false });
@@ -370,7 +384,7 @@ export const useUploadPhotos = (projectId?: string) => {
           width === height ? "square" : width > height ? "landscape" : "portrait";
         const { error } = await supabase.from("photos").insert({
           project_id: pid,
-          user_id: user!.id,
+          user_id: userId!,
           image_url: path,
           storage_path: path,
           filename: original.name,
@@ -419,14 +433,16 @@ export interface StudioCarousel {
 }
 
 export const useCarousel = (projectId?: string) => {
+  const userId = useEffectiveUserId();
   return useQuery({
-    queryKey: ["studio-carousel", projectId],
-    enabled: !!projectId,
+    queryKey: ["studio-carousel", projectId, userId],
+    enabled: !!projectId && !!userId,
     queryFn: async (): Promise<StudioCarousel | null> => {
       const { data, error } = await supabase
         .from("carousels")
         .select("*")
         .eq("project_id", projectId!)
+        .eq("user_id", userId!)
         .order("created_at", { ascending: false })
         .limit(1);
       if (error) throw error;
@@ -468,7 +484,7 @@ export const useCarousel = (projectId?: string) => {
 
 export const useSaveCarousel = (projectId?: string) => {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const userId = useEffectiveUserId();
   return useMutation({
     mutationFn: async ({
       carouselId,
@@ -483,7 +499,13 @@ export const useSaveCarousel = (projectId?: string) => {
       status: string;
       slides: EditorSlide[];
     }) => {
+      await requireStudioProjectOwner(projectId, userId);
       let id = carouselId;
+      if (id) {
+        const { data, error } = await supabase.from("carousels").select("id")
+          .eq("id", id).eq("project_id", projectId!).eq("user_id", userId!).single();
+        if (error || !data) throw new Error("Carrossel não pertence ao projeto da conta selecionada");
+      }
       if (id) {
         const { error } = await supabase
           .from("carousels")
@@ -496,7 +518,7 @@ export const useSaveCarousel = (projectId?: string) => {
           .from("carousels")
           .insert({
             project_id: projectId,
-            user_id: user!.id,
+            user_id: userId!,
             titulo,
             legenda,
             status,
@@ -513,7 +535,7 @@ export const useSaveCarousel = (projectId?: string) => {
           .from("carousel_slides")
           .insert({
             carousel_id: id,
-            user_id: user!.id,
+            user_id: userId!,
             slide_order: i + 1,
             layout_type: slide.layout,
           } as any)
@@ -523,7 +545,7 @@ export const useSaveCarousel = (projectId?: string) => {
         const rows = slide.photoIds.map((photoId, position) => ({
           slide_id: (created as any).id,
           photo_id: photoId,
-          user_id: user!.id,
+          user_id: userId!,
           position,
           focus_x: slide.focus?.[position]?.x ?? 50,
           focus_y: slide.focus?.[position]?.y ?? 50,
