@@ -136,3 +136,56 @@ npm test -- --maxWorkers=2
 npx --no-install tsc --noEmit -p tsconfig.app.json
 npm run build
 ```
+
+## Versão confirmada e ajuste da consulta (09/11)
+
+O usuário confirmou Evolution 2.3.7 em servidor Hostinger. A revisão do código
+oficial dessa versão identificou um erro nos parâmetros do diagnóstico inicial:
+`fetchMessages` exige `page` e `offset`, e aplica filtro de horário somente com
+`gte` **e** `lte`, convertidos internamente com `new Date(...)`. O diagnóstico
+inicial usava take/skip e segundos numéricos gte/lt, que esse método ignora.
+Isso explica o filtro ignorado sem indicar, por si só, defeito da Evolution.
+
+Referência exata revisada, sem acessar o servidor do cliente:
+https://github.com/EvolutionAPI/evolution-api/blob/cd800f2976e1e5b682fbf86a01ee4d85ae61f370/src/api/integrations/channel/whatsapp/whatsapp.baileys.service.ts#L5016
+
+A consulta de diagnóstico foi corrigida para a versão 2.3.7. O fim exclusivo da
+janela vira lte em ISO um milissegundo antes. A paginação usa page/offset e total
+quando disponível; o resultado inclui `provider_window_respected` (null sem dados,
+true quando os horários retornados respeitam a janela, false quando divergem).
+A função continua somente leitura, sem modificar sessões, mensagens ou configurações.
+Ajustes locais no servidor podem diferir da tag oficial e precisam ser conferidos.
+
+**Republicar somente `diagnose-whatsapp-delivery` e seus módulos** para este ajuste.
+Primeiro consultar uma instância com max_pages=1, confirmar que janela conhecida
+retorna seus registros e janela posterior sem tráfego fica vazia. Depois paginar
+com max_pages=2 e conferir IDs distintos. Preservar o campo crm_log_error adicionado
+pelo Lovable; timeout do banco não deve descartar a amostra do provedor.
+Não republicar webhook/sincronizador nem mudar o servidor nesta etapa.
+
+O código oficial usa Baileys `7.0.0-rc.9` e emite `statusReason` nos eventos de
+conexão. Isso não estabelece a causa do atraso nem justifica atualização imediata.
+A causa do ciclo de 50 minutos exige confrontar statusReason/logs e o estado real
+do processo, sem reiniciar ou invalidar sessão.
+
+### Primeira coleta no VPS pelo titular
+
+No hPanel da Hostinger, abrir VPS, escolher o servidor confirmado, Visão geral e
+Terminal. O Manager da Evolution gerencia a aplicação; não equivale ao console do
+VPS. Os nomes dos botões podem variar. Não é necessário compartilhar senha/chave.
+
+Executar somente:
+
+```sh
+uptime
+free -h
+df -h
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+```
+
+Esses comandos não reiniciam serviços nem mostram variáveis de ambiente. Retornar
+a saída para identificar recursos e nomes reais dos containers. Se algum comando
+não existir ou não houver permissão, retornar o erro, sem instalar/alterar nada.
+Não usar docker inspect completo, env, arquivos .env ou logs brutos neste primeiro
+passo: podem expor credenciais. Não pedir docker compose up/pull, restart, prune,
+limpeza de Redis ou atualização do WhatsApp antes de analisar a coleta.

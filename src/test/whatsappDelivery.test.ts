@@ -39,6 +39,22 @@ describe("Provider read-only inspection",()=>{
   expect(fetcher.mock.calls.map(c=>[c[0],c[1].method])).toEqual([["https://provider.test/instance/connectionState/instance%2Ftest","GET"],["https://provider.test/chat/findMessages/instance%2Ftest","POST"]]);
   expect(JSON.stringify(result)).not.toMatch(/private-text|secret|never-return/);
  });
+ it("uses the Evolution 2.3.7 date and pagination contract",async()=>{
+  const fetcher=vi.fn().mockResolvedValueOnce(response({state:"open"}))
+   .mockResolvedValueOnce(response({messages:{total:51,records:Array.from({length:50},(_,i)=>({key:{id:String(i)},messageTimestamp:epoch}))}}))
+   .mockResolvedValueOnce(response({messages:{total:51,records:[{key:{id:"last"},messageTimestamp:epoch}]}}));
+  const result=await inspection.inspectProvider("https://p.test","secret","instance",{...requestOptions,maxPages:2},fetcher);
+  const first=JSON.parse(fetcher.mock.calls[1][1].body);
+  const second=JSON.parse(fetcher.mock.calls[2][1].body);
+  expect(first).toEqual({where:{messageTimestamp:{gte:"2026-11-07T15:00:00.000Z",lte:"2026-11-07T18:59:59.999Z"}},page:1,offset:50});
+  expect(second.page).toBe(2);expect(second.offset).toBe(50);
+  expect(result.messages).toHaveLength(51);expect(result.sample_limited).toBe(false);expect(result.window_respected).toBe(true);
+ });
+ it("reports ignored date filters without hiding the returned evidence",async()=>{
+  const fetcher=vi.fn().mockResolvedValueOnce(response({state:"open"})).mockResolvedValueOnce(response([{key:{id:"old"},messageTimestamp:epoch-86400}]));
+  const result=await inspection.inspectProvider("https://p.test","secret","instance",requestOptions,fetcher);
+  expect(result.window_respected).toBe(false);expect(result.messages).toHaveLength(1);
+ });
  it("marks a full bounded page as incomplete evidence",async()=>{
   const fetcher=vi.fn().mockResolvedValueOnce(response({state:"open"})).mockResolvedValueOnce(response(Array.from({length:50},(_,i)=>({key:{id:String(i)},messageTimestamp:epoch}))));
   expect((await inspection.inspectProvider("https://p.test","secret","instance",requestOptions,fetcher)).sample_limited).toBe(true);

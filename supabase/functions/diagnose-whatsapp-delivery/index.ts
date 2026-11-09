@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
         }
         results.push({ instance_id: instance.id, user_id: instance.user_id, observed_at: observedAt,
           provider_state: provider.state, provider_sample_limited: provider.sample_limited,
+          provider_window_respected: provider.window_respected,
           provider_messages: provider.messages.map(m => ({ ...m, present_in_inbox: !!m.message_id && saved.has(m.message_id) })),
           crm_received_sample: arrivals, crm_log_limit: 200, crm_log_error: crmLogError, queue_status: "not_observed" });
       } catch (failure) {

@@ -32,23 +32,36 @@ export async function inspectProvider(
   const messages: Metadata[] = [];
   const seen = new Set<string>();
   let limited = false;
+  let checkedTimes = 0;
+  let windowRespected = true;
   for (const jid of options.jids.length ? options.jids : [null]) {
     for (let page = 0; page < options.maxPages; page++) {
-      const records = unwrapRecords(await read("/chat/findMessages", {
+      // Evolution 2.3.7 fetchMessages expects date strings with gte AND lte,
+      // and uses page/offset. Prisma-style take/skip and gte/lt are ignored.
+      const result = await read("/chat/findMessages", {
         where: {
           ...(jid ? { key: { remoteJid: jid } } : {}),
-          messageTimestamp: { gte: Math.floor(Date.parse(options.from) / 1000), lt: Math.floor(Date.parse(options.to) / 1000) },
-        }, take: 50, skip: page * 50, orderBy: { messageTimestamp: "desc" },
-      }));
+          messageTimestamp: {
+            gte: new Date(options.from).toISOString(),
+            lte: new Date(Date.parse(options.to) - 1).toISOString(),
+          },
+        }, page: page + 1, offset: 50,
+      });
+      const records = unwrapRecords(result);
       let added = 0;
       for (const raw of records) {
         const m = metadata(raw);
+        checkedTimes++;
+        if (!m.sent_at || Date.parse(m.sent_at) < Math.floor(Date.parse(options.from) / 1000) * 1000 || Date.parse(m.sent_at) >= Date.parse(options.to))
+          windowRespected = false;
         if (m.message_id && !seen.has(m.message_id)) { seen.add(m.message_id); messages.push(m); added++; }
       }
-      if (records.length < 50) break;
+      const total = result?.messages?.total;
+      const more = Number.isSafeInteger(total) && total >= 0 ? (page + 1) * 50 < total : records.length >= 50;
+      if (!more) break;
       if (!added || page === options.maxPages - 1) { limited = true; break; }
     }
   }
   const providerState = state?.instance?.state ?? state?.state;
-  return { state: typeof providerState === "string" ? providerState : "unknown", messages, sample_limited: limited };
+  return { state: typeof providerState === "string" ? providerState : "unknown", messages, sample_limited: limited, window_respected: checkedTimes ? windowRespected : null };
 }
