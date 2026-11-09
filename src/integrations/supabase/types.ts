@@ -2301,6 +2301,7 @@ export type Database = {
           created_at: string
           id: string
           instagram_media_id: string | null
+          instagram_permalink: string | null
           last_error: string | null
           published_at: string | null
           scheduled_at: string
@@ -2316,6 +2317,7 @@ export type Database = {
           created_at?: string
           id?: string
           instagram_media_id?: string | null
+          instagram_permalink?: string | null
           last_error?: string | null
           published_at?: string | null
           scheduled_at: string
@@ -2331,6 +2333,7 @@ export type Database = {
           created_at?: string
           id?: string
           instagram_media_id?: string | null
+          instagram_permalink?: string | null
           last_error?: string | null
           published_at?: string | null
           scheduled_at?: string
