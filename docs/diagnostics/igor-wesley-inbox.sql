@@ -1,6 +1,7 @@
 -- Run as a Cloud administrator. Read-only investigation, no replay/creation.
 -- Replace the all-zero UUID ONLY after confirming Igor's exact account.
--- Nov 8 is the reported day; Nov 9 is included to detect manual creation/recovery.
+-- The contact date was clarified as Nov 7 around 14:00 America/Sao_Paulo.
+-- Include Nov 7-9 to cover approximate time and delayed delivery/recovery.
 BEGIN READ ONLY;
 SET LOCAL diagnostic.igor_user_id = '00000000-0000-0000-0000-000000000000';
 
@@ -44,7 +45,7 @@ WITH events AS (
       ELSE '[]'::jsonb END
   ) AS item(message)
   WHERE w.user_id = current_setting('diagnostic.igor_user_id')::uuid
-    AND w.created_at >= '2026-11-08T00:00:00-03:00'::timestamptz
+    AND w.created_at >= '2026-11-07T00:00:00-03:00'::timestamptz
     AND w.created_at < '2026-11-10T00:00:00-03:00'::timestamptz
     AND replace(lower(w.event), '_', '.') = 'messages.upsert'
 ), candidates AS (
