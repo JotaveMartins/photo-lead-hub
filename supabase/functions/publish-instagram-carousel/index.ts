@@ -29,15 +29,37 @@ async function graph(path: string, params: Record<string, string>, method = 'POS
   return data;
 }
 
+// A missing permalink must never turn a confirmed publication into a failure.
+async function publicationResult(postId: string, mediaId: string, token: string) {
+  let permalink: string | null = null;
+  try {
+    const response = await fetch(`${GRAPH}/${encodeURIComponent(mediaId)}?fields=permalink`, {
+      headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000),
+    });
+    const data = response.ok ? await response.json() : null;
+    if (typeof data?.permalink === 'string') {
+      const url = new URL(data.permalink);
+      if (url.protocol === 'https:' && !url.username && !url.password &&
+          (url.hostname === 'instagram.com' || url.hostname === 'www.instagram.com') &&
+          /^\/(p|reel|tv)\/[A-Za-z0-9_-]+\/?$/.test(url.pathname)) {
+        permalink = url.origin + url.pathname;
+        const { error } = await admin.from('scheduled_posts').update({ instagram_permalink: permalink }).eq('id', postId);
+        if (error) console.error('Published Instagram permalink could not be saved');
+      }
+    }
+  } catch { /* The published media ID remains the authoritative success result. */ }
+  return { media_id: mediaId, permalink };
+}
+
 export async function publishPost(postId: string) {
   const { data: post, error } = await admin
     .from('scheduled_posts')
-    .select('id, user_id, carousel_id, social_account_id, status, attempts')
+    .select('id, user_id, carousel_id, social_account_id, status, attempts, instagram_media_id, instagram_permalink')
     .eq('id', postId)
     .maybeSingle();
   if (error) throw error;
   if (!post) throw new Error('Agendamento não encontrado');
-  if (post.status === 'publicado') return { alreadyPublished: true };
+  if (post.status === 'publicado') return { alreadyPublished: true, media_id: post.instagram_media_id, permalink: post.instagram_permalink ?? null };
 
   await admin.from('scheduled_posts')
     .update({ status: 'publicando', attempts: (post.attempts ?? 0) + 1, last_error: null })
@@ -101,7 +123,7 @@ export async function publishPost(postId: string) {
         instagram_media_id: published.id,
         last_error: null,
       }).eq('id', post.id);
-      return { media_id: published.id };
+      return publicationResult(post.id, published.id, token);
     }
 
     // 1. containers filhos
@@ -147,7 +169,7 @@ export async function publishPost(postId: string) {
       last_error: null,
     }).eq('id', post.id);
 
-    return { media_id: published.id };
+    return publicationResult(post.id, published.id, token);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Erro desconhecido';
     console.error('publish error', postId, msg);

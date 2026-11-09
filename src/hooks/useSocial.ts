@@ -23,6 +23,7 @@ export interface ScheduledPost {
   attempts: number;
   last_error: string | null;
   instagram_media_id: string | null;
+  instagram_permalink?: string | null;
   published_at: string | null;
   social_account_id: string | null;
   accountUsername: string | null;
@@ -136,7 +137,7 @@ export const useScheduledPosts = () => {
         .from("scheduled_posts")
         .select(
           `id, carousel_id, scheduled_at, timezone, status, attempts, last_error,
-           instagram_media_id, published_at, social_account_id,
+           instagram_media_id, instagram_permalink, published_at, social_account_id,
            social_accounts ( username ),
            carousels ( legenda, rendered_slides, project_id, projects ( nome ) )`,
         )
@@ -153,6 +154,7 @@ export const useScheduledPosts = () => {
         attempts: row.attempts ?? 0,
         last_error: row.last_error,
         instagram_media_id: row.instagram_media_id,
+        instagram_permalink: row.instagram_permalink ?? null,
         published_at: row.published_at,
         social_account_id: row.social_account_id,
         accountUsername: row.social_accounts?.username ?? null,

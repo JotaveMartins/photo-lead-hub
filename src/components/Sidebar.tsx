@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import {
   Users,
   CheckSquare,
@@ -78,6 +79,7 @@ const adminMenuItems: MenuItem[] = [
 ];
 
 const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }: SidebarProps) => {
+  const { t } = useReviewLocale();
   const { signOut } = useAuth();
   const { isAdmin, isTester, hasEstudio } = useUserRole();
   const { isImpersonating } = useImpersonation();
@@ -119,7 +121,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
           ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
       >
         <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
-        <span className="flex-1 text-left">{item.label}</span>
+        <span className="flex-1 text-left">{t(item.label)}</span>
         {badgeCount > 0 && (
           <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
             {badgeCount > 99 ? '99+' : badgeCount}
@@ -132,7 +134,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
   const renderSection = (title: string, items: MenuItem[]) => (
     <div className="pt-3 first:pt-0">
       <div className="px-4 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-        {title}
+        {t(title)}
       </div>
       <div className="space-y-0.5">{items.map(renderItem)}</div>
     </div>
@@ -194,7 +196,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
             className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`}
           />
           <span className="text-[10px] font-semibold uppercase tracking-wider flex-1 text-left">
-            {title}
+            {t(title)}
           </span>
           {!isOpen && sectionBadge > 0 && (
             <span className="inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
@@ -271,7 +273,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
                 ${isActive ? 'bg-primary text-primary-foreground shadow-glow' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
             >
               <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
-              {item.label}
+              {t(item.label)}
             </button>
           );
         })}
@@ -280,7 +282,7 @@ const Sidebar = ({ activeItem, onItemClick, mobileOpen = false, onMobileClose }:
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
         >
           <LogOut className="w-5 h-5" />
-          Sair
+          {t("Sair")}
         </button>
         <div className="px-4 pt-1 text-[11px] font-medium text-muted-foreground/70">
           CRM v{CRM_VERSION}

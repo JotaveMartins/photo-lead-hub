@@ -1,5 +1,5 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { CalendarIcon, X } from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ interface DatePickerFieldProps {
 }
 
 const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", className, disabled }: DatePickerFieldProps) => {
+  const { t, locale, dateLocale } = useReviewLocale();
   const [open, setOpen] = useState(false);
 
   const selected = value ? parseLocalDate(value) : undefined;
@@ -47,7 +48,7 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {selected ? format(selected, "dd/MM/yyyy", { locale: ptBR }) : <span>{placeholder}</span>}
+          {selected ? format(selected, locale === "en" ? "MMM d, yyyy" : "dd/MM/yyyy", { locale: dateLocale }) : <span>{t(placeholder)}</span>}
         </Button>
       </PopoverTrigger>
       {/* Portal: renderiza fora do modal para o calendário não ser cortado pela rolagem do diálogo */}
@@ -63,6 +64,7 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
       >
         <Calendar
           mode="single"
+          locale={dateLocale}
           selected={selected}
           defaultMonth={selected}
           onSelect={handleSelect}
@@ -78,7 +80,7 @@ const DatePickerField = ({ value, onChange, placeholder = "Selecione a data", cl
             onClick={() => { onChange(""); setOpen(false); }}
           >
             <X className="mr-1 h-3 w-3" />
-            Limpar data
+            {t("Limpar data")}
           </Button>
         </div>
       </PopoverContent>

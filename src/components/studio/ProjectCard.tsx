@@ -1,5 +1,5 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Images, Trash2 } from "lucide-react";
 import { StudioProject } from "@/hooks/useStudio";
 
@@ -16,7 +16,9 @@ interface ProjectCardProps {
   onDelete?: (project: StudioProject) => void;
 }
 
-const ProjectCard = ({ project, onClick, onDelete }: ProjectCardProps) => (
+const ProjectCard = ({ project, onClick, onDelete }: ProjectCardProps) => {
+  const { t, dateLocale } = useReviewLocale();
+  return (
   <div
     role="button"
     tabIndex={0}
@@ -27,7 +29,7 @@ const ProjectCard = ({ project, onClick, onDelete }: ProjectCardProps) => (
     {onDelete && (
       <button
         type="button"
-        aria-label="Excluir projeto"
+        aria-label={t("Excluir projeto")}
         onClick={(e) => {
           e.stopPropagation();
           onDelete(project);
@@ -43,7 +45,7 @@ const ProjectCard = ({ project, onClick, onDelete }: ProjectCardProps) => (
           {project.nome}
         </h3>
         <p className="mt-0.5 text-xs uppercase tracking-wider text-muted-foreground">
-          {project.tipo_ensaio}
+          {t(project.tipo_ensaio)}
         </p>
       </div>
       <span
@@ -51,7 +53,7 @@ const ProjectCard = ({ project, onClick, onDelete }: ProjectCardProps) => (
           STATUS_STYLES[project.status] ?? STATUS_STYLES.Rascunho
         }`}
       >
-        {project.status}
+        {t(project.status)}
       </span>
     </div>
 
@@ -62,13 +64,13 @@ const ProjectCard = ({ project, onClick, onDelete }: ProjectCardProps) => (
     <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3 text-xs text-muted-foreground">
       <span className="inline-flex items-center gap-1.5">
         <Images className="h-3.5 w-3.5" />
-        {project.photo_count ?? 0} fotos
-      </span>
+        {project.photo_count ?? 0} {t("fotos")}</span>
       <span>
-        {format(new Date(project.created_at), "dd MMM yyyy", { locale: ptBR })}
+        {format(new Date(project.created_at), t("dd MMM yyyy"), { locale: dateLocale })}
       </span>
     </div>
   </div>
 );
+};
 
 export default ProjectCard;

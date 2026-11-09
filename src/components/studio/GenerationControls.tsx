@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import SearchSelect from "@/components/SearchSelect";
 import { MAX_SLIDES } from "@/lib/carouselSchema";
 
@@ -19,13 +20,14 @@ const GenerationControls = ({
   onChangePhotoCount,
   disabled,
 }: GenerationControlsProps) => {
+  const { t } = useReviewLocale();
   const slideOptions = Array.from({ length: MAX_SLIDES }, (_, i) => ({
     value: String(i + 1),
     label: `${i + 1} slide${i === 0 ? "" : "s"}`,
   }));
   const photoOptions = Array.from({ length: Math.max(1, maxPhotos) }, (_, i) => ({
     value: String(i + 1),
-    label: `${i + 1} foto${i === 0 ? "" : "s"}`,
+    label: t("{0} foto{1}", [i + 1, i === 0 ? "" : "s"]),
   }));
 
   return (
@@ -35,27 +37,23 @@ const GenerationControls = ({
       }`}
     >
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Quantos slides
-        </label>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Quantos slides")}</label>
         <SearchSelect
           value={String(slideCount)}
           onChange={(v) => onChangeSlideCount(Number(v))}
           options={slideOptions}
           allowEmpty={false}
-          placeholder="Quantidade de slides"
+          placeholder={t("Quantidade de slides")}
         />
       </div>
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Quantas fotos usar
-        </label>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Quantas fotos usar")}</label>
         <SearchSelect
           value={String(Math.min(photoCount, Math.max(1, maxPhotos)))}
           onChange={(v) => onChangePhotoCount(Number(v))}
           options={photoOptions}
           allowEmpty={false}
-          placeholder="Quantidade de fotos"
+          placeholder={t("Quantidade de fotos")}
         />
       </div>
     </div>

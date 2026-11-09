@@ -12,6 +12,7 @@ import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import AccountAccessGate from "@/components/account/AccountAccessGate";
 import GoogleCalendarOAuthCallbackPage from "./pages/GoogleCalendarOAuthCallbackPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
+import { ReviewLocaleProvider, reviewLocaleFor } from "@/i18n/ReviewLocale";
 import DashboardLayout from "@/components/DashboardLayout";
 import Auth from "./pages/Auth";
 import LeadsPage from "./pages/LeadsPage";
@@ -67,12 +68,14 @@ const ProtectedLayout = () => {
   }
 
   return (
-    <AccountAccessGate>
-      <DashboardLayout>
-        <WhatsAppDisconnectWatcher />
-        <Outlet />
-      </DashboardLayout>
-    </AccountAccessGate>
+    <ReviewLocaleProvider locale={reviewLocaleFor(isAdmin, location.pathname)}>
+      <AccountAccessGate>
+        <DashboardLayout>
+          <WhatsAppDisconnectWatcher />
+          <Outlet />
+        </DashboardLayout>
+      </AccountAccessGate>
+    </ReviewLocaleProvider>
   );
 };
 
@@ -80,6 +83,7 @@ const isTesterAllowed = (pathname: string) =>
   pathname.startsWith("/estudio") || pathname === "/integracoes" || pathname === "/agenda";
 
 const EstudioProtectedLayout = () => {
+  const location = useLocation();
   const { user, loading } = useAuth();
   const { hasEstudio, isAdmin, isLoading: isRoleLoading } = useUserRole();
   const { isBlocked, isLoading: isBlockedLoading } = useAccountBlocked();
@@ -90,11 +94,13 @@ const EstudioProtectedLayout = () => {
   if (!hasEstudio) return <Navigate to="/leads" replace />;
 
   return (
-    <AccountAccessGate>
-      <DashboardLayout>
-        <Outlet />
-      </DashboardLayout>
-    </AccountAccessGate>
+    <ReviewLocaleProvider locale={reviewLocaleFor(isAdmin, location.pathname)}>
+      <AccountAccessGate>
+        <DashboardLayout>
+          <Outlet />
+        </DashboardLayout>
+      </AccountAccessGate>
+    </ReviewLocaleProvider>
   );
 };
 

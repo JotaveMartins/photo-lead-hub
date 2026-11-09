@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useEffect, useState } from "react";
 import { CalendarClock, Loader2, Instagram, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ const ScheduleModal = ({
   initialTime,
   onConfirm,
 }: ScheduleModalProps) => {
+  const { t } = useReviewLocale();
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
 
@@ -79,11 +81,8 @@ const ScheduleModal = ({
       <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-md flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-12">
           <DialogTitle className="flex items-center gap-2">
-            <CalendarClock className="h-4 w-4" /> Publicar no Instagram
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Revise o conteúdo e escolha quando publicar no Instagram.
-          </DialogDescription>
+            <CalendarClock className="h-4 w-4" /> {t("Publicar no Instagram")}</DialogTitle>
+          <DialogDescription className="sr-only">{t("Revise o conteúdo e escolha quando publicar no Instagram.")}</DialogDescription>
         </DialogHeader>
 
         <div className="min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-5 py-4">
@@ -106,55 +105,51 @@ const ScheduleModal = ({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
-                {connected ? `@${account?.username ?? account?.instagram_user_id}` : "Selecione um perfil conectado"}
+                {connected ? account?.username ? `@${account.username}` : t("Nome de usuário indisponível") : t("Selecione um perfil conectado")}
               </p>
               <p className="text-xs text-muted-foreground">
-                {slideCount} imagem(ns) · legenda com {caption.length} caracteres
-              </p>
+                {slideCount} {t("imagem(ns) · legenda com")}  {caption.length} {t("caracteres")}</p>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-foreground">Imagem</p>
+            <p className="text-xs font-semibold text-foreground">{t("Imagem")}</p>
             <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1">
               {imageUrls.map((u, i) => (
-                <img key={i} src={u} alt={`Imagem ${i + 1}`} loading="lazy" decoding="async" className="h-16 w-14 shrink-0 rounded-md border border-border object-cover" />
+                <img key={i} src={u} alt={t("Imagem {0}", [i + 1])} loading="lazy" decoding="async" className="h-16 w-14 shrink-0 rounded-md border border-border object-cover" />
               ))}
-              {!imageUrls.length && <p className="text-xs text-muted-foreground">Nenhuma imagem</p>}
+              {!imageUrls.length && <p className="text-xs text-muted-foreground">{t("Nenhuma imagem")}</p>}
             </div>
           </div>
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-foreground">Legenda</p>
+            <p className="text-xs font-semibold text-foreground">{t("Legenda")}</p>
             <p className="max-h-28 overflow-y-auto whitespace-pre-wrap rounded-md border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
-              {captionText || "Sem legenda"}
+              {captionText || t("Sem legenda")}
             </p>
           </div>
           <div className="space-y-1.5">
             <p className="text-xs font-semibold text-foreground">Hashtags</p>
             <p className="rounded-md border border-border bg-muted/40 p-2 text-xs text-primary">
-              {hashtags || "Sem hashtags"}
+              {hashtags || t("Sem hashtags")}
             </p>
           </div>
 
           {!connected && (
-            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
-              Escolha um perfil conectado para publicar. Se necessário, conecte ou reconecte seus perfis em Configurações → Integrações.
-            </p>
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">{t("Escolha um perfil conectado para publicar. Se necessário, conecte ou reconecte seus perfis em Configurações → Integrações.")}</p>
           )}
 
+          <p className="text-xs text-muted-foreground">{t("Uma imagem publica uma foto no feed; várias imagens publicam um carrossel. A legenda e as hashtags são enviadas juntas.")}</p>
           <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             <div className="min-w-0 space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Data</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("Data")}</label>
               <DatePickerField value={date} onChange={setDate} disabled={busy} className="min-w-0" />
             </div>
             <div className="min-w-0 space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Horário</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("Horário")}</label>
               <TimePickerField value={time} onChange={setTime} disabled={busy} />
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Fuso horário: America/São_Paulo
-            {inPast && <span className="ml-1 text-destructive">· escolha um horário futuro</span>}
+          <p className="text-[11px] text-muted-foreground">{t("Fuso horário: America/São_Paulo")}{inPast && <span className="ml-1 text-destructive">{t("· escolha um horário futuro")}</span>}
           </p>
         </div>
 
@@ -168,13 +163,11 @@ const ScheduleModal = ({
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
               <Send className="mr-1.5 h-4 w-4" />
-            )}
-            Publicar no Instagram
-          </Button>
+            )} {t("Publicar no Instagram")}</Button>
           <Button
             disabled={busy || !connected || !scheduledAt || inPast}
             onClick={() => {
-              if (!scheduledAt || !connected) return toast.error("Escolha um perfil, data e horário");
+              if (!scheduledAt || !connected) return toast.error(t("Escolha um perfil, data e horário"));
               onConfirm("schedule", scheduledAt.toISOString(), account.id);
             }}
           >
@@ -182,9 +175,7 @@ const ScheduleModal = ({
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
             ) : (
               <CalendarClock className="mr-1.5 h-4 w-4" />
-            )}
-            Agendar publicação
-          </Button>
+            )}{t("Agendar publicação")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

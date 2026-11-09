@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, Plug, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,17 +39,17 @@ const MaskedInput = ({
 };
 
 const StatusBadge = ({ configured }: { configured: boolean }) =>
-  configured ? (
+  { const { t } = useReviewLocale(); return configured ? (
     <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-medium">
-      <CheckCircle2 className="w-3.5 h-3.5" /> Configurado
-    </span>
+      <CheckCircle2 className="w-3.5 h-3.5" /> {t("Configurado")}</span>
   ) : (
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-      <AlertCircle className="w-3.5 h-3.5" /> Não configurado
-    </span>
+      <AlertCircle className="w-3.5 h-3.5" /> {t("Não configurado")}</span>
   );
+};
 
 const IntegracoesPage = () => {
+  const { t } = useReviewLocale();
   const { data: settings, isLoading } = useIntegrationSettings();
   const save = useSaveIntegrationSettings();
 
@@ -67,7 +68,7 @@ const IntegracoesPage = () => {
     });
   };
 
-  if (isLoading) return <div className="text-muted-foreground py-12 text-center">Carregando...</div>;
+  if (isLoading) return <div className="text-muted-foreground py-12 text-center">{t("Carregando...")}</div>;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -76,8 +77,8 @@ const IntegracoesPage = () => {
           <Plug className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Integrações</h1>
-          <p className="text-sm text-muted-foreground">Conecte suas ferramentas externas</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{t("Integrações")}</h1>
+          <p className="text-sm text-muted-foreground">{t("Conecte suas ferramentas externas")}</p>
         </div>
       </div>
 
@@ -91,7 +92,7 @@ const IntegracoesPage = () => {
               </div>
               <div>
                 <p className="font-semibold text-foreground text-sm">Asaas</p>
-                <p className="text-xs text-muted-foreground">Cobranças automáticas, PIX, boleto e cartão</p>
+                <p className="text-xs text-muted-foreground">{t("Cobranças automáticas, PIX, boleto e cartão")}</p>
               </div>
             </div>
             <StatusBadge configured={!!settings?.asaas_api_key} />
@@ -104,25 +105,23 @@ const IntegracoesPage = () => {
               onChange={setAsaasKey}
               placeholder="$aact_YourAsaasApiKey..."
             />
-            <p className="text-[11px] text-muted-foreground">
-              Encontre em:{" "}
+            <p className="text-[11px] text-muted-foreground">{t("Encontre em:")}{" "}
               <a
                 href="https://www.asaas.com/userConfig/index"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-0.5"
-              >
-                Asaas → Configurações → Integrações <ExternalLink className="w-3 h-3" />
+              >{t("Asaas → Configurações → Integrações")}  <ExternalLink className="w-3 h-3" />
               </a>
             </p>
           </div>
 
           <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-1.5 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">O que é integrado:</p>
+            <p className="font-medium text-foreground">{t("O que é integrado:")}</p>
             <ul className="space-y-0.5 list-disc list-inside">
-              <li>Criar cobrança no Asaas ao adicionar uma cobrança no CRM</li>
-              <li>Gerar link de pagamento (PIX, boleto, cartão)</li>
-              <li>Atualizar status automaticamente quando o cliente pagar</li>
+              <li>{t("Criar cobrança no Asaas ao adicionar uma cobrança no CRM")}</li>
+              <li>{t("Gerar link de pagamento (PIX, boleto, cartão)")}</li>
+              <li>{t("Atualizar status automaticamente quando o cliente pagar")}</li>
             </ul>
           </div>
         </div>
@@ -133,7 +132,7 @@ const IntegracoesPage = () => {
             className="bg-gradient-primary hover:opacity-90"
             disabled={save.isPending}
           >
-            {save.isPending ? "Salvando..." : "Salvar integrações"}
+            {save.isPending ? t("Salvando...") : t("Salvar integrações")}
           </Button>
         </div>
       </form>

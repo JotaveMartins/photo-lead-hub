@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
 
@@ -18,6 +19,7 @@ const UploadArea = ({
   photoCount = 0,
   maxPhotos = 30,
 }: UploadAreaProps) => {
+  const { t } = useReviewLocale();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -69,34 +71,24 @@ const UploadArea = ({
       {uploading ? (
         <>
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">
-            Enviando {progress ? `${progress.done}/${progress.total}` : ""}...
+          <p className="text-sm text-muted-foreground">{t("Enviando")}  {progress ? `${progress.done}/${progress.total}` : ""}...
           </p>
         </>
       ) : atLimit ? (
         <>
           <ImagePlus className="h-6 w-6 text-amber-500" />
-          <p className="text-sm font-medium text-amber-500">
-            Limite de {maxPhotos} fotos atingido
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Exclua algumas fotos para enviar novas
-          </p>
+          <p className="text-sm font-medium text-amber-500">{t("Limite de")}  {maxPhotos} {t("fotos atingido")}</p>
+          <p className="text-xs text-muted-foreground">{t("Exclua algumas fotos para enviar novas")}</p>
         </>
       ) : (
         <>
           <ImagePlus className="h-6 w-6 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">
-            Arraste suas fotografias aqui
-          </p>
-          <p className="text-xs text-muted-foreground">
-            ou clique para selecionar múltiplos arquivos
-          </p>
+          <p className="text-sm font-medium text-foreground">{t("Arraste suas fotografias aqui")}</p>
+          <p className="text-xs text-muted-foreground">{t("ou clique para selecionar múltiplos arquivos")}</p>
         </>
       )}
       <p className="mt-1 text-[11px] font-medium text-muted-foreground/80">
-        {photoCount} / {maxPhotos} fotos
-      </p>
+        {photoCount} / {maxPhotos} {t("fotos")}</p>
     </div>
   );
 };

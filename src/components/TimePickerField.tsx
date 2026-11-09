@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -85,13 +86,14 @@ const TimeDropdown = ({ value, options, onChange, disabled, ariaLabel }: TimeDro
 };
 
 const TimePickerField = ({ value, onChange, placeholder = "Hora", className, disabled }: TimePickerFieldProps) => {
+  const { t } = useReviewLocale();
   const [h, m] = value ? value.split(":") : ["", ""];
 
   return (
     <div className={cn("flex items-center gap-1", className)}>
       <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
       <TimeDropdown
-        ariaLabel={`${placeholder} - hora`}
+        ariaLabel={`${t(placeholder)} - ${t("hora")}`}
         value={h}
         options={hours}
         disabled={disabled}
@@ -99,7 +101,7 @@ const TimePickerField = ({ value, onChange, placeholder = "Hora", className, dis
       />
       <span className="text-muted-foreground font-medium">:</span>
       <TimeDropdown
-        ariaLabel={`${placeholder} - minutos`}
+        ariaLabel={`${t(placeholder)} - ${t("minutos")}`}
         value={m}
         options={minutes}
         disabled={disabled}

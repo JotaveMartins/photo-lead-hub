@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Instagram } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +26,7 @@ const PostPreviewModal = ({
   photos,
   account,
 }: PostPreviewModalProps) => {
+  const { t } = useReviewLocale();
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const dragX = useRef<number | null>(null);
@@ -74,7 +76,7 @@ const PostPreviewModal = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, usable.length]);
 
-  const username = account?.username ? `@${account.username}` : "@sua_conta";
+  const username = account?.username ? `@${account.username}` : t("Nenhuma conta selecionada");
   const current = usable[index];
 
   const dots = useMemo(() => {
@@ -88,7 +90,7 @@ const PostPreviewModal = ({
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[430px] flex-col gap-0 overflow-hidden rounded-2xl border-border/60 bg-card p-0">
-        <DialogTitle className="sr-only">Pré-visualização da publicação</DialogTitle>
+        <DialogTitle className="sr-only">{t("Pré-visualização da publicação")}</DialogTitle>
 
         {/* Cabeçalho */}
         <div className="flex items-center gap-3 px-4 py-3">
@@ -105,9 +107,9 @@ const PostPreviewModal = ({
           )}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">
-              {account?.username ?? "sua_conta"}
+              {account?.username || t("Nenhuma conta selecionada")}
             </p>
-            <p className="text-[11px] text-muted-foreground">Publicação em carrossel</p>
+            <p className="text-[11px] text-muted-foreground">{t(usable.length === 1 ? "Publicação de foto no feed" : "Publicação em carrossel")}</p>
           </div>
         </div>
 
@@ -153,7 +155,7 @@ const PostPreviewModal = ({
           {index > 0 && (
             <button
               onClick={() => go(-1)}
-              aria-label="Slide anterior"
+              aria-label={t("Slide anterior")}
               className="absolute left-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/85 p-1.5 text-black shadow transition hover:bg-white sm:block"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -162,7 +164,7 @@ const PostPreviewModal = ({
           {index < usable.length - 1 && (
             <button
               onClick={() => go(1)}
-              aria-label="Próximo slide"
+              aria-label={t("Próximo slide")}
               className="absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/85 p-1.5 text-black shadow transition hover:bg-white sm:block"
             >
               <ChevronRight className="h-4 w-4" />
@@ -177,7 +179,7 @@ const PostPreviewModal = ({
               <button
                 key={i}
                 onClick={() => setIndex(i)}
-                aria-label={`Ir para o slide ${i + 1}`}
+                aria-label={t("Ir para o slide {0}", [i + 1])}
                 className={`rounded-full transition-all ${
                   i === index
                     ? "h-1.5 w-1.5 bg-primary"
@@ -195,16 +197,14 @@ const PostPreviewModal = ({
               expanded ? "" : "line-clamp-3"
             }`}
           >
-            <span className="font-semibold">{account?.username ?? "sua_conta"}</span>{" "}
-            {caption || "Sem legenda"}
+            <span className="font-semibold">{account?.username || t("Nenhuma conta selecionada")}</span>{" "}
+            {caption || t("Sem legenda")}
           </p>
           {!expanded && caption.length > 140 && (
             <button
               onClick={() => setExpanded(true)}
               className="mt-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              mais
-            </button>
+            >{t("mais")}</button>
           )}
         </div>
       </DialogContent>

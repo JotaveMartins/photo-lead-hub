@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useRef } from "react";
 import { LayoutType, layoutCapacity } from "@/lib/carouselLayouts";
 import { StudioPhoto } from "@/hooks/useStudio";
@@ -32,6 +33,7 @@ const Slot = ({
   className = "",
   frame,
 }: any) => {
+  const { t } = useReviewLocale();
   const imgRef = useRef<HTMLImageElement | null>(null);
   const drag = useRef<{ x: number; y: number; fx: number; fy: number } | null>(null);
   const fx = focus?.x ?? 50;
@@ -73,7 +75,7 @@ const Slot = ({
         <img
           ref={imgRef}
           src={photo.thumbUrl ?? photo.url}
-          alt={photo.filename ?? "Foto do slide"}
+          alt={photo.filename ?? t("Foto do slide")}
           loading="lazy"
           decoding="async"
           draggable={false}
@@ -106,7 +108,7 @@ const Slot = ({
             type="button"
             onClick={() => onSlotClick?.(index)}
             className="rounded bg-background/90 p-1 text-foreground backdrop-blur"
-            aria-label="Substituir foto"
+            aria-label={t("Substituir foto")}
           >
             <Repeat2 className="h-3 w-3" />
           </button>
@@ -114,7 +116,7 @@ const Slot = ({
             type="button"
             onClick={() => onRemovePhoto?.(index)}
             className="rounded bg-background/90 p-1 text-destructive backdrop-blur"
-            aria-label="Remover foto do slide"
+            aria-label={t("Remover foto do slide")}
           >
             <X className="h-3 w-3" />
           </button>

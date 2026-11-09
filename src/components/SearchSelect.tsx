@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useState, useMemo, useRef, useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Check } from "lucide-react";
@@ -38,6 +39,7 @@ const SearchSelect = ({
   disabled = false,
   id,
 }: SearchSelectProps) => {
+  const { t } = useReviewLocale();
   const generatedId = useId();
   const triggerId = id ?? generatedId;
   const listId = `${triggerId}-options`;
@@ -153,7 +155,7 @@ const SearchSelect = ({
           className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-muted px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className={selected ? "text-foreground" : "text-muted-foreground"}>
-            {selected ? selected.label : placeholder}
+            {selected ? selected.label : t(placeholder)}
           </span>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-150", open && "rotate-180")} />
         </button>
@@ -179,7 +181,7 @@ const SearchSelect = ({
                 autoFocus
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={searchPlaceholder}
+                placeholder={t(searchPlaceholder)}
                 className="w-full rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
@@ -197,7 +199,7 @@ const SearchSelect = ({
                     !value ? "text-foreground font-medium" : "text-muted-foreground"
                   )}
                 >
-                  <span>{emptyLabel}</span>
+                  <span>{t(emptyLabel)}</span>
                   {!value && <Check className="w-3.5 h-3.5 text-primary" />}
                 </button>
               )}
@@ -224,10 +226,10 @@ const SearchSelect = ({
               ))}
 
               {filtered.length === 0 && !allowEmpty && (
-                <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum resultado</p>
+                <p className="px-3 py-2 text-sm text-muted-foreground">{t("Nenhum resultado")}</p>
               )}
               {filtered.length === 0 && allowEmpty && search.trim() && (
-                <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum resultado</p>
+                <p className="px-3 py-2 text-sm text-muted-foreground">{t("Nenhum resultado")}</p>
               )}
             </div>
           </div>,

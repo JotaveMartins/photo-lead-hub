@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { ReactNode, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
@@ -22,6 +23,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+  const { t } = useReviewLocale();
   const { isImpersonating, impersonatedUserName, stopImpersonation } = useImpersonation();
   const { isTester } = useUserRole();
   const navigate = useNavigate();
@@ -130,14 +132,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {isImpersonating && (
         <div className="fixed top-0 inset-x-0 z-[60] h-8 flex items-center justify-between gap-3 px-4 bg-primary/15 backdrop-blur border-b border-primary/30">
           <span className="text-xs font-medium text-primary truncate">
-            Visualizando como <strong>{impersonatedUserName}</strong>
+            {t("Visualizando como")} <strong>{impersonatedUserName}</strong>
           </span>
           <button
             onClick={handleStopImpersonation}
             className="flex items-center gap-1 rounded-md bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <X className="w-3 h-3" />
-            Sair
+            {t("Sair")}
           </button>
         </div>
       )}
@@ -152,12 +154,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <button
           onClick={() => setSidebarOpen(true)}
           className="inline-flex items-center justify-center w-11 h-11 -ml-2 rounded-md hover:bg-muted text-foreground"
-          aria-label="Abrir menu"
+          aria-label={t("Abrir menu")}
         >
           <Menu className="w-6 h-6" />
         </button>
         <h1 className="flex-1 text-center font-display font-semibold text-base text-foreground truncate">
-          {currentTitle}
+          {t(currentTitle)}
         </h1>
         <div className="flex items-center justify-center w-11 h-11">
           <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />

@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { LAYOUTS, LayoutType } from "@/lib/carouselLayouts";
 
 interface LayoutSelectorProps {
@@ -70,7 +71,9 @@ const Preview = ({ id }: { id: LayoutType }) => {
   );
 };
 
-const LayoutSelector = ({ value, onChange }: LayoutSelectorProps) => (
+const LayoutSelector = ({ value, onChange }: LayoutSelectorProps) => {
+ const { t } = useReviewLocale();
+ return (
   <div className="flex flex-wrap gap-1.5">
     {LAYOUTS.map((l) => {
       const active = l.id === value;
@@ -78,7 +81,7 @@ const LayoutSelector = ({ value, onChange }: LayoutSelectorProps) => (
         <button
           key={l.id}
           type="button"
-          title={`${l.label} — ${l.description}`}
+          title={`${t(l.label)}: ${t(l.description)}`}
           onClick={() => onChange(l.id)}
           className={`h-8 w-8 rounded-md border p-1 transition-colors ${
             active
@@ -92,5 +95,6 @@ const LayoutSelector = ({ value, onChange }: LayoutSelectorProps) => (
     })}
   </div>
 );
+};
 
 export default LayoutSelector;

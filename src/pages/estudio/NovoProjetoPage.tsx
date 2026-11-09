@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, X } from "lucide-react";
@@ -30,6 +31,7 @@ const GENERATION_STEPS = [
 ];
 
 const NovoProjetoPage = () => {
+  const { t } = useReviewLocale();
   const navigate = useNavigate();
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("Casamento");
@@ -75,7 +77,7 @@ const NovoProjetoPage = () => {
     const already = photos.length;
     const remaining = MAX_PHOTOS_PER_PROJECT - already;
     if (remaining <= 0) {
-      return toast.error(`Limite de ${MAX_PHOTOS_PER_PROJECT} fotos por projeto atingido.`);
+      return toast.error(t("Limite de {0} fotos por projeto atingido.", [MAX_PHOTOS_PER_PROJECT]));
     }
     setUploading(true);
     try {
@@ -89,18 +91,18 @@ const NovoProjetoPage = () => {
       if (res?.skipped > 0) {
         if (already === 0) {
           toast.warning(
-            `Você selecionou ${res.selected} fotos. Utilizamos as primeiras ${res.uploaded}, que é o limite permitido por projeto.`,
+            t("Você selecionou {0} fotos. Utilizamos as primeiras {1}, que é o limite permitido por projeto.", [res.selected, res.uploaded]),
           );
         } else {
           toast.warning(
-            `${res.uploaded} nova(s) foto(s) foram adicionadas. O limite máximo de ${MAX_PHOTOS_PER_PROJECT} fotos foi atingido.`,
+            t("{0} nova(s) foto(s) foram adicionadas. O limite máximo de {1} fotos foi atingido.", [res.uploaded, MAX_PHOTOS_PER_PROJECT]),
           );
         }
       } else {
-        toast.success(`${res?.uploaded ?? files.length} foto(s) enviadas`);
+        toast.success(t("{0} foto(s) enviadas", [res?.uploaded ?? files.length]));
       }
     } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao enviar fotografias");
+      toast.error(err?.message ?? t("Erro ao enviar fotografias"));
     } finally {
       setUploading(false);
       setProgress(null);
@@ -116,10 +118,10 @@ const NovoProjetoPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim()) return toast.error("Informe o nome do projeto");
-    if (uploading) return toast.error("Aguarde o envio das fotografias.");
+    if (!nome.trim()) return toast.error(t("Informe o nome do projeto"));
+    if (uploading) return toast.error(t("Aguarde o envio das fotografias."));
     if (!draftId || photos.length === 0)
-      return toast.error("Envie pelo menos uma fotografia");
+      return toast.error(t("Envie pelo menos uma fotografia"));
 
     try {
       setStep(0);
@@ -146,7 +148,7 @@ const NovoProjetoPage = () => {
       const slides = aiJsonToSlides(json);
       if (slides.length < slideCount) {
         toast.warning(
-          `Montamos ${slides.length} slide(s). As fotografias enviadas não permitiram chegar a ${slideCount}.`,
+          t("Montamos {0} slide(s). As fotografias enviadas não permitiram chegar a {1}.", [slides.length, slideCount]),
         );
       }
 
@@ -164,7 +166,7 @@ const NovoProjetoPage = () => {
         });
         if (res?.caption) legenda = res.caption;
       } catch {
-        toast.warning("Não foi possível gerar a legenda com IA agora. Você pode regenerá-la no editor.");
+        toast.warning(t("Não foi possível gerar a legenda com IA agora. Você pode regenerá-la no editor."));
       }
 
       setStep(3);
@@ -176,10 +178,10 @@ const NovoProjetoPage = () => {
       });
       await updateProject.mutateAsync({ id: draftId, status: "Gerado" });
 
-      toast.success("Projeto criado!");
+      toast.success(t("Projeto criado!"));
       navigate(`/estudio/${draftId}`);
     } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao criar projeto");
+      toast.error(err?.message ?? t("Erro ao criar projeto"));
       setStep(null);
     }
   };
@@ -188,9 +190,7 @@ const NovoProjetoPage = () => {
     return (
       <div className="mx-auto max-w-lg py-24 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-        <h1 className="mt-6 font-display text-2xl font-semibold text-foreground">
-          Estamos preparando seu conteúdo.
-        </h1>
+        <h1 className="mt-6 font-display text-2xl font-semibold text-foreground">{t("Estamos preparando seu conteúdo.")}</h1>
         <ul className="mx-auto mt-6 w-fit space-y-2 text-left text-sm">
           {GENERATION_STEPS.map((label, i) => (
             <li
@@ -203,7 +203,7 @@ const NovoProjetoPage = () => {
                     : "text-muted-foreground/60"
               }
             >
-              {i < (step ?? 0) ? "✓" : i === step ? "•" : "·"} {label}
+              {i < (step ?? 0) ? "✓" : i === step ? "•" : "·"} {t(label)}
             </li>
           ))}
         </ul>
@@ -217,68 +217,54 @@ const NovoProjetoPage = () => {
         onClick={() => navigate("/estudio")}
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Voltar
-      </button>
+        <ArrowLeft className="h-4 w-4" /> {t("Voltar")}</button>
 
-      <h1 className="font-display text-3xl font-semibold text-foreground">Novo projeto</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Descreva o ensaio e envie as fotografias.
-      </p>
+      <h1 className="font-display text-3xl font-semibold text-foreground">{t("Novo projeto")}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t("Descreva o ensaio e envie as fotografias.")}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Nome do projeto
-          </label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Nome do projeto")}</label>
           <Input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            placeholder="Ex.: Amanda & Rafael — Pré-Wedding"
+            placeholder={t("Ex.: Amanda & Rafael — Pré-Wedding")}
             className="bg-muted/40"
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Tipo de ensaio
-          </label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Tipo de ensaio")}</label>
           <SearchSelect
             value={tipo}
             onChange={(v) => setTipo(v)}
-            options={TIPOS_ENSAIO.map((t) => ({ value: t, label: t }))}
-            placeholder="Selecione o tipo"
+            options={TIPOS_ENSAIO.map((kind) => ({ value: kind, label: t(kind) }))}
+            placeholder={t("Selecione o tipo")}
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Contexto do ensaio
-          </label>
-          <p className="text-xs text-muted-foreground">
-            Quanto mais detalhes reais você escrever aqui, melhor fica a legenda. A
-            inteligência artificial nunca inventa nada que não esteja neste texto.
-          </p>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Contexto do ensaio")}</label>
+          <p className="text-xs text-muted-foreground">{t("Quanto mais detalhes reais você escrever aqui, melhor fica a legenda. A inteligência artificial nunca inventa nada que não esteja neste texto.")}</p>
           <Textarea
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             rows={5}
-            placeholder="Casamento da Juliane e do Arthur, na fazenda da família dela. Cerimônia ao ar livre no fim da tarde, com a irmã dela lendo uma carta e o avô emocionado na entrada. Muita gente próxima, clima leve e fé presente o dia todo."
+            placeholder={t("Casamento da Juliane e do Arthur, na fazenda da família dela. Cerimônia ao ar livre no fim da tarde, com a irmã dela lendo uma carta e o avô emocionado na entrada. Muita gente próxima, clima leve e fé presente o dia todo.")}
             className="bg-muted/40"
           />
           <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
-            <li>Nomes das pessoas</li>
-            <li>Local e tipo de cerimônia</li>
-            <li>Quem estava presente e o que essas pessoas representam</li>
-            <li>Algo marcante do dia, um gesto, um imprevisto, uma emoção</li>
-            <li>A personalidade do casal ou da pessoa fotografada</li>
-            <li>Detalhes escolhidos por eles que tenham significado</li>
+            <li>{t("Nomes das pessoas")}</li>
+            <li>{t("Local e tipo de cerimônia")}</li>
+            <li>{t("Quem estava presente e o que essas pessoas representam")}</li>
+            <li>{t("Algo marcante do dia, um gesto, um imprevisto, uma emoção")}</li>
+            <li>{t("A personalidade do casal ou da pessoa fotografada")}</li>
+            <li>{t("Detalhes escolhidos por eles que tenham significado")}</li>
           </ul>
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Fotografias
-          </label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Fotografias")}</label>
           <UploadArea
             compact
             photoCount={photos.length}
@@ -288,9 +274,8 @@ const NovoProjetoPage = () => {
             onFiles={handleFiles}
           />
           <p className="text-xs text-muted-foreground">
-            {photos.length} de {MAX_PHOTOS_PER_PROJECT} fotos
-            {uploading && progress
-              ? ` · Enviando fotos, ${progress.done} de ${progress.total}`
+            {photos.length} {t("de")}  {MAX_PHOTOS_PER_PROJECT} {t("fotos")}{uploading && progress
+              ? t(" · Enviando fotos, {0} de {1}", [progress.done, progress.total])
               : ""}
           </p>
           {photos.length > 0 && (
@@ -302,13 +287,13 @@ const NovoProjetoPage = () => {
                 >
                   <img
                     src={p.thumbUrl}
-                    alt={p.filename ?? "Fotografia"}
+                    alt={p.filename ?? t("Fotografia")}
                     loading="lazy"
                     className="h-full w-full object-cover"
                   />
                   <button
                     type="button"
-                    aria-label="Remover fotografia"
+                    aria-label={t("Remover fotografia")}
                     onClick={() => deletePhoto.mutate(p)}
                     className="absolute right-1 top-1 rounded-full bg-background/80 p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
                   >
@@ -328,18 +313,13 @@ const NovoProjetoPage = () => {
             onChangeSlideCount={(v) => setSlideCount(Math.min(MAX_SLIDES, v))}
             onChangePhotoCount={setPhotoCount}
           />
-          <p className="text-xs text-muted-foreground">
-            O sistema distribui as fotografias escolhidas entre os slides, montando as
-            molduras automaticamente.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("O sistema distribui as fotografias escolhidas entre os slides, montando as molduras automaticamente.")}</p>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={handleCancel}>
-            Cancelar
-          </Button>
+          <Button type="button" variant="outline" onClick={handleCancel}>{t("Cancelar")}</Button>
           <Button type="submit" disabled={uploading || photos.length === 0}>
-            {uploading ? "Aguarde o envio das fotografias..." : "Criar projeto"}
+            {uploading ? t("Aguarde o envio das fotografias...") : t("Criar projeto")}
           </Button>
         </div>
       </form>

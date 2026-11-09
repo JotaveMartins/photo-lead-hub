@@ -120,6 +120,13 @@
       "when": 1794240000001,
       "tag": "0016_reload_schema_after_studio_relationship_isolation",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794250800000,
+      "tag": "0017_instagram_publication_permalink",
+      "breakpoints": true
     }
   ]
 }

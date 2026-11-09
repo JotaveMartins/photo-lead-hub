@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,7 +12,6 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   CalendarDays,
   ChevronLeft,
@@ -23,6 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import PublishedInstagramPost from "@/components/studio/PublishedInstagramPost";
 import { Button } from "@/components/ui/button";
 import {
   PostStatus,
@@ -50,6 +51,7 @@ const statusLabel: Record<PostStatus, string> = {
 };
 
 const CalendarioPage = () => {
+  const { t, dateLocale } = useReviewLocale();
   const navigate = useNavigate();
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState<ScheduledPost | null>(null);
@@ -74,28 +76,24 @@ const CalendarioPage = () => {
 
   const handlePublishNow = (post: ScheduledPost) =>
     publish.mutate(post.id, {
-      onSuccess: () => toast.success("Publicação realizada com sucesso no Instagram"),
-      onError: (e: any) => toast.error(e?.message ?? "Falha ao publicar"),
+      onSuccess: () => toast.success(t("Publicação realizada com sucesso no Instagram")),
+      onError: (e: any) => toast.error(e?.message ?? t("Falha ao publicar")),
     });
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border/50 pb-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Estúdio IA</p>
-          <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">
-            Calendário de conteúdo
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Acompanhe os carrosséis agendados e publicados nos seus perfis do Instagram
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("Estúdio IA")}</p>
+          <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">{t("Calendário de conteúdo")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("Acompanhe os carrosséis agendados e publicados nos seus perfis do Instagram")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setMonth(subMonths(month, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="min-w-[150px] text-center text-sm font-medium capitalize text-foreground">
-            {format(month, "MMMM 'de' yyyy", { locale: ptBR })}
+            {format(month, t("MMMM 'de' yyyy"), { locale: dateLocale })}
           </span>
           <Button variant="outline" size="icon" onClick={() => setMonth(addMonths(month, 1))}>
             <ChevronRight className="h-4 w-4" />
@@ -104,9 +102,9 @@ const CalendarioPage = () => {
       </header>
 
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-border bg-border">
-        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
+        {[t("Dom"), t("Seg"), t("Ter"), t("Qua"), t("Qui"), t("Sex"), t("Sáb")].map((d) => (
           <div key={d} className="bg-card px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {d}
+            {t(d)}
           </div>
         ))}
         {days.map((day) => {
@@ -144,14 +142,12 @@ const CalendarioPage = () => {
       </div>
 
       <section className="space-y-3">
-        <h2 className="font-display text-lg font-semibold text-foreground">Próximas publicações</h2>
+        <h2 className="font-display text-lg font-semibold text-foreground">{t("Próximas publicações")}</h2>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+          <p className="text-sm text-muted-foreground">{t("Carregando...")}</p>
         ) : upcoming.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
-            <CalendarDays className="mx-auto mb-2 h-5 w-5" />
-            Nenhuma publicação agendada. Aprove um carrossel no Estúdio IA para agendar.
-          </div>
+            <CalendarDays className="mx-auto mb-2 h-5 w-5" />{t("Nenhuma publicação agendada. Aprove um carrossel no Estúdio IA para agendar.")}</div>
         ) : (
           <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {upcoming.map((p) => (
@@ -160,20 +156,17 @@ const CalendarioPage = () => {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{p.projectName}</p>
                   <p className="text-xs text-muted-foreground">
-                    {format(new Date(p.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} ·{" "}
-                    {p.slideCount} imagem(ns)
-                    {p.accountUsername ? ` · @${p.accountUsername}` : " · Perfil desconectado"}
+                    {format(new Date(p.scheduled_at), t("dd/MM/yyyy 'às' HH:mm"), { locale: dateLocale })} ·{" "}
+                    {p.slideCount} {t("imagem(ns)")}{p.accountUsername ? ` · @${p.accountUsername}` : " · Perfil desconectado"}
                     {p.last_error && <span className="text-destructive"> · {p.last_error}</span>}
                   </p>
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${statusStyles[p.status]}`}>
-                  {statusLabel[p.status]}
+                  {t(statusLabel[p.status])}
                 </span>
                 <div className="flex gap-1.5">
                   {p.projectId && (
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/estudio/${p.projectId}`)}>
-                      Ver projeto
-                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => navigate(`/estudio/${p.projectId}`)}>{t("Ver projeto")}</Button>
                   )}
                   {p.status === "falhou" && (
                     <Button
@@ -182,12 +175,11 @@ const CalendarioPage = () => {
                       onClick={() =>
                         reschedule.mutate(
                           { id: p.id, scheduledAt: new Date(Date.now() + 120000).toISOString() },
-                          { onSuccess: () => toast.success("Reagendado para daqui a 2 minutos") },
+                          { onSuccess: () => toast.success(t("Reagendado para daqui a 2 minutos")) },
                         )
                       }
                     >
-                      <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Tentar de novo
-                    </Button>
+                      <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> {t("Tentar de novo")}</Button>
                   )}
                   <Button
                     variant="outline"
@@ -199,15 +191,13 @@ const CalendarioPage = () => {
                       <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <Send className="mr-1.5 h-3.5 w-3.5" />
-                    )}
-                    Publicar agora
-                  </Button>
+                    )}{t("Publicar agora")}</Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-destructive"
                     onClick={() =>
-                      cancel.mutate(p.id, { onSuccess: () => toast.success("Agendamento cancelado") })
+                      cancel.mutate(p.id, { onSuccess: () => toast.success(t("Agendamento cancelado")) })
                     }
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -233,11 +223,12 @@ const CalendarioPage = () => {
                 {selected.projectName}
               </h3>
               <p className="text-xs text-muted-foreground">
-                {format(new Date(selected.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} ·{" "}
-                {statusLabel[selected.status]}
+                {format(new Date(selected.scheduled_at), t("dd/MM/yyyy 'às' HH:mm"), { locale: dateLocale })} ·{" "}
+                {t(statusLabel[selected.status])}
                 {selected.accountUsername ? ` · @${selected.accountUsername}` : " · Perfil desconectado"}
               </p>
             </div>
+            <PublishedInstagramPost post={selected} />
             {selected.caption && (
               <p className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
                 {selected.caption}
@@ -245,13 +236,9 @@ const CalendarioPage = () => {
             )}
             <div className="flex justify-end gap-2">
               {selected.projectId && (
-                <Button variant="outline" size="sm" onClick={() => navigate(`/estudio/${selected.projectId}`)}>
-                  Abrir projeto
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/estudio/${selected.projectId}`)}>{t("Abrir projeto")}</Button>
               )}
-              <Button size="sm" onClick={() => setSelected(null)}>
-                Fechar
-              </Button>
+              <Button size="sm" onClick={() => setSelected(null)}>{t("Fechar")}</Button>
             </div>
           </div>
         </div>

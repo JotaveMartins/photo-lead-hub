@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useMemo, useState } from "react";
 import {
   GripVertical,
@@ -101,6 +102,7 @@ const CarouselEditor = ({
   onChangeSlideCount,
   onChangePhotoCount,
 }: CarouselEditorProps) => {
+  const { t } = useReviewLocale();
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [picker, setPicker] = useState<{ slide: number; slot: number } | null>(null);
   const [confirmCaption, setConfirmCaption] = useState(false);
@@ -154,21 +156,21 @@ const CarouselEditor = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="font-display text-xl font-semibold text-foreground">Carrossel</h2>
+            <h2 className="font-display text-xl font-semibold text-foreground">{t("Carrossel")}</h2>
             <span
               className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                 statusStyles[status] ?? statusStyles.Rascunho
               }`}
             >
-              {status}
+              {t(status)}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
             {slides.length} slides
             {justSaved ? (
-              <span className="ml-2 text-emerald-400">· salvo</span>
+              <span className="ml-2 text-emerald-400">{t("· salvo")}</span>
             ) : dirty ? (
-              <span className="ml-2 text-amber-500">· alterações não salvas</span>
+              <span className="ml-2 text-amber-500">{t("· alterações não salvas")}</span>
             ) : null}
           </p>
         </div>
@@ -176,31 +178,26 @@ const CarouselEditor = ({
           {readOnly ? (
             <>
               <Button variant="outline" size="sm" onClick={onPreviewPost}>
-                <Eye className="mr-1.5 h-4 w-4" /> Pré-visualizar publicação
-              </Button>
+                <Eye className="mr-1.5 h-4 w-4" /> {t("Pré-visualizar publicação")}</Button>
               <Button variant="outline" size="sm" onClick={onEditAgain}>
-                <Pencil className="mr-1.5 h-4 w-4" /> Editar novamente
-              </Button>
+                <Pencil className="mr-1.5 h-4 w-4" /> {t("Editar novamente")}</Button>
               <Button variant="outline" size="sm" onClick={onCopyCaption}>
-                <Copy className="mr-1.5 h-4 w-4" /> Copiar legenda
-              </Button>
+                <Copy className="mr-1.5 h-4 w-4" /> {t("Copiar legenda")}</Button>
               <Button size="sm" onClick={onDownload} disabled={!!exporting}>
                 {exporting ? (
                   <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                 ) : (
                   <Download className="mr-1.5 h-4 w-4" />
                 )}
-                {exporting ?? "Baixar carrossel"}
+                {exporting ?? t("Baixar carrossel")}
               </Button>
             </>
           ) : (
             <>
               <Button variant="outline" size="sm" onClick={onPreviewPost}>
-                <Eye className="mr-1.5 h-4 w-4" /> Pré-visualizar publicação
-              </Button>
+                <Eye className="mr-1.5 h-4 w-4" /> {t("Pré-visualizar publicação")}</Button>
               <Button variant="outline" size="sm" onClick={onRegenerate} disabled={saving}>
-                <RefreshCw className="mr-1.5 h-4 w-4" /> Regenerar carrossel
-              </Button>
+                <RefreshCw className="mr-1.5 h-4 w-4" /> {t("Regenerar carrossel")}</Button>
               <Button variant="outline" size="sm" onClick={onSave} disabled={saving}>
                 {saving ? (
                   <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -209,11 +206,10 @@ const CarouselEditor = ({
                 ) : (
                   <Save className="mr-1.5 h-4 w-4" />
                 )}
-                {saving ? savingLabel ?? "Salvando..." : justSaved ? "Salvo" : "Salvar"}
+                {saving ? t(savingLabel ?? "Salvando...") : justSaved ? t("Salvo") : t("Salvar")}
               </Button>
               <Button size="sm" onClick={onApprove} disabled={saving}>
-                <Check className="mr-1.5 h-4 w-4" /> Aprovar
-              </Button>
+                <Check className="mr-1.5 h-4 w-4" /> {t("Aprovar")}</Button>
             </>
           )}
         </div>
@@ -229,9 +225,7 @@ const CarouselEditor = ({
             onChangePhotoCount={onChangePhotoCount}
             disabled={saving}
           />
-          <p className="text-xs text-muted-foreground">
-            Escolha a quantidade e clique em "Regenerar carrossel" para montar de novo.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("Escolha a quantidade e clique em \"Regenerar carrossel\" para montar de novo.")}</p>
         </div>
       ) : null}
 
@@ -255,7 +249,7 @@ const CarouselEditor = ({
                 <button
                   onClick={() => onChangeSlides(slides.filter((_, i) => i !== index))}
                   className="rounded p-1 text-muted-foreground hover:text-destructive"
-                  aria-label="Excluir slide"
+                  aria-label={t("Excluir slide")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -307,16 +301,14 @@ const CarouselEditor = ({
           className="flex h-auto w-[160px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
         >
           <Plus className="h-5 w-5" />
-          <span className="text-xs font-medium">Novo slide</span>
+          <span className="text-xs font-medium">{t("Novo slide")}</span>
         </button>
         )}
       </div>
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Legenda do Instagram
-          </label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("Legenda do Instagram")}</label>
           {!readOnly && (
             <Button
               variant="outline"
@@ -330,10 +322,10 @@ const CarouselEditor = ({
                 <Sparkles className="mr-1.5 h-4 w-4" />
               )}
               {generatingCaption
-                ? "Gerando nova legenda..."
+                ? t("Gerando nova legenda...")
                 : caption.trim()
-                  ? "Regenerar legenda"
-                  : "Gerar legenda com IA"}
+                  ? t("Regenerar legenda")
+                  : t("Gerar legenda com IA")}
             </Button>
           )}
         </div>
@@ -342,7 +334,7 @@ const CarouselEditor = ({
           onChange={(e) => onChangeCaption(e.target.value)}
           readOnly={readOnly}
           rows={7}
-          placeholder="Escreva a legenda do post..."
+          placeholder={t("Escreva a legenda do post...")}
           className="resize-y bg-muted/40"
         />
       </div>
@@ -357,18 +349,12 @@ const CarouselEditor = ({
       <AlertDialog open={confirmCaption} onOpenChange={setConfirmCaption}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Sua legenda atual será substituída. Deseja gerar uma nova legenda?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              As fotografias, slides e templates do carrossel não serão alterados.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("Sua legenda atual será substituída. Deseja gerar uma nova legenda?")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("As fotografias, slides e templates do carrossel não serão alterados.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => onGenerateCaption?.()}>
-              Gerar nova legenda
-            </AlertDialogAction>
+            <AlertDialogCancel>{t("Cancelar")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onGenerateCaption?.()}>{t("Gerar nova legenda")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

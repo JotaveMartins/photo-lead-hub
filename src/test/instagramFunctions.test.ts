@@ -18,6 +18,7 @@ function loadFunction(name: string, client: unknown, fetchMock = vi.fn()) {
     exports, require: (name: string) => name.includes("account-access.ts") ? { inactiveCrmResponse } : ({ createClient: () => client, corsHeaders: {} }),
     Deno: { env: { get: (key: string) => ({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "test-signing-key" })[key] ?? "test" }, serve: (fn: typeof handler) => { handler = fn; } },
     fetch: fetchMock, Request, Response, URL, URLSearchParams, TextEncoder, TextDecoder,
+    AbortSignal: { timeout: () => new AbortController().signal },
     crypto: webcrypto, atob, btoa, console: { error: vi.fn() }, setTimeout,
   });
   return { handle: (req: Request) => handler(req), exports };
@@ -119,9 +120,60 @@ describe("Instagram Edge Functions", () => {
       { id: "profile-a", user_id: "owner", provider: "instagram" },
       { id: "profile-b", user_id: "owner", provider: "instagram" },
     ]);
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+    expect(fetchMock.mock.calls.map(([url]) => url).filter((url: string) => !url.includes("fields=permalink"))).toEqual([
       "https://graph.instagram.com/v21.0/ig-profile-a/media", "https://graph.instagram.com/v21.0/ig-profile-a/media_publish",
       "https://graph.instagram.com/v21.0/ig-profile-b/media", "https://graph.instagram.com/v21.0/ig-profile-b/media_publish",
     ]);
+  });
+});
+
+describe("Published Instagram permalink", () => {
+  function publishing({ linkStatus = 200, link = "https://www.instagram.com/p/RealPublishedPost/", alreadyPublished = false } = {}) {
+    const updates: any[] = [];
+    const caption = "Legenda real #fotografia #ensaio";
+    const client = {
+      rpc: async () => ({ data: true, error: null }),
+      from: (table: string) => {
+        const query: any = {
+          select: () => query, eq: () => query,
+          update: (patch: unknown) => { updates.push(patch); return query; },
+          then: (resolve: (v: unknown) => unknown) => Promise.resolve(resolve({ error: null })),
+          maybeSingle: async () => ({ data: table === "scheduled_posts" ? { id: "post", user_id: "owner", carousel_id: "carousel", social_account_id: "account", status: alreadyPublished ? "publicado" : "agendado", attempts: 0, instagram_media_id: alreadyPublished ? "real-media-id" : null, instagram_permalink: alreadyPublished ? link : null } : table === "social_accounts" ? { instagram_user_id: "ig-account", access_token: "private-test-token" } : { legenda: caption, rendered_slides: ["one-image.jpg"] }, error: null }),
+        }; return query;
+      },
+      storage: { from: () => ({ createSignedUrls: async () => ({ data: [{ signedUrl: "https://images.test/photo.jpg" }], error: null }) }) },
+    };
+    const fetchMock = vi.fn(async (url: string, options?: RequestInit) => url.includes("fields=permalink")
+      ? new Response(JSON.stringify({ permalink: link }), { status: linkStatus })
+      : json({ id: url.endsWith("/media_publish") ? "real-media-id" : "container-id" }));
+    const app = loadFunction("publish-instagram-carousel", client, fetchMock);
+    return { app, fetchMock, updates, caption };
+  }
+  it("publishes one image with the unchanged caption/hashtags and stores the actual API permalink", async () => {
+    const { app, fetchMock, updates, caption } = publishing();
+    expect(await app.exports.publishPost("post")).toEqual({ media_id: "real-media-id", permalink: "https://www.instagram.com/p/RealPublishedPost/" });
+    const mediaRequest = fetchMock.mock.calls.find(([url]) => url.endsWith("/media"));
+    expect(new URLSearchParams(String(mediaRequest?.[1]?.body)).get("caption")).toBe(caption);
+    expect(new URLSearchParams(String(mediaRequest?.[1]?.body)).has("media_type")).toBe(false);
+    expect(updates).toContainEqual({ instagram_permalink: "https://www.instagram.com/p/RealPublishedPost/" });
+    const lookup = fetchMock.mock.calls.find(([url]) => url.includes("fields=permalink"));
+    expect(lookup?.[0]).not.toContain("private-test-token");
+    expect(lookup?.[1]?.headers).toEqual({ Authorization: "Bearer private-test-token" });
+  });
+  it("keeps publication successful when the optional lookup fails", async () => {
+    const { app, updates } = publishing({ linkStatus: 503 });
+    expect(await app.exports.publishPost("post")).toEqual({ media_id: "real-media-id", permalink: null });
+    expect(updates.some(p => p.status === "publicado")).toBe(true);
+    expect(updates.some(p => p.status === "falhou")).toBe(false);
+  });
+  it("does not store an untrusted permalink", async () => {
+    const { app, updates } = publishing({ link: "https://evil.test/p/post/" });
+    expect(await app.exports.publishPost("post")).toEqual({ media_id: "real-media-id", permalink: null });
+    expect(updates.some(p => p.instagram_permalink)).toBe(false);
+  });
+  it("returns the stored ID/link for a published post without publishing again", async () => {
+    const { app, fetchMock } = publishing({ alreadyPublished: true });
+    expect(await app.exports.publishPost("post")).toMatchObject({ alreadyPublished: true, media_id: "real-media-id" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

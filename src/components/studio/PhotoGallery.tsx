@@ -1,3 +1,4 @@
+import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useState } from "react";
 import { StudioPhoto } from "@/hooks/useStudio";
 import PhotoCard from "./PhotoCard";
@@ -10,12 +11,13 @@ interface PhotoGalleryProps {
 }
 
 const PhotoGallery = ({ photos, onDelete, emptyMessage }: PhotoGalleryProps) => {
+  const { t } = useReviewLocale();
   const [preview, setPreview] = useState<StudioPhoto | null>(null);
 
   if (!photos.length) {
     return (
       <p className="py-16 text-center text-sm text-muted-foreground">
-        {emptyMessage ?? "Nenhuma fotografia enviada ainda."}
+        {emptyMessage ?? t("Nenhuma fotografia enviada ainda.")}
       </p>
     );
   }
@@ -33,7 +35,7 @@ const PhotoGallery = ({ photos, onDelete, emptyMessage }: PhotoGalleryProps) => 
           {preview && (
             <img
               src={preview.url}
-              alt={preview.filename ?? "Fotografia ampliada"}
+              alt={preview.filename ?? t("Fotografia ampliada")}
               className="max-h-[80vh] w-full rounded-md object-contain"
             />
           )}
