@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { runInNewContext } from "node:vm";
 import { TextEncoder, TextDecoder } from "node:util";
@@ -8,18 +9,37 @@ import { describe, expect, it, vi } from "vitest";
 
 // Runs the real publish-instagram-carousel and run-scheduled-posts handlers with
 // in-memory database/Instagram fakes. Nothing real is called or published.
+const nodeRequire = createRequire(import.meta.url);
 const SERVICE_KEY = "test-service-key";
 const POST_ID = "11111111-1111-4111-8111-111111111111";
 
-function loadFunction(name: string, client: unknown, fetchMock: (...args: any[]) => Promise<Response>) {
-  const source = readFileSync(join(process.cwd(), "supabase/functions", name, "index.ts"), "utf8");
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const CRON_SECRET = "private-cron-secret";
+const PREVIOUS_CRON_SECRET = "previous-cron-secret";
+const ENV: Record<string, string> = {
+  SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY,
+  LOVABLE_CRON_SECRET: CRON_SECRET, LOVABLE_CRON_SECRET_PREVIOUS: PREVIOUS_CRON_SECRET,
+};
+const transpile = (path: string) => ts.transpileModule(readFileSync(path, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+
+// Loads the real generated cron authentication helper used by the scheduler.
+function loadCronAuth(env: Record<string, string | undefined>) {
+  const exports: Record<string, unknown> = {};
+  runInNewContext(transpile(join(process.cwd(), "supabase/functions/_shared/cron-auth.ts")), {
+    exports, require: (mod: string) => nodeRequire(mod), Deno: { env: { get: (key: string) => env[key] } }, Response,
+  });
+  return exports;
+}
+
+function loadFunction(name: string, client: unknown, fetchMock: (...args: any[]) => Promise<Response>, env: Record<string, string | undefined> = ENV) {
+  const code = transpile(join(process.cwd(), "supabase/functions", name, "index.ts"));
   let handler: (req: Request) => Promise<Response>;
   runInNewContext(code, {
     exports: {},
-    require: (mod: string) => (mod.includes("account-access.ts") ? { inactiveCrmResponse } : { createClient: () => client }),
+    require: (mod: string) => mod.includes("account-access.ts") ? { inactiveCrmResponse }
+      : mod.includes("cron-auth.ts") ? loadCronAuth(env)
+      : { createClient: () => client },
     Deno: {
-      env: { get: (key: string) => ({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY })[key] },
+      env: { get: (key: string) => env[key] },
       serve: (fn: typeof handler) => { handler = fn; },
     },
     fetch: fetchMock, Request, Response, URL, URLSearchParams, TextEncoder, TextDecoder,
@@ -208,19 +228,78 @@ describe("scheduled publication (service-to-service)", () => {
     }
   });
 
-  it("the real scheduler publishes a due post through the protected function", async () => {
+  it("rejects the private cron secret on the publish function itself", async () => {
+    const { call, graph } = setup();
+    expect((await call(CRON_SECRET)).status).toBe(401);
+    expect(graph).not.toHaveBeenCalled();
+  });
+});
+
+describe("run-scheduled-posts private scheduler authentication", () => {
+  function scheduler(env: Record<string, string | undefined> = ENV) {
     const target = setup();
-    const schedulerQuery: any = { select: () => schedulerQuery, in: () => schedulerQuery, lte: () => schedulerQuery, lt: () => schedulerQuery, limit: async () => ({ data: [{ id: POST_ID, attempts: 0 }], error: null }) };
+    const schedulerQuery: any = { select: () => schedulerQuery, in: () => schedulerQuery, lte: () => schedulerQuery, lt: () => schedulerQuery, limit: vi.fn(async () => ({ data: [{ id: POST_ID, attempts: 0 }], error: null })) };
+    const from = vi.fn(() => schedulerQuery);
     const forwarded: Request[] = [];
-    const scheduler = loadFunction("run-scheduled-posts", { from: () => schedulerQuery }, async (url: string, init: RequestInit) => {
+    const handle = loadFunction("run-scheduled-posts", { from }, async (url: string, init: RequestInit) => {
       const req = new Request(url, init);
       forwarded.push(req.clone());
       return target.handle(req);
-    });
-    const res = await scheduler(new Request("https://example.supabase.co/functions/v1/run-scheduled-posts", { method: "POST", body: "{}" }));
+    }, env);
+    const run = (headers: Record<string, string> = {}, method = "POST") => handle(new Request("https://example.supabase.co/functions/v1/run-scheduled-posts", { method, headers, body: method === "POST" ? "{}" : undefined }));
+    return { target, from, forwarded, run };
+  }
+  const ANON = "eyJhbGciOiJIUzI1NiJ9.public-anon-key.signature";
+
+  it("publishes a due post when called with the private cron secret", async () => {
+    const s = scheduler();
+    const res = await s.run({ Authorization: `Bearer ${CRON_SECRET}` });
+    expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ processed: 1, results: { [POST_ID]: "publicado" } });
-    expect(forwarded[0].headers.get("Authorization")).toBe(`Bearer ${SERVICE_KEY}`);
-    expect(target.publishCalls()).toBe(1);
-    expect(target.post.status).toBe("publicado");
+    expect(s.forwarded[0].headers.get("Authorization")).toBe(`Bearer ${SERVICE_KEY}`);
+    expect(s.target.publishCalls()).toBe(1);
+    expect(s.target.post.status).toBe("publicado");
+  });
+
+  it("keeps working with the previous secret during a rotation", async () => {
+    const s = scheduler();
+    expect((await s.run({ Authorization: `Bearer ${PREVIOUS_CRON_SECRET}` })).status).toBe(200);
+    expect(s.target.publishCalls()).toBe(1);
+  });
+
+  it("returns 401 without credentials and never reads posts or calls Instagram", async () => {
+    const s = scheduler();
+    expect((await s.run()).status).toBe(401);
+    expect(s.from).not.toHaveBeenCalled();
+    expect(s.target.graph).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 to external triggers using the public key, a user token, the service key or a wrong secret", async () => {
+    const s = scheduler();
+    for (const headers of [
+      { apikey: ANON },
+      { apikey: ANON, Authorization: `Bearer ${ANON}` },
+      { Authorization: "Bearer owner-jwt" },
+      { Authorization: `Bearer ${SERVICE_KEY}` },
+      { Authorization: `Bearer ${CRON_SECRET}x` },
+      { Authorization: CRON_SECRET },
+    ]) {
+      expect((await s.run(headers)).status).toBe(401);
+    }
+    expect(s.from).not.toHaveBeenCalled();
+    expect(s.target.publishCalls()).toBe(0);
+    expect(s.target.post).toMatchObject({ status: "agendado", attempts: 0 });
+  });
+
+  it("rejects non-POST calls", async () => {
+    const s = scheduler();
+    expect((await s.run({ Authorization: `Bearer ${CRON_SECRET}` }, "GET")).status).toBe(405);
+    expect(s.from).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the cron secret is not configured", async () => {
+    const s = scheduler({ ...ENV, LOVABLE_CRON_SECRET: undefined });
+    expect((await s.run({ Authorization: "Bearer undefined" })).status).toBe(500);
+    expect(s.from).not.toHaveBeenCalled();
   });
 });

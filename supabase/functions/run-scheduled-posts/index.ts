@@ -1,13 +1,22 @@
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key' }
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { authenticateCronRequest } from '../_shared/cron-auth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-/** Executado a cada minuto pelo agendador: publica posts vencidos. */
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+/**
+ * Executado a cada minuto pelo agendamento gerenciado do backend: publica posts vencidos.
+ * Só aceita o segredo privado do agendamento (LOVABLE_CRON_SECRET); a chave pública
+ * do site não aciona este processamento. Não é chamado pelo frontend.
+ */
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'Método não permitido' }, 405);
+  const unauthorized = authenticateCronRequest(req);
+  if (unauthorized) return unauthorized;
 
   const now = new Date().toISOString();
   const { data: due, error } = await admin
@@ -20,14 +29,13 @@ Deno.serve(async (req) => {
 
   if (error) {
     console.error('scheduler query error', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ error: error.message }, 500);
   }
 
   const results: Record<string, string> = {};
   for (const post of due ?? []) {
     try {
+      // Service-to-service call: the backend service key never leaves the backend.
       const res = await fetch(`${SUPABASE_URL}/functions/v1/publish-instagram-carousel`, {
         method: 'POST',
         headers: {
@@ -43,7 +51,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ processed: (due ?? []).length, results }), {
-    status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+  return json({ processed: (due ?? []).length, results });
 });
