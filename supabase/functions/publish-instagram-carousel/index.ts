@@ -16,6 +16,86 @@ const json = (body: unknown, status = 200) =>
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CLAIMABLE = ['agendado', 'falhou'];
+const MAX_SCHEDULED_ATTEMPTS = 3;
+
+export class HttpError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
+export type Caller = { kind: 'user'; userId: string } | { kind: 'scheduler' };
+
+function constantTimeEqual(a: string, b: string) {
+  const left = new TextEncoder().encode(a);
+  const right = new TextEncoder().encode(b);
+  let diff = left.length ^ right.length;
+  for (let i = 0; i < Math.max(left.length, right.length); i++) diff |= (left[i] ?? 0) ^ (right[i] ?? 0);
+  return diff === 0;
+}
+
+/**
+ * Two accepted callers:
+ * - signed-in users (Studio "publish now"), identified by a verified JWT;
+ * - the server-side scheduler (run-scheduled-posts), which sends the backend's
+ *   service key. That key only exists in backend functions, never in the frontend.
+ */
+export async function authenticate(req: Request): Promise<Caller | null> {
+  const header = req.headers.get('Authorization') ?? '';
+  if (!header.startsWith('Bearer ')) return null;
+  const token = header.slice(7).trim();
+  if (!token) return null;
+  if (SERVICE_ROLE_KEY && constantTimeEqual(token, SERVICE_ROLE_KEY)) return { kind: 'scheduler' };
+  try {
+    const { data, error } = await admin.auth.getClaims(token);
+    const claims = data?.claims;
+    if (error || claims?.role !== 'authenticated' || typeof claims?.sub !== 'string' || !claims.sub) return null;
+    return { kind: 'user', userId: claims.sub };
+  } catch {
+    return null;
+  }
+}
+
+/** Server-side permission check before any Instagram call or status change. */
+export async function authorizePost(caller: Caller, postId: string) {
+  const { data: post, error } = await admin
+    .from('scheduled_posts')
+    .select('id, user_id, carousel_id, social_account_id, status, attempts, scheduled_at')
+    .eq('id', postId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!post) throw new HttpError(404, 'Agendamento não encontrado');
+
+  if (caller.kind === 'user' && caller.userId !== post.user_id) {
+    const { data: isAdmin, error: roleError } = await admin.rpc('has_role', { _user_id: caller.userId, _role: 'admin' });
+    if (roleError) throw roleError;
+    if (isAdmin !== true) throw new HttpError(403, 'Sem permissão para publicar este post');
+  }
+
+  // The scheduler may only publish posts that are actually due, never on demand.
+  if (caller.kind === 'scheduler' && post.status !== 'publicado') {
+    const due = CLAIMABLE.includes(post.status) &&
+      (post.attempts ?? 0) < MAX_SCHEDULED_ATTEMPTS &&
+      Date.parse(post.scheduled_at) <= Date.now() + 60_000;
+    if (!due) throw new HttpError(403, 'Post não está pronto para publicação automática');
+  }
+
+  // Carousel and Instagram profile must belong to the same account as the post.
+  const { data: carousel, error: carouselError } = await admin
+    .from('carousels').select('user_id').eq('id', post.carousel_id).maybeSingle();
+  if (carouselError) throw carouselError;
+  if (!carousel || carousel.user_id !== post.user_id) throw new HttpError(403, 'Carrossel não pertence a esta conta');
+  if (post.social_account_id) {
+    const { data: account, error: accountError } = await admin
+      .from('social_accounts').select('user_id, provider').eq('id', post.social_account_id).maybeSingle();
+    if (accountError) throw accountError;
+    if (!account || account.user_id !== post.user_id || account.provider !== 'instagram') {
+      throw new HttpError(403, 'Perfil do Instagram não pertence a esta conta');
+    }
+  }
+  return post;
+}
+
 async function graph(path: string, params: Record<string, string>, method = 'POST') {
   const url = `${GRAPH}${path}`;
   const body = new URLSearchParams(params);
@@ -58,12 +138,23 @@ export async function publishPost(postId: string) {
     .eq('id', postId)
     .maybeSingle();
   if (error) throw error;
-  if (!post) throw new Error('Agendamento não encontrado');
+  if (!post) throw new HttpError(404, 'Agendamento não encontrado');
   if (post.status === 'publicado') return { alreadyPublished: true, media_id: post.instagram_media_id, permalink: post.instagram_permalink ?? null };
+  if (!CLAIMABLE.includes(post.status)) {
+    throw new HttpError(409, post.status === 'publicando' ? 'Publicação já em andamento' : 'Este post não pode ser publicado');
+  }
 
-  await admin.from('scheduled_posts')
+  // Atomic claim: only one request can move this exact post/attempt to "publicando".
+  // A concurrent manual click and the scheduler therefore cannot publish twice.
+  const { data: claimed, error: claimError } = await admin.from('scheduled_posts')
     .update({ status: 'publicando', attempts: (post.attempts ?? 0) + 1, last_error: null })
-    .eq('id', post.id);
+    .eq('id', post.id)
+    .eq('attempts', post.attempts ?? 0)
+    .in('status', CLAIMABLE)
+    .select('id')
+    .maybeSingle();
+  if (claimError) throw claimError;
+  if (!claimed) throw new HttpError(409, 'Publicação já em andamento');
 
   try {
     const inactive = await inactiveCrmResponse(admin, post.user_id, corsHeaders);
@@ -182,12 +273,18 @@ export async function publishPost(postId: string) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'Método não permitido' }, 405);
   try {
-    const { post_id } = await req.json();
-    if (!post_id) return json({ error: 'post_id obrigatório' }, 400);
-    const result = await publishPost(post_id);
+    const caller = await authenticate(req);
+    if (!caller) return json({ error: 'Não autenticado' }, 401);
+    const body = await req.json().catch(() => null);
+    const postId = body?.post_id;
+    if (typeof postId !== 'string' || !UUID.test(postId)) return json({ error: 'post_id obrigatório' }, 400);
+    await authorizePost(caller, postId);
+    const result = await publishPost(postId);
     return json({ ok: true, ...result });
   } catch (e) {
+    if (e instanceof HttpError) return json({ error: e.message }, e.status);
     const msg = e instanceof Error ? e.message : 'Erro desconhecido';
     return json({ error: msg }, 500);
   }

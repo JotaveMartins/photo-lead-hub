@@ -98,7 +98,7 @@ describe("Instagram Edge Functions", () => {
       from: (table: string) => {
         const filters: Record<string, unknown> = {};
         const query = {
-          select: () => query, eq: (key: string, value: unknown) => { filters[key] = value; return query; },
+          select: () => query, eq: (key: string, value: unknown) => { filters[key] = value; return query; }, in: () => query,
           update: () => query,
           maybeSingle: async () => {
             if (table === "scheduled_posts") return { data: { id: filters.id, user_id: "owner", social_account_id: `profile-${filters.id}`, carousel_id: "carousel", status: "agendado", attempts: 0 }, error: null };
@@ -135,7 +135,7 @@ describe("Published Instagram permalink", () => {
       rpc: async () => ({ data: true, error: null }),
       from: (table: string) => {
         const query: any = {
-          select: () => query, eq: () => query,
+          select: () => query, eq: () => query, in: () => query,
           update: (patch: unknown) => { updates.push(patch); return query; },
           then: (resolve: (v: unknown) => unknown) => Promise.resolve(resolve({ error: null })),
           maybeSingle: async () => ({ data: table === "scheduled_posts" ? { id: "post", user_id: "owner", carousel_id: "carousel", social_account_id: "account", status: alreadyPublished ? "publicado" : "agendado", attempts: 0, instagram_media_id: alreadyPublished ? "real-media-id" : null, instagram_permalink: alreadyPublished ? link : null } : table === "social_accounts" ? { instagram_user_id: "ig-account", access_token: "private-test-token" } : { legenda: caption, rendered_slides: ["one-image.jpg"] }, error: null }),
