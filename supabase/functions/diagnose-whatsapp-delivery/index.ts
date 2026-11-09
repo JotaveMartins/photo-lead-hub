@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
           .select("created_at, payload").eq("user_id", instance.user_id).eq("instance_key", instance.name)
           .in("event", ["messages.upsert", "MESSAGES_UPSERT", "messages_upsert"])
           .gte("created_at", from).lt("created_at", to).order("created_at", { ascending: false }).limit(200);
-        if (logError) throw new Error("CRM_LOG_QUERY_FAILED");
+        // webhook_logs has no index on these filters; a timeout must not discard the provider sample.
+        const crmLogError = logError ? "CRM_LOG_QUERY_FAILED" : null;
         const arrivals = (logs ?? []).flatMap((log: any) => {
           const raw = log.payload?.data;
           return (Array.isArray(raw) ? raw : raw ? [raw] : []).map((message: unknown) => {
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
         results.push({ instance_id: instance.id, user_id: instance.user_id, observed_at: observedAt,
           provider_state: provider.state, provider_sample_limited: provider.sample_limited,
           provider_messages: provider.messages.map(m => ({ ...m, present_in_inbox: !!m.message_id && saved.has(m.message_id) })),
-          crm_received_sample: arrivals, crm_log_limit: 200, queue_status: "not_observed" });
+          crm_received_sample: arrivals, crm_log_limit: 200, crm_log_error: crmLogError, queue_status: "not_observed" });
       } catch (failure) {
         const code = failure instanceof Error && /^(PROVIDER_|CRM_)/.test(failure.message) ? failure.message : "DIAGNOSTIC_READ_FAILED";
         results.push({ instance_id: instance.id, observed_at: observedAt, error: code });
