@@ -1,3 +1,4 @@
+import { InstagramAvatar } from "@/components/integracoes/InstagramAvatar";
 import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Instagram } from "lucide-react";
@@ -94,17 +95,7 @@ const PostPreviewModal = ({
 
         {/* Cabeçalho */}
         <div className="flex items-center gap-3 px-4 py-3">
-          {account?.profile_picture_url ? (
-            <img
-              src={account.profile_picture_url}
-              alt={username}
-              className="h-9 w-9 rounded-full object-cover ring-2 ring-pink-500/60"
-            />
-          ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted ring-2 ring-pink-500/40">
-              <Instagram className="h-4 w-4 text-muted-foreground" />
-            </div>
-          )}
+          <InstagramAvatar src={account?.profile_picture_url} alt={username} className="ring-2 ring-pink-500/50" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">
               {account?.username || t("Nenhuma conta selecionada")}

@@ -1,3 +1,4 @@
+import { InstagramAvatar } from "@/components/integracoes/InstagramAvatar";
 import { useReviewLocale } from "@/i18n/ReviewLocale";
 import { useEffect, useState } from "react";
 import { CalendarClock, Loader2, Instagram, Send } from "lucide-react";
@@ -96,13 +97,7 @@ const ScheduleModal = ({
             error={accountsError}
           />
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
-            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-pink-500/10">
-              {account?.profile_picture_url ? (
-                <img src={account.profile_picture_url} alt="" className="h-9 w-9 object-cover" />
-              ) : (
-                <Instagram className="h-4 w-4 text-pink-500" />
-              )}
-            </div>
+            <InstagramAvatar src={account?.profile_picture_url} />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
                 {connected ? account?.username ? `@${account.username}` : t("Nome de usuário indisponível") : t("Selecione um perfil conectado")}

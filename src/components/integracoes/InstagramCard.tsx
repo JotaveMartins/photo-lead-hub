@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
 import { useInstagramAccounts, useConnectInstagram, useDisconnectInstagram } from "@/hooks/useSocial";
 import { canPublishToInstagram } from "@/lib/instagramAccounts";
+import { InstagramAvatar } from "./InstagramAvatar";
 
 const InstagramCard = () => {
   const { t } = useReviewLocale();
@@ -18,6 +19,19 @@ const InstagramCard = () => {
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string; username?: string | null; instagramId?: string | null; accountType?: string | null }>>({});
   const queryClient = useQueryClient();
   const userId = useEffectiveUserId();
+
+  // Instagram photo links expire; fetch a fresh one silently, once per account.
+  const [refreshedPhotos] = useState(() => new Set<string>());
+  const refreshPhoto = (accountId: string) => {
+    if (refreshedPhotos.has(accountId)) return;
+    refreshedPhotos.add(accountId);
+    supabase.functions
+      .invoke("test-instagram-connection", { body: { target_user_id: userId, social_account_id: accountId } })
+      .then(({ data }) => {
+        if (data?.status === "ok") queryClient.invalidateQueries({ queryKey: ["instagram-accounts"] });
+      })
+      .catch(() => undefined);
+  };
 
   const handleTest = async (accountId: string) => {
     setTestingId(accountId);
@@ -80,7 +94,7 @@ const InstagramCard = () => {
         return (
           <div key={account.id} className="rounded-lg border border-border p-3 space-y-3">
             <div className="flex items-center gap-3">
-              {account.profile_picture_url && <img src={account.profile_picture_url} alt="" className="h-9 w-9 rounded-full object-cover" />}
+              <InstagramAvatar src={account.profile_picture_url} onBroken={() => refreshPhoto(account.id)} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{username ? `@${username}` : t("Nome de usuário indisponível")}</p>
                 <p className={`text-xs ${connected ? "text-emerald-500" : "text-amber-500"}`}>
