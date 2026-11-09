@@ -99,6 +99,13 @@
       "when": 1794225600000,
       "tag": "0013_studio_admin_create_for_client",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794235508512,
+      "tag": "0014_reload_schema_after_studio_admin_create",
+      "breakpoints": true
     }
   ]
 }
