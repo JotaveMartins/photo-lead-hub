@@ -148,6 +148,13 @@
       "when": 1794312000000,
       "tag": "0020_whatsapp_bio_links",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794312000001,
+      "tag": "0021_reload_schema_after_whatsapp_bio_links",
+      "breakpoints": true
     }
   ]
 }

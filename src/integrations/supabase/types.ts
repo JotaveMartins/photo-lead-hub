@@ -2606,6 +2606,27 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_bio_links: {
+        Row: {
+          message: string
+          phone: string
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          message: string
+          phone: string
+          slug: string
+          user_id: string
+        }
+        Update: {
+          message?: string
+          phone?: string
+          slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_instances: {
         Row: {
           api_key: string | null
@@ -2755,6 +2776,13 @@ export type Database = {
       reorder_pipeline_stages: {
         Args: { _ids: string[]; _user_id: string }
         Returns: undefined
+      }
+      resolve_whatsapp_bio_link: {
+        Args: { p_slug: string }
+        Returns: {
+          message: string
+          phone: string
+        }[]
       }
       set_gallery_password: {
         Args: { _gallery_id: string; _password: string }
