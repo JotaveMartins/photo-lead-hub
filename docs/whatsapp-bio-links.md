@@ -4,8 +4,8 @@ A área WhatsApp passa a ter um cartão “Link do WhatsApp”. Uma conta tem um
 
 Mensagens prontas selecionáveis nos botões:
 
-- Instagram (padrão para novos links): “Olá, vim pelo Instagram”.
-- Google Meu Negócio: “Olá, vim pelo Google”.
+- Instagram (padrão para novos links): “Olá, vim pelo Instagram, gostaria de mais informações”.
+- Google Meu Negócio: “Olá, vim pelo Google, gostaria de mais informações”.
 
 O texto continua editável. Selecionar uma opção apenas preenche o formulário; é necessário salvar para alterar o link. Mensagens já salvas não são substituídas automaticamente. Continua sendo um link por conta, com a mensagem escolhida.
 

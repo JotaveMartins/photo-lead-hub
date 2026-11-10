@@ -1,6 +1,6 @@
 export const WHATSAPP_BIO_MESSAGE_PRESETS = [
-  { label: "Instagram", message: "Olá, vim pelo Instagram" },
-  { label: "Google Meu Negócio", message: "Olá, vim pelo Google" },
+  { label: "Instagram", message: "Olá, vim pelo Instagram, gostaria de mais informações" },
+  { label: "Google Meu Negócio", message: "Olá, vim pelo Google, gostaria de mais informações" },
 ] as const;
 export const DEFAULT_WHATSAPP_BIO_MESSAGE = WHATSAPP_BIO_MESSAGE_PRESETS[0].message;
 export const CRM_BIO_LINK_ORIGIN = "https://crm.avanzodigital.com.br";
