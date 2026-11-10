@@ -1,3 +1,4 @@
+import WhatsAppBioRedirectPage from "./pages/WhatsAppBioRedirectPage";
  import WhatsAppConfigPage from "./pages/WhatsAppConfigPage";
 import IntegracoesPage from "./pages/IntegracoesPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -126,6 +127,7 @@ const AdminProtectedLayout = () => {
 const AppRoutes = () => {
   return (
     <Routes>
+      <Route path="/w/:slug" element={<WhatsAppBioRedirectPage />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/oauth/google-calendar/callback" element={<GoogleCalendarOAuthCallbackPage />} />
       <Route path="/oauth/instagram/callback" element={<InstagramOAuthCallbackPage />} />

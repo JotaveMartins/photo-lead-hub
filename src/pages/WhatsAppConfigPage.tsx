@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffectiveUserId } from "@/hooks/useEffectiveUserId";
+import WhatsAppBioLinkCard from "@/components/whatsapp/WhatsAppBioLinkCard";
 import InboxTriggersConfig from "@/components/InboxTriggersConfig";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useInstanceStats } from "@/hooks/useInstanceStats";
@@ -527,6 +528,8 @@ const WhatsAppConfigPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WhatsAppBioLinkCard key={effectiveUserId} instances={instances.filter(i => i.user_id === effectiveUserId)} />
 
       <InboxTriggersConfig />
 
