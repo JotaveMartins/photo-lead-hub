@@ -1,22 +1,13 @@
 import { useReviewLocale } from "@/i18n/ReviewLocale";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import Sidebar from "@/components/Sidebar";
-import { HelpButton } from "@/components/TutorialModal";
 import TrialBanner from "@/components/account/TrialBanner";
 import WelcomeModal from "@/components/WelcomeModal";
 import { X, Menu } from "lucide-react";
 import logo from "@/assets/logo.png";
-import {
-  agendaTutorial,
-  servicosTutorial,
-  pacotesTutorial,
-  cobrancasTutorial,
-  despesasTutorial,
-  clienteDetailTutorial,
-} from "@/data/pageTutorials";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -79,22 +70,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     "estudio/calendario": "Calendário de conteúdo",
   };
   const currentTitle = PAGE_TITLES[getActiveItem()] ?? "CRM";
-
-  // Determine page-specific tutorial based on current route
-  const { pageTutorial, pageKey } = useMemo(() => {
-    const path = location.pathname;
-    if (path === "/agenda") return { pageTutorial: agendaTutorial, pageKey: "agenda" };
-    if (path === "/catalogo") {
-      const tab = new URLSearchParams(location.search).get("tab");
-      return tab === "pacotes"
-        ? { pageTutorial: pacotesTutorial, pageKey: "pacotes" }
-        : { pageTutorial: servicosTutorial, pageKey: "servicos" };
-    }
-    if (path === "/financeiro/cobrancas") return { pageTutorial: cobrancasTutorial, pageKey: "cobrancas" };
-    if (path === "/financeiro/despesas") return { pageTutorial: despesasTutorial, pageKey: "despesas" };
-    if (path.startsWith("/clientes/") && path !== "/clientes") return { pageTutorial: clienteDetailTutorial, pageKey: "cliente-detail" };
-    return { pageTutorial: undefined, pageKey: undefined };
-  }, [location.pathname, location.search]);
 
   const handleItemClick = (item: string) => {
     const routes: Record<string, string> = {
@@ -170,12 +145,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <TrialBanner impersonating={isImpersonating} />
         {children}
       </main>
-      {!isTester && (
-        <>
-          {!isImpersonating && <WelcomeModal />}
-          <HelpButton pageTutorial={pageTutorial} pageKey={pageKey} key={`${location.pathname}:${pageKey ?? ""}`} />
-        </>
-      )}
+      {!isTester && !isImpersonating && <WelcomeModal />}
     </div>
   );
 };
