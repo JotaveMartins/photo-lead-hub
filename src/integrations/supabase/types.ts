@@ -14,13 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      whatsapp_bio_links: {
-        Row: { user_id: string; slug: string; phone: string; message: string }
-        Insert: { user_id: string; slug: string; phone: string; message: string }
-        Update: { user_id?: string; slug?: string; phone?: string; message?: string }
-        Relationships: []
-      }
-
       ai_config: {
         Row: {
           ai_buffer_seconds: number
@@ -2663,11 +2656,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      resolve_whatsapp_bio_link: {
-        Args: { p_slug: string }
-        Returns: { phone: string; message: string }[]
-      }
-
       admin_list_crm_access: { Args: never; Returns: Json }
       admin_manage_crm_access: {
         Args: {
