@@ -162,6 +162,13 @@
       "when": 1794319200000,
       "tag": "0022_default_inbox_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794319200001,
+      "tag": "0023_reload_schema_after_default_inbox_triggers",
+      "breakpoints": true
     }
   ]
 }
