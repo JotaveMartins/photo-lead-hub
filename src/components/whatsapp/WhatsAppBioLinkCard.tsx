@@ -18,13 +18,21 @@ export default function WhatsAppBioLinkCard({ instances }: Props) {
   const userId = useEffectiveUserId();
   const [slug, setSlug] = useState("");
   const [phone, setPhone] = useState("");
+  const [selectedInstanceId, setSelectedInstanceId] = useState("");
   const [message, setMessage] = useState(DEFAULT_WHATSAPP_BIO_MESSAGE);
   const [saved, setSaved] = useState<SavedLink | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const connected = instances.filter(i => i.status === "connected" && i.phone_number);
+  const connected = instances.filter(i => i.status === "connected" && i.phone_number && validBioPhone(normalizeBioPhone(i.phone_number)));
+  const selectedInstance = connected.find(i => i.id === selectedInstanceId);
+  const useConnectedNumber = (id: string) => {
+    const instance = connected.find(i => i.id === id);
+    if (!instance?.phone_number) return;
+    setSelectedInstanceId(id);
+    setPhone(`+${normalizeBioPhone(instance.phone_number)}`);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -67,13 +75,19 @@ export default function WhatsAppBioLinkCard({ instances }: Props) {
     </CardHeader>
     <CardContent className="space-y-4">
       {loading ? <p className="text-sm text-muted-foreground">Carregando link...</p> : loadError ? <div className="space-y-2"><p role="alert">Não foi possível carregar o link do WhatsApp.</p><Button variant="outline" onClick={() => setAttempt(a => a + 1)}>Tentar novamente</Button></div> : <>
-        {connected.length > 0 && <div className="space-y-2"><Label>Número conectado (opcional)</Label>
-          <Select disabled={saving} onValueChange={id => { const instance = connected.find(i => i.id === id); if (instance?.phone_number) setPhone(`+${instance.phone_number.replace(/\D/g, "")}`); }}>
-            <SelectTrigger><SelectValue placeholder="Usar um número conectado" /></SelectTrigger>
-            <SelectContent>{connected.map(i => <SelectItem key={i.id} value={i.id}>{i.name} (+{i.phone_number})</SelectItem>)}</SelectContent>
-          </Select>
+        {connected.length > 0 && <div className="space-y-2">
+          {connected.length === 1 ? <Button type="button" variant="outline" className="h-auto whitespace-normal text-left" disabled={saving} onClick={() => useConnectedNumber(connected[0].id)}>
+            Usar número conectado: {connected[0].name} (+{normalizeBioPhone(connected[0].phone_number!)})
+          </Button> : <>
+            <Label htmlFor="bio-instance">Usar um número conectado</Label>
+            <Select value={selectedInstance?.id ?? ""} disabled={saving} onValueChange={useConnectedNumber}>
+              <SelectTrigger id="bio-instance"><SelectValue placeholder="Selecione o canal para preencher o telefone" /></SelectTrigger>
+              <SelectContent>{connected.map(i => <SelectItem key={i.id} value={i.id}>{i.name} (+{normalizeBioPhone(i.phone_number!)})</SelectItem>)}</SelectContent>
+            </Select>
+          </>}
+          {selectedInstance && <p role="status" className="text-sm text-primary">Número de {selectedInstance.name} preenchido abaixo. Você já pode criar ou salvar o link.</p>}
         </div>}
-        <div className="space-y-2"><Label htmlFor="bio-phone">WhatsApp com DDD</Label><Input id="bio-phone" type="tel" placeholder="(61) 99999-9999" value={phone} onChange={e => setPhone(e.target.value)} disabled={saving} /><p className="text-xs text-muted-foreground">Números brasileiros recebem o DDI 55. Para outro país, informe + e o DDI.</p></div>
+        <div className="space-y-2"><Label htmlFor="bio-phone">WhatsApp com DDD</Label><Input id="bio-phone" type="tel" placeholder="(61) 99999-9999" value={phone} onChange={e => { setSelectedInstanceId(""); setPhone(e.target.value); }} disabled={saving} /><p className="text-xs text-muted-foreground">Números brasileiros recebem o DDI 55. Para outro país, informe + e o DDI.</p></div>
         <div className="space-y-2"><Label htmlFor="bio-slug">Nome no link</Label><Input id="bio-slug" placeholder="renato" maxLength={50} value={slug} onChange={e => setSlug(e.target.value.toLowerCase())} disabled={saving} /><p className="text-xs text-muted-foreground break-all">{CRM_BIO_LINK_ORIGIN}/w/{slug || "seu-nome"}</p></div>
         <div className="space-y-2"><Label htmlFor="bio-message">Mensagem de entrada</Label><Textarea id="bio-message" value={message} onChange={e => setMessage(e.target.value)} maxLength={2000} disabled={saving} /></div>
         <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : saved ? "Salvar alterações" : "Criar link"}</Button>

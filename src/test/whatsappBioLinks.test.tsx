@@ -35,6 +35,48 @@ describe("WhatsApp bio links",()=>{
   await waitFor(()=>expect(mocks.write).toHaveBeenCalledWith({user_id:"effective-client",slug:"renato",phone:"5561999999999",message:DEFAULT_WHATSAPP_BIO_MESSAGE},{onConflict:"user_id"}));
   expect(await screen.findByRole("link",{name:"Testar link"})).toHaveAttribute("href","https://crm.avanzodigital.com.br/w/renato");
  });
+ it("fills and saves the only connected number with one explicit click",async()=>{
+  render(<WhatsAppBioLinkCard instances={[{id:"renato-channel",name:"Renato",status:"connected",phone_number:"5561999990001"}]}/>);
+  fireEvent.click(await screen.findByRole("button",{name:"Usar número conectado: Renato (+5561999990001)"}));
+  expect(screen.getByLabelText("WhatsApp com DDD")).toHaveValue("+5561999990001");
+  expect(screen.getByRole("status")).toHaveTextContent("Número de Renato preenchido");
+  fireEvent.change(screen.getByLabelText("Nome no link"),{target:{value:"renato"}});
+  fireEvent.click(screen.getByRole("button",{name:"Criar link"}));
+  await waitFor(()=>expect(mocks.write).toHaveBeenCalledWith({user_id:"effective-client",slug:"renato",phone:"5561999990001",message:DEFAULT_WHATSAPP_BIO_MESSAGE},{onConflict:"user_id"}));
+ });
+ it("fills the selected channel when multiple numbers are connected",async()=>{
+  const originalScroll=Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView=vi.fn();
+  try {
+   render(<WhatsAppBioLinkCard instances={[{id:"one",name:"Comercial",status:"connected",phone_number:"5561999990001"},{id:"two",name:"Atendimento",status:"connected",phone_number:"5561999990002"}]}/>);
+   const selector=await screen.findByRole("combobox",{name:"Usar um número conectado"});
+   fireEvent.keyDown(selector,{key:"ArrowDown"});
+   fireEvent.click(await screen.findByRole("option",{name:"Atendimento (+5561999990002)"}));
+   expect(screen.getByLabelText("WhatsApp com DDD")).toHaveValue("+5561999990002");
+   expect(selector).toHaveTextContent("Atendimento");
+   fireEvent.change(screen.getByLabelText("Nome no link"),{target:{value:"renato"}});
+   fireEvent.click(screen.getByRole("button",{name:"Criar link"}));
+   await waitFor(()=>expect(mocks.write.mock.calls[0][0].phone).toBe("5561999990002"));
+  } finally {Element.prototype.scrollIntoView=originalScroll;}
+ });
+ it("allows a manual override without continuing to label it as the connected number",async()=>{
+  render(<WhatsAppBioLinkCard instances={[{id:"renato-channel",name:"Renato",status:"connected",phone_number:"61999990001"}]}/>);
+  fireEvent.click(await screen.findByRole("button",{name:"Usar número conectado: Renato (+5561999990001)"}));
+  expect(screen.getByLabelText("WhatsApp com DDD")).toHaveValue("+5561999990001");
+  fireEvent.change(screen.getByLabelText("WhatsApp com DDD"),{target:{value:"61988880002"}});
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Nome no link"),{target:{value:"renato"}});
+  fireEvent.click(screen.getByRole("button",{name:"Criar link"}));
+  await waitFor(()=>expect(mocks.write.mock.calls[0][0].phone).toBe("5561988880002"));
+ });
+ it("does not overwrite a saved number on load, and ignores disconnected channels",async()=>{
+  mocks.read.mockResolvedValue({data:{slug:"renato",phone:"5561888880000",message:"Oi"},error:null});
+  render(<WhatsAppBioLinkCard instances={[{id:"old",name:"Antigo",status:"disconnected",phone_number:"5561999990001"},{id:"new",name:"Novo",status:"connected",phone_number:"5561999990002"}]}/>);
+  await screen.findByRole("button",{name:/Usar número conectado: Novo/});
+  expect(screen.getByLabelText("WhatsApp com DDD")).toHaveValue("+5561888880000");
+  expect(screen.queryByRole("button",{name:/Antigo/})).not.toBeInTheDocument();
+  expect(mocks.write).not.toHaveBeenCalled();
+ });
  it("does not show a generated link when the name is already taken",async()=>{
   mocks.write.mockResolvedValue({error:{code:"23505"}});
   render(<WhatsAppBioLinkCard instances={[]}/>);await screen.findByLabelText("WhatsApp com DDD");

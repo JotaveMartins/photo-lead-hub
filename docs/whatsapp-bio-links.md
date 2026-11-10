@@ -6,7 +6,7 @@ Mensagem inicial exata:
 
 > Olá! Vim pelo Instagram e gostaria de mais informações
 
-Endereço oficial: `https://crm.avanzodigital.com.br/w/{slug}`. O slug usa 3 a 50 letras minúsculas, números e hífens, começando e terminando com letra ou número. Nenhum link ou cliente é criado automaticamente. Números conectados são sugestões selecionáveis; também é possível digitar um número sem conectar uma instância. Números brasileiros com DDD recebem 55; números internacionais devem incluir + e DDI.
+Endereço oficial: `https://crm.avanzodigital.com.br/w/{slug}`. O slug usa 3 a 50 letras minúsculas, números e hífens, começando e terminando com letra ou número. Nenhum link ou cliente é criado automaticamente. Com um único canal conectado, o botão mostra nome e telefone e preenche o campo em um clique. Com vários canais, um seletor controlado identifica o escolhido e preenche o telefone. A edição manual remove a indicação de canal selecionado. Números salvos nunca são substituídos automaticamente ao carregar; também é possível digitar um número sem conectar uma instância. Números brasileiros com DDD recebem 55; números internacionais devem incluir + e DDI.
 
 Editar telefone ou mensagem preserva o endereço. Mudar o nome exige confirmação e invalida o endereço anterior. O número do link não muda automaticamente quando uma instância é desconectada, trocada ou apagada. Isso evita alterar o destino público sem confirmação. O link não depende da conexão Evolution para abrir o WhatsApp.
 
