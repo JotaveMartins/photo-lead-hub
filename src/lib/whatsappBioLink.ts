@@ -1,4 +1,8 @@
-export const DEFAULT_WHATSAPP_BIO_MESSAGE = "Olá! Vim pelo Instagram e gostaria de mais informações";
+export const WHATSAPP_BIO_MESSAGE_PRESETS = [
+  { label: "Instagram", message: "Olá, vim pelo Instagram" },
+  { label: "Google Meu Negócio", message: "Olá, vim pelo Google" },
+] as const;
+export const DEFAULT_WHATSAPP_BIO_MESSAGE = WHATSAPP_BIO_MESSAGE_PRESETS[0].message;
 export const CRM_BIO_LINK_ORIGIN = "https://crm.avanzodigital.com.br";
 
 // Local Brazilian numbers receive DDI 55. Explicit international numbers keep their DDI.

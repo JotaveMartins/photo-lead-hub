@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CRM_BIO_LINK_ORIGIN, DEFAULT_WHATSAPP_BIO_MESSAGE, normalizeBioPhone, validBioPhone, validBioSlug } from "@/lib/whatsappBioLink";
+import { CRM_BIO_LINK_ORIGIN, DEFAULT_WHATSAPP_BIO_MESSAGE, WHATSAPP_BIO_MESSAGE_PRESETS, normalizeBioPhone, validBioPhone, validBioSlug } from "@/lib/whatsappBioLink";
 
 type SavedLink = { slug: string; phone: string; message: string };
 type Props = { instances: { id: string; name: string; status: string | null; phone_number: string | null }[] };
@@ -19,7 +19,7 @@ export default function WhatsAppBioLinkCard({ instances }: Props) {
   const [slug, setSlug] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedInstanceId, setSelectedInstanceId] = useState("");
-  const [message, setMessage] = useState(DEFAULT_WHATSAPP_BIO_MESSAGE);
+  const [message, setMessage] = useState<string>(DEFAULT_WHATSAPP_BIO_MESSAGE);
   const [saved, setSaved] = useState<SavedLink | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -89,7 +89,22 @@ export default function WhatsAppBioLinkCard({ instances }: Props) {
         </div>}
         <div className="space-y-2"><Label htmlFor="bio-phone">WhatsApp com DDD</Label><Input id="bio-phone" type="tel" placeholder="(61) 99999-9999" value={phone} onChange={e => { setSelectedInstanceId(""); setPhone(e.target.value); }} disabled={saving} /><p className="text-xs text-muted-foreground">Números brasileiros recebem o DDI 55. Para outro país, informe + e o DDI.</p></div>
         <div className="space-y-2"><Label htmlFor="bio-slug">Nome no link</Label><Input id="bio-slug" placeholder="renato" maxLength={50} value={slug} onChange={e => setSlug(e.target.value.toLowerCase())} disabled={saving} /><p className="text-xs text-muted-foreground break-all">{CRM_BIO_LINK_ORIGIN}/w/{slug || "seu-nome"}</p></div>
-        <div className="space-y-2"><Label htmlFor="bio-message">Mensagem de entrada</Label><Textarea id="bio-message" value={message} onChange={e => setMessage(e.target.value)} maxLength={2000} disabled={saving} /></div>
+        <div className="space-y-2">
+          <Label htmlFor="bio-message">Mensagem de entrada</Label>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Mensagens prontas">
+            {WHATSAPP_BIO_MESSAGE_PRESETS.map(preset => <Button
+              key={preset.label}
+              type="button"
+              size="sm"
+              variant={message === preset.message ? "default" : "outline"}
+              aria-pressed={message === preset.message}
+              disabled={saving}
+              onClick={() => setMessage(preset.message)}
+            >{preset.label}</Button>)}
+          </div>
+          <Textarea id="bio-message" value={message} onChange={e => setMessage(e.target.value)} maxLength={2000} disabled={saving} />
+          <p className="text-xs text-muted-foreground">Escolha uma mensagem pronta ou personalize o texto. Salve para atualizar o link.</p>
+        </div>
         <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : saved ? "Salvar alterações" : "Criar link"}</Button>
         {dirty && <p className="text-sm text-muted-foreground">Salve para atualizar o link. Até lá, ele usa o número e a mensagem anteriores.</p>}
         {saved && <div className="rounded-lg border border-border p-3 space-y-3">

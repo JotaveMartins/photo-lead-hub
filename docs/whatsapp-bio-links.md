@@ -2,9 +2,12 @@
 
 A área WhatsApp passa a ter um cartão “Link do WhatsApp”. Uma conta tem um link editável, com nome exclusivo, telefone e mensagem. O administrador usa a conta em visualização, conforme a impersonação existente.
 
-Mensagem inicial exata:
+Mensagens prontas selecionáveis nos botões:
 
-> Olá! Vim pelo Instagram e gostaria de mais informações
+- Instagram (padrão para novos links): “Olá, vim pelo Instagram”.
+- Google Meu Negócio: “Olá, vim pelo Google”.
+
+O texto continua editável. Selecionar uma opção apenas preenche o formulário; é necessário salvar para alterar o link. Mensagens já salvas não são substituídas automaticamente. Continua sendo um link por conta, com a mensagem escolhida.
 
 Endereço oficial: `https://crm.avanzodigital.com.br/w/{slug}`. O slug usa 3 a 50 letras minúsculas, números e hífens, começando e terminando com letra ou número. Nenhum link ou cliente é criado automaticamente. Com um único canal conectado, o botão mostra nome e telefone e preenche o campo em um clique. Com vários canais, um seletor controlado identifica o escolhido e preenche o telefone. A edição manual remove a indicação de canal selecionado. Números salvos nunca são substituídos automaticamente ao carregar; também é possível digitar um número sem conectar uma instância. Números brasileiros com DDD recebem 55; números internacionais devem incluir + e DDI.
 
