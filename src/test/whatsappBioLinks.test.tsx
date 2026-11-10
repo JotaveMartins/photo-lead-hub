@@ -77,6 +77,17 @@ describe("WhatsApp bio links",()=>{
   expect(screen.queryByRole("button",{name:/Antigo/})).not.toBeInTheDocument();
   expect(mocks.write).not.toHaveBeenCalled();
  });
+ it("creates a link from an accented client name using the same address shown in the preview",async()=>{
+  render(<WhatsAppBioLinkCard instances={[]}/>);
+  await screen.findByLabelText("WhatsApp com DDD");
+  fireEvent.change(screen.getByLabelText("WhatsApp com DDD"),{target:{value:"61999999999"}});
+  fireEvent.change(screen.getByLabelText("Nome no link"),{target:{value:"  Flávio Silva  "}});
+  expect(screen.getByText("https://crm.avanzodigital.com.br/w/flavio-silva")).toBeVisible();
+  fireEvent.click(screen.getByRole("button",{name:"Criar link"}));
+  await waitFor(()=>expect(mocks.write).toHaveBeenCalledWith({user_id:"effective-client",slug:"flavio-silva",phone:"5561999999999",message:DEFAULT_WHATSAPP_BIO_MESSAGE},{onConflict:"user_id"}));
+  expect(await screen.findByRole("link",{name:"Testar link"})).toHaveAttribute("href","https://crm.avanzodigital.com.br/w/flavio-silva");
+  expect(screen.getByLabelText("Nome no link")).toHaveValue("flavio-silva");
+ });
  it("does not show a generated link when the name is already taken",async()=>{
   mocks.write.mockResolvedValue({error:{code:"23505"}});
   render(<WhatsAppBioLinkCard instances={[]}/>);await screen.findByLabelText("WhatsApp com DDD");

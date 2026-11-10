@@ -14,6 +14,11 @@ export function normalizeBioPhone(value: string): string {
 export function validBioPhone(value: string): boolean {
   return /^[1-9]\d{7,14}$/.test(value);
 }
+export function normalizeBioSlug(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim().replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-").replace(/^-|-$/g, "");
+}
 export function validBioSlug(value: string): boolean {
   return /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(value);
 }

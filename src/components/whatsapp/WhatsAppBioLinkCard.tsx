@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CRM_BIO_LINK_ORIGIN, DEFAULT_WHATSAPP_BIO_MESSAGE, WHATSAPP_BIO_MESSAGE_PRESETS, normalizeBioPhone, validBioPhone, validBioSlug } from "@/lib/whatsappBioLink";
+import { CRM_BIO_LINK_ORIGIN, DEFAULT_WHATSAPP_BIO_MESSAGE, WHATSAPP_BIO_MESSAGE_PRESETS, normalizeBioPhone, normalizeBioSlug, validBioPhone, validBioSlug } from "@/lib/whatsappBioLink";
 
 type SavedLink = { slug: string; phone: string; message: string };
 type Props = { instances: { id: string; name: string; status: string | null; phone_number: string | null }[] };
@@ -50,23 +50,24 @@ export default function WhatsAppBioLinkCard({ instances }: Props) {
     return () => { cancelled = true; };
   }, [userId, attempt]);
 
+  const normalizedSlug = normalizeBioSlug(slug);
   const save = async () => {
     const normalized = normalizeBioPhone(phone);
-    if (!validBioSlug(slug)) { toast.error("Use de 3 a 50 letras minúsculas, números ou hífens. Comece e termine com letra ou número."); return; }
+    if (!validBioSlug(normalizedSlug)) { toast.error("Use um nome com 3 a 50 caracteres, como flavio-fotografia."); return; }
     if (!validBioPhone(normalized)) { toast.error("Informe um telefone válido com DDD. Para outros países, inclua + e o DDI."); return; }
     if (!message.trim() || message.length > 2000) { toast.error("Escreva uma mensagem de até 2.000 caracteres."); return; }
     if (!userId) return;
-    if (saved && saved.slug !== slug && !window.confirm("Ao mudar o nome, o link anterior deixará de funcionar. Continuar?")) return;
+    if (saved && saved.slug !== normalizedSlug && !window.confirm("Ao mudar o nome, o link anterior deixará de funcionar. Continuar?")) return;
     setSaving(true);
-    const record = { slug, phone: normalized, message };
+    const record = { slug: normalizedSlug, phone: normalized, message };
     const { error } = await supabase.from("whatsapp_bio_links").upsert({ user_id: userId, ...record }, { onConflict: "user_id" });
     setSaving(false);
     if (error) { toast.error(error.code === "23505" ? "Esse nome já está em uso. Escolha outro." : "Não foi possível salvar o link. Tente novamente."); return; }
-    setSaved(record); setPhone(`+${normalized}`);
+    setSaved(record); setSlug(normalizedSlug); setPhone(`+${normalized}`);
     toast.success("Link do WhatsApp salvo!");
   };
   const url = saved ? `${CRM_BIO_LINK_ORIGIN}/w/${saved.slug}` : "";
-  const dirty = !!saved && (saved.slug !== slug || saved.phone !== normalizeBioPhone(phone) || saved.message !== message);
+  const dirty = !!saved && (saved.slug !== normalizedSlug || saved.phone !== normalizeBioPhone(phone) || saved.message !== message);
 
   return <Card className="bg-card border-border">
     <CardHeader>
@@ -88,7 +89,7 @@ export default function WhatsAppBioLinkCard({ instances }: Props) {
           {selectedInstance && <p role="status" className="text-sm text-primary">Número de {selectedInstance.name} preenchido abaixo. Você já pode criar ou salvar o link.</p>}
         </div>}
         <div className="space-y-2"><Label htmlFor="bio-phone">WhatsApp com DDD</Label><Input id="bio-phone" type="tel" placeholder="(61) 99999-9999" value={phone} onChange={e => { setSelectedInstanceId(""); setPhone(e.target.value); }} disabled={saving} /><p className="text-xs text-muted-foreground">Números brasileiros recebem o DDI 55. Para outro país, informe + e o DDI.</p></div>
-        <div className="space-y-2"><Label htmlFor="bio-slug">Nome no link</Label><Input id="bio-slug" placeholder="renato" maxLength={50} value={slug} onChange={e => setSlug(e.target.value.toLowerCase())} disabled={saving} /><p className="text-xs text-muted-foreground break-all">{CRM_BIO_LINK_ORIGIN}/w/{slug || "seu-nome"}</p></div>
+        <div className="space-y-2"><Label htmlFor="bio-slug">Nome no link</Label><Input id="bio-slug" placeholder="renato" maxLength={100} value={slug} onChange={e => setSlug(e.target.value)} onBlur={() => setSlug(normalizedSlug)} disabled={saving} /><p className="text-xs text-muted-foreground break-all">{CRM_BIO_LINK_ORIGIN}/w/{normalizedSlug || "seu-nome"}</p><p className="text-xs text-muted-foreground">Acentos e espaços são ajustados automaticamente. Exemplo: Flávio Silva vira flavio-silva. Use de 3 a 50 caracteres no endereço final.</p></div>
         <div className="space-y-2">
           <Label htmlFor="bio-message">Mensagem de entrada</Label>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Mensagens prontas">
