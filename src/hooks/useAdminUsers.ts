@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
+import { edgeFunctionError } from "@/lib/edgeFunctionError";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useAdminUsers = () => {
@@ -28,7 +29,7 @@ export const useAdminUsers = () => {
         body: { nome, email, plano_basico: !!planoBasico },
       });
 
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) throw await edgeFunctionError(response.error, "Não foi possível criar o cliente");
       if (response.data?.error) throw new Error(response.data.error);
       return response.data;
     },
