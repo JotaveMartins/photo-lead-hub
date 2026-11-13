@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { grantApiClientAccess } from './logic.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -82,9 +83,18 @@ Deno.serve(async (req) => {
       .update({ senha: password, plano_basico: false })
       .eq('user_id', newUser.user.id)
 
+    // API-created accounts are customers: never leave them in the free trial.
+    const access = await grantApiClientAccess(adminClient, newUser.user.id)
+    if (!access.ok) {
+      console.error('create-user-api: could not set customer access', { user: newUser.user.id, message: access.message })
+      return json({ error: 'Conta criada, mas não foi possível liberar o acesso de cliente. Ajuste no painel.', user_id: newUser.user.id }, 500)
+    }
+    console.log('create-user-api: account created as customer', { user: newUser.user.id })
+
     return json({
       user: { id: newUser.user.id, email: newUser.user.email, nome },
       password,
+      access: 'cliente',
     })
   } catch (error) {
     return json({ error: (error as Error).message }, 500)
