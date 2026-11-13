@@ -133,6 +133,27 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ url: webhookUrl, enabled: true, events: WEBHOOK_EVENTS })
         });
       }
+      // Ignore group messages inside Evolution so group traffic never queues ahead of private chats.
+      try {
+        const curResp = await fetch(`${baseUrl}/settings/find/${instanceName}`, { headers: { apikey: apiKey } });
+        const cur: any = curResp.ok ? await curResp.json().catch(() => ({})) : {};
+        const sResp = await fetch(`${baseUrl}/settings/set/${instanceName}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": apiKey },
+          body: JSON.stringify({
+            rejectCall: cur?.rejectCall ?? false,
+            msgCall: cur?.msgCall ?? "",
+            alwaysOnline: cur?.alwaysOnline ?? false,
+            readMessages: cur?.readMessages ?? false,
+            readStatus: cur?.readStatus ?? false,
+            syncFullHistory: cur?.syncFullHistory ?? false,
+            groupsIgnore: true,
+          }),
+        });
+        console.log("groupsIgnore set for", instanceName, "status:", sResp.status);
+      } catch (e) {
+        console.error("Failed to set groupsIgnore for", instanceName, e);
+      }
       console.log("Webhook configured for", instanceName, "→", webhookUrl, "status:", whResp.status);
 
       const updateQuery = supabase.from("whatsapp_instances")
