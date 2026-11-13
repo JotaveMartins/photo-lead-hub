@@ -14,3 +14,9 @@ Esta alteração melhora o diagnóstico; não confirma nem corrige por si só um
 6. Informar a causa e a correção. Não republicar funções de WhatsApp: não fazem parte deste fluxo.
 
 Os testes locais da melhoria de erro cobrem e-mail já registrado, JWT inválido, falha de banco, resposta não JSON e erro de transporte. Os 21 testes isolados dos gatilhos padrão também passaram; isso não prova o estado atual do banco implantado.
+
+## Resultado da investigação (13/11/2026)
+
+- pirespatricksilva@icloud.com já existia: conta "I9 Eventos" criada em 12/11/2026 11:59 (Brasília), com perfil, papel user, senha gerada, teste grátis de 60 dias e quatro gatilhos do Inbox. A execução original terminou com sucesso.
+- Novas tentativas com o mesmo e-mail eram recusadas pelo Auth com "A user with this email address has already been registered" (HTTP 400). A conta fica no segmento "Testes grátis", que não aparece no filtro padrão "Clientes".
+- Correção em create-user: e-mail normalizado (espaços e maiúsculas), resposta HTTP 409 em português informando o nome, a data e o segmento da conta existente, consulta somente leitura, e logs sem credenciais para sucesso e falhas.
