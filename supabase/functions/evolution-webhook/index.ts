@@ -2,6 +2,18 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { whatsappSentAt } from "../_shared/whatsapp-time.ts";
 import { buildQrDataUrl } from "../_shared/qrcode.ts";
+import { declaredFileLength, isOverMediaLimit, mediaLimitBytes, overLimitBody } from "../_shared/media-limits.ts";
+
+// Media is fetched after Evolution already got its 200, so a slow download never
+// holds up the next messages. Still capped so a stuck download frees the worker.
+const MEDIA_DOWNLOAD_TIMEOUT_MS = 20_000;
+
+type MediaResult = { url: string | null; overLimit: boolean };
+
+const runInBackground = (job: Promise<unknown>) => {
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(job);
+};
 
 const normalizeWhatsApp = (value: string | null | undefined) => String(value || "").replace(/\D/g, "");
 
@@ -91,20 +103,26 @@ async function uploadBase64ToStorage(
   rawBase64: string,
   userId: string,
   whatsappMsgId: string,
-  mimeType: string | null
-): Promise<string | null> {
+  mimeType: string | null,
+  maxBytes: number
+): Promise<MediaResult> {
   try {
     const matches = rawBase64.match(/^data:([^;]+);base64,(.+)$/s);
     const hintedMime = matches?.[1] || mimeType || "application/octet-stream";
     // Strip whitespace/newlines that some APIs add
     const b64 = (matches?.[2] || rawBase64).replace(/\s+/g, "");
+    const approxBytes = Math.floor((b64.length * 3) / 4);
+    if (approxBytes > maxBytes) {
+      console.log(`media_over_limit after download: ${approxBytes} bytes > ${maxBytes}`);
+      return { url: null, overLimit: true };
+    }
 
     let binary: string;
     try {
       binary = atob(b64);
     } catch (err) {
       console.error("Invalid base64 (atob failed):", err);
-      return null;
+      return { url: null, overLimit: false };
     }
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -118,7 +136,7 @@ async function uploadBase64ToStorage(
         `Hinted MIME was: ${hintedMime}. ` +
         `This usually means we got encrypted WhatsApp bytes — webhookBase64:true must be enabled on the Evolution webhook.`
       );
-      return null;
+      return { url: null, overLimit: false };
     }
     if (hintedMime && hintedMime !== detectedMime && !hintedMime.startsWith("application/octet-stream")) {
       console.log(`MIME hint "${hintedMime}" differs from detected "${detectedMime}" — using detected.`);
@@ -133,14 +151,14 @@ async function uploadBase64ToStorage(
       .upload(path, bytes, { contentType: finalMime, upsert: true });
     if (uploadErr) {
       console.error("Storage upload error:", uploadErr);
-      return null;
+      return { url: null, overLimit: false };
     }
 
     const { data: urlData } = supabase.storage.from("inbox-media").getPublicUrl(path);
-    return urlData?.publicUrl || null;
+    return { url: urlData?.publicUrl || null, overLimit: false };
   } catch (err) {
     console.error("uploadBase64ToStorage error:", err);
-    return null;
+    return { url: null, overLimit: false };
   }
 }
 
@@ -152,8 +170,9 @@ async function downloadAndStoreMedia(
   msgContent: any,
   userId: string,
   whatsappMsgId: string,
-  mimeType: string | null
-): Promise<string | null> {
+  mimeType: string | null,
+  maxBytes: number
+): Promise<MediaResult> {
   // 1) Try base64 directly from the webhook payload (when webhookBase64: true)
   const directB64 =
     findBase64InPayload(msgContent) ||
@@ -161,10 +180,10 @@ async function downloadAndStoreMedia(
     findBase64InPayload(fullPayload);
   if (directB64) {
     console.log(`Found direct base64 in webhook payload (${directB64.length} chars)`);
-    const url = await uploadBase64ToStorage(supabase, directB64, userId, whatsappMsgId, mimeType);
-    if (url) {
-      console.log("Stored media from direct base64:", url);
-      return url;
+    const result = await uploadBase64ToStorage(supabase, directB64, userId, whatsappMsgId, mimeType, maxBytes);
+    if (result.url || result.overLimit) {
+      if (result.url) console.log("Stored media from direct base64:", result.url);
+      return result;
     }
   } else {
     const dataKeys = Object.keys(fullPayload?.data || {}).join(",");
@@ -181,7 +200,7 @@ async function downloadAndStoreMedia(
     const apiKey = settings.api_key || Deno.env.get("EVOLUTION_API_KEY");
     if (!baseUrl || !apiKey) {
       console.error("Evolution API not configured for media download");
-      return null;
+      return { url: null, overLimit: false };
     }
 
     const attempts: { endpoint: string; body: any }[] = [
@@ -198,6 +217,7 @@ async function downloadAndStoreMedia(
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": apiKey },
         body: JSON.stringify(att.body),
+        signal: AbortSignal.timeout(MEDIA_DOWNLOAD_TIMEOUT_MS),
       });
       const text = await resp.text();
       if (!resp.ok) {
@@ -211,16 +231,16 @@ async function downloadAndStoreMedia(
         console.error("getBase64 returned no base64. Response keys:", Object.keys(result || {}).join(","));
         continue;
       }
-      const url = await uploadBase64ToStorage(supabase, raw, userId, whatsappMsgId, mimeType);
-      if (url) {
-        console.log("Stored media from API base64:", url);
-        return url;
+      const stored = await uploadBase64ToStorage(supabase, raw, userId, whatsappMsgId, mimeType, maxBytes);
+      if (stored.url || stored.overLimit) {
+        if (stored.url) console.log("Stored media from API base64:", stored.url);
+        return stored;
       }
     }
-    return null;
+    return { url: null, overLimit: false };
   } catch (err) {
     console.error("downloadAndStoreMedia API path error:", err);
-    return null;
+    return { url: null, overLimit: false };
   }
 }
 
@@ -257,8 +277,11 @@ Deno.serve(async (req) => {
     const userId = instanceData?.user_id;
     const instanceId = instanceData?.id;
     if (!userId) {
-      console.error(`No user found for instance: ${instanceName}`);
-      return new Response(JSON.stringify({ error: "Instance user not found" }), { status: 404 });
+      // Answer 200 so Evolution does not retry events of WhatsApps that belong to no CRM account.
+      console.warn(`Ignoring event for unknown instance: ${instanceName}`);
+      return new Response(JSON.stringify({ success: true, ignored: "unknown_instance" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Log the webhook
@@ -367,6 +390,20 @@ Deno.serve(async (req) => {
         type = "text";
         const emoji = realMessage.reactionMessage.text || "";
         content = emoji ? `Reagiu: ${emoji}` : "Removeu reação";
+      }
+
+      // Heavy inbound media is not downloaded: save a notice so the chat still shows it.
+      const mediaCaption = content;
+      let mediaOverLimit = false;
+      if (type !== "text" && !key.fromMe) {
+        const mediaNode = realMessage.imageMessage || realMessage.videoMessage || realMessage.audioMessage ||
+          realMessage.documentMessage || realMessage.stickerMessage;
+        const declaredBytes = declaredFileLength(mediaNode?.fileLength);
+        if (isOverMediaLimit(type, mediaMimeType, declaredBytes)) {
+          mediaOverLimit = true;
+          content = overLimitBody(type, mediaMimeType, mediaCaption);
+          console.log("media_over_limit", { message_id: key.id, type, mime: mediaMimeType, bytes: declaredBytes });
+        }
       }
 
       // 2. Find or create inbox conversation.
@@ -479,19 +516,10 @@ Deno.serve(async (req) => {
 
       // 3. Download inbound media and store permanently in Supabase Storage
       // (the WhatsApp CDN URL is encrypted and short-lived — useless for display)
-      let resolvedMediaUrl: string | null = null;
-      if (type !== "text" && !key.fromMe) {
-        console.log(`Processing inbound ${type} media for msg ${key.id}, mime=${mediaMimeType}`);
-        const stored = await downloadAndStoreMedia(
-          supabase, instanceName, payload, key, message, userId, key.id || crypto.randomUUID(), mediaMimeType
-        );
-        if (!stored) {
-          console.error(`Failed to store ${type} media for msg ${key.id} — saving with null URL`);
-        }
-        resolvedMediaUrl = stored; // null if download failed → MediaBubble shows "indisponível"
-      } else {
-        resolvedMediaUrl = mediaUrl;
-      }
+      // Inbound media is downloaded in the background after the message is saved.
+      const needsMediaDownload = type !== "text" && !key.fromMe && !mediaOverLimit;
+      const resolvedMediaUrl: string | null = key.fromMe ? mediaUrl : null;
+      let insertedFresh = false;
 
       // 4. Save message to inbox_messages
       // Idempotent save: Evolution echoes outbound messages back via webhook,
@@ -570,8 +598,29 @@ Deno.serve(async (req) => {
             if ((msgError as any).code !== "23505") throw msgError;
           } else {
             savedMsg = inserted;
+            insertedFresh = true;
           }
         }
+      }
+
+      if (needsMediaDownload && insertedFresh && savedMsg?.id) {
+        const savedId = savedMsg.id;
+        const maxBytes = mediaLimitBytes(type, mediaMimeType);
+        runInBackground((async () => {
+          console.log(`Processing inbound ${type} media for msg ${key.id}, mime=${mediaMimeType}, limit=${maxBytes}`);
+          const result = await downloadAndStoreMedia(
+            supabase, instanceName, payload, key, message, userId, key.id || crypto.randomUUID(), mediaMimeType, maxBytes
+          );
+          if (result.url) {
+            await supabase.from("inbox_messages").update({ media_url: result.url }).eq("id", savedId);
+          } else if (result.overLimit) {
+            await supabase.from("inbox_messages")
+              .update({ body: overLimitBody(type, mediaMimeType, mediaCaption) })
+              .eq("id", savedId);
+          } else {
+            console.error(`Failed to store ${type} media for msg ${key.id} — kept with null URL`);
+          }
+        })().catch((err) => console.error("background media error:", err)));
       }
 
       // 5. Trigger logic for new inbound messages

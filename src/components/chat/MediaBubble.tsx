@@ -62,6 +62,8 @@ const DownloadButton = ({ url, filename, light }: { url: string; filename: strin
   </button>
 );
 
+const OVER_LIMIT_NOTICE = /acima de \d+ MB — (veja|ouça) no WhatsApp/;
+
 export const MediaBubble = ({ m }: { m: Message }) => {
   const [imageOpen, setImageOpen] = useState(false);
   const type = m.type || "text";
@@ -174,10 +176,17 @@ export const MediaBubble = ({ m }: { m: Message }) => {
       audio: "Áudio indisponível",
       document: "Documento indisponível",
     };
+    // Heavy files are saved with a notice ("… acima de N MB — veja no WhatsApp") instead of the file.
+    if (caption && OVER_LIMIT_NOTICE.test(caption)) {
+      return <p className="leading-relaxed whitespace-pre-wrap text-sm italic opacity-80">{caption}</p>;
+    }
     return (
-      <div className="flex items-center gap-2 opacity-70 italic text-xs">
-        {icons[type] ?? <Paperclip className="w-4 h-4" />}
-        <span>{labels[type] ?? "Mídia indisponível"}</span>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 opacity-70 italic text-xs">
+          {icons[type] ?? <Paperclip className="w-4 h-4" />}
+          <span>{labels[type] ?? "Mídia indisponível"}</span>
+        </div>
+        {caption && <p className="text-xs leading-relaxed whitespace-pre-wrap">{caption}</p>}
       </div>
     );
   }

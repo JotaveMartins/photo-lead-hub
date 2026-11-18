@@ -5,6 +5,7 @@ import ts from "typescript";
 import { whatsappSentAt } from "../../supabase/functions/_shared/whatsapp-time";
 import * as inspection from "../../supabase/functions/diagnose-whatsapp-delivery/inspect";
 import { sortInboxMessages } from "@/lib/inboxMessageOrder";
+import * as mediaLimits from "../../supabase/functions/_shared/media-limits";
 
 beforeAll(() => vi.stubGlobal("AbortSignal", { timeout: () => new AbortController().signal }));
 afterAll(() => vi.unstubAllGlobals());
@@ -120,7 +121,7 @@ describe("Real webhook persistence", () => {
    }; return q;
   };
   const source=ts.transpileModule(readFileSync("supabase/functions/evolution-webhook/index.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-  runInNewContext(source, { exports: {}, require: (name: string) => name.includes("whatsapp-time") ? { whatsappSentAt } : name.includes("qrcode") ? {} : { createClient: () => ({ from }) }, Deno: { env: { get: () => "synthetic" }, serve: (fn: typeof handler) => { handler=fn; } }, Response, console: { log: vi.fn(), error: vi.fn() } });
+  runInNewContext(source, { exports: {}, require: (name: string) => name.includes("whatsapp-time") ? { whatsappSentAt } : name.includes("qrcode") ? {} : name.includes("media-limits") ? mediaLimits : { createClient: () => ({ from }) }, Deno: { env: { get: () => "synthetic" }, serve: (fn: typeof handler) => { handler=fn; } }, Response, console: { log: vi.fn(), error: vi.fn() } });
   const result=await handler(new Request("https://example.test", { method: "POST", body: JSON.stringify({ event: "MESSAGES_UPSERT", instance: "synthetic", data: { key: { id: "message", remoteJid: "5585000000000@s.whatsapp.net", fromMe: false }, message: { conversation: "Synthetic message" }, messageTimestamp: epoch } }) }));
   expect(result.status).toBe(200);
   expect(inserted.timestamp).toBe("2026-11-07T17:00:00.000Z");
