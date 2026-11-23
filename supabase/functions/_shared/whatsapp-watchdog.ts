@@ -138,3 +138,15 @@ export function nextState(prev: InstanceState | undefined, diagnosis: Diagnosis,
     needs_reconnect: diagnosis.status === "ok" ? false : base.needs_reconnect || action === "flag",
   };
 }
+
+/**
+ * Só vigia conexões de contas com acesso ativo ao CRM (has_active_crm_access):
+ * contas bloqueadas, de ex-clientes ou com teste/plano vencido ficam de fora,
+ * para não reiniciar nem pedir reconexão de quem não usa mais o sistema.
+ */
+export function filterWatchedInstances<T extends { user_id: string | null }>(
+  instances: T[],
+  activeUserIds: ReadonlySet<string>,
+): T[] {
+  return instances.filter((i) => !!i.user_id && activeUserIds.has(i.user_id));
+}

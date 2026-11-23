@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { authenticateCronRequest } from "../_shared/cron-auth.ts";
 import {
   type InstanceState, type RecentMessage, WATCHDOG,
-  decideAction, diagnose, needsVolumeCheck, nextState,
+  decideAction, diagnose, filterWatchedInstances, needsVolumeCheck, nextState,
 } from "../_shared/whatsapp-watchdog.ts";
 
 const cors = {
@@ -59,9 +59,21 @@ Deno.serve(async (req) => {
   const { data: stateRow } = await db.from("app_settings").select("value").eq("key", STATE_KEY).maybeSingle();
   const prevStates = ((stateRow?.value as any)?.instances ?? {}) as Record<string, InstanceState & { name?: string }>;
 
-  const { data: instances, error } = await db.from("whatsapp_instances")
+  const { data: connected, error } = await db.from("whatsapp_instances")
     .select("id, name, user_id, status").eq("status", "connected");
   if (error) return json({ error: "Falha ao listar conexões" }, 500);
+
+  // Ignora contas bloqueadas ou sem acesso ativo ao CRM (ex-clientes, teste vencido).
+  const ownerIds = [...new Set((connected ?? []).map((i) => i.user_id).filter(Boolean) as string[])];
+  const activeUserIds = new Set<string>();
+  await Promise.all(ownerIds.map(async (uid) => {
+    const { data: active, error: accessError } = await db.rpc("has_active_crm_access", { p_user_id: uid });
+    // Em caso de falha na consulta, mantém a conta vigiada (não desliga o vigia por engano).
+    if (accessError || active === true) activeUserIds.add(uid);
+  }));
+  const instances = filterWatchedInstances(connected ?? [], activeUserIds);
+  const skipped = (connected ?? []).filter((i) => !instances.includes(i)).map((i) => i.name);
+  if (skipped.length) console.log("watchdog_skipped_inactive_accounts", { instances: skipped });
 
   const since = new Date(now.getTime() - WATCHDOG.SILENCE_HOURS * 3_600_000).toISOString();
 
@@ -158,6 +170,7 @@ Deno.serve(async (req) => {
 
   return json({
     checked: results.length,
+    skipped_inactive: skipped,
     dry_run: dryRun,
     trigger,
     problems: results.filter((r) => r.state.status !== "ok").map((r) => ({

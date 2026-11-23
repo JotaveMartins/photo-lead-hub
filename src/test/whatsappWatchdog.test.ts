@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  WATCHDOG, decideAction, diagnose, isSilenceWindowInBusinessHours, nextState,
+  WATCHDOG, decideAction, diagnose, filterWatchedInstances, isSilenceWindowInBusinessHours, nextState,
 } from "../../supabase/functions/_shared/whatsapp-watchdog";
 
 // 15:00 em Brasília (UTC-3)
@@ -63,5 +63,16 @@ describe("Vigia do WhatsApp — ações", () => {
     const st = nextState(prev, { status: "ok", reason: null, lagSeconds: 1 }, "none", false, now);
     expect(st.restarts).toEqual([]);
     expect(st.needs_reconnect).toBe(false);
+  });
+});
+
+describe("Vigia do WhatsApp — contas inativas", () => {
+  it("ignora conexões de contas bloqueadas ou sem acesso ativo", () => {
+    const list = [
+      { id: "a", user_id: "ativo" },
+      { id: "b", user_id: "bloqueado" },
+      { id: "c", user_id: null },
+    ];
+    expect(filterWatchedInstances(list, new Set(["ativo"])).map((i) => i.id)).toEqual(["a"]);
   });
 });
