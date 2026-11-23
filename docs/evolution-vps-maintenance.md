@@ -50,3 +50,14 @@ O nome do container muda a cada deploy no Easypanel? Use o nome do serviço
 3. **Conectar** e ler o QR Code novo.
 
 O vigia automático (Admin → Configurações → Vigia do WhatsApp) mostra quais contas precisam disso.
+
+## Causa raiz dos atrasos (23/11/2026)
+
+Evolution 2.3.7 usa Baileys 7.0.0-rc.9, que não confirma o novo aviso de status/stories que o WhatsApp
+passou a enviar para algumas contas. O WhatsApp derruba a conexão 50 min depois e, em cada reconexão,
+só libera algumas mensagens antigas antes de travar de novo — a conta fica "open", sem receber, e o atraso cresce.
+Evidência no CRM: conexões do Igor reabrem a cada 50 min e só 1–4 mensagens de ~30 h antes chegam ~30 s depois.
+Correção oficial: imagem `evoapicloud/evolution-api:v2.3.8` (patch no Baileys; mensagens retidas são entregues
+sem novo QR). Referências: Baileys #2858, Evolution #2778 e PR #2804.
+Confirmação nos logs: `docker logs --since 3h <container> 2>&1 | grep -i "stream errored" | tail -20`
+(procurar `class":"status"`).
