@@ -169,6 +169,13 @@
       "when": 1794319200001,
       "tag": "0023_reload_schema_after_default_inbox_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795463193283,
+      "tag": "0024_restrict_webhook_logs",
+      "breakpoints": true
     }
   ]
 }
