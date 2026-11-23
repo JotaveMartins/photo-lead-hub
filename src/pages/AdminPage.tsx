@@ -10,6 +10,7 @@ import { ptBR } from "date-fns/locale";
 import { UserPlus, Trash2, Copy, Check, LogIn, Settings, Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EvolutionSettingsCard from "@/components/admin/EvolutionSettingsCard";
+import WhatsAppWatchdogCard from "@/components/admin/WhatsAppWatchdogCard";
 import CaptionAiSettingsCard from "@/components/admin/CaptionAiSettingsCard";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -298,6 +299,7 @@ const AdminPage = () => {
               <p className="text-muted-foreground">Configurações globais do sistema (super admin).</p>
             </div>
             <EvolutionSettingsCard />
+            <WhatsAppWatchdogCard />
             <CaptionAiSettingsCard />
           </TabsContent>
         )}
