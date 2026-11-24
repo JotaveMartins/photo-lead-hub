@@ -1,3 +1,4 @@
+import { parseLocalDate } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, DollarSign, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -19,7 +20,7 @@ interface ReportDrillDownProps {
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d: string | null) => {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("pt-BR");
+  return (/^\d{4}-\d{2}-\d{2}$/.test(d) ? parseLocalDate(d) : new Date(d)).toLocaleDateString("pt-BR");
 };
 
 const ReportDrillDown = ({ open, onOpenChange, title, leads, dateField = "created_at", dateLabel = "Data", dates }: ReportDrillDownProps) => {

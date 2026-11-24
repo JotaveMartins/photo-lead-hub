@@ -1,10 +1,11 @@
-// Endpoint para o BI: leads de WhatsApp (trigger, origem "Tráfego Pago") e status da conexão por conta Meta.
+// Leads Tráfego Pago pela data de contato (ou criação quando ausente), no período exato do BI.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key' }
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 const DATE = /^\d{4}-\d{2}-\d{2}$/
+const validDate = (s: string) => DATE.test(s) && Number.isFinite(Date.parse(`${s}T12:00:00Z`)) && new Date(`${s}T12:00:00Z`).toISOString().slice(0, 10) === s
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -19,14 +20,18 @@ Deno.serve(async (req) => {
   const { accounts, from, to } = body ?? {}
   if (!Array.isArray(accounts) || accounts.length > 1000 || !accounts.every((a) => typeof a === 'string' && a.length <= 64))
     return json({ error: 'accounts inválido' }, 400)
-  if (typeof from !== 'string' || typeof to !== 'string' || !DATE.test(from) || !DATE.test(to))
+  if (typeof from !== 'string' || typeof to !== 'string' || !validDate(from) || !validDate(to) || from > to)
     return json({ error: 'from/to inválidos' }, 400)
+
+  if (body.date_basis != null && body.date_basis !== 'contact_or_created')
+    return json({ error: 'date_basis inválido' }, 400)
 
   const norm = (s: string) => s.trim().replace(/^act_/i, '')
   const wanted = [...new Set(accounts.map(norm).filter(Boolean))]
-  const result: Record<string, { in_crm: boolean; whatsapp_connected: boolean; leads: number; client_url: string | null }> = {}
+  const result: Record<string, { in_crm: boolean; whatsapp_connected: boolean; leads: number; client_url: string | null; mapping_ambiguous?: boolean }> = {}
   for (const a of wanted) result[a] = { in_crm: false, whatsapp_connected: false, leads: 0, client_url: null }
-  if (!wanted.length) return json({ accounts: result })
+  const response = () => json({ accounts: result, date_basis: 'contact_or_created', period: { from, to }, timezone: 'America/Sao_Paulo' })
+  if (!wanted.length) return response()
 
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   const variants = wanted.flatMap((a) => [a, `act_${a}`])
@@ -58,24 +63,46 @@ Deno.serve(async (req) => {
       // This is a navigation destination, never an authentication credential.
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
         result[acc].client_url = `https://crm.avanzodigital.com.br/admin/clientes/${userId}`
+    } else {
+      // Never mix different companies into one BI client's total.
+      result[acc].mapping_ambiguous = true
+      for (const userId of users) userToAcc.delete(userId)
     }
   }
   const userIds = [...userToAcc.keys()]
-  if (!userIds.length) return json({ accounts: result })
+  if (!userIds.length) return response()
 
-  const { data: inst } = await db.from('whatsapp_instances').select('user_id, status').in('user_id', userIds)
+  const { data: inst, error: instErr } = await db.from('whatsapp_instances').select('user_id, status').in('user_id', userIds)
+  if (instErr) return json({ error: instErr.message }, 500)
   for (const i of inst ?? []) {
     if (i.status === 'connected' || i.status === 'open') result[userToAcc.get(i.user_id!)!].whatsapp_connected = true
   }
 
-  // Intervalo em horário de São Paulo (UTC-3)
+  // DATE contact values are calendar days; created_at timestamps use São Paulo boundaries.
   const start = `${from}T00:00:00-03:00`
-  const end = `${to}T23:59:59.999-03:00`
-  const { data: leads, error: lErr } = await db.from('leads').select('user_id')
-    .in('user_id', userIds).eq('origem', 'Tráfego Pago').is('deleted_at', null)
-    .gte('created_at', start).lte('created_at', end).limit(100000)
-  if (lErr) return json({ error: lErr.message }, 500)
-  for (const l of leads ?? []) result[userToAcc.get(l.user_id)!].leads++
+  const nextDay = new Date(`${to}T12:00:00Z`)
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+  const endExclusive = `${nextDay.toISOString().slice(0, 10)}T00:00:00-03:00`
+  const seen = new Set<string>()
+  // Disjoint branches implement COALESCE(data_contato, created_at) without OR double counting.
+  for (const byContact of [true, false]) {
+    for (let offset = 0; ; offset += 1000) {
+      let query = db.from('leads').select('id, user_id')
+        .in('user_id', userIds).eq('origem', 'Tráfego Pago').is('deleted_at', null)
+      query = byContact
+        ? query.gte('data_contato', from).lte('data_contato', to)
+        : query.is('data_contato', null).gte('created_at', start).lt('created_at', endExclusive)
+      const { data: leads, error: lErr } = await query.order('id').range(offset, offset + 999)
+      if (lErr) return json({ error: lErr.message }, 500)
+      for (const lead of leads ?? []) {
+        if (!seen.has(lead.id)) {
+          seen.add(lead.id)
+          result[userToAcc.get(lead.user_id)!].leads++
+        }
+      }
+      if (!leads || leads.length < 1000) break
+    }
+  }
 
-  return json({ accounts: result })
+  return response()
 })

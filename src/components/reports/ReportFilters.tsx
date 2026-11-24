@@ -40,7 +40,7 @@ export const ALL_CLIENTS = "__all__";
 const periodLabels: Record<PeriodOption, string> = {
   today: "Hoje",
   yesterday: "Ontem",
-  last7: "Últimos 7 dias",
+  last7: "Últimos 7 dias completos",
   last30: "Últimos 30 dias",
   this_month: "Este mês",
   last_month: "Mês anterior",
@@ -65,8 +65,8 @@ export function getDateRange(period: PeriodOption, customStart: string, customEn
     }
     case "last7": {
       const s = new Date(today);
-      s.setDate(s.getDate() - 6);
-      return { start: s, end: tomorrow };
+      s.setDate(s.getDate() - 7);
+      return { start: s, end: today };
     }
     case "last30": {
       const s = new Date(today);

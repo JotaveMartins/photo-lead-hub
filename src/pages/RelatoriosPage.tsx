@@ -66,6 +66,7 @@ const RelatoriosPage = () => {
   // Apply origem/interesse filters client-side so changing them does not collapse the dropdown options
   const leads = useMemo(() => {
     return allLeads.filter((l) => {
+      if (l.deleted_at) return false;
       if (origem.length && (!l.origem || !origem.includes(l.origem))) return false;
       if (interesse.length && (!l.interesse || !interesse.includes(l.interesse))) return false;
       return true;
@@ -75,7 +76,7 @@ const RelatoriosPage = () => {
   // Helper: check if a timestamp falls within the selected period
   const inRange = (ts: string | null) => {
     if (!ts) return false;
-    const d = new Date(ts);
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(ts) ? parseLocalDate(ts) : new Date(ts);
     return d >= dateRange.start && d < dateRange.end;
   };
 

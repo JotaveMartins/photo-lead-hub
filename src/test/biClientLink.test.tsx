@@ -14,9 +14,9 @@ function endpoint({ profiles = [{ user_id: owner, meta_ad_account_id: "act_123" 
   let handler: (req: Request) => Promise<Response>;
   const from = vi.fn((table: string) => {
     let start = 0; let end = 999;
-    const q = { select: () => q, in: () => q, eq: () => q, is: () => q, gte: () => q, lte: () => q, limit: () => q, order: () => q,
+    const q = { select: () => q, in: () => q, eq: () => q, is: () => q, gte: () => q, lte: () => q, lt: () => q, limit: () => q, order: () => q,
       range: (a: number, b: number) => { start = a; end = b; return q; },
-      then: (resolve: (value: unknown) => unknown) => Promise.resolve(resolve({ data: table === "profiles" ? profiles.slice(start,end+1) : table === "whatsapp_instances" ? connected ? [{ user_id: owner, status: "connected" }] : [] : Array.from({ length: count }, () => ({ user_id: owner })), error: table === "profiles" && profileError ? { message: "database error" } : null })),
+      then: (resolve: (value: unknown) => unknown) => Promise.resolve(resolve({ data: table === "profiles" ? profiles.slice(start,end+1) : table === "whatsapp_instances" ? connected ? [{ user_id: owner, status: "connected" }] : [] : Array.from({ length: count }, (_, i) => ({ id: `lead-${i}`, user_id: owner })).slice(start,end+1), error: table === "profiles" && profileError ? { message: "database error" } : null })),
     };
     return q;
   });
